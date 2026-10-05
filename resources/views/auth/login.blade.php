@@ -1,0 +1,199 @@
+@extends('auth.main.app')
+@section('content')
+    <section class="h-100 gradient-form">
+        <div class="container py-5 h-100">
+            <div class="row d-flex justify-content-center align-items-center h-100">
+                <div class="col-xl-10">
+                    <div class="card rounded-4 text-black"
+                        style="box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.55); border-radius: 20px; overflow: hidden;">
+                        <div class="row g-0">
+                            <div class="col-lg-7 d-flex align-items-center">
+                                <div id="carousel-indicators-thumb" class="carousel slide carousel-fade h-100"
+                                    data-bs-ride="carousel">
+                                    <div class="carousel-indicators carousel-indicators-thumb">
+                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
+                                            data-bs-slide-to="0" class=" ratio ratio-4x3 active"
+                                            style="background-image: url(./assets/img/branding/mdka-bg.jpg)"></button>
+                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
+                                            data-bs-slide-to="1" class=" ratio ratio-4x3"
+                                            style="background-image: url(./assets/img/branding/mdka-bg-2.png)"></button>
+                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
+                                            data-bs-slide-to="2" class=" ratio ratio-4x3"
+                                            style="background-image: url(./assets/img/branding/mdka-bg-3.jpg)"></button>
+
+                                    </div>
+                                    <div class="carousel-inner h-100">
+                                        <div class="carousel-item h-100  active">
+                                            <img class="d-block w-100 h-100" alt=""
+                                                src="{{ asset('assets/img/bg-auth/mdka-bg.jpg') }}"
+                                                style="object-fit: cover;">
+                                        </div>
+                                        <div class="carousel-item h-100  active">
+                                            <img class="d-block w-100 h-100" alt=""
+                                                src="{{ asset('assets/img/bg-auth/mdka-bg-1.jpg') }}"
+                                                style="object-fit: cover;">
+                                        </div>
+                                        <div class="carousel-item  h-100  ">
+                                            <img class="d-block w-100 h-100" alt=""
+                                                src="{{ asset('assets/img/bg-auth/mdka-bg-2.jpg') }}"
+                                                style="object-fit:cover;">
+                                        </div>
+                                        <div class="carousel-item  h-100 ">
+                                            <img class="d-block w-100 h-100" alt=""
+                                                src="{{ asset('assets/img/bg-auth/mdka-bg-3.jpg') }}"
+                                                style="object-fit: cover;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 d-flex flex-column justify-content-between">
+                                <div class="p-md-5 mx-md-3 mb-0 d-flex justify-content-between align-items-center">
+                                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="38px"
+                                        alt="">
+
+                                    <img src="{{ asset('assets/img/branding/mbm-logo.jpg') }}" height="56px"
+                                        alt="">
+                                </div>
+                                <div class="card-body px-md-5 pt-0 mx-md-3">
+                                    <div class="text-center mt-4">
+                                        <h1 class=" text-secondary">{{ config('app.name') }}
+                                        </h1>
+                                    </div>
+                                    <hr class="my-3">
+                                    <div class="text-center mb-3">
+                                        <span class="mb-2 text-muted w-100" style="font-size: 15px">
+                                            Sign In with SSO</span>
+                                    </div>
+
+                                    <form id="formAuthentication" class="mt-3" action="{{ route('login') }}"
+                                        method="POST">
+                                        @csrf
+                                        <div class="d-flex flex-column flex-lg-row justify-content-center gap-3 mb-2">
+                                            @if (config('services.google.client_id'))
+                                            <a href="{{ route('sso-login') }}"
+                                                class="btn btn-login btn-lg p-3 d-flex flex-row gap-2"
+                                                style="width: 120px;">
+                                                <img src="{{ asset('assets/img/logo/google.png') }}" class="rounded-top"
+                                                    width="24" alt="">
+                                                <span class="h4 mb-0 "> Google </span>
+                                            </a>
+                                            @endif
+                                            <a href="{{ route('sso-login-mirosoft') }}"
+                                                class="btn btn-login btn-lg p-3 d-flex flex-row gap-2"
+                                                style="width: 120px;">
+                                                <img src="{{ asset('assets/img/logo/microsoft.png') }}" class="rounded-top"
+                                                    width="24" alt="">
+                                                <span class="h4 mb-0">Microsoft</span>
+                                            </a>
+                                        </div>
+                                    </form>
+                                    <div class="hr-text my-4"> <span class="h6 mb-0"> Or </span> </div>
+                                    <div class="text-center">
+                                        <span class="text-muted w-100" style="font-size: 15px">
+                                            Sign in with Merdeka Account</span>
+                                    </div> 
+                                    <form id="loginForm" class="p-3 rounded" method="POST" action="{{ route('login') }}">
+                                        @csrf
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label for="employeeId" class="form-label  ">Email</label>
+                                                <input type="email" class="form-control" id="employeeId"
+                                                    name="emailusername" placeholder="Email" required>
+                                            </div>
+                                            <div class="col-12">
+
+                                                <div class="d-flex justify-content-between">
+                                                    <label for="employeeId" class="form-label  ">Password</label>
+                                                    <a href="https://msafe.merdekacoppergold.com/Account/ForgotPassword"
+                                                        class="text-primary" target="_blank" rel="noopener">Forgot
+                                                        Password</a>
+                                                </div>
+
+                                                <input type="password" class="form-control" id="password"
+                                                    name="password" placeholder="Password" required>
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary w-100">Login</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <br>
+                                    <div class="text-center">
+                                        Access Login Guide :
+                                         <button
+                                            class="btn btn-sm btn-info rounded" data-bs-toggle="modal"
+                                            data-bs-target="#accessLoginGuide">
+                                            Click
+                                            Here</button>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-center pb-2">
+                                    <small class="text-muted">© PT Merdeka Copper Gold Tbk {{ date('Y') }}</small>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Modal -->
+    <div class="modal fade" id="accessLoginGuide" tabindex="-1" aria-labelledby="accessLoginGuide" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-body p-3">
+                    <div class="row row-deck">
+                        <div class="col ">
+                            <div class="px-3 py-5 w-100 border rounded d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-center align-items-center gap-2">
+                                    <div>
+                                        <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="42px"
+                                            alt="">
+                                    </div>
+                                    <div><span class="display-5 text-secondary fw-light">|</span></div>
+                                    <div>
+                                        <img src="{{ asset('assets/img/logo/google.png') }}" class="rounded-top"
+                                            height="36px" alt="">
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    Merdeka Copper Gold Group
+                                    <br><span class="text-warning small">@merdekacoppergold.com</span>
+                                    <br>access via
+                                    <br> <span class="text-primary fw-bold">Google SSO</span>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="col ">
+                            <div class="px-3 py-5 w-100  border rounded d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-center align-items-center gap-2">
+                                    <div>
+                                        <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="42px"
+                                            alt="">
+                                    </div>
+                                    <div><span class="display-5 text-secondary fw-light">|</span></div>
+                                    <div>
+                                        <img src="{{ asset('assets/img/logo/microsoft.png') }}" class="rounded-top"
+                                            height="36px" alt="">
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    Merdeka Battery Materials Group
+                                    <br><span class="text-warning small">@merdekabattery.com, @scmnickel.com</span>
+                                    <br>access via
+                                    <br> <span class="text-azure fw-bold">Microsoft SSO</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+@endsection

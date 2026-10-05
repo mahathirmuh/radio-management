@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Exceptions;
+
+use App\Helpers\LogApps;
+use App\Models\Log\LogError;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Support\Facades\Auth;
+use Sentry\Laravel\Integration;
+use Throwable;
+
+class Handler extends ExceptionHandler
+{
+    /**
+     * The list of the inputs that are never flashed to the session on validation exceptions.
+     *
+     * @var array<int, string>
+     */
+    protected $dontFlash = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+
+    /**
+     * Register the exception handling callbacks for the application.
+     */
+    public function register(): void
+    {
+        $this->reportable(function (Throwable $e) {
+            //Internal Error Monitoring *uncomment buat mengaktifkan internal error monitoring
+            try {
+                $this->logError(
+                    $e,
+                    request()->fullUrl(),
+                    request()->method(),
+                    request()->header('user-agent'),
+                    request()->except(LogApps::SENSITIVE_INPUT)
+                );
+            } catch (Throwable $loggingFailure) {
+                // error_logs is not writable (e.g. the database is down): Laravel still
+                // writes $e to storage/logs/laravel.log, so nothing is lost.
+            }
+
+            // Sentry Error Monitoring *uncomment buat mengaktifkan sentry monitoring
+            Integration::captureUnhandledException($e);
+        });
+    }
+
+    private function logError(
+        Throwable $exception,
+        ?string $url = null,
+        ?string $method = null,
+        ?string $agent = null,
+        $data = null
+    ): void {
+        $logError = new LogError();
+        $logError->subject = 'Compliance Management System';
+        $logError->message = $exception->getMessage();
+        $logError->stack_trace = $exception->getTraceAsString();
+        $logError->method = $method ?? '-';
+        $logError->data = json_encode($data);
+        $logError->user_id = 'user';
+        $logError->file = $exception->getFile();
+        $logError->line = $exception->getLine();
+        $logError->save();
+    }
+}
