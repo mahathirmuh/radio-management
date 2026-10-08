@@ -326,14 +326,16 @@
                     iconHtml = currentSortDir === 'asc' ? upIcon : downIcon;
                 }
 
-                // Wrap header text and icon in flex container
+                // Wrap header text and icon in flex container. The text goes back in as text,
+                // not as markup: a header may come from data (the column titles of a workbook).
                 const headerText = th.text().trim();
                 th.html(`
                 <div class="d-flex align-items-center w-100 cursor-pointer">
-                    <span class="flex-grow-1 text-wrap ${col.headerClassName}">${headerText}</span>
+                    <span class="flex-grow-1 text-wrap ${col.headerClassName}"></span>
                     <span class="sort-icon small">${iconHtml}</span>
                 </div>
             `);
+                th.find('span.flex-grow-1').text(headerText);
 
                 th.addClass('sortable')
                     .off('click')

@@ -34,8 +34,10 @@ return [
         // Capture command information in breadcrumbs
         'command_info' => true,
 
-        // Capture HTTP client requests information in breadcrumbs
-        'http_client_requests' => true,
+        // Capture HTTP client requests information in breadcrumbs.
+        // Off: a breadcrumb carries the query of the address, and the one-time address a SharePoint
+        // file is fetched from has its permission to read the file in it (modules/SharePointDocs).
+        'http_client_requests' => false,
     ],
 
     'tracing' => [
@@ -57,8 +59,8 @@ return [
         // Capture Livewire components as spans
         'livewire' => true,
 
-        // Capture HTTP client requests as spans
-        'http_client_requests' => true,
+        // Capture HTTP client requests as spans (off, for the same reason as in the breadcrumbs)
+        'http_client_requests' => false,
 
         // Capture Redis operations as spans (this enables Redis events in Laravel)
         'redis_commands' => env('SENTRY_TRACE_REDIS_COMMANDS', false),

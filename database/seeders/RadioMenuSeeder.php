@@ -33,17 +33,26 @@ class RadioMenuSeeder extends Seeder
         ];
         $import = $this->menu('radio-management.import.index', 'Import Excel', 'file-import', 6);
 
-        // Keep the base sections below the radio section.
-        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 8]);
-        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 9]);
+        // Keep the base sections below the radio section (3-6) and the "Dokumen" entries (7-8).
+        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 9]);
+        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 10]);
 
         $dashboardId = (int) DB::table('menu')->where('route', 'dashboard.index')->value('id') ?: null;
         $routedMenus = array_merge([$register, $history, $import], $masters);
         $allMenus = array_filter(array_merge([$dashboardId, $masterGroup], $routedMenus));
 
         $superAdmin = 1;
+        $adminIsNew = ! DB::table('roles')->where('name', 'Admin Radio')->whereNull('deleted_at')->exists();
         $admin = $this->role('Admin Radio');
         $viewer = $this->role('Viewer Radio');
+
+        // The "Dokumen" entries belong to Admin Radio by default. Where they were added (by their
+        // migrations) before this role existed, the default is applied here, at the role's
+        // creation. For a role that was already there, the grant is whatever its owner made of it.
+        if ($adminIsNew) {
+            CofScanMenuSeeder::grantRead($admin);
+            IctMasterlistMenuSeeder::grantRead($admin);
+        }
 
         foreach ([$superAdmin, $admin, $viewer] as $roleId) {
             if (! DB::table('roles')->where('id', $roleId)->exists()) {

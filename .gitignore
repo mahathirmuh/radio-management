@@ -18,9 +18,23 @@ yarn-error.log
 /.idea
 /.vscode
 
-# Internal data, kept out of the repository: the legacy register (holder names)
-# and base-application seeders with other people's accounts and error logs.
-/*.xlsx
+# Internal data, kept out of the repository: the legacy register (holder names),
+# the Word/Excel/PDF originals of internal forms and registers (they hold real
+# names; the application has its own HTML version of the checkout form), and
+# base-application seeders with other people's accounts and error logs.
+# Office files are ignored wherever they are, not only in the project root; a file
+# that really belongs in the repository can still be added with `git add -f`.
+*.xlsx
+*.xls
+*.xlsm
+*.docx
+*.doc
+/*.pdf
+/*.csv
+
+# Other environment files (only .env.example is tracked).
+.env.*
+!.env.example
 /database/seeders/UsersTableSeeder.php
 /database/seeders/RoleUserTableSeeder.php
 /database/seeders/ErrorLogsTableSeeder.php

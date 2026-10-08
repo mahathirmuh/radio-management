@@ -31,6 +31,11 @@
         <env name="DB_PASSWORD" value="null"/>
         <env name="DB_ENCRYPT" value="no"/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Tests never talk to Microsoft: no application secret, no SharePoint folder from .env. -->
+        <env name="AZURE_CLIENT_SECRET" value=""/>
+        <env name="MS_GRAPH_CLIENT_SECRET" value=""/>
+        <env name="SHAREPOINT_COF_SCAN_URL" value=""/>
+        <env name="SHAREPOINT_ICT_MASTERLIST_URL" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
