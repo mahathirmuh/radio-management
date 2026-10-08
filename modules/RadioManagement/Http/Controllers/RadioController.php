@@ -143,6 +143,27 @@ class RadioController extends Controller
         ] + $this->formOptions());
     }
 
+    /**
+     * The "IT Equipment Checkout Form" (MTI-HRM-ICT-FRM-001) for one radio, as a page of its own:
+     * what the register knows is filled in, the rest is left to be written in (on screen, before
+     * printing) or by hand. Nothing is saved.
+     */
+    public function checkoutForm(Radio $radio)
+    {
+        $radio->load(['radioType', 'department']);
+        // A page that is printed and signed on carries nothing of the developer's tools: their bar would lie over the box that is signed in.
+        if (app()->bound('debugbar')) {
+            app('debugbar')->disable();
+        }
+
+        return view('RadioManagement::radio.checkout-form', [
+            'radio' => $radio,
+            // Which of "HT / RIG" is struck out: the one this radio is not.
+            'category' => $radio->radioType?->category,
+            'today' => now()->format('d-m-Y'),
+        ]);
+    }
+
     public function store(RadioRequest $request): JsonResponse
     {
         return $this->saving(function () use ($request) {
@@ -254,6 +275,7 @@ class RadioController extends Controller
             'archive_reason' => $radio->archive_reason,
             'issues' => $this->checks->issuesFor($radio),
             'detail_url' => route('radio-management.radio.detail', $radio),
+            'print_url' => route('radio-management.radio.checkout-form', $radio),
         ];
     }
 

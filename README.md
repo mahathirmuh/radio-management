@@ -9,11 +9,13 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | Menu | Fungsi |
 | --- | --- |
 | Dashboard | Ringkasan radio aktif, kondisi, hasil cek, per company/tipe, ID bebas berikutnya |
-| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, export Excel |
+| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel |
 | Detail Radio | Data lengkap, hasil cek, riwayat, data asli Excel |
 | Riwayat Radio | Log serah terima, status, program, verifikasi, arsip (otomatis + manual) |
 | Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel |
 | Import Excel | Impor register lama (sheet Form + to Konawe) |
+| COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
+| ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 
 Aturan utama:
 
@@ -41,10 +43,44 @@ Aturan utama:
   `php artisan radio:unlock` melepasnya saat itu juga.
 - Master data yang **dinonaktifkan** tidak bisa dipilih lagi untuk radio lain; radio yang sudah
   memakainya tidak berubah. Master data hanya bisa dihapus bila tidak dipakai radio mana pun.
+- Tombol **Cetak** (ikon printer di kolom Aksi) membuka pop-up berisi **IT Equipment Checkout Form**
+  (MTI-HRM-ICT-FRM-001 Rev.000) untuk radio itu, siap dicetak di satu halaman A4. Yang diisi dari
+  register: Radio ID (No. ID), tipe (Merk & Type), Serial Number, nama pengguna (Employee Name di
+  REQUESTOR dan RESPONSIBLE USER), department, dan tanggal cetak (Date di PROCESSED BY). Pilihan
+  **HT / RIG** yang bukan jenis radio itu dicoret (klik tulisannya untuk mencoret atau membatalkan).
+  Isian lain dikosongkan untuk diisi tangan, dan semua isian bisa diubah di pop-up sebelum dicetak;
+  perubahan itu hanya untuk cetakan itu dan **tidak disimpan**. Siapa pun yang boleh membuka Register
+  Radio (Read) boleh mencetak, juga untuk radio yang sudah diarsipkan (Radio ID-nya sudah dilepas,
+  jadi kotak "No. ID" dibiarkan kosong). Logo di form adalah `public/assets/img/branding/mti-logo.png`.
+  - **Tanda tangan di layar** (Responsible User): kotak tanda tangan di blok RESPONSIBLE USER diklik,
+    lalu muncul kanvas besar untuk menggambar tanda tangan dengan pena, jari, atau mouse. Tekanan pena
+    dipakai (makin keras makin tebal) bila pena dikenali browser sebagai pena, yaitu lewat Windows Ink;
+    pena yang tidak melaporkan tekanan digambar setebal mouse. Selama pena terdeteksi (sampai 2,5 detik
+    setelah gerakan pena terakhir, termasuk pena yang hanya melayang), sentuhan jari diabaikan supaya
+    telapak tangan yang bersandar di layar pena tidak ikut mencoret; tombol samping dan ujung penghapus
+    pena tidak menggambar. Coretan sepanjang kurang dari 6% lebar kanvas (ketukan, titik) tidak dianggap
+    tanda tangan. **Pakai tanda tangan** memasukkannya ke kotak sebagai gambar yang ikut tercetak atau
+    tersimpan ke PDF, dan mengisi "Date:" dengan hari itu (isian yang sudah ada tidak ditimpa). Tombol ×
+    di kotak menghapusnya. Tanda tangan **tidak disimpan** dan tidak dikirim ke mana pun: hilang saat
+    pop-up ditutup. Kotak PROCESSED BY (ICT) tetap ditandatangani di kertas. Tanpa tanda tangan,
+    kotaknya kosong seperti biasa.
+  - Selagi kanvas masih terbuka, **Cetak** (dan Ctrl+P) tidak mencetak dan bilang apa yang harus
+    dilakukan: coretan di kanvas belum ada di form dan akan tertinggal dari kertas. Menutup pop-up
+    dengan tanda tangan yang belum dicetak (atau coretan yang belum dipakai) bertanya dulu.
+  - Dicetak **tanpa header dan footer browser** (judul dan alamat halaman): halaman form tidak punya
+    margin sendiri, margin 12 mm di atas dan bawah adalah padding isinya, dan lembarnya selebar 160 mm
+    di tengah halaman. Bila isian membuat form lebih dari satu halaman A4, muncul peringatan merah di
+    layar, dan saat dicetak form **diperkecil otomatis** (tulisannya ikut mengecil; peringatan
+    menyebut persennya) supaya tetap satu halaman. Ctrl+P di pop-up mencetak form, bukan halaman register.
+  - Pop-up tidak tertutup oleh klik di luarnya atau tombol Esc (yang diketik dan ditandatangani akan
+    hilang); tutup dengan **Tutup**. Setiap form memakai frame baru, supaya tombol Back browser tidak
+    penuh dengan riwayat form. Bila yang dimuat bukan form (sesi berakhir, radio sudah dihapus, atau
+    tidak ada izin), pop-up bilang begitu dan tidak menampilkan halaman itu.
 
 ## Instalasi
 
-Folder `vendor/` sudah disalin dari base app, jadi `composer install` tidak wajib.
+Folder `vendor/` tidak ikut repo: setelah clone jalankan `composer install` lebih dulu (di komputer yang
+folder itu sudah ada, tidak perlu).
 
 1. Buat database di SQL Server (nama boleh mengandung spasi):
 
@@ -76,7 +112,8 @@ Folder `vendor/` sudah disalin dari base app, jadi `composer install` tidak waji
    Seeder bawaan base app hanya berjalan di database kosong. Di database yang sudah berisi,
    `--seed` hanya menyegarkan master radio dan menu radio.
 
-4. Impor register Excel (default: file di root proyek):
+4. Impor register Excel. File register tidak ikut repo (isinya nama pemegang radio): beri path-nya,
+   atau taruh sebagai `Radio Register 07-08-25.xlsx` di root proyek (default perintah ini):
 
    ```bash
    php artisan radio:import
@@ -131,7 +168,7 @@ Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
 
 | Izin | Register Radio | Master Data | Import Excel |
 | --- | --- | --- | --- |
-| Read | daftar, detail, export | daftar | - |
+| Read | daftar, detail, export, cetak form | daftar | - |
 | Create | tambah radio | tambah | impor ke register kosong |
 | Update | edit, arsip/pulihkan, tambah riwayat | edit | - |
 | Delete | hapus radio | hapus | - |
@@ -161,6 +198,136 @@ Di form role, grup dan halamannya saling mengikuti: mencentang sebuah halaman ik
 (halaman hanya tampil di sidebar bila grupnya juga diberikan), dan melepas centang grup melepas semua
 halaman di bawahnya.
 
+## Dokumen SharePoint
+
+Bagian "Dokumen" di sidebar menampilkan isi SharePoint di dalam aplikasi: sebuah folder (**COF Scan**)
+dan sebuah workbook Excel (**ICT Masterlist**). Keduanya dibaca aplikasi lewat Microsoft Graph dengan
+identitasnya sendiri, yaitu app Entra yang sama dengan SSO (`MS_GRAPH_*`). App itu perlu izin
+**aplikasi** `Sites.Read.All` yang sudah diberi *admin consent*. Aplikasi hanya membaca.
+
+### COF Scan (folder)
+
+Menu **COF Scan** menampilkan isi sebuah folder SharePoint: cari berdasarkan nomor atau nama, urutkan
+(termasuk per **Tipe** file), dan lihat file-nya.
+
+- **Daftar** berisi semua file dan subfolder di folder itu, yang terbaru di atas.
+- **Lihat** (tombol mata): file ditampilkan di jendela pop-up di dalam aplikasi, dengan tombol
+  sebelumnya/berikutnya, buka di tab baru, dan buka di SharePoint. Isi file diambil aplikasi dari
+  SharePoint dengan identitasnya sendiri, jadi **siapa pun yang diberi menu ini (Read) bisa melihat isi
+  file-nya, walau tidak punya akses ke folder itu di SharePoint**. Karena itu menu ini hanya diberikan
+  ke **Super Admin** dan **Admin Radio**; role lain dicentang sendiri di **Role & Permission** (cukup
+  Read). Setiap file yang ditampilkan dicatat di log aplikasi (user dan nama file).
+  - Yang ditampilkan di sini hanya PDF dan gambar (png, jpg, gif, webp) sampai 10 MB
+    (`preview_max_mb` di `modules/SharePointDocs/Config/sharepoint-docs.php`). Jenis lain dan file
+    yang lebih besar mendapat tombol "buka di SharePoint" sebagai gantinya.
+  - Menampilkan satu file menunggu paling lama 25 detik (`preview_time_limit`). File yang tidak
+    sempat tiba dalam waktu itu (koneksi lambat) dilaporkan sebagai "terlalu lama diambil", bukan
+    sebagai gangguan SharePoint.
+  - File tidak disimpan di server dan tidak ditinggalkan di cache browser.
+  - Browser yang diatur untuk mengunduh PDF (bukan menampilkannya) tidak menampilkan apa pun di
+    pop-up; setelah beberapa detik pop-up menunjuk ke tombol "tab baru" dan "SharePoint".
+  - Bila sesi login sudah berakhir, pop-up meminta halaman dimuat ulang.
+- **Klik nama file** membuka file di SharePoint, dengan akun Microsoft orang yang mengklik.
+- Alamat foldernya diisi di `.env`: buka foldernya di browser, lalu salin alamat dari *address bar*:
+
+  ```ini
+  SHAREPOINT_COF_SCAN_URL="https://<tenant>.sharepoint.com/sites/<situs>/Shared%20Documents/Forms/AllItems.aspx?id=..."
+  ```
+
+  Jangan memakai tautan hasil **Copy link / Share**: tautan seperti itu memberi akses kepada siapa pun
+  yang memegangnya. (Bila tetap dipakai, foldernya ditemukan, tetapi tautannya tidak ditampilkan di
+  halaman; tombol "Buka di SharePoint" memakai alamat folder yang biasa.)
+
+  Folder dikenali dari alamat itu, lalu diingat sehari. Alamat yang diganti langsung berlaku (bila
+  konfigurasi di-cache: `php artisan config:clear`). Bila foldernya diganti nama atau dipindahkan,
+  alamat di `.env` harus ikut diganti.
+- Daftar disimpan sementara `SHAREPOINT_DOCS_CACHE_MINUTES` menit (bawaan 10), jadi file yang baru
+  diunggah muncul paling lambat setelah itu; tombol **Muat ulang** mengambilnya saat itu juga (paling
+  cepat 15 detik setelah pengambilan terakhir).
+- Bila Microsoft sedang tidak bisa dihubungi (jaringan putus, server sibuk), daftar terakhir tetap
+  ditampilkan dengan keterangan, paling lama sehari, dan Microsoft baru dihubungi lagi semenit kemudian
+  (hal yang sama berlaku per subfolder dan per file yang gagal diambil). Satu kali memuat daftar
+  menunggu Microsoft paling lama 20 detik (`time_limit`). Jawaban yang pasti dari Microsoft (izin
+  dicabut, folder tidak ada, client secret ditolak) langsung ditampilkan sebagai pesan, tanpa daftar
+  lama.
+- Nama file berpola `ICTCOF123 - Nama.pdf` dipecah menjadi kolom **No. COF** dan **Nama**; file dengan
+  nama lain tetap tampil apa adanya. Subfolder bisa dibuka dari daftar.
+- Menu ditambahkan migrasi `2026_10_07_100000_add_cof_scan_menu` (instalasi baru: `DatabaseSeeder`).
+  Selama baris menunya tidak ada, halaman ini tertutup untuk semua orang kecuali Super Admin.
+- Folder lain: tambahkan entri di `modules/SharePointDocs/Config/sharepoint-docs.php` dan satu baris
+  menu dengan route `documents.<kunci>.index` (contoh: `CofScanMenuSeeder`).
+
+### ICT Masterlist (workbook Excel)
+
+Menu **ICT Masterlist** menampilkan isi sebuah workbook Excel (`.xlsx`) di SharePoint sebagai tabel:
+satu tab per sheet, bisa dicari, diurutkan dan dibuka halaman per halaman. Halaman ini **hanya
+menampilkan**; mengubah data tetap dilakukan di Excel (tombol **Buka di Excel**).
+
+- **Tab**: setiap sheet yang terlihat di Excel menjadi satu tab, dengan jumlah barisnya. Sheet yang
+  disembunyikan di Excel tidak ditampilkan. Bila perlu, daftar sheet ditentukan sendiri (urutannya,
+  termasuk sheet tersembunyi) lewat `sheets` di `modules/SharePointDocs/Config/sharepoint-docs.php`;
+  perubahannya langsung berlaku (isi yang tersimpan dibuat per pilihan sheet).
+  **Hanya sheet yang tersembunyi yang tidak ditampilkan**: kolom dan baris yang disembunyikan di Excel,
+  atau baris yang tersaring oleh filter, tetap tampil dan ikut dicari.
+- **Judul kolom** adalah baris judul sheet: baris pertama, atau baris di bawah judul besar. Kolom yang
+  berisi tetapi tidak berjudul tampil sebagai "Kolom A", "Kolom AG", dan seterusnya.
+- **Baris**: kolom "Baris" adalah nomor baris di Excel. Urutan awal: baris terakhir di atas, yaitu
+  isian terbaru. Register di workbook ini diberi nomor lebih dulu, jadi baris yang baru berisi nomornya
+  saja tidak ditampilkan: baris yang paling banyak punya satu sel yang diketik (sel hasil rumus tidak
+  dihitung). Pengaturannya `skip_unused_rows`; `false` menampilkan semua baris.
+- **Isi sel** ditampilkan seperti yang terlihat di Excel: tanggal sebagai `dd-mm-yyyy`, angka menurut
+  format selnya (ribuan dengan titik, desimal dengan koma; lama waktu `[h]:mm` sebagai jam), rumus
+  sebagai hasil hitungan Excel saat workbook terakhir disimpan (aplikasi tidak menghitung ulang rumus).
+  Sel yang isinya alamat `https://…`, misalnya tautan ke scan, bisa diklik.
+- **Cari** mencari di semua kolom dan semua sheet sekaligus: setiap tab menunjukkan jumlah baris yang
+  cocok di sheet-nya. Bila beberapa kata diketik, semuanya harus ada di baris itu.
+- **Klik judul kolom** mengurutkan menurut kolom itu: angka dan tanggal menurut nilainya, teks menurut
+  abjad dengan angka di dalamnya dibaca sebagai angka (COF2 sebelum COF10). Sel kosong selalu di bawah.
+- Sama seperti COF Scan, isi workbook dibaca aplikasi dengan identitasnya sendiri: **siapa pun yang
+  diberi menu ini (Read) melihat seluruh isi sheet yang ditampilkan, walau tidak punya akses ke
+  workbook itu di SharePoint**. Menu ini hanya diberikan ke **Super Admin** dan **Admin Radio**.
+- Alamat workbook diisi di `.env`: buka workbook-nya di browser (Excel untuk web), lalu salin alamat
+  dari *address bar*:
+
+  ```ini
+  SHAREPOINT_ICT_MASTERLIST_URL="https://<tenant>.sharepoint.com/:x:/r/sites/<situs>/_layouts/15/Doc.aspx?sourcedoc=..."
+  ```
+
+  Alamat ini hanya dipakai untuk menemukan workbook dan tidak pernah ditampilkan di halaman. Bila
+  workbook-nya diganti dengan file lain, alamat di `.env` harus ikut diganti.
+- Isi workbook disimpan sementara dengan cara yang sama seperti daftar folder
+  (`SHAREPOINT_DOCS_CACHE_MINUTES`, tombol **Muat ulang**, isi terakhir tetap tampil dengan keterangan
+  selama Microsoft tidak bisa dihubungi atau file-nya tidak tiba tepat waktu). Workbook yang belum
+  disimpan ulang sejak pembacaan terakhir tidak diunduh lagi. Bila yang diterima bukan workbook sama
+  sekali (halaman sebuah filter web, misalnya), atau file yang tiba rusak, itu dianggap Microsoft tidak
+  bisa dihubungi: isi terakhir tetap tampil dan file-nya dicoba lagi. Workbook yang dibuka tetapi tidak
+  bisa dibaca atau terlalu besar tidak diunduh dan dibaca lagi sebelum disimpan ulang, sebelum batas
+  yang menentukannya diubah (`workbook_max_cells`, `workbook_max_mb`), atau setelah
+  `SHAREPOINT_DOCS_CACHE_MINUTES` menit (bawaan 10); isi yang tersimpan dibuang.
+- Batas: workbook sampai 15 MB (`workbook_max_mb`) dan 200.000 sel yang berisi nilai di semua sheet
+  (`workbook_max_cells`; sel yang hanya berformat atau di luar kolom ke-80 tidak dihitung). Workbook
+  yang lebih besar **ditolak seluruhnya** ("terlalu besar"), bukan dipotong. Itu juga yang terjadi pada
+  workbook dengan lebih dari 500 sheet, lebih dari 32 MB teks (teks bersama dihitung sekali untuk setiap
+  sel yang memakainya), lebih dari 5.000.000 elemen sel (sel yang hanya berformat ikut dihitung),
+  file yang mengembang di atas 256 MB, atau yang butuh lebih dari separuh `memory_limit` PHP; file yang
+  memakai *document type declaration* ditolak, dan workbook dengan password tidak bisa dibaca. Per sheet
+  dibaca 20.000 baris dan 80 kolom; sheet yang lebih panjang atau lebar dipotong dan diberi keterangan
+  hanya bila yang terpotong memang berisi. Pembacaan (setelah unduhan) diberi sisa waktu
+  `preview_time_limit`, tidak kurang dari 5 dan tidak lebih dari 15 detik; bila waktunya habis,
+  halaman bilang "terlalu lama" (bukan "terlalu besar"), isi terakhir tetap tampil, dan baru bila
+  pembacaan itu sudah diberi seluruh 15 detik, versi file itu tidak dicoba lagi sebelum waktunya.
+  Format angka yang lebih panjang dari 255 karakter (batas Excel) diabaikan: angkanya tampil apa
+  adanya. Yang dibaca hanya `.xlsx`, bukan `.xls` atau `.xlsb`.
+- Alamat unduhan sekali pakai yang dipakai aplikasi untuk mengambil file memuat izin baca file itu,
+  jadi tidak boleh sampai ke log atau ke layanan lain: pesan galat dicatat tanpa query-nya, dan
+  breadcrumb serta span permintaan HTTP di `config/sentry.php` dimatikan.
+- Menu ditambahkan migrasi `2026_10_07_110000_add_ict_masterlist_menu` (instalasi baru:
+  `DatabaseSeeder`), di bawah COF Scan; menu User Management dan Approval Management bergeser satu
+  urutan ke bawah. Selama baris menunya tidak ada, halaman ini tertutup untuk semua orang kecuali
+  Super Admin.
+- Workbook lain: tambahkan entri di bagian `workbooks` pada config yang sama dan satu baris menu dengan
+  route `documents.<kunci>.index` (contoh: `IctMasterlistMenuSeeder`).
+
 ## Struktur kode
 
 ```text
@@ -175,11 +342,24 @@ modules/RadioManagement/
   Http/Requests/RadioRequest.php
   Exports/RadioExport.php
   Console/ImportRadioRegister.php   (php artisan radio:import)
-  Resources/views/          radio/, master/, history/, import/, partials/
+  Resources/views/          radio/ (termasuk checkout-form = form cetak, checkout-signature = kanvas
+                            tanda tangan, print-modal = pop-up-nya), master/, history/, import/, partials/
   Routes/web/radio-management.php
 database/migrations/2026_10_03_100000_create_radio_management_tables.php
 database/seeders/RadioMasterSeeder.php, RadioMenuSeeder.php
 modules/Dashboard/          diganti menjadi dashboard radio
+modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist)
+  Config/sharepoint-docs.php        folder dan workbook yang ditampilkan, batas ukuran dan waktu
+  Services/                 GraphClient (token aplikasi, baca Graph, ambil isi file), SharePointFolder
+                            (cari folder, daftar isi, simpan sementara, file untuk ditampilkan),
+                            SharePointWorkbook (cari workbook, unduh bila berubah, simpan sementara),
+                            WorkbookReader (isi .xlsx menjadi tabel teks), XlsxReader (sel-sel dari XML
+                            di dalam .xlsx), GraphException (alasan gagal + pesannya)
+  Http/                     FolderController (halaman, daftar, file), WorkbookController (halaman,
+                            baris: cari/urut/halaman), Middleware/RequireMenu
+  Resources/views/          index (folder + pop-up penampil file), file-unavailable (pesan di pop-up),
+                            workbook (tab per sheet + tabel)
+database/seeders/DocumentMenuSeeder.php (dasar), CofScanMenuSeeder.php, IctMasterlistMenuSeeder.php
 ```
 
 ## Catatan SQL Server
@@ -212,5 +392,52 @@ Test **menghapus isi database-nya**. `phpunit.xml` mengarah ke database terpisah
 `MTI Radio Management Test` di SQL Server LocalDB `(localdb)\MSSQLLocalDB`, bukan database
 di `.env`. Test menolak berjalan bila nama database-nya tidak berakhiran `Test`.
 
-JavaScript di halaman tidak dijalankan oleh PHPUnit. `BladeScriptSyntaxTest` memeriksa sintaks
-setiap `<script>` di view dengan Node.js (dilewati bila Node.js tidak terpasang).
+Test tidak pernah menghubungi Microsoft: `phpunit.xml` mengosongkan client secret serta alamat folder
+dan workbook SharePoint, permintaan HTTP yang tidak dipalsukan menggagalkan test-nya, dan
+`SharePointDocsTest` serta `SharePointWorkbookTest` memakai Microsoft tiruan dengan nama, alamat dan
+workbook karangan. `WorkbookReaderTest` (di `tests/Unit`) membaca workbook yang ditulis tangan di
+test itu sendiri: bentuk-bentuk sel yang dipakai Excel, format angka, serta file yang terlalu besar,
+terlalu lama dibaca, rusak, atau memakai XML untuk membesarkan diri atau membaca file di server.
+File yang rusak di tengah diuji dengan memutus aliran isinya (pembungkus `zip://` pengganti di
+`tests/Concerns/CutsAPartShort.php`), dan salinan sementara workbook harus hilang juga bila skrip
+berhenti karena kehabisan memori.
+
+JavaScript di halaman tidak dijalankan oleh PHPUnit sendiri; beberapa test memakai Node.js untuk itu
+(semuanya dilewati bila Node.js tidak terpasang):
+
+- `BladeScriptSyntaxTest` memeriksa sintaks setiap `<script>` di semua view.
+- `SharePointPageScriptTest` menjalankan skrip halaman COF Scan dan ICT Masterlist dengan pengganti
+  jQuery (`tests/tools/page-sandbox.mjs`, dipakai juga oleh checker tombol Cetak di bawah) dan
+  memeriksa perilakunya: teks dari SharePoint selalu di-escape, permintaan yang dikirim saat
+  mencari/mengurutkan/berpindah halaman atau tab, dan pop-up penampil file
+  (`sharepoint-page-behaviour.mjs`, `sharepoint-workbook-behaviour.mjs`).
+- `RadioCheckoutFormTest` menjalankan empat checker untuk tombol Cetak, di `tests/tools/`:
+  `radio-index-behaviour.mjs` (tombol di baris daftar membawa alamat form dan label radionya ke pop-up),
+  `radio-print-behaviour.mjs` (frame baru untuk tiap form, pencetakan hanya ditawarkan untuk form, bukan
+  halaman login atau galat, Cetak dan Ctrl+P ditolak selagi kanvas terbuka, tanya sebelum menutup dengan
+  tanda tangan yang belum dicetak, tombol tutup dan fokusnya), `radio-form-behaviour.mjs` (isian form
+  bisa diketik dan ditempel sebagai teks biasa, klik pada HT/RIG mencoret atau membatalkan coretan,
+  peringatan dan ukuran cetak bila form lebih dari satu halaman, Ctrl+P) dan
+  `radio-signature-behaviour.mjs` (ukuran kanvas, apa yang digambar pena, jari, dan mouse dan apa yang
+  tidak, jari di dekat pena, goresan yang dibatalkan sistem atau yang akhirnya tidak datang, berapa
+  panjang coretan yang dianggap tanda tangan, letak dan tebal tinta di gambar hasilnya, tanggal, hapus).
+  Test yang sama juga memeriksa CSS cetak (tanpa margin halaman, padding 12 mm, tombol dan kanvas tidak
+  ikut tercetak), bahwa halaman form hanya memuat logo dari luar dirinya, dan bahwa tidak ada skrip di
+  dalamnya yang mengirim atau menyimpan tanda tangan (fetch, localStorage, dan sebagainya).
+- `PageSandboxTest` memeriksa pengganti jQuery itu sendiri (`page-sandbox-selftest.mjs`), karena checker
+  hanya sebaik pengganti yang dipakainya. Checker memerlukan Node.js 18 atau lebih baru.
+
+Yang **tidak** bisa dibuktikan test di atas, dan apa yang sudah dan belum dicek sungguhan:
+
+- Sudah dicek di Microsoft Edge (headless, lewat DevTools) pada server percobaan dengan data karangan:
+  pena simulasi dengan tekanan, sentuhan jari, mouse, tombol samping pena, kanvas pada layar 1366 x 768 di
+  125%, pop-up beserta konfirmasi tutupnya, dan hasil **PDF** (`Page.printToPDF`): satu halaman A4,
+  logo dan tanda tangan sebagai gambar, tanpa header/footer browser (dengan kontrol: bila halaman diberi
+  margin sendiri, header/footer memang tercetak), lembar 25 mm dari kiri/kanan dan 12 mm dari atas, dan
+  form panjang yang diperkecil tetap satu halaman.
+- **Belum** dicek: perangkat Wacom sungguhan (tekanan, tombol, dan penolakan telapak tangan lewat driver
+  dan Windows Ink), Firefox dan Safari, dialog cetak sungguhan dan printer. Tanpa header/footer itu
+  dibuktikan di Chromium/Edge dengan pengaturan Margins = Default di dialog cetak; dialog yang diubah
+  ke "None" atau "Custom" mengikuti pengaturannya sendiri.
+- Bila tekanan pena tidak terasa (garis selalu setebal mouse), nyalakan **Windows Ink** di driver Wacom
+  (biasanya di Wacom Tablet Properties, tab Mapping, "Use Windows Ink"): tanpa itu browser hanya melihat mouse.

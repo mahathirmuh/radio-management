@@ -18,6 +18,8 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::get('export', 'export')->name('export');
         Route::get('{radio}', 'show')->name('show')->whereNumber('radio');
         Route::get('{radio}/detail', 'detail')->name('detail')->whereNumber('radio');
+        // The IT Equipment Checkout Form of one radio, filled in from the register (shown in the print pop-up).
+        Route::get('{radio}/checkout-form', 'checkoutForm')->name('checkout-form')->where('radio', '[0-9]{1,15}');
         Route::post('/', 'store')->name('store');
         Route::put('{radio}', 'update')->name('update')->whereNumber('radio');
         Route::put('{radio}/archive', 'archive')->name('archive')->whereNumber('radio');

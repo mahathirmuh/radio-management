@@ -117,6 +117,7 @@
 
     @include('RadioManagement::radio.modal')
     @include('RadioManagement::radio.archive-modal')
+    @include('RadioManagement::radio.print-modal')
 @endsection
 
 @push('javascript')
@@ -195,6 +196,7 @@
                             `<button type="button" class="btn btn-sm px-2 py-1 rounded-2 btn-outline-orange" data-bs-toggle="tooltip" data-bs-title="Arsipkan" data-action="archive" data-id="${r.id}" data-label="${label}"><i class="ti ti-archive"></i></button>`;
                         return `<div class="d-inline-flex gap-1">
                             <a href="${RadioUi.esc(r.detail_url)}" class="btn btn-sm px-2 py-1 rounded-2 btn-outline-blue" data-bs-toggle="tooltip" data-bs-title="Detail & Riwayat"><i class="ti ti-eye"></i></a>
+                            <button type="button" class="btn btn-sm px-2 py-1 rounded-2 btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Cetak form (IT Equipment Checkout Form)" aria-label="Cetak form" data-action="print" data-url="${RadioUi.esc(r.print_url)}" data-label="${label}"><i class="ti ti-printer"></i></button>
                             <button type="button" class="btn btn-sm px-2 py-1 rounded-2 mdka-btn-orange-500 text-white border-0" data-bs-toggle="tooltip" data-bs-title="Edit" data-action="edit" data-id="${r.id}"><i class="ti ti-edit"></i></button>
                             ${archiveButton}
                         </div>`;
@@ -324,6 +326,9 @@
                         break;
                     case 'restore':
                         radioArchive.restore(id, button.data('label'));
+                        break;
+                    case 'print':
+                        radioPrint.open(button.data('url'), button.data('label'));
                         break;
                 }
             });
