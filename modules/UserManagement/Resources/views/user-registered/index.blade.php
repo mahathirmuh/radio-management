@@ -91,7 +91,7 @@
                                                 </th>
                                                 <th scope="col" class="text-capitalize fs-5 py-3 text-center">Role
                                                 </th>
-                                                <th scope="col" class="text-capitalize fs-5 py-3 text-center">Company
+                                                <th scope="col" class="text-capitalize fs-5 py-3 text-center">Position
                                                 </th>
                                                 <th scope="col" class="text-capitalize fs-5 py-3 text-center">
                                                     Action</th>
@@ -165,7 +165,7 @@
                 sortable: false
             },
             {
-                key: 'company',
+                key: 'position',
                 className: 'text-center',
                 sortable: false
             },
@@ -285,7 +285,7 @@
                 orderBy = 'id';
                 orderDir = 'asc';
                 filterList = {
-                    company: null,
+                    position: null,
                     role: null,
                 };
                 userRegisteredTable();
@@ -293,7 +293,7 @@
                 $("#userRegisterdSearch").val('');
                 $("#userFilterCard").slideUp(300, function() {
                     // Reset filter inputs here if needed
-                    $('#userFilterCard #companySelectFilter').val(null).trigger('change');
+                    $('#userFilterCard #positionSelectFilter').val(null).trigger('change');
                     $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
                 });
             });

@@ -8,12 +8,10 @@
             <div class="col-md-12">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label for="companySelectFilter" class=" form-label">Company </label>
-                        <select id="companySelectFilter" name="company[]" class="form-select" multiple="multiple">
-                            @foreach ($companies as $company)
-                                <option value="{{ $company->company_orangehr_code }}">
-                                    {{ $company->name }}
-                                </option>
+                        <label for="positionSelectFilter" class=" form-label">Position </label>
+                        <select id="positionSelectFilter" name="position[]" class="form-select" multiple="multiple">
+                            @foreach ($positions as $position)
+                                <option value="{{ $position }}">{{ $position }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -64,9 +62,9 @@
     {{-- select2 declaration --}}
     <script>
         $(function() {
-            $('#userFilterCard #companySelectFilter').select2({
+            $('#userFilterCard #positionSelectFilter').select2({
                 theme: "bootstrap-5",
-                placeholder: 'Select Company',
+                placeholder: 'Select Position',
                 allowClear: true,
                 multiple: true,
                 dropdownParent: $('#userFilterCard'),
@@ -88,13 +86,13 @@
     {{-- Filter --}}
     <script>
         let filterList = {
-            company: null,
+            position: null,
             role: null,
         };
 
         const applyFilter = () => {
             filterList = {
-                company: $('#userFilterCard #companySelectFilter').val(),
+                position: $('#userFilterCard #positionSelectFilter').val(),
                 role: $('#userFilterCard #roleSelectFilter').val(),
             };
             currentPage = 1; // biar reset ke halaman pertama
@@ -102,7 +100,7 @@
         };
 
         const resetFilter = () => {
-            $('#userFilterCard #companySelectFilter').val(null).trigger('change');
+            $('#userFilterCard #positionSelectFilter').val(null).trigger('change');
             $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
             applyFilter();
         };

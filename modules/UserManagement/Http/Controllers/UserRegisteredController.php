@@ -9,7 +9,9 @@ use App\Models\UserManagement\User;
 
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -67,6 +69,7 @@ class UserRegisteredController extends Controller
                 'pageTitle' => $this->pageTitle,
                 'menuItems' => $this->menuItems,
                 'companies' => $companies,
+                'positions' => User::POSITIONS,
                 'roles' => $roles,
 
             ]);
@@ -109,6 +112,11 @@ class UserRegisteredController extends Controller
                 return $query->whereIn('company_id', $companyIdList);
             })
 
+            // Filter: by position
+            ->when($request->position != null, function ($query) use ($request) {
+                return $query->whereIn('position', array_intersect((array) $request->position, User::POSITIONS));
+            })
+
             //Filter: by role
             ->when($request->role != null, function ($query) use ($request) {
                 return $query->whereHas('roles', function ($query) use ($request) {
@@ -141,6 +149,7 @@ class UserRegisteredController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'company' => $user->company->name ?? '-',
+                'position' => $user->position ?: '-',
                 'role' => $user->roles->pluck('name')->implode(', ') ?? '-',
             ];
         });
@@ -186,6 +195,7 @@ class UserRegisteredController extends Controller
                 'email' => $user->email,
                 'company_orangehr_code' => $user->company?->company_orangehr_code,
                 'company_name' => $user->company?->name,
+                'position' => $user->position,
                 'role_id' => $user->roles->pluck('id'),
                 'role_name' => $user->roles->pluck('name')->implode(', '),
                 // Roles of this user that the caller's form does not list; an update leaves them alone.
@@ -201,7 +211,10 @@ class UserRegisteredController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s\-\.,]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
-            'company_id' => ['required', 'string', 'exists:companies,company_orangehr_code'],
+            // The form asks for the position, not for the company any more: the company is the caller's own (see newUserCompany()).
+            // A request that still names one is held to the same rules as before.
+            'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
+            'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             'role_id' => ['required', 'array', 'min:1'],
             // Roles are soft-deleted: a deleted one must not be handed out (the user would be left without a usable role).
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
@@ -214,17 +227,24 @@ class UserRegisteredController extends Controller
             ], 422);
         }
 
-        $companySelected = $this->company->where('company_orangehr_code', $request->company_id)->first();
+        if (! $this->positionReady()) {
+            return response()->json(['message' => 'Kolom Position belum ada di database. Jalankan "php artisan migrate" dulu.'], 503);
+        }
 
+        // Deleting a user is a soft delete and the row keeps its unique e-mail:
+        // adding the same person again brings that row back instead of inserting.
+        $existing = $this->user->withTrashed()->where('email', $request->email)->first();
+
+        $companySelected = filled($request->company_id)
+            ? $this->company->where('company_orangehr_code', $request->company_id)->first()
+            // An account that is brought back keeps the company it had; a new one gets the caller's.
+            : $this->company->find($existing?->company_id ?? $this->newUserCompany($request->user()));
         if (!$companySelected) {
             return response()->json([
                 'message' => 'Invalid Input!',
                 'errors' => 'Company was not found on system, please contact administrator'
             ], 422);
         }
-        // Deleting a user is a soft delete and the row keeps its unique e-mail:
-        // adding the same person again brings that row back instead of inserting.
-        $existing = $this->user->withTrashed()->where('email', $request->email)->first();
 
         if ($denied = $this->denyCompanyOutOfScope($request, $companySelected->id)
             ?? ($existing ? $this->denyUnlessManageable($request, $existing) : null)
@@ -238,6 +258,7 @@ class UserRegisteredController extends Controller
                 $attributes = [
                     'name' => $request->name,
                     'company_id' => $companySelected->id,
+                    'position' => $request->position,
                     // Accounts sign in through SSO; a random hash keeps the e-mail + password form unusable for them.
                     'password' => bcrypt(Str::random(40)),
                     'remember_token' => null,
@@ -272,7 +293,9 @@ class UserRegisteredController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s\-\.,]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($id)],
-            'company_id' => ['required', 'string', 'exists:companies,company_orangehr_code'],
+            // Not asked for by the form any more: without it the company of the user stays what it is.
+            'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
+            'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             // A caller with a limited set of roles may leave every box unticked: the roles of the
             // user that their form does not list stay. The resulting list is checked below.
             'role_id' => $assignable === null ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
@@ -284,6 +307,10 @@ class UserRegisteredController extends Controller
                 'message' => 'Invalid Input!',
                 'errors' => $validator->errors()->all()
             ], 422);
+        }
+
+        if (! $this->positionReady()) {
+            return response()->json(['message' => 'Kolom Position belum ada di database. Jalankan "php artisan migrate" dulu.'], 503);
         }
 
         // Cari user berdasarkan ID
@@ -301,8 +328,10 @@ class UserRegisteredController extends Controller
             return $denied;
         }
 
-        // Cari company berdasarkan kode
-        $companySelected = $this->company->where('company_orangehr_code', $request->company_id)->first();
+        // The company that was named, else the one the user has.
+        $companySelected = filled($request->company_id)
+            ? $this->company->where('company_orangehr_code', $request->company_id)->first()
+            : $this->company->find($user->company_id);
         if (!$companySelected) {
             return response()->json([
                 'message' => 'Invalid Input!',
@@ -344,6 +373,7 @@ class UserRegisteredController extends Controller
                     'name' => $request->name,
                     'email' => $request->email,
                     'company_id' => $companySelected->id,
+                    'position' => $request->position,
                 ]);
 
                 $user->roles()->sync($roleIds->all());
@@ -480,6 +510,29 @@ class UserRegisteredController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Whether the column of the position is there. The code of this folder is live as soon as it is saved, the migration
+     * is run by hand: until then nothing is saved (and the reason is said), instead of failing. (Asked once a minute.)
+     */
+    private function positionReady(): bool
+    {
+        return Cache::remember('users-position-column', 60, fn () => Schema::hasColumn('users', 'position'));
+    }
+
+    /**
+     * The company of a user that is added without one being named (the form does not ask for it): the caller's own,
+     * or, for a caller limited to companies that do not include their own, the first of those.
+     */
+    private function newUserCompany(User $caller): ?int
+    {
+        $allowed = $this->allowedCompanyIds($caller);
+        if ($allowed === null || $allowed->contains($caller->company_id)) {
+            return (int) $caller->company_id;
+        }
+
+        return $allowed->isEmpty() ? null : (int) $allowed->first();
     }
 
     /** A role limited to some companies cannot create a user in, or move a user to, another company. */

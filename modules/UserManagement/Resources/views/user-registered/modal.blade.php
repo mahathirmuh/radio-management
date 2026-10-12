@@ -30,15 +30,13 @@
                         </div>
                         <div class="col-12">
                             <div class="row">
-                                <label for="companySelect" class="col-md-4 col-form-label required">Company
+                                <label for="positionSelect" class="col-md-4 col-form-label required">Position
                                 </label>
                                 <div class="col-md-8">
-                                    <select id="companySelect" name="company" class="form-select" required>
+                                    <select id="positionSelect" name="position" class="form-select" required>
                                         <option></option>
-                                        @foreach ($companies as $company)
-                                            <option value="{{ $company->company_orangehr_code }}">
-                                                {{ $company->name }}
-                                            </option>
+                                        @foreach ($positions as $position)
+                                            <option value="{{ $position }}">{{ $position }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -115,9 +113,9 @@
     {{-- select2 declaration --}}
     <script>
         $(function() {
-            $('#userModal #companySelect').select2({
+            $('#userModal #positionSelect').select2({
                 theme: "bootstrap-5",
-                placeholder: 'Select Company',
+                placeholder: 'Select Position',
                 allowClear: true,
                 multiple: false,
                 dropdownParent: $('#userModal'),
@@ -199,8 +197,7 @@
                     success: function(response) {
                         modal.find("#name").val(response.data.name);
                         modal.find("#email").val(response.data.email);
-                        modal.find("#companySelect").val(response.data.company_orangehr_code).trigger(
-                            "change");
+                        modal.find("#positionSelect").val(response.data.position).trigger("change");
 
                         modal.find(".user-role-checkbox").prop("checked", false);
                         (response.data.role_id || []).forEach((roleId) => {
@@ -218,7 +215,7 @@
                 });
             } else {
                 modal.find("#form")[0].reset();
-                modal.find("#companySelect").val(null).trigger("change");
+                modal.find("#positionSelect").val(null).trigger("change");
                 modal.find(".user-role-checkbox").prop("checked", false);
                 setOtherRoles(modal, 0);
 
@@ -245,7 +242,7 @@
                 $(this).find("#form")[0].reset();
 
                 // Clear Select2 selections
-                $(this).find("#companySelect").val(null).trigger("change");
+                $(this).find("#positionSelect").val(null).trigger("change");
                 $(this).find(".user-role-checkbox").prop("checked", false);
                 setOtherRoles($(this), 0);
             });
@@ -265,7 +262,7 @@
 
             formData.append("name", modal.find("#name").val().trim());
             formData.append("email", modal.find("#email").val().trim());
-            formData.append("company_id", modal.find("#companySelect").val());
+            formData.append("position", modal.find("#positionSelect").val() || "");
             modal.find(".user-role-checkbox:checked").each(function() {
                 formData.append("role_id[]", $(this).val());
             });
@@ -301,8 +298,8 @@
                         errors.push("<strong>Email</strong> cannot be empty");
                     }
 
-                    if (!formData.get("company_id")) {
-                        errors.push("<strong>Company</strong> must be selected");
+                    if (!formData.get("position")) {
+                        errors.push("<strong>Position</strong> must be selected");
                     }
 
                     const keepsOtherRoles = state !== "submit" && Number(modal.data("otherRoles")) > 0;

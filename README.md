@@ -174,6 +174,12 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
 
 Super Admin (role 1) otomatis mendapat semua menu. Atur user di **User Management**.
 
+Form tambah/edit user menanyakan **Position** (Manager, Superintendent, Supervisor, IT Field, IT System Support, IT Assistant; daftarnya di
+`User::POSITIONS`), bukan lagi Company. Akun baru otomatis masuk ke perusahaan orang yang menambahkannya, dan
+perusahaan akun yang sudah ada tidak berubah saat diedit. Akun lama belum punya Position sampai diedit. Kolom
+`users.position` ditambahkan migrasi `2026_10_12_140000_add_position_to_users_table`; sebelum migrasi dijalankan,
+menyimpan user ditolak dengan keterangan itu.
+
 Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
 
 | Izin | Register Radio | Master Data | Import Excel |
