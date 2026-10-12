@@ -263,7 +263,9 @@ class RolePermissionsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'role_name' => 'required|string|max:255', // Example rules for role_name (required, string, maximum length: 255)
-            'role_type' => 'required|string|in:COMPANY,HO,SITE,ALL', // Example rules for role_type (required, string, must be one of COMPANY, HO, SITE)
+            // The form does not ask for the type any more: a role that is made without one is for every company (ALL).
+            // A request that still names a type is held to it, as before.
+            'role_type' => 'nullable|string|in:COMPANY,HO,SITE,ALL',
             'home_page' => 'required',
         ]);
         if ($validator->fails()) {
@@ -274,8 +276,9 @@ class RolePermissionsController extends Controller
         } else {
             try {
 
+                $role_type = $request->role_type ?: 'ALL';
                 $setting_role = null;
-                switch ($request->role_type) {
+                switch ($role_type) {
                     case 'ALL':
                         $setting_role = null;
 
@@ -292,11 +295,11 @@ class RolePermissionsController extends Controller
                         break;
                 }
 
-                DB::transaction(function () use ($request, $setting_role) {
+                DB::transaction(function () use ($request, $setting_role, $role_type) {
 
                     $data = $this->role->create([
                         'name' => $request->role_name,
-                        'func_role' => $request->role_type,
+                        'func_role' => $role_type,
                         'home_page' => $request->home_page,
                         'setting_role' => $setting_role
                     ]);
@@ -396,7 +399,8 @@ class RolePermissionsController extends Controller
         // dd($request->all());
         $validator = Validator::make($request->all(), [
             'role_name' => 'required|string|max:255', // Example rules for role_name (required, string, maximum length: 255)
-            'role_type' => 'required|string|in:COMPANY,HO,SITE,ALL', // Example rules for role_type (required, string, must be one of COMPANY, HO, SITE)
+            // Not asked for by the form any more: without it the type of the role, and the companies it is limited to, stay what they are.
+            'role_type' => 'nullable|string|in:COMPANY,HO,SITE,ALL',
             'home_page' => 'required',
         ]);
         if ($validator->fails()) {
@@ -430,10 +434,11 @@ class RolePermissionsController extends Controller
                     $data = $this->role->with('menus')->where('id', $id)->first();
                     $data->update([
                         'name' => $request->role_name,
-                        'func_role' => $request->role_type,
                         'home_page' => $request->home_page,
-                        'setting_role' => $setting_role
-                    ]);
+                    ] + ($request->filled('role_type') ? [
+                        'func_role' => $request->role_type,
+                        'setting_role' => $setting_role,
+                    ] : []));
 
                     // Sync the menu IDs for the role
                     $data->menus()->sync($request->menu_list);

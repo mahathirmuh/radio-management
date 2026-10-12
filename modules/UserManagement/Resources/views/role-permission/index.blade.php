@@ -16,10 +16,6 @@
 
 @section('content')
     <div class="row g-2">
-        {{-- Filter --}}
-        <div class="col-12">
-            @include('UserManagement::role-permission.filter')
-        </div>
         {{-- Table --}}
         <div class="col-12">
             <div class="card">
@@ -39,13 +35,6 @@
                                             </x-slot:icon>
                                         </x-global.btn-detail>
                                     </div>
-                                    <x-global.btn-detail label="" color="purple" size="sm" outline="true"
-                                        id="toggleFilterButton" data-bs-toggle="tooltip" data-bs-title="Filter">
-                                        <x-slot:icon>
-                                            <i class="ti ti-filter"></i>
-                                        </x-slot:icon>
-                                    </x-global.btn-detail>
-
                                     <x-global.btn-detail label="" color="red" size="sm" outline="true"
                                         id="toggleResetButton" data-bs-toggle="tooltip" data-bs-title="Reset">
                                         <x-slot:icon>
@@ -78,13 +67,6 @@
                                                     class="text-capitalize fs-5 py-3 text-center">No</th>
                                                 <th scope="col" data-key="name" class="text-capitalize fs-5 py-3">
                                                     Name
-                                                </th>
-                                                <th scope="col" data-key="func_role"
-                                                    class="text-capitalize fs-5 py-3 text-center">
-                                                    Type
-                                                </th>
-                                                <th scope="col" class="text-capitalize fs-5 py-3 text-center">
-                                                    Company List
                                                 </th>
                                                 <th scope="col" class="text-capitalize fs-5 py-3 text-center">
                                                     Total User
@@ -147,44 +129,6 @@
                 headerClassName: 'text-center',
                 className: 'text-center',
                 sortable: true
-            },
-            {
-                key: 'func_role',
-                headerClassName: 'text-center',
-                className: 'text-center',
-                sortable: true,
-                render: function(data) {
-                    const type = data.func_role;
-                    if (!type) return '<span class="text-muted">—</span>';
-                    const colorMap = {
-                        ALL: 'mdka-bg-red-500',
-                        HO: 'mdka-bg-blue-500',
-                        SITE: 'mdka-bg-purple-500',
-                        COMPANY: 'mdka-bg-green-500',
-                    };
-                    const cls = colorMap[type] || 'bg-secondary';
-                    return `<span class="badge ${cls} text-white px-2 py-1 rounded-2">${type}</span>`;
-                }
-            },
-            {
-                key: 'company',
-                sortable: false,
-                render: function(data, type, row) {
-                    const list = Array.isArray(data.company) ? data.company : [];
-                    if (list.length === 0) return '<span class="text-muted">—</span>';
-
-                    const max = 3;
-                    let html = '<div class="d-flex flex-wrap gap-1 justify-content-center">';
-                    list.slice(0, max).forEach((company) => {
-                        html += `<span class="badge bg-light text-dark border fw-normal">${company.name}</span>`;
-                    });
-                    if (list.length > max) {
-                        const rest = list.slice(max).map(c => c.name).join(', ');
-                        html += `<span class="badge bg-light text-muted border" data-bs-toggle="tooltip" data-bs-title="${rest}">+${list.length - max} more</span>`;
-                    }
-                    html += '</div>';
-                    return html;
-                }
             },
             {
                 key: 'user_count',
@@ -251,7 +195,6 @@
                 search,
                 orderBy,
                 orderDir,
-                ...filterList
             };
 
             $.ajax({
@@ -360,17 +303,6 @@
         }
     </script>
 
-    {{-- toggle filter button hide show --}}
-    <script>
-        $(document).ready(function() {
-            $("#toggleFilterButton").click(function() {
-                $("#userFilterCard").slideToggle(300, function() {
-
-                });
-            });
-        });
-    </script>
-
     {{-- toggle refresh button hide show --}}
     <script>
         $(document).ready(function() {
@@ -380,18 +312,9 @@
                 search = '';
                 orderBy = 'id';
                 orderDir = 'asc';
-                filterList = {
-                    company: null,
-                    role: null,
-                };
                 dataTable();
 
                 $("#userRegisterdSearch").val('');
-                $("#userFilterCard").slideUp(300, function() {
-                    // Reset filter inputs here if needed
-                    $('#userFilterCard #companySelectFilter').val(null).trigger('change');
-                    $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
-                });
             });
         });
     </script>

@@ -201,7 +201,10 @@ User dengan role yang dibatasi ke perusahaan tertentu (tipe HO / SITE / COMPANY)
 - tidak bisa melepas role terbatas miliknya sendiri, dan tidak bisa mengganti e-mail user yang
   memegang role di luar kelolaannya (login memakai e-mail, jadi itu sama dengan mengambil alih akun).
 
-Semua role bawaan aplikasi ini bertipe ALL, jadi aturan ini baru berlaku bila Anda membuat role terbatas.
+Semua role bawaan aplikasi ini bertipe ALL, jadi aturan ini baru berlaku bila ada role terbatas. Halaman
+**Role & Permission** tidak lagi menampilkan atau menanyakan tipe dan daftar perusahaan: role baru selalu bertipe ALL,
+dan mengedit role tidak mengubah tipenya. Role terbatas hanya bisa dibuat langsung di database (atau lewat permintaan
+yang menyebut `role_type`), dan aturan di atas tetap berlaku untuknya.
 
 ### Menu Approval Management
 

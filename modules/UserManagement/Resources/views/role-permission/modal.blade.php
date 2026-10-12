@@ -60,76 +60,6 @@
                         </div>
                         <div class="col-12">
                             <div class="row">
-                                <label for="roleTypeSelect" class="col-md-2 col-form-label required">Type
-                                </label>
-                                <div class="col-md-5">
-                                    <select id="roleTypeSelect" name="role_type" class="form-select" required>
-                                        <option value=""></option>
-                                        <option value="ALL">ALL - All company</option>
-                                        <option value="HO">HO - All Site/Group based on Head Office </option>
-                                        <option value="SITE">SITE - All company on Site/Group</option>
-                                        <option value="COMPANY">COMPANY - Company selection</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12" id="columnHO">
-                            <div class="row">
-                                <label for="roleHoSelect" class="col-md-2 col-form-label">Head Office
-                                </label>
-                                <div class="col-md-5">
-                                    <select id="roleHoSelect" name="role_ho" class="form-select">
-                                        <option value=""></option>
-                                        @foreach ($hos as $ho)
-                                            <option value="{{ $ho->site_owner }}">{{ $ho->site_owner }} -
-                                                {{ $ho->site_name }}
-                                                -
-                                                {{ $ho->location ?? '- ' . $ho->location }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12" id="columnSite">
-                            <div class="row">
-                                <label for="roleSiteSelect" class="col-md-2 col-form-label ">Site
-                                </label>
-                                <div class="col-md-5">
-                                    <select id="roleSiteSelect" name="role_site[]" class="form-select select2 "
-                                            multiple="multiple">
-                                        {{-- <option value=""></option> --}}
-                                        @foreach ($sites as $site)
-                                            <option value="{{ $site->id }}">{{ $site->site_code }} -
-                                                {{ $site->site_name }}
-                                                -
-                                                {{ $site->location }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12" id="columnCompany">
-                            <div class="row">
-                                <label for="roleCompanySelect" class="col-md-2 col-form-label ">Company
-                                </label>
-                                <div class="col-md-5">
-                                    <select id="roleCompanySelect" name="role_company[]" class="form-select"
-                                            multiple="multiple">
-                                        {{-- <option value=""></option> --}}
-                                        @foreach ($companies as $company)
-                                            <option value="{{ $company->id }}">{{ $company->company_code }} |
-                                                {{ $company->company_orangehr_code }}
-                                                -
-                                                {{ $company->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="row">
                                 <label for="homePageSelect" class="col-md-2 col-form-label ">Home Page
                                 </label>
                                 <div class="col-md-5">
@@ -279,10 +209,6 @@
 </div>
 @push('javascript')
     <script type="text/javascript">
-        $('#columnHO').hide()
-        $('#columnSite').hide()
-        $('#columnCompany').hide()
-
         function syncMenuPermissionRowState(menuId) {
             var accessChecked = $('.menu-access-checkbox[data-menu-id="' + menuId + '"]').prop('checked');
             var permissionCheckboxes = $('.menu-permission-checkbox[data-menu-id="' + menuId + '"]');
@@ -293,69 +219,10 @@
             }
         }
 
-        function checkSelected(currentSelected){
-            switch(currentSelected){
-                case "ALL":
-                    $('#columnHO').hide()
-                    $('#columnSite').hide()
-                    $('#columnCompany').hide()
-                    break;
-                case "HO":
-                    $('#columnHO').show()
-                    $('#columnSite').hide()
-                    $('#columnCompany').hide()
-                    break;
-                case "SITE":
-                    $('#columnHO').hide()
-                    $('#columnSite').show()
-                    $('#columnCompany').hide()
-                    break;
-                case "COMPANY":
-                    $('#columnHO').hide()
-                    $('#columnSite').hide()
-                    $('#columnCompany').show()
-                    break;
-                default:
-                    $('#columnHO').hide()
-                    $('#columnSite').hide()
-                    $('#columnCompany').hide()
-                    break;
-            }
-        }
-
         const formRoleModal = (id, action, dataId) => {
             const modalId = `#${id}`;
             var dataId = dataId;
 
-            $(modalId + ' #roleTypeSelect').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Type',
-                multiple: false,
-                dropdownParent: $(modalId),
-                width: '100%',
-            });
-            $(modalId + ' #roleHoSelect').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Head Office',
-                multiple: false,
-                dropdownParent: $(modalId),
-                width: '100%',
-            });
-            $(modalId + ' #roleSiteSelect').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Site',
-
-                multiple: true,
-                dropdownParent: $(modalId),
-                width: '100%',
-            });
-            $(modalId + ' #roleCompanySelect').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Company',
-                multiple: true,
-                dropdownParent: $(modalId),
-                width: '100%',
-            });
             $(modalId + ' #homePageSelect').select2({
                 theme: "bootstrap-5",
                 placeholder: 'Select Home Page',
@@ -374,13 +241,7 @@
                     success: function(response) {
 
                         $(modalId + ' #roleName').val(response.data.role_name);
-                        $(modalId + ' #roleTypeSelect').val(response.data.role_type).change();
-                        $(modalId + ' #roleHoSelect').val(response.data.role_ho).change();
-                        $(modalId + ' #roleSiteSelect').val(response.data.role_site).change();
-                        $(modalId + ' #roleCompanySelect').val(response.data.role_company).change();
                         $(modalId + ' #homePageSelect').val(response.data.home_page).change();
-
-                        checkSelected(response.data?.role_type ?? "")
 
                         var menuList = response.data.menu_list;
                         var menuPermission = response.data.menu_permission || {};
@@ -408,7 +269,6 @@
 
 
 
-                        // $(modalId + ' #roleCompanySelect').val(response.data.role_company[]).change();
                         $(modalId).modal('show');
                     },
                     error: function(xhr) {
@@ -619,9 +479,5 @@
             }
         });
 
-        $('#roleTypeSelect').on('select2:selecting', function(event){
-        const currentSelected = event.params.args.data.id
-        checkSelected(currentSelected)
-        })
     </script>
 @endpush

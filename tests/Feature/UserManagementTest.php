@@ -129,6 +129,41 @@ class UserManagementTest extends TestCase
         $this->assertFalse(User::where('email', 'budi@merdekabattery.com')->exists());
     }
 
+    public function test_roles_are_shown_and_made_without_a_type_or_a_list_of_companies(): void
+    {
+        $this->actingAs($this->admin());
+
+        // The page: the name of a role, how many accounts hold it, and what can be done with it. No type, no companies, no filter.
+        $page = (string) $this->get(route('user-management.role-permission.index'))->assertOk()->getContent();
+        preg_match_all('#<th scope="col"[^>]*>\s*([^<]*?)\s*</th>#', $page, $titles);
+        $this->assertSame(['No', 'Name', 'Total User', 'Action'], $titles[1]);
+        foreach (['Company List', 'roleTypeSelect', 'roleHoSelect', 'roleSiteSelect', 'roleCompanySelect', 'companySelectFilter', 'toggleFilterButton', 'userFilterCard', "key: 'company'", "key: 'func_role'", 'filterList'] as $gone) {
+            $this->assertStringNotContainsString($gone, $page, $gone);
+        }
+        $this->assertSame(1, substr_count($page, 'id="roleName"'));
+        $this->assertSame(1, substr_count($page, 'id="homePageSelect"'));
+
+        // A role made as the form sends it now is for every company.
+        $menu = (int) DB::table('menu')->where('route', 'dashboard.index')->value('id');
+        $form = ['role_name' => 'Staf Gudang', 'home_page' => (string) $menu, 'menu_list' => [$menu]];
+        $this->postJson(route('user-management.role-permission.store'), $form)->assertOk();
+        $role = DB::table('roles')->where('name', 'Staf Gudang')->sole();
+        $this->assertSame(['ALL', null], [$role->func_role, $role->setting_role]);
+
+        // Changed without a type: its name changes, what it is limited to does not.
+        DB::table('roles')->where('id', $role->id)->update(['func_role' => 'COMPANY', 'setting_role' => json_encode(['3'])]);
+        $this->putJson(route('user-management.role-permission.update', $role->id), ['role_name' => 'Staf Gudang Dua'] + $form)->assertOk();
+        $role = DB::table('roles')->where('id', $role->id)->sole();
+        $this->assertSame(['Staf Gudang Dua', 'COMPANY', json_encode(['3'])], [$role->name, $role->func_role, $role->setting_role]);
+
+        // A request that still names a type is held to it, as before; one that is no type is refused.
+        $this->putJson(route('user-management.role-permission.update', $role->id), ['role_type' => 'ALL'] + $form)->assertOk();
+        $role = DB::table('roles')->where('id', $role->id)->sole();
+        $this->assertSame(['ALL', null], [$role->func_role, $role->setting_role]);
+        $this->postJson(route('user-management.role-permission.store'), ['role_name' => 'Lain', 'role_type' => 'SEMUA'] + $form)->assertStatus(422);
+        $this->assertFalse(DB::table('roles')->where('name', 'Lain')->exists());
+    }
+
     public function test_pages_and_lists_load(): void
     {
         $this->actingAs($this->admin());
