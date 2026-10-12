@@ -22,6 +22,10 @@ use Modules\RadioManagement\Services\RadioIdService;
  */
 class Radio extends Model
 {
+    public const OWNER_MTI = 'MTI';
+
+    public const OWNER_OTHER = 'Non MTI';
+
     use SoftDeletes;
 
     protected $table = 'radios';
@@ -80,6 +84,20 @@ class Radio extends Model
     public function ownerCompany()
     {
         return $this->belongsTo(RadioCompany::class, 'owner_company_id');
+    }
+
+    /**
+     * "Owner" as the register shows it: MTI or Non MTI, by the company that owns the radio ("Pemilik Aset");
+     * null while no owner is filled in. Nothing is stored for it, so it cannot contradict the owner.
+     */
+    public function ownerGroup(): ?string
+    {
+        $code = $this->ownerCompany?->code;
+        if ($code === null) {
+            return null;
+        }
+
+        return strcasecmp(trim((string) $code), (string) config('radio.owner_mti_code', 'MTI')) === 0 ? self::OWNER_MTI : self::OWNER_OTHER;
     }
 
     public function company()

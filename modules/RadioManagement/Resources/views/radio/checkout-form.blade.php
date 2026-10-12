@@ -242,162 +242,28 @@
             font-weight: bold;
         }
 
-        /* ---- signing on the screen: the box of RESPONSIBLE USER opens a pad, and what is drawn goes into the box as a picture */
-        .grid td.sign {
-            position: relative;
-        }
+        @include('RadioManagement::radio.checkout-signature-css')
 
-        .sig-open {
+        /* The signature of the person at ICT who opened the form (E-Sign Master), with the name under it. */
+        .ict-sig-img {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            border: 0;
-            background: transparent;
-            font: 9px/1.2 "Segoe UI", Arial, sans-serif;
-            color: #adb5bd;
-            cursor: pointer;
-        }
-
-        .signed .sig-open {
-            color: transparent;
-        }
-
-        .sig-open:hover,
-        .sig-open:focus-visible {
-            background-color: rgba(255, 224, 138, .35);
-            outline: 1px dashed #bd6147;
-            outline-offset: -2px;
-        }
-
-        .sig-img {
-            position: absolute;
-            inset: 1mm;
+            inset: 1mm 1mm 3.4mm;
             width: calc(100% - 2mm);
-            height: calc(100% - 2mm);
+            height: calc(100% - 4.4mm);
             object-fit: contain;
         }
 
-        .sig-remove {
+        .ict-sig-name {
             position: absolute;
-            top: 1px;
-            right: 1px;
-            z-index: 2;
-            width: 18px;
-            height: 18px;
-            padding: 0;
-            border: 1px solid #ced4da;
-            border-radius: 50%;
-            background: #fff;
-            color: #495057;
-            font: 13px/1 "Segoe UI", Arial, sans-serif;
-            cursor: pointer;
-        }
-
-        .sig-remove[hidden] {
-            display: none;
-        }
-
-        .sig-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(33, 37, 41, .55);
-            font: 14px/1.4 "Segoe UI", Arial, sans-serif;
-        }
-
-        .sig-overlay[hidden] {
-            display: none;
-        }
-
-        .sig-panel {
-            padding: 14px 16px 16px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
-            outline: 0;
-        }
-
-        .sig-panel h2 {
-            margin: 0;
-            font-size: 16px;
-        }
-
-        .sig-panel p {
-            margin: 2px 0 10px;
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .sig-surface {
-            position: relative;
-            border: 2px solid #ced4da;
-            border-radius: 6px;
-            background: #fff;
-            line-height: 0;
-        }
-
-        .sig-surface canvas {
-            display: block;
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-            cursor: crosshair;
-        }
-
-        /* The line to sign on is part of the pad's page, never of the picture. */
-        .sig-line {
-            position: absolute;
-            left: 4%;
-            right: 4%;
-            bottom: 24%;
-            border-bottom: 1px dashed #adb5bd;
-            pointer-events: none;
-        }
-
-        .sig-note {
-            margin: 8px 0 0;
-            font-size: 12px;
-            color: #c92a2a;
-        }
-
-        .sig-note[hidden] {
-            display: none;
-        }
-
-        .sig-actions {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .sig-actions button {
-            min-height: 40px;
-            padding: 0 16px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            background: #fff;
-            color: #212529;
-            font: inherit;
-            cursor: pointer;
-        }
-
-        .sig-actions button.primary {
-            border-color: #206bc4;
-            background: #206bc4;
-            color: #fff;
-        }
-
-        .sig-actions button:disabled {
-            opacity: .45;
-            cursor: default;
+            left: 1mm;
+            right: 1mm;
+            bottom: 0.5mm;
+            overflow: hidden;
+            font-size: 6pt;
+            line-height: 1.2;
+            text-align: center;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .hint[hidden] {
@@ -676,7 +542,12 @@
                     <button type="button" class="sig-open no-print" id="signOpen" aria-label="Tanda tangan Responsible User di layar">Klik untuk tanda tangan</button>
                     <button type="button" class="sig-remove no-print" id="signRemove" aria-label="Hapus tanda tangan" title="Hapus tanda tangan" hidden>&times;</button>
                 </td>
-                <td class="sign" rowspan="3"></td>
+                @if ($ictSignature ?? null)
+                    {{-- The signature of whoever opened the form, from E-Sign Master: theirs and nobody else's. It can be taken off before printing. --}}
+                    <td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="{{ $ictSignature['image'] }}" alt="Tanda tangan {{ $ictSignature['name'] }}"><span class="ict-sig-name">{{ $ictSignature['name'] }}</span><button type="button" class="sig-remove no-print" id="ictSignRemove" aria-label="Hapus tanda tangan ICT dari form ini" title="Hapus tanda tangan ICT dari form ini">&times;</button></td>
+                @else
+                    <td class="sign" rowspan="3"></td>
+                @endif
             </tr>
             <tr>
                 <td class="l">Employee ID</td>
@@ -726,6 +597,16 @@
             document.querySelectorAll('.alt').forEach(word => {
                 word.addEventListener('click', () => word.classList.toggle('struck'));
             });
+
+            // The signature of the person at ICT can be taken off this form (it is signed on paper then); the one in E-Sign Master stays.
+            const ictRemove = document.getElementById('ictSignRemove');
+            if (ictRemove) {
+                ictRemove.addEventListener('click', () => {
+                    const box = document.getElementById('ictSignCell');
+                    box.querySelectorAll('.ict-sig-img, .ict-sig-name').forEach(part => part.remove());
+                    ictRemove.remove();
+                });
+            }
 
             // The form is one A4 page. What is typed can make it longer: it is then made smaller for the printing (a second page would have
             // no margin above and below), and the person is told, because the text gets smaller too.

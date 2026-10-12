@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Modules\RadioManagement\Models\Radio;
+use Modules\RadioManagement\Models\RadioCompany;
 
 /**
  * Builds the register query from the list/export request parameters.
@@ -61,6 +62,15 @@ class RadioFilter
             if ($ids) {
                 $query->whereIntegerInRaw($column, array_map('intval', $ids));
             }
+        }
+
+        // "Owner": MTI, or anybody else. A radio whose owner is not filled in is neither.
+        $group = $request->input('owner_group');
+        if (in_array($group, ['mti', 'non_mti'], true)) {
+            $mti = RadioCompany::query()->whereRaw('upper(ltrim(rtrim(code))) = ?', [mb_strtoupper(trim((string) config('radio.owner_mti_code', 'MTI')))])->pluck('id')->all();
+            $group === 'mti'
+                ? $query->whereIntegerInRaw('owner_company_id', $mti)
+                : $query->whereNotNull('owner_company_id')->whereIntegerNotInRaw('owner_company_id', $mti);
         }
 
         foreach (['placement', 'condition'] as $column) {

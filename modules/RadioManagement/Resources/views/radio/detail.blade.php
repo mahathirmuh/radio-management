@@ -158,6 +158,8 @@
                         <dd>{{ $radio->radioType?->category_label ?? '-' }} · {{ $radio->radioType?->power ?? '-' }}</dd>
                         <dt>Pemilik Aset</dt>
                         <dd>{{ $radio->ownerCompany?->label ?? '-' }}</dd>
+                        <dt>Owner</dt>
+                        <dd>{{ $radio->ownerGroup() ?? '-' }}</dd>
                         @if ($radio->previous_dmr_id)
                             <dt>Radio ID Lama</dt>
                             <dd>{{ $radio->previous_dmr_id }}</dd>

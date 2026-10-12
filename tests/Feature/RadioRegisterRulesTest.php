@@ -470,11 +470,13 @@ class RadioRegisterRulesTest extends TestCase
         $this->assertSame(DataType::TYPE_NUMERIC, $sheet->getCell('A2')->getDataType());
         $this->assertSame('3E9', $sheet->getCell('B2')->getValue());
         $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('B2')->getDataType());
-        $this->assertSame('=SUM(1,1)', $sheet->getCell('H2')->getValue());
-        $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('H2')->getDataType());
-        $this->assertSame('00123', $sheet->getCell('P2')->getValue());
-        $this->assertSame('=1+1', $sheet->getCell('Q2')->getValue());
-        $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('Q2')->getDataType());
+        // (The columns by their titles: "Owner" stands after "Pemilik Aset", in G and H.)
+        $this->assertSame(['Pemilik Aset', 'Owner', 'Nama User / Unit'], [$sheet->getCell('G1')->getValue(), $sheet->getCell('H1')->getValue(), $sheet->getCell('I1')->getValue()]);
+        $this->assertSame('=SUM(1,1)', $sheet->getCell('I2')->getValue());
+        $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('I2')->getDataType());
+        $this->assertSame('00123', $sheet->getCell('Q2')->getValue());
+        $this->assertSame('=1+1', $sheet->getCell('R2')->getValue());
+        $this->assertSame(DataType::TYPE_STRING, $sheet->getCell('R2')->getDataType());
 
         // The export must not stay PhpSpreadsheet's value binder: a workbook handled later in the
         // same process would get every number as text.

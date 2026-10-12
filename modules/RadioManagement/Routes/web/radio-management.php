@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\RadioManagement\Http\Controllers\ESignController;
 use Modules\RadioManagement\Http\Controllers\MasterDataController;
 use Modules\RadioManagement\Http\Controllers\RadioController;
 use Modules\RadioManagement\Http\Controllers\RadioHistoryController;
 use Modules\RadioManagement\Http\Controllers\RadioImportController;
+use Modules\SharePointDocs\Http\Middleware\RequireMenu;
 
 /*
 | Route names follow "<menu key>.<action>" so the `permission` middleware can map
@@ -49,5 +51,18 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
     Route::prefix('import')->name('import.')->controller(RadioImportController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
+    });
+
+    // "E-Sign Master": the signatures of the people at ICT. Other pages are open while their menu row is missing (the base
+    // application's default); this one holds signatures, so without its menu row it is closed to everyone but Super Admin.
+    Route::prefix('e-sign')->name('e-sign.')->controller(ESignController::class)->middleware(RequireMenu::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('list', 'list')->name('list');
+        // The page with the pad, shown in a frame of the dialog: the person signs there.
+        Route::get('pad', 'pad')->name('pad');
+        Route::get('{id}/uses', 'uses')->name('uses')->whereNumber('id');
+        Route::post('/', 'store')->name('store');
+        Route::put('{id}', 'update')->name('update')->whereNumber('id');
+        Route::delete('{id}', 'destroy')->name('destroy')->whereNumber('id');
     });
 });

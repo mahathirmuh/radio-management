@@ -95,6 +95,7 @@
                                                 <th class="text-capitalize fs-5 py-3" data-key="serial_number">SN / Tipe</th>
                                                 <th class="text-capitalize fs-5 py-3" data-key="user_name">User / Department</th>
                                                 <th class="text-capitalize fs-5 py-3">Company</th>
+                                                <th class="text-capitalize fs-5 py-3">Owner</th>
                                                 <th class="text-capitalize fs-5 py-3">Template</th>
                                                 <th class="text-capitalize fs-5 py-3">Posisi</th>
                                                 <th class="text-capitalize fs-5 py-3">Kondisi</th>
@@ -174,6 +175,11 @@
                             `<div class="radio-muted">aset ${RadioUi.esc(r.owner)}</div>` : '';
                         return RadioUi.dash(r.company) + owner;
                     }
+                },
+                {
+                    // MTI or Non MTI, by the company that owns the radio (Pemilik Aset); "-" while that is not filled in.
+                    key: 'owner_group',
+                    render: r => r.owner_group ? RadioUi.badge(r.owner_group, r.owner_group === 'MTI' ? 'blue' : 'orange') : RadioUi.dash(null)
                 },
                 { key: 'template', render: r => RadioUi.dash(r.template) },
                 {

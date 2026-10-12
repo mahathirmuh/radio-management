@@ -53,6 +53,8 @@ class DatabaseSeeder extends Seeder
         // Radio Management
         $this->call(RadioMasterSeeder::class);
         $this->call(RadioMenuSeeder::class);
+        // The signatures of the people at ICT (a page of the group "Master Data Radio", which the seeder above makes).
+        $this->call(ESignMenuSeeder::class);
         // SharePoint documents (the menu table was emptied above, after the migrations that add them).
         $this->call(CofScanMenuSeeder::class);
         $this->call(IctMasterlistMenuSeeder::class);

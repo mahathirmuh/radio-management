@@ -212,6 +212,63 @@ class RadioManagementTest extends TestCase
         $this->postJson(route('radio-management.company.store'), ['code' => 'ABC'])->assertStatus(422); // duplicate
     }
 
+    public function test_owner_says_mti_or_non_mti_by_the_company_that_owns_the_radio(): void
+    {
+        $company = fn (string $code) => RadioCompany::firstOrCreate(['code' => $code])->id;
+        Radio::create(['dmr_id' => 20, 'serial_number' => 'A', 'user_name' => 'milik MTI', 'owner_company_id' => $company('MTI'), 'company_id' => $company('MMS')]);
+        Radio::create(['dmr_id' => 21, 'serial_number' => 'B', 'user_name' => 'milik MMS', 'owner_company_id' => $company('MMS'), 'company_id' => $company('MTI')]);
+        Radio::create(['dmr_id' => 22, 'serial_number' => 'C', 'user_name' => 'milik SJS', 'owner_company_id' => $company('SJS')]);
+        // No owner filled in: neither MTI nor Non MTI, whoever uses it.
+        Radio::create(['dmr_id' => 23, 'serial_number' => 'D', 'user_name' => 'tanpa pemilik', 'company_id' => $company('MTI')]);
+        $this->actingAs($this->admin());
+        $list = fn (array $query = []) => $this->getJson(route('radio-management.radio.list', $query))->assertOk();
+
+        // It follows from the owner of the radio (not from who uses it), and is nothing that is typed in.
+        $this->assertSame(
+            [20 => 'MTI', 21 => 'Non MTI', 22 => 'Non MTI', 23 => null],
+            collect($list()->json('data'))->pluck('owner_group', 'dmr_id')->all()
+        );
+        $this->assertSame([20], collect($list(['owner_group' => 'mti'])->json('data'))->pluck('dmr_id')->all());
+        $this->assertSame([21, 22], collect($list(['owner_group' => 'non_mti'])->json('data'))->pluck('dmr_id')->all());
+        // Anything else is no filter; with another filter both count.
+        $this->assertCount(4, $list(['owner_group' => 'x'])->json('data'));
+        $this->assertSame([21], collect($list(['owner_group' => 'non_mti', 'owner' => [$company('MMS')]])->json('data'))->pluck('dmr_id')->all());
+        $this->assertSame([], $list(['owner_group' => 'mti', 'owner' => [$company('MMS')]])->json('data'));
+
+        // The page has the column, after Company, and the filter; the detail says it too.
+        $page = (string) $this->get(route('radio-management.radio.index'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#>Company</th>\s*<th class="[^"]*">Owner</th>\s*<th class="[^"]*">Template</th>#', $page);
+        $this->assertMatchesRegularExpression('#<select id="filterOwnerGroup"[^>]*>\s*<option value="">Semua</option>\s*<option value="mti">MTI</option>\s*<option value="non_mti">Non MTI</option>#', $page);
+        $this->assertSame(substr_count($page, '<th class="text-capitalize fs-5 py-3'), 12, 'twelve titles for twelve columns');
+        $this->get(route('radio-management.radio.detail', Radio::where('dmr_id', 21)->value('id')))->assertOk()->assertSeeInOrder(['Pemilik Aset', 'Owner', 'Non MTI']);
+
+        // The code that is MTI is a setting, and it is compared without regard to case and blanks.
+        RadioCompany::where('code', 'MMS')->update(['code' => ' mms ']);
+        config(['radio.owner_mti_code' => 'MMS']);
+        $this->assertSame(
+            [20 => 'Non MTI', 21 => 'MTI', 22 => 'Non MTI', 23 => null],
+            collect($list()->json('data'))->pluck('owner_group', 'dmr_id')->all()
+        );
+        $this->assertSame([21], collect($list(['owner_group' => 'mti'])->json('data'))->pluck('dmr_id')->all());
+    }
+
+    public function test_export_carries_the_owner_beside_the_company_that_owns_the_radio(): void
+    {
+        $mti = RadioCompany::firstOrCreate(['code' => 'MTI'])->id;
+        $mms = RadioCompany::firstOrCreate(['code' => 'MMS'])->id;
+        Radio::create(['dmr_id' => 20, 'serial_number' => 'A', 'user_name' => 'x', 'owner_company_id' => $mti]);
+        Radio::create(['dmr_id' => 21, 'serial_number' => 'B', 'user_name' => 'y', 'owner_company_id' => $mms]);
+        Radio::create(['dmr_id' => 22, 'serial_number' => 'C', 'user_name' => 'z']);
+
+        $export = app(\Modules\RadioManagement\Exports\RadioExport::class, ['radios' => Radio::with('ownerCompany')->orderBy('dmr_id')->get()]);
+        $headings = $export->headings();
+        $at = array_search('Owner', $headings, true);
+        $this->assertSame(['Pemilik Aset', 'Owner', 'Nama User / Unit'], array_slice($headings, $at - 1, 3));
+        $rows = Radio::with(['ownerCompany', 'radioType', 'company', 'department', 'channelTemplate'])->orderBy('dmr_id')->get()->map(fn (Radio $radio) => $export->map($radio));
+        $this->assertSame([['MTI', 'MTI'], ['MMS', 'Non MTI'], [null, null]], $rows->map(fn (array $row) => [$row[$at - 1], $row[$at]])->all());
+        $this->assertCount(count($headings), $rows[0]);
+    }
+
     public function test_export_downloads_excel(): void
     {
         Radio::create(['dmr_id' => 20, 'serial_number' => '867TZB5309', 'user_name' => 'Iqbal']);

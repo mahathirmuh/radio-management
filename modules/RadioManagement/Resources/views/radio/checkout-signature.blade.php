@@ -1,11 +1,15 @@
 {{--
     Signing the form on the screen. The box of RESPONSIBLE USER opens a pad; what is drawn on it (with a pen, a finger or a mouse)
     goes into the box as a picture that is printed with the form. Nothing is saved and nothing is sent anywhere: the picture
-    lives in this page until it is closed. The box of the ICT person is signed on paper, as before.
+    lives in this page until it is closed. (The box of the ICT person is filled from E-Sign Master, or signed on paper.)
+
+    $signWho: whose signature it is, in the words of the pad ("Responsible User" unless the page says otherwise: the page where a
+    signature is registered for E-Sign Master includes this pad too).
 --}}
+@php($signWho = $signWho ?? 'Responsible User')
 <div class="sig-overlay no-print" id="signOverlay" role="dialog" aria-modal="true" aria-labelledby="signTitle" hidden>
     <div class="sig-panel" tabindex="-1">
-        <h2 id="signTitle">Tanda tangan Responsible User</h2>
+        <h2 id="signTitle">Tanda tangan {{ $signWho }}</h2>
         <p>Tanda tangan di dalam kotak dengan pena, jari, atau mouse.</p>
         <div class="sig-surface">
             <canvas id="signCanvas" aria-label="Kotak tanda tangan"></canvas>
@@ -43,6 +47,8 @@
         const note = document.getElementById('signNote');
         const context = canvas.getContext('2d');
 
+        /** Whose signature it is, for the names of the box and the picture. */
+        const WHO = @json($signWho);
         const INK = '#101010';
         /** The pen is this wide on the pad, as a share of the pad's width; a pen that presses harder draws wider, a lighter touch narrower. */
         const PEN = 0.005;
@@ -262,13 +268,13 @@
             if (!image) {
                 image = document.createElement('img');
                 image.className = 'sig-img';
-                image.alt = 'Tanda tangan Responsible User';
+                image.alt = 'Tanda tangan ' + WHO;
                 cell.insertBefore(image, cell.firstChild);
             }
             image.src = url;
             cell.classList.add('signed');
             remove.hidden = false;
-            open.setAttribute('aria-label', 'Ganti tanda tangan Responsible User');
+            open.setAttribute('aria-label', 'Ganti tanda tangan ' + WHO);
             // Signed today, unless a date was written in already.
             const date = dateField();
             if (date && date.textContent.trim() === '') {
@@ -313,7 +319,7 @@
             if (image) image.remove();
             cell.classList.remove('signed');
             remove.hidden = true;
-            open.setAttribute('aria-label', 'Tanda tangan Responsible User di layar');
+            open.setAttribute('aria-label', 'Tanda tangan ' + WHO + ' di layar');
             // The date that signing wrote is taken back, one that was written or changed by hand is left.
             const date = dateField();
             if (dated && date && date.textContent === cell.getAttribute('data-today')) date.textContent = '';

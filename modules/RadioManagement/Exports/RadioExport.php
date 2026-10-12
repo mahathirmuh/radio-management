@@ -64,7 +64,7 @@ class RadioExport extends DefaultValueBinder implements FromCollection, WithHead
     public function headings(): array
     {
         return [
-            'Radio ID', 'MDC Code', 'SN', 'Tipe Radio', 'Kategori', 'Daya', 'Pemilik Aset',
+            'Radio ID', 'MDC Code', 'SN', 'Tipe Radio', 'Kategori', 'Daya', 'Pemilik Aset', 'Owner',
             'Nama User / Unit', 'Department', 'Company', 'Template Channel', 'Tgl Program Terakhir',
             'Posisi', 'Kondisi', 'Tgl Verifikasi Terakhir', 'No. Dokumen (PO/BA)', 'Keterangan',
             'Cek', 'Diarsipkan', 'Alasan Arsip', 'Radio ID Lama',
@@ -82,6 +82,7 @@ class RadioExport extends DefaultValueBinder implements FromCollection, WithHead
             $radio->radioType?->category,
             $radio->radioType?->power,
             $radio->ownerCompany?->code,
+            $radio->ownerGroup(),
             $radio->user_name,
             $radio->department?->name,
             $radio->company?->code,

@@ -12,7 +12,7 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel |
 | Detail Radio | Data lengkap, hasil cek, riwayat, data asli Excel |
 | Riwayat Radio | Log serah terima, status, program, verifikasi, arsip (otomatis + manual) |
-| Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel |
+| Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel, dan **E-Sign Master** (tanda tangan tim ICT, lihat [E-Sign Master](#e-sign-master)) |
 | Import Excel | Impor register lama (sheet Form + to Konawe) |
 | COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
@@ -26,6 +26,10 @@ Aturan utama:
   ID bebas terdekat (751 = 2EF → 768 = 300). ID terakhir yang diketahui dari radio tanpa ID
   ikut dicadangkan.
 - **SN** unik. **MDC Code**, **kategori** dan **daya** dihitung otomatis.
+- **Owner** (kolom di Register Radio, filter, detail dan Export) berisi **MTI** atau **Non MTI**. Tidak diketik:
+  mengikuti **Pemilik Aset** radio itu (MTI bila kode perusahaannya `MTI`, lihat `owner_mti_code` di
+  `modules/RadioManagement/Config/radio.php`; Non MTI untuk perusahaan lain). Radio yang Pemilik Aset-nya belum diisi
+  tampil "-" dan tidak ikut di kedua pilihan filter: isi Pemilik Aset-nya lewat Edit.
 - Aturan ID/SN diperiksa saat nilainya **diisi atau diubah**. Radio hasil impor yang ID/SN-nya
   sudah bermasalah (dobel, mengandung F) tetap bisa diedit; masalahnya tetap tampil di kolom **Cek**.
 - **Status** lama dipecah jadi **Posisi** (Di User / Stok IT / Service / Hilang) dan
@@ -203,6 +207,36 @@ buka **Role & Permission**, edit role-nya, lalu centang halaman di bawah **Appro
 Di form role, grup dan halamannya saling mengikuti: mencentang sebuah halaman ikut mencentang grupnya
 (halaman hanya tampil di sidebar bila grupnya juga diberikan), dan melepas centang grup melepas semua
 halaman di bawahnya.
+
+## E-Sign Master
+
+Menu **E-Sign Master** (di grup Master Data Radio) adalah gudang tanda tangan tim ICT. Tanda tangan itu mengisi kotak
+**PROCESSED BY (ICT Person)** di IT Equipment Checkout Form (tombol **Cetak** di Register Radio), yang sebelumnya
+selalu ditandatangani di kertas.
+
+- **Yang mengelola: Super Admin.** Ia mendaftarkan tanda tangan untuk sebuah **akun**: pilih akunnya, lalu pemilik
+  tanda tangan menandatangani di kotaknya (pena Wacom, jari, atau mouse; pad yang sama dengan pad di form). Satu akun
+  satu tanda tangan. Bisa diganti, dinonaktifkan, atau dihapus. Menu ini tidak diberikan ke Admin Radio; role lain
+  diberi lewat Role & Permission.
+- **Di form, yang muncul adalah tanda tangan akun yang sedang membuka form itu**, beserta nama tercetaknya, dan tidak
+  pernah tanda tangan orang lain: Super Admin yang mendaftarkan tanda tangan seseorang tidak mendapatkannya di formnya
+  sendiri. Jadi tanda tangan di PROCESSED BY menyatakan siapa yang memproses. Akun tanpa tanda tangan (atau yang
+  dinonaktifkan) mendapat kotak kosong, untuk ditandatangani di kertas seperti dulu.
+- Tanda tangan bisa **dilepas dari satu form** sebelum dicetak (tombol × di kotaknya); yang di E-Sign Master tetap.
+- **Setiap pemakaian dicatat** (siapa, radio mana, kapan) dan bisa dilihat lewat tombol riwayat. Dicatat saat form
+  dibuka dengan tanda tangan di dalamnya, bukan saat dicetak (aplikasi tidak tahu apakah dialog cetak diselesaikan).
+- **Penyimpanan**: gambar disimpan di database, terenkripsi dengan kunci aplikasi (`APP_KEY`), tidak pernah sebagai file
+  dan tidak pernah di folder publik. Yang disimpan adalah PNG yang digambar ulang server dari piksel kiriman browser
+  (isi lain yang menumpang di file tidak ikut). **Bila `APP_KEY` diganti, tanda tangan yang tersimpan tidak bisa dibaca
+  lagi** dan harus didaftarkan ulang.
+- Ini gambar tanda tangan, bukan tanda tangan digital bersertifikat: kekuatannya sebagai bukti ada pada catatan
+  pemakaian dan pada aturan bahwa hanya pemilik akun yang bisa memunculkannya.
+- Tabel dan menunya ditambahkan migrasi `2026_10_12_120000_create_it_signatures_tables` dan
+  `2026_10_12_130000_add_e_sign_menu` (instalasi baru: `DatabaseSeeder`). Sebelum migrasi dijalankan, form dicetak
+  tanpa tanda tangan dan halaman E-Sign Master bilang tabelnya belum ada. Selama baris menunya tidak ada, halaman ini
+  tertutup untuk semua orang kecuali Super Admin.
+- Belum diuji: pena Wacom sungguhan di halaman pendaftaran (pad-nya sama dengan pad form), dan tampilan di browser
+  selain lewat pemeriksa skrip.
 
 ## Dokumen SharePoint
 
@@ -520,7 +554,13 @@ modules/RadioManagement/
                             tanda tangan, print-modal = pop-up-nya), master/, history/, import/, partials/
   Routes/web/radio-management.php
 database/migrations/2026_10_03_100000_create_radio_management_tables.php
-database/seeders/RadioMasterSeeder.php, RadioMenuSeeder.php
+database/seeders/RadioMasterSeeder.php, RadioMenuSeeder.php, ESignMenuSeeder.php
+modules/RadioManagement/ (E-Sign Master)
+  Models/ItSignature.php, ItSignatureUse.php    tanda tangan per akun (gambar terenkripsi) dan catatan pemakaiannya
+  Services/SignatureImage.php                   memeriksa gambar kiriman dan menggambarnya ulang sebagai PNG
+  Http/Controllers/ESignController.php          halaman, daftar, pad, simpan/ubah/hapus, riwayat
+  Resources/views/e-sign/                       index (daftar + dialog), pad (halaman pad di dalam frame dialog)
+  Resources/views/radio/checkout-signature-css  gaya pad, dipakai form dan halaman pad
 modules/Dashboard/          diganti menjadi dashboard radio
 modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist, Persetujuan Edit)
   Config/sharepoint-docs.php        folder dan workbook yang ditampilkan, batas ukuran dan waktu
@@ -620,6 +660,11 @@ JavaScript di halaman tidak dijalankan oleh PHPUnit sendiri; beberapa test memak
   memeriksa penulis selnya: teks tetap teks, angka dan gayanya, sel dan baris yang belum ada, dan bahwa bagian file
   lain sama persis. `sharepoint-approvals-behaviour.mjs` menjalankan skrip halaman Persetujuan Edit, dan
   `sharepoint-workbook-behaviour.mjs` juga memeriksa ikon pensil dan pop-up pengajuan.
+- `ESignTest` memeriksa E-Sign Master: siapa yang boleh mengelola (menu; tertutup tanpa baris menu), gambar yang
+  diterima dan ditolak (bukan PNG, kosong, terlalu besar, isi yang menumpang di belakang gambar), penyimpanan
+  terenkripsi, ganti/nonaktif/hapus, bahwa form hanya membawa tanda tangan akun yang membukanya, catatan pemakaian,
+  bahwa form yang bertanda tangan tetap tidak mengambil apa pun dari luar dan tidak mengirim apa pun, halaman pad,
+  dan keadaan sebelum migrasi. `esign-index-behaviour.mjs` menjalankan skrip halaman master.
 - `PageSandboxTest` memeriksa pengganti jQuery itu sendiri (`page-sandbox-selftest.mjs`: cara jQuery menulis
   permintaan dan gagal pada setengah karakter, apa yang di-`trigger`, pemeriksa bentuk markup), karena checker
   hanya sebaik pengganti yang dipakainya. Checker memerlukan Node.js 18 atau lebih baru.

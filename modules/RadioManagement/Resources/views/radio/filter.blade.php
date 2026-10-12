@@ -21,6 +21,14 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label for="filterOwnerGroup" class="form-label">Owner</label>
+                <select id="filterOwnerGroup" class="form-select">
+                    <option value="">Semua</option>
+                    <option value="mti">MTI</option>
+                    <option value="non_mti">Non MTI</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label for="filterDepartment" class="form-label">Department</label>
                 <select id="filterDepartment" class="form-select" multiple="multiple">
                     @foreach ($departments as $department)
@@ -120,6 +128,7 @@
                 return {
                     company: $('#filterCompany').val(),
                     owner: $('#filterOwner').val(),
+                    owner_group: $('#filterOwnerGroup').val(),
                     department: $('#filterDepartment').val(),
                     type: $('#filterType').val(),
                     template: $('#filterTemplate').val(),
@@ -136,6 +145,7 @@
             reset() {
                 $('#radioFilterCard select[multiple]').val(null).trigger('change');
                 $('#filterIssue').val('');
+                $('#filterOwnerGroup').val('');
                 radioFilter.apply();
             },
         };

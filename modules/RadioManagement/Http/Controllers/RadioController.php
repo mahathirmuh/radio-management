@@ -16,6 +16,8 @@ use Modules\RadioManagement\Enums\Placement;
 use Modules\RadioManagement\Exports\RadioExport;
 use Modules\RadioManagement\Http\Requests\RadioRequest;
 use Modules\RadioManagement\Models\ChannelTemplate;
+use Modules\RadioManagement\Models\ItSignature;
+use Modules\RadioManagement\Models\ItSignatureUse;
 use Modules\RadioManagement\Models\Radio;
 use Modules\RadioManagement\Models\RadioCompany;
 use Modules\RadioManagement\Models\RadioDepartment;
@@ -146,9 +148,13 @@ class RadioController extends Controller
     /**
      * The "IT Equipment Checkout Form" (MTI-HRM-ICT-FRM-001) for one radio, as a page of its own:
      * what the register knows is filled in, the rest is left to be written in (on screen, before
-     * printing) or by hand. Nothing is saved.
+     * printing) or by hand. Nothing of the form is saved.
+     *
+     * The box "PROCESSED BY (ICT Person)" carries the signature of whoever opens the form, when that account has one in
+     * "E-Sign Master": its own and nobody else's, so that the signature says who processed it. That it was put on a form
+     * is written down (ItSignatureUse).
      */
-    public function checkoutForm(Radio $radio)
+    public function checkoutForm(Request $request, Radio $radio)
     {
         $radio->load(['radioType', 'department']);
         // A page that is printed and signed on carries nothing of the developer's tools: their bar would lie over the box that is signed in.
@@ -156,11 +162,25 @@ class RadioController extends Controller
             app('debugbar')->disable();
         }
 
+        $signature = ItSignature::of($request->user());
+        if ($signature !== null) {
+            ItSignatureUse::create([
+                'signature_id' => $signature->id,
+                'user_id' => $request->user()->id,
+                'user_name' => mb_substr((string) $request->user()->name, 0, 255),
+                'radio_id' => $radio->id,
+                'radio_label' => mb_substr(trim('ID ' . ($radio->dmr_id ?? '-') . ' · SN ' . ($radio->serial_number ?? '-') . ' · ' . ($radio->user_name ?? '-')), 0, 255),
+                'created_at' => now(),
+            ]);
+        }
+
         return view('RadioManagement::radio.checkout-form', [
             'radio' => $radio,
             // Which of "HT / RIG" is struck out: the one this radio is not.
             'category' => $radio->radioType?->category,
             'today' => now()->format('d-m-Y'),
+            // The signature of the person at ICT who opens the form, or null: the box is then signed on paper.
+            'ictSignature' => $signature === null ? null : ['image' => $signature->image, 'name' => $signature->display_name],
         ]);
     }
 
@@ -265,6 +285,8 @@ class RadioController extends Controller
             'department' => $radio->department?->name,
             'company' => $radio->company?->code,
             'owner' => $radio->ownerCompany?->code,
+            // MTI or Non MTI, by the company that owns it; null while that is not filled in.
+            'owner_group' => $radio->ownerGroup(),
             'template' => $radio->channelTemplate?->name,
             'placement' => ['value' => $radio->placement->value, 'label' => $radio->placement->label(), 'color' => $radio->placement->color()],
             'condition' => ['value' => $radio->condition->value, 'label' => $radio->condition->label(), 'color' => $radio->condition->color()],

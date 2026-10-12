@@ -9,6 +9,12 @@ return [
     'id_start' => 11,
     'id_max' => 16776415,
 
+    /*
+    | The column "Owner" of the register says MTI or Non MTI. It is not typed in: it follows from
+    | "Pemilik Aset" (the company that owns the radio), which is MTI when its code is this one.
+    */
+    'owner_mti_code' => 'MTI',
+
     // A radio counts as "stale" when its last physical verification is older than this.
     'verify_max_months' => 12,
 

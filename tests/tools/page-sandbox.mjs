@@ -133,6 +133,8 @@ export function loadPage(file, markers, { href, framePath = '/' }) {
             removeAttr(name) { all().forEach(record => { delete record.attrs[name]; }); return api; },
             prop(name, value) { if (value === undefined) return n.props[name]; all().forEach(record => { record.props[name] = value; }); return api; },
             data(name) { return n.data[name]; },
+            // (A checkbox is ticked when its "checked" property says so; nothing else is asked of an element here.)
+            is(what) { return what === ':checked' ? !!n.props.checked : false; },
             addClass(name) { all().forEach(record => record.classes.add(name)); return api; },
             removeClass(name) { all().forEach(record => record.classes.delete(name)); return api; },
             toggleClass(name, on) { all().forEach(record => (on ? record.classes.add(name) : record.classes.delete(name))); return api; },
@@ -276,8 +278,9 @@ export function loadPage(file, markers, { href, framePath = '/' }) {
         },
         /** What the latest request asked for. */
         sent: () => ({ ...requests.at(-1).data }),
-        answer(request, body) { request.done(body); request.chained.forEach(({ success }) => success?.(body)); request.always(); },
-        refuse(request, xhr) { request.fail(xhr); request.chained.forEach(({ failure }) => failure?.(xhr)); request.always(); },
+        // (A script need not listen for every outcome: one that set no "always", or no "fail", is not called for it.)
+        answer(request, body) { request.done?.(body); request.chained.forEach(({ success }) => success?.(body)); request.always?.(); },
+        refuse(request, xhr) { request.fail?.(xhr); request.chained.forEach(({ failure }) => failure?.(xhr)); request.always?.(); },
         /** The elements the script put into the element with this id and has not taken out again. */
         inside: id => appended.filter(entry => entry.into === id && !entry.gone).map(entry => entry.element),
         /** Everything the script has written into the page as markup. */
