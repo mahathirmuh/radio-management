@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Modules\SharePointDocs\Services\GraphException;
+use Modules\SharePointDocs\Services\ScanLinks;
+use Modules\SharePointDocs\Services\ScanRegister;
 use Modules\SharePointDocs\Services\SharePointFolder;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,13 +22,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class FolderController extends Controller
 {
-    private const SORTS = ['modified', 'name', 'label', 'extension', 'size'];
+    private const SORTS = ['modified', 'name', 'label', 'extension', 'size', 'masterlist'];
 
-    public function __construct(private readonly SharePointFolder $folders)
+    public function __construct(private readonly SharePointFolder $folders, private readonly ScanLinks $scans)
     {
     }
 
-    public function index(string $folder)
+    public function index(Request $request, string $folder)
     {
         $settings = $this->settings($folder);
 
@@ -43,12 +45,20 @@ class FolderController extends Controller
             'configured' => $this->folders->configured($folder),
             'sharePointUrl' => $this->folders->link($folder),
             'cacheMinutes' => max(1, (int) config('sharepoint-docs.cache_minutes', 10)),
+            // The sheet of a workbook that lists these files, when this reader may open it: its columns come with the files.
+            'register' => $this->scans->offeredOnFolder($folder, $request->user()),
         ]);
     }
 
+    /**
+     * The files and folders of one folder (searched, sorted, one page of them). When a sheet of a workbook lists these files
+     * (config "scans") and the reader may open that workbook, every file also says which row of the sheet is its own, and
+     * what that row's note says.
+     */
     public function list(Request $request, string $folder): JsonResponse
     {
         $settings = $this->settings($folder);
+        $started = $this->scans->begin();
 
         $path = SharePointFolder::cleanPath($request->query('path'));
         if ($path === null) {
@@ -68,7 +78,22 @@ class FolderController extends Controller
         $everything = array_map(fn (array $item) => $item + $this->nameParts($item['name'], $item['folder'], $settings['name_split']), $listing['items']);
         $files = array_filter($everything, fn (array $row) => ! $row['folder']);
 
+        $register = $this->scans->forFolder($folder, $everything, $request->user(), $request->boolean('refresh'), $started, (bool) $listing['stale']);
+        foreach ($register['files'] ?? [] as $at => $own) {
+            $everything[$at]['register'] = $own + ['open' => $register['open'], 'sheet' => $register['sheet']];
+        }
+
         $rows = $this->search($everything, self::text($request, 'search'));
+        // A link from the page of the workbook: the files that have this document number, and nothing else. (The number of a file
+        // that has no separator in its name is the whole name, which can be long: the cut is the longest name SharePoint allows.)
+        $code = mb_substr(self::text($request, 'code'), 0, ScanRegister::CODE_MOST);
+        if (ScanRegister::codeKey($code) !== '') {
+            $separator = ScanLinks::separator($folder);
+            $rows = array_values(array_filter($rows, fn (array $row) => ! $row['folder']
+                && ScanRegister::codeKey(ScanRegister::codeOfFile($row['name'], $separator)) === ScanRegister::codeKey($code)));
+        } else {
+            $code = '';
+        }
         $sort = in_array($request->query('sort'), self::SORTS, true) ? $request->query('sort') : 'modified';
         $descending = match ($request->query('dir')) {
             'asc' => false,
@@ -104,8 +129,8 @@ class FolderController extends Controller
                 'size' => self::size(array_sum(array_column($files, 'size'))),
                 'truncated' => (bool) $listing['truncated'],
                 'stale' => (bool) $listing['stale'],
-            ],
-        ]);
+            ] + ($code === '' ? [] : ['code' => $code]),
+        ] + ($register === null ? [] : ['register' => self::register($register)]));
     }
 
     /**
@@ -228,6 +253,8 @@ class FolderController extends Controller
                 'modified' => ($a['modified'] ?? 0) <=> ($b['modified'] ?? 0),
                 'label' => strnatcasecmp($a['label'], $b['label']),
                 'extension' => strcmp($a['extension'], $b['extension']),
+                // Files without a row first (what is left to do), then those whose name differs, then the rest.
+                'masterlist' => self::rank($a) <=> self::rank($b),
                 default => strnatcasecmp($a['name'], $b['name']),
             };
             if ($order !== 0) {
@@ -266,6 +293,61 @@ class FolderController extends Controller
             'preview' => ! $row['folder'] && $row['id'] !== null
                 && SharePointFolder::previewType($row['name']) !== null
                 && $row['size'] <= SharePointFolder::previewLimit(),
+        ] + (isset($row['register'])
+            // What the sheet that lists the files says about this file (only when there is such a sheet and it could be read).
+            ? ['masterlist' => self::masterlist($row), 'note' => $row['register']['note']]
+            : []);
+    }
+
+    /** How a file stands against the sheet that lists the files: 0 no row, 1 a row with another name, 2 its own row, 3 not told. */
+    private static function rank(array $row): int
+    {
+        return match ($row['register']['status'] ?? null) {
+            ScanRegister::UNLINKED => 0,
+            ScanRegister::DIFFERS => 1,
+            ScanRegister::LINKED => 2,
+            default => 3,
+        };
+    }
+
+    /**
+     * The "Masterlist" column of a file: whether a row names it, the Excel row, and the way to that row on the page of the
+     * workbook (the page opens on the sheet, showing that row of Excel and no other).
+     *
+     * @return array{status: string, line: ?int, more: int, url: ?string}
+     */
+    private static function masterlist(array $row): array
+    {
+        $own = $row['register'];
+        $url = $own['lines'] !== []
+            ? $own['open'] . '?' . http_build_query(['sheet' => $own['sheet'], 'line' => implode(',', $own['lines'])], '', '&', PHP_QUERY_RFC3986)
+            : null;
+
+        return [
+            'status' => $own['status'],
+            'line' => $own['lines'][0] ?? null,
+            // How many more rows name it, or have its number (a file with two rows).
+            'more' => max(0, $own['total'] - 1),
+            'url' => $url,
+        ];
+    }
+
+    /**
+     * What the page is told about the sheet: where it comes from, how old it is, or why its columns are empty.
+     *
+     * @return array<string, mixed>
+     */
+    private static function register(array $register): array
+    {
+        if (isset($register['unavailable'])) {
+            return ['title' => $register['title'], 'unavailable' => $register['unavailable']];
+        }
+
+        return [
+            'title' => $register['title'],
+            'sheet' => $register['sheet'],
+            'fetched_at' => self::time($register['fetched_at']),
+            'stale' => $register['stale'],
         ];
     }
 

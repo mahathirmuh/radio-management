@@ -1402,8 +1402,9 @@ class SharePointDocsTest extends TestCase
             DB::table('menu_role_permission')->where('menu_id', $menuId)->orderBy('role_id')->get()
                 ->map(fn ($grant) => [(int) $grant->role_id, (int) $grant->permission_id])->all(),
         ];
-        // Super Admin and Admin Radio, read only; not Viewer Radio.
-        $this->assertSame([[1, $adminRole], [[1, $read], [$adminRole, $read]]], $grants($menu->id));
+        // Super Admin, Admin Radio and the Document Controller, read only; not Viewer Radio.
+        $controller = (int) DB::table('roles')->where('name', 'Document Controller')->value('id');
+        $this->assertSame([[1, $adminRole, $controller], [[1, $read], [$adminRole, $read], [$controller, $read]]], $grants($menu->id));
 
         // The owner renames it and takes it away from Admin Radio. Migrating or seeding again leaves that alone.
         DB::table('menu')->where('id', $menu->id)->update(['title' => 'Arsip COF', 'order' => 2]);
@@ -1417,7 +1418,7 @@ class SharePointDocsTest extends TestCase
 
         $kept = DB::table('menu')->where('route', CofScanMenuSeeder::ROUTE)->sole();
         $this->assertSame([$menu->id, 'Arsip COF', 2], [$kept->id, $kept->title, (int) $kept->order]);
-        $this->assertSame([[1], [[1, $read]]], $grants($menu->id));
+        $this->assertSame([[1, $controller], [[1, $read], [$controller, $read]]], $grants($menu->id));
 
         // Rolled back, nothing of it is left; migrated again, it is back as it was first added.
         $migration->down();

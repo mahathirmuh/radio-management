@@ -64,6 +64,41 @@ class SharePointFolder
     }
 
     /**
+     * Runs $reading, which reads from this service, in at most $seconds: the time allowed for everything it
+     * asks Microsoft (see GraphClient::within). For a page that has another source to read in the same request
+     * and cannot spend more than what is left of its time on this one.
+     */
+    public function within(float $seconds, callable $reading, bool $shared = false): mixed
+    {
+        return $this->graph->within($seconds, $reading, $shared);
+    }
+
+    /**
+     * Whether a listing that is recent enough to be used as it is (listing() would not ask Microsoft) is at hand: as
+     * recent as sharepoint-docs.cache_minutes, or, after "Muat ulang" ($refresh), as recent as that asks for.
+     */
+    public function fresh(string $key, string $path = '', bool $refresh = false): bool
+    {
+        if (! $this->configured($key)) {
+            return false;
+        }
+        $kept = $this->kept($this->address($key), $path);
+        if ($kept === null) {
+            return false;
+        }
+
+        $age = now()->getTimestamp() - (int) $kept['fetched_at'];
+
+        return $age >= 0 && $age < $this->wanted($refresh);
+    }
+
+    /** How old (seconds) a kept listing may be to be used as it is. */
+    private function wanted(bool $refresh): int
+    {
+        return $refresh ? self::REFRESH_AFTER : 60 * max(1, (int) config('sharepoint-docs.cache_minutes', 10));
+    }
+
+    /**
      * What is in the folder, or in a folder below it ($path as returned by cleanPath()).
      *
      * Microsoft is asked only when the kept copy is too old, and not again for RETRY_AFTER
@@ -88,9 +123,8 @@ class SharePointFolder
 
         if ($kept !== null) {
             $age = now()->getTimestamp() - (int) $kept['fetched_at'];
-            $wanted = $refresh ? self::REFRESH_AFTER : 60 * max(1, (int) config('sharepoint-docs.cache_minutes', 10));
             // A copy dated in the future (the server clock was set back) is not taken for a fresh one.
-            if ($age >= 0 && $age < $wanted) {
+            if ($age >= 0 && $age < $this->wanted($refresh)) {
                 return $kept + ['stale' => false];
             }
         }
@@ -122,8 +156,13 @@ class SharePointFolder
             }
 
             // For the folder itself this is the mark that holds every request back; for a
-            // folder below, only requests for that one (its trouble may be its own).
-            Cache::put($this->cacheKey('unreachable', $address, $path), true, self::RETRY_AFTER);
+            // folder below, only requests for that one (its trouble may be its own). Not when the
+            // time ran out that a page cut out of its own for this listing and made much shorter than
+            // usual (it has another source to read too): that says nothing about Microsoft, and would
+            // hold back the folder's own page.
+            if (! ($e->outOfTime && $this->graph->shared())) {
+                Cache::put($this->cacheKey('unreachable', $address, $path), true, self::RETRY_AFTER);
+            }
             if ($kept === null) {
                 throw $e;
             }

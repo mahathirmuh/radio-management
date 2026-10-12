@@ -33,6 +33,9 @@ class WorkbookReader
     /** The column titles are looked for in this many rows from the top (a sheet may start with a heading). */
     private const TITLES_WITHIN = 10;
 
+    /** A cell longer than this (bytes) is no web address, whatever it starts with: the blanks in it are not kept (see text()). */
+    private const ADDRESS_MOST = 2048;
+
     /** How a workbook that is saved with a password begins (an old-style container around the real package). */
     private const ENCRYPTED = "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
 
@@ -62,9 +65,10 @@ class WorkbookReader
      * @param float $seconds how long the reading may take
      * @return array<int, array{
      *     name: string, hidden: bool, truncated: bool, columns: array<int, string>,
-     *     rows: array<int, array<int, string>>, numbers: array<int, array<int, float>>, lines: array<int, int>
+     *     rows: array<int, array<int, string>>, numbers: array<int, array<int, float>>, lines: array<int, int>,
+     *     positions: array<int, int>, formulas: array<int, array<int, true>>
      * }> per sheet: titles, rows of text, the numbers behind cells that hold one (row => column => number, for
-     *    sorting), and each row's number in Excel
+     *    sorting), each row's number in Excel, where each column is in Excel (1 = A) and the cells that hold a formula
      */
     public function read(string $bytes, bool $skipUnused = false, int $maxCells = XlsxReader::MAX_CELLS, float $seconds = 15.0): array
     {
@@ -167,11 +171,15 @@ class WorkbookReader
         $grid = [];
         $numbers = [];
         $typed = [];
+        $formulas = [];
         foreach ($sheet['cells'] as $row => $cells) {
             // Making text of the cells is part of the reading, and has the same time.
             $this->xlsx->checkTime();
             foreach ($cells as $column => [$value, $format, $formula]) {
                 [$text, $number] = $this->text($value, $format);
+                if ($formula) {
+                    $formulas[$row][$column] = true;
+                }
                 if ($text === '') {
                     continue;
                 }
@@ -194,6 +202,8 @@ class WorkbookReader
             'rows' => [],
             'numbers' => [],
             'lines' => [],
+            'positions' => [],
+            'formulas' => [],
         ];
         $titlesAt = $this->titlesAt($grid);
         if ($titlesAt === null) {
@@ -215,6 +225,8 @@ class WorkbookReader
         }
         ksort($used);
         $positions = array_keys($used);
+        // Where each column is in Excel (1 = A): what a cell is written to is told by this and the row's number.
+        $table['positions'] = $positions;
         foreach ($positions as $column) {
             $table['columns'][] = $grid[$titlesAt][$column] ?? 'Kolom ' . Coordinate::stringFromColumnIndex($column);
         }
@@ -226,6 +238,10 @@ class WorkbookReader
             foreach ($positions as $position => $column) {
                 if (isset($numbers[$row][$column])) {
                     $table['numbers'][$at][$position] = $numbers[$row][$column];
+                }
+                // The cells that hold a formula (row => column in the table): they are not written over.
+                if (isset($formulas[$row][$column])) {
+                    $table['formulas'][$at][$position] = true;
                 }
             }
         }
@@ -276,8 +292,16 @@ class WorkbookReader
             return [$isDate ? self::date($value) : self::number($value, $format), $value];
         }
 
-        // One line per cell in the table: line breaks inside a cell become spaces.
-        return [trim((string) preg_replace('/\s+/u', ' ', $value)), null];
+        // One line per cell in the table: line breaks inside a cell become spaces, and so does any run of blanks.
+        $text = trim((string) preg_replace('/\s+/u', ' ', $value));
+        if (preg_match('#^https://#i', $text) !== 1 || strlen($value) > self::ADDRESS_MOST) {
+            return [$text, null];
+        }
+
+        // Except in a web address: the name of a file in a link is compared with the names of the files letter for letter
+        // ("Andi  Wijaya.pdf" is not "Andi Wijaya.pdf" to SharePoint), so the blanks inside it stay as they were typed.
+        // (Not in a cell that is longer than any address: it is no link, and the patterns below are slow on a long run of blanks.)
+        return [(string) preg_replace('/^\s+|\s+$/u', '', (string) preg_replace('/\s*[\r\n]+\s*/u', ' ', $value)), null];
     }
 
     /** An Excel date as it is written in this application: 06-10-2026, with the time when the cell has one. */

@@ -31,12 +31,13 @@ class SharePointWorkbook
     private const KEEP_HOURS = 24;
 
     /** Changes with the shape of what is kept: a copy kept by another version is read again. */
-    private const FORMAT = 2;
+    private const FORMAT = 4;
 
     /** Reading a downloaded workbook may take at most this long, and gets at least this long whatever is left of the time for the whole (seconds). */
     private const PARSE_MOST = 15;
 
-    private const PARSE_LEAST = 5;
+    /** (Public: a page that reads the workbook as its second source keeps this much of its time for the reading, see ScanLinks.) */
+    public const PARSE_LEAST = 5;
 
     public function __construct(private readonly GraphClient $graph, private readonly WorkbookReader $reader)
     {
@@ -51,6 +52,42 @@ class SharePointWorkbook
     public function configured(string $key): bool
     {
         return $this->address($key) !== '' && $this->graph->configured();
+    }
+
+    /**
+     * Runs $reading, which reads from this service, in at most $seconds: the time allowed for everything it
+     * asks Microsoft (see GraphClient::within). For a page that has another source to read in the same request
+     * and cannot spend more than what is left of its time on this one.
+     */
+    public function within(float $seconds, callable $reading, bool $shared = false): mixed
+    {
+        return $this->graph->within($seconds, $reading, $shared);
+    }
+
+    /**
+     * Whether a copy that is recent enough to be used as it is (tables() would not ask Microsoft) is at hand: as
+     * recent as sharepoint-docs.cache_minutes, or, after "Muat ulang" ($refresh), as recent as that asks for.
+     */
+    public function fresh(string $key, bool $refresh = false): bool
+    {
+        if (! $this->configured($key)) {
+            return false;
+        }
+        // The same key as tables() keeps its copy under.
+        $kept = Cache::get($this->cacheKey('book', $this->address($key) . "\n" . $this->shown($key)));
+        if (! is_array($kept) || ($kept['format'] ?? null) !== self::FORMAT || ! isset($kept['fetched_at'], $kept['sheets'])) {
+            return false;
+        }
+
+        $age = now()->getTimestamp() - (int) $kept['fetched_at'];
+
+        return $age >= 0 && $age < $this->wanted($refresh);
+    }
+
+    /** How old (seconds) a kept copy may be to be used as it is. */
+    private function wanted(bool $refresh): int
+    {
+        return $refresh ? self::REFRESH_AFTER : 60 * max(1, (int) config('sharepoint-docs.cache_minutes', 10));
     }
 
     /**
@@ -79,9 +116,8 @@ class SharePointWorkbook
 
         if ($kept !== null) {
             $age = now()->getTimestamp() - (int) $kept['fetched_at'];
-            $wanted = $refresh ? self::REFRESH_AFTER : 60 * max(1, (int) config('sharepoint-docs.cache_minutes', 10));
             // A copy dated in the future (the server clock was set back) is not taken for a fresh one.
-            if ($age >= 0 && $age < $wanted) {
+            if ($age >= 0 && $age < $this->wanted($refresh)) {
                 return $kept + ['stale' => false];
             }
         }
@@ -110,7 +146,12 @@ class SharePointWorkbook
                 throw $e;
             }
 
-            Cache::put($unreachable, $e->reason, self::RETRY_AFTER);
+            // Not when the time ran out that a page cut out of its own for this workbook and made much shorter than
+            // usual (it has another source to read too): that says nothing about Microsoft, and would hold back the
+            // workbook's own page.
+            if (! ($this->graph->shared() && ($e->outOfTime || $e->reason === GraphException::TOO_SLOW))) {
+                Cache::put($unreachable, $e->reason, self::RETRY_AFTER);
+            }
             if ($kept === null) {
                 throw $e;
             }
@@ -132,24 +173,7 @@ class SharePointWorkbook
      */
     private function fetch(string $key, string $address, ?array $kept, string $shown): array
     {
-        try {
-            $item = $this->graph->get('/shares/' . self::shareId($address) . '/driveItem');
-        } catch (GraphException $e) {
-            // Graph's own 400: it does not recognise the address as something in SharePoint at all.
-            throw $e->status === 400 && $e->reason === GraphException::UNAVAILABLE
-                ? new GraphException(GraphException::NOT_FOUND, $e->getMessage(), 400)
-                : $e;
-        }
-
-        $driveId = $item['parentReference']['driveId'] ?? null;
-        $itemId = $item['id'] ?? null;
-        $name = is_string($item['name'] ?? null) ? $item['name'] : '';
-        if (! self::isId($driveId) || ! self::isId($itemId)) {
-            throw new GraphException(GraphException::UNAVAILABLE, 'Graph described the workbook without usable ids.');
-        }
-        if (! isset($item['file']) || ! str_ends_with(strtolower($name), '.xlsx')) {
-            throw new GraphException(GraphException::UNSUPPORTED, 'The configured address is not an .xlsx workbook.');
-        }
+        ['item' => $item, 'driveId' => $driveId, 'itemId' => $itemId, 'name' => $name] = $this->resolve($address);
         $limit = max(1, (int) config('sharepoint-docs.workbook_max_mb', 15)) * 1024 * 1024;
         if (is_numeric($item['size'] ?? null) && (int) $item['size'] > $limit) {
             throw new GraphException(GraphException::TOO_LARGE, 'The workbook is larger than what is read into the application.');
@@ -209,6 +233,100 @@ class SharePointWorkbook
         }
 
         return $facts + ['sheets' => $sheets];
+    }
+
+    /**
+     * What Graph says about the file behind the address, and where it is (the ids that the requests for its content take).
+     *
+     * @return array{item: array, driveId: string, itemId: string, name: string}
+     */
+    private function resolve(string $address): array
+    {
+        try {
+            $item = $this->graph->get('/shares/' . self::shareId($address) . '/driveItem');
+        } catch (GraphException $e) {
+            // Graph's own 400: it does not recognise the address as something in SharePoint at all.
+            throw $e->status === 400 && $e->reason === GraphException::UNAVAILABLE
+                ? new GraphException(GraphException::NOT_FOUND, $e->getMessage(), 400)
+                : $e;
+        }
+
+        $driveId = $item['parentReference']['driveId'] ?? null;
+        $itemId = $item['id'] ?? null;
+        $name = is_string($item['name'] ?? null) ? $item['name'] : '';
+        if (! self::isId($driveId) || ! self::isId($itemId)) {
+            throw new GraphException(GraphException::UNAVAILABLE, 'Graph described the workbook without usable ids.');
+        }
+        if (! isset($item['file']) || ! str_ends_with(strtolower($name), '.xlsx')) {
+            throw new GraphException(GraphException::UNSUPPORTED, 'The configured address is not an .xlsx workbook.');
+        }
+
+        return ['item' => $item, 'driveId' => $driveId, 'itemId' => $itemId, 'name' => $name];
+    }
+
+    /**
+     * The workbook as it is in SharePoint NOW (never a copy that was kept), with what is needed to put it back: the
+     * ids of the file and the version the bytes are of. For changing one cell: see replace().
+     *
+     * @return array{bytes: string, version: string, driveId: string, itemId: string}
+     */
+    public function download(string $key): array
+    {
+        if (! $this->configured($key)) {
+            throw new GraphException(GraphException::NOT_CONFIGURED, "Workbook \"{$key}\" has no address, or services.azure is incomplete.");
+        }
+        $address = $this->address($key);
+        $limit = max(1, (int) config('sharepoint-docs.workbook_max_mb', 15)) * 1024 * 1024;
+
+        return $this->graph->within(max(0, (float) config('sharepoint-docs.preview_time_limit', 25)), function () use ($address, $limit) {
+            ['item' => $item, 'driveId' => $driveId, 'itemId' => $itemId] = $this->resolve($address);
+            if (! is_string($item['eTag'] ?? null) || $item['eTag'] === '') {
+                // Without the version of the file it could not be put back without writing over somebody's save.
+                throw new GraphException(GraphException::UNAVAILABLE, 'Graph described the workbook without its version (eTag).');
+            }
+            if (is_numeric($item['size'] ?? null) && (int) $item['size'] > $limit) {
+                throw new GraphException(GraphException::TOO_LARGE, 'The workbook is larger than what is read into the application.');
+            }
+
+            $source = $this->graph->locate("/drives/{$driveId}/items/{$itemId}/content");
+            $bytes = $source['body'] ?? $this->graph->fetch((string) $source['address'], $limit);
+
+            return ['bytes' => $bytes, 'version' => $item['eTag'], 'driveId' => $driveId, 'itemId' => $itemId];
+        });
+    }
+
+    /**
+     * Saves $bytes as the workbook, in place of the file that download() gave. SharePoint does that only if nobody has
+     * saved the file since (GraphException::CHANGED otherwise). What is kept of the workbook is dropped, so that the
+     * next page shows the new content.
+     *
+     * @param array{version: string, driveId: string, itemId: string} $source
+     */
+    public function replace(string $key, array $source, string $bytes): void
+    {
+        $address = $this->address($key);
+        if ($address === '' || ! self::isId($source['driveId'] ?? null) || ! self::isId($source['itemId'] ?? null)) {
+            throw new GraphException(GraphException::NOT_CONFIGURED, "Workbook \"{$key}\" has no address, or the file is not known.");
+        }
+
+        try {
+            $this->graph->within(
+                max(0, (float) config('sharepoint-docs.preview_time_limit', 25)),
+                fn () => $this->graph->upload("/drives/{$source['driveId']}/items/{$source['itemId']}/content", $bytes, $source['version'])
+            );
+        } finally {
+            // Also after a failure that may have saved the file after all (a time that ran out): the next page asks again.
+            $this->forget($key);
+        }
+    }
+
+    /** Drops what is kept of the workbook (its tables, and the marks of a failed or unreachable one): the next page reads it again. */
+    public function forget(string $key): void
+    {
+        $address = $this->address($key);
+        Cache::forget($this->cacheKey('book', $address . "\n" . $this->shown($key)));
+        Cache::forget($this->cacheKey('book-unreachable', $address));
+        Cache::forget($this->cacheKey('book-failed', $address));
     }
 
     /** The same version of the workbook could not be read a moment ago (see fetch()): the same answer, without asking for the file. */

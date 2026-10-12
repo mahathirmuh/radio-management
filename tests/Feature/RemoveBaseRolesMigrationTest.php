@@ -45,7 +45,7 @@ class RemoveBaseRolesMigrationTest extends TestCase
         $this->migration()->up();
 
         $this->assertSame(
-            ['Admin Radio', 'Super Admin', 'Teknisi Radio', 'Viewer Radio'],
+            ['Admin Radio', 'Document Controller', 'Super Admin', 'Teknisi Radio', 'Viewer Radio'],
             DB::table('roles')->orderBy('name')->pluck('name')->all()
         );
         $this->assertSame(0, DB::table('menu_role')->where('role_id', $withMenu)->count());
@@ -53,7 +53,7 @@ class RemoveBaseRolesMigrationTest extends TestCase
 
         // Running it again (or on a fresh install) is a no-op.
         $this->migration()->up();
-        $this->assertSame(4, DB::table('roles')->count());
+        $this->assertSame(5, DB::table('roles')->count());
     }
 
     public function test_an_approval_step_that_named_a_removed_role_does_not_block_the_clean_up(): void

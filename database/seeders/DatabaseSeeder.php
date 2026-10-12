@@ -56,6 +56,9 @@ class DatabaseSeeder extends Seeder
         // SharePoint documents (the menu table was emptied above, after the migrations that add them).
         $this->call(CofScanMenuSeeder::class);
         $this->call(IctMasterlistMenuSeeder::class);
+        // Changing the SharePoint workbook: the page where changes are approved, and who may ask for and approve them.
+        $this->call(EditApprovalsMenuSeeder::class);
+        $this->call(DocumentEditAccessSeeder::class);
         // The base approval module does not work here: its menus are seeded above but not shown.
         // (Only on a new install: on a database in use the owner's later choice is left alone.)
         $this->call(HideApprovalMenusSeeder::class);

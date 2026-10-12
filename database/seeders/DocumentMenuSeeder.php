@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\DB;
  * Adds one sidebar entry of the section "Dokumen": a page of modules/SharePointDocs (a
  * SharePoint folder or workbook shown inside the application).
  *
- * The entry is given to Super Admin and Admin Radio, read only (the pages change nothing).
- * Other roles get it on the Role & Permission page.
+ * The entry is given to Super Admin and Admin Radio, read only. Who may change something (ask for a
+ * change of a cell, approve one) is given by DocumentEditAccessSeeder. Other roles get it on the
+ * Role & Permission page.
  *
  * Only adds what is missing: once the entry exists, its title, place and grants are the
  * owner's, and running the seeder again changes nothing.
@@ -70,21 +71,42 @@ abstract class DocumentMenuSeeder extends Seeder
      */
     public static function grantRead(int $roleId): void
     {
+        static::grant($roleId, ['Read']);
+    }
+
+    /**
+     * Gives a role the menu with these permissions ("Read", "Update" ...; see CheckMenuPermission::PERMISSION_IDS).
+     * The role has the menu itself too, afterwards. Does nothing while the menu is not there, and skips a permission
+     * the base data does not have; giving twice changes nothing.
+     *
+     * @param array<int, string> $permissions
+     */
+    public static function grant(int $roleId, array $permissions): void
+    {
         $menuId = DB::table('menu')->where('route', static::ROUTE)->value('id');
-        $read = CheckMenuPermission::PERMISSION_IDS['Read'];
-        if ($menuId === null || ! DB::table('permissions')->where('id', $read)->exists()) {
+        if ($menuId === null) {
             return;
         }
 
         $now = now();
-        DB::table('menu_role')->updateOrInsert(
-            ['menu_id' => $menuId, 'role_id' => $roleId],
-            ['created_at' => $now, 'updated_at' => $now]
-        );
-        DB::table('menu_role_permission')->updateOrInsert(
-            ['menu_id' => $menuId, 'role_id' => $roleId, 'permission_id' => $read],
-            ['created_at' => $now, 'updated_at' => $now]
-        );
+        $given = false;
+        foreach ($permissions as $name) {
+            $permissionId = CheckMenuPermission::PERMISSION_IDS[$name] ?? null;
+            if ($permissionId === null || ! DB::table('permissions')->where('id', $permissionId)->exists()) {
+                continue;
+            }
+            DB::table('menu_role_permission')->updateOrInsert(
+                ['menu_id' => $menuId, 'role_id' => $roleId, 'permission_id' => $permissionId],
+                ['created_at' => $now, 'updated_at' => $now]
+            );
+            $given = true;
+        }
+        if ($given) {
+            DB::table('menu_role')->updateOrInsert(
+                ['menu_id' => $menuId, 'role_id' => $roleId],
+                ['created_at' => $now, 'updated_at' => $now]
+            );
+        }
     }
 
     /** Called once, right after the entry was added: for what else has to move to make room for it. */

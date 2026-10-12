@@ -15,7 +15,8 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel |
 | Import Excel | Impor register lama (sheet Form + to Konawe) |
 | COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
-| ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
+| ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
+| Persetujuan Edit | Pengajuan perubahan sel workbook, dan persetujuannya; baru setelah disetujui orang lain workbook di SharePoint berubah (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)) |
 
 Aturan utama:
 
@@ -162,6 +163,11 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
 - **Admin Radio**: akses penuh (tambah/ubah/hapus) ke semua menu radio.
 - **Viewer Radio**: hanya baca.
 
+`DocumentEditAccessSeeder` membuat role ketiga, untuk dokumen SharePoint:
+
+- **Document Controller**: membaca COF Scan dan ICT Masterlist, mengajukan perubahan sel ICT Masterlist, dan
+  **menyetujui atau menolak** pengajuan di menu Persetujuan Edit. Tidak punya akses ke menu radio.
+
 Super Admin (role 1) otomatis mendapat semua menu. Atur user di **User Management**.
 
 Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
@@ -247,7 +253,8 @@ Menu **COF Scan** menampilkan isi sebuah folder SharePoint: cari berdasarkan nom
 - Bila Microsoft sedang tidak bisa dihubungi (jaringan putus, server sibuk), daftar terakhir tetap
   ditampilkan dengan keterangan, paling lama sehari, dan Microsoft baru dihubungi lagi semenit kemudian
   (hal yang sama berlaku per subfolder dan per file yang gagal diambil). Satu kali memuat daftar
-  menunggu Microsoft paling lama 20 detik (`time_limit`). Jawaban yang pasti dari Microsoft (izin
+  menunggu Microsoft paling lama 20 detik (`time_limit`; bila halaman ini juga membaca workbook untuk
+  kolom Masterlist, lihat "Waktu" di bagian COF Scan dan ICT Masterlist saling dicek). Jawaban yang pasti dari Microsoft (izin
   dicabut, folder tidak ada, client secret ditolak) langsung ditampilkan sebagai pesan, tanpa daftar
   lama.
 - Nama file berpola `ICTCOF123 - Nama.pdf` dipecah menjadi kolom **No. COF** dan **Nama**; file dengan
@@ -260,8 +267,10 @@ Menu **COF Scan** menampilkan isi sebuah folder SharePoint: cari berdasarkan nom
 ### ICT Masterlist (workbook Excel)
 
 Menu **ICT Masterlist** menampilkan isi sebuah workbook Excel (`.xlsx`) di SharePoint sebagai tabel:
-satu tab per sheet, bisa dicari, diurutkan dan dibuka halaman per halaman. Halaman ini **hanya
-menampilkan**; mengubah data tetap dilakukan di Excel (tombol **Buka di Excel**).
+satu tab per sheet, bisa dicari, diurutkan dan dibuka halaman per halaman. Halaman ini
+**menampilkan**; sel bisa diajukan untuk diubah oleh role yang berhak, tetapi baru berubah di SharePoint
+setelah disetujui orang lain (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)).
+Selain itu mengubah data dilakukan di Excel (tombol **Buka di Excel**).
 
 - **Tab**: setiap sheet yang terlihat di Excel menjadi satu tab, dengan jumlah barisnya. Sheet yang
   disembunyikan di Excel tidak ditampilkan. Bila perlu, daftar sheet ditentukan sendiri (urutannya,
@@ -279,13 +288,14 @@ menampilkan**; mengubah data tetap dilakukan di Excel (tombol **Buka di Excel**)
   format selnya (ribuan dengan titik, desimal dengan koma; lama waktu `[h]:mm` sebagai jam), rumus
   sebagai hasil hitungan Excel saat workbook terakhir disimpan (aplikasi tidak menghitung ulang rumus).
   Sel yang isinya alamat `https://…`, misalnya tautan ke scan, bisa diklik.
-- **Cari** mencari di semua kolom dan semua sheet sekaligus: setiap tab menunjukkan jumlah baris yang
+- **Cari** mencari di semua kolom dan semua sheet sekaligus (kecuali kolom **File scan** di sheet COF, lihat
+  bagian COF Scan dan ICT Masterlist saling dicek): setiap tab menunjukkan jumlah baris yang
   cocok di sheet-nya. Bila beberapa kata diketik, semuanya harus ada di baris itu.
 - **Klik judul kolom** mengurutkan menurut kolom itu: angka dan tanggal menurut nilainya, teks menurut
   abjad dengan angka di dalamnya dibaca sebagai angka (COF2 sebelum COF10). Sel kosong selalu di bawah.
 - Sama seperti COF Scan, isi workbook dibaca aplikasi dengan identitasnya sendiri: **siapa pun yang
   diberi menu ini (Read) melihat seluruh isi sheet yang ditampilkan, walau tidak punya akses ke
-  workbook itu di SharePoint**. Menu ini hanya diberikan ke **Super Admin** dan **Admin Radio**.
+  workbook itu di SharePoint**. Menu ini diberikan ke **Super Admin**, **Admin Radio** dan **Document Controller**.
 - Alamat workbook diisi di `.env`: buka workbook-nya di browser (Excel untuk web), lalu salin alamat
   dari *address bar*:
 
@@ -328,6 +338,170 @@ menampilkan**; mengubah data tetap dilakukan di Excel (tombol **Buka di Excel**)
 - Workbook lain: tambahkan entri di bagian `workbooks` pada config yang sama dan satu baris menu dengan
   route `documents.<kunci>.index` (contoh: `IctMasterlistMenuSeeder`).
 
+### Mengubah isi workbook (pengajuan dan persetujuan)
+
+Sel di ICT Masterlist bisa diubah dari web, dengan dua langkah dan dua orang. **Tidak ada yang langsung
+tertulis ke SharePoint.**
+
+```text
+Pengaju (Super Admin / Admin Radio / Document Controller)
+  klik ikon pensil di sebuah sel -> isi nilai baru -> "Ajukan perubahan"
+        |   disimpan di tabel sharepoint_edit_requests, status Menunggu
+        v
+Penyetuju (Document Controller; cadangan Super Admin) di menu "Persetujuan Edit"
+  melihat nilai lama dan baru -> Tolak (dengan alasan)   atau   Setujui
+        |   Setujui
+        v
+Aplikasi membaca workbook yang SEKARANG di SharePoint, dan menulis hanya bila:
+  - sel itu masih berisi nilai lama, dan sel pengenal barisnya (mis. COF No) masih sama
+  - sel itu bukan rumus
+  - tidak ada yang menyimpan workbook di antara pembacaan dan penulisan
+  ya    -> Diterapkan          sel/baris sudah berubah -> Konflik (tidak ditulis; ajukan lagi)
+                               SharePoint tidak bisa ditulis -> Gagal (tidak ditulis; bisa disetujui lagi)
+```
+
+Siapa boleh apa ditentukan **menu**, seperti halaman lain (Role & Permission):
+
+| Hak | Artinya |
+| --- | --- |
+| Update di **ICT Masterlist** | boleh mengajukan perubahan sel (ikon pensil muncul). Bawaan: Super Admin, Admin Radio, Document Controller |
+| Read di **Persetujuan Edit** | boleh melihat daftar pengajuan. Bawaan: Super Admin, Admin Radio, Document Controller |
+| Update di **Persetujuan Edit** | boleh menyetujui dan menolak. Bawaan: Super Admin, Document Controller |
+
+Aturan yang tidak bisa dinyatakan menu:
+
+- **Tidak ada yang menyetujui pengajuannya sendiri**, Super Admin pun tidak. Pengajuan Document Controller
+  disetujui Super Admin (cadangan), dan pengajuan Super Admin disetujui Document Controller.
+- **Sel berisi rumus tidak bisa diubah** (ikon gembok; ubah di Excel), juga sel yang di Excel sudah menjadi
+  rumus setelah pengajuan dibuat. Kolom **File scan** bukan sel workbook, jadi tidak bisa diubah.
+- Satu sel hanya punya **satu pengajuan yang menunggu** pada satu waktu.
+- **Nilai**: sel yang berisi angka diisi angka (`1500` atau `1.500,50`, paling banyak 15 digit seperti Excel),
+  sel tanggal diisi `hh-bb-tttt` (`15-03-2023`, atau `15-03-2023 14:30` bila ada jamnya), sel lain diisi teks
+  dan **tetap teks** (`000123` tidak berubah menjadi 123). Sel kosong yang diisi angka biasa menjadi angka,
+  seperti di Excel. Dikosongkan = tidak mengetik apa-apa. Teks yang diketik tidak pernah dibaca sebagai rumus.
+- Hanya **isi sel** yang bisa diubah; menambah atau menghapus baris dan kolom belum.
+- Setiap pengajuan tersimpan **selamanya** dengan nama pengaju, penyetuju, waktu, nilai lama dan baru. Itu
+  catatan audit: di riwayat versi SharePoint semua perubahan ini tercatat atas nama **aplikasi**, bukan orangnya.
+
+Cara menulisnya, dan akibatnya:
+
+- **Excel REST API Microsoft Graph tidak bisa dipakai** untuk ini: Microsoft tidak menyediakannya bagi aplikasi
+  yang masuk atas nama dirinya sendiri (hanya bagi user yang sedang masuk). Maka aplikasi mengunduh file `.xlsx`,
+  mengubah **hanya satu sel** di XML sheet-nya (`XlsxPatcher`; bagian file lain, termasuk grafik, tabel pivot,
+  format dan sheet lain, dibawa apa adanya), lalu menyimpannya kembali dengan header `If-Match` berisi versi file
+  yang dibaca: SharePoint menolak bila ada yang menyimpan di antaranya (status Konflik, tidak ada yang tertimpa).
+- Setiap penulisan menjadi **versi baru** file di SharePoint (Riwayat versi), yang bisa dipulihkan di sana.
+- Rumus yang bergantung pada sel itu baru dihitung ulang saat workbook dibuka di Excel (aplikasi meminta Excel
+  menghitung ulang semuanya saat dibuka, jadi Excel mungkin menawarkan menyimpan saat ditutup). Halaman ini
+  menampilkan hasil hitung yang tersimpan, jadi hasil rumus yang bergantung pada sel yang baru diubah tetap
+  lama sampai workbook dibuka dan disimpan di Excel.
+- **File yang sedang dibuka orang lain di Excel desktop terkunci**: penulisan gagal dengan keterangan itu dan bisa
+  disetujui lagi nanti. Workbook yang menghitung tanggal dari tahun 1904 belum bisa diubah untuk sel angka atau tanggal.
+- Menulis butuh izin **aplikasi** untuk **menulis** ke site workbook itu, dengan admin consent: `Sites.Selected`
+  dengan peran *write* hanya untuk site ICT (disarankan, karena hanya site itu yang bisa ditulis aplikasi), atau
+  `Sites.ReadWrite.All`. Tanpa itu setiap persetujuan berakhir **Gagal**, dan tidak ada yang berubah. (Izin baca
+  `Sites.Read.All` saja tidak cukup.) Ini belum bisa dicoba terhadap SharePoint sungguhan oleh test: test
+  memakai Microsoft tiruan. **Cobalah dulu pada salinan workbook** (ganti `SHAREPOINT_ICT_MASTERLIST_URL`).
+- Pengaturan di entri workbook (`modules/SharePointDocs/Config/sharepoint-docs.php`, bagian `edit`):
+  `enabled` (`SHAREPOINT_ICT_MASTERLIST_EDIT=false` mematikan pengajuan untuk semua orang) dan `anchors` (judul
+  kolom pengenal baris per sheet; sheet yang tidak disebut memakai kolom pertamanya, sheet COF memakai `COF No`).
+- Menu dan role ditambahkan migrasi `2026_10_12_110000_add_edit_approvals_menu` (instalasi baru: `DatabaseSeeder`):
+  menu **Persetujuan Edit** di bawah ICT Masterlist (User Management dan Approval Management bergeser satu urutan),
+  role Document Controller, dan hak Update di ICT Masterlist untuk Admin Radio dan Document Controller. Tabelnya
+  `2026_10_12_100000_create_sharepoint_edit_requests_table`. Migrasi ini dijalankan sekali; hak yang kemudian
+  dicabut di Role & Permission tidak dikembalikan, kecuali `php artisan db:seed --class=DocumentEditAccessSeeder`
+  dijalankan lagi.
+
+### COF Scan dan ICT Masterlist saling dicek
+
+Tab **COF** di ICT Masterlist dan folder COF Scan membicarakan hal yang sama: tiap baris COF punya link ke
+file scan-nya. Aplikasi mencocokkan keduanya dan menampilkannya di dua halaman itu, tanpa menu baru dan tanpa
+menulis apa pun ke SharePoint atau ke Excel. Pencocokan dihitung tiap halaman dibuka dari data yang sudah
+dibaca (daftar folder dan isi workbook, masing-masing disimpan `SHAREPOINT_DOCS_CACHE_MINUTES` menit), jadi file
+yang baru diunggah muncul paling lambat setelah itu, atau langsung lewat **Muat ulang** (di kedua halaman; itu
+membaca ulang kedua sumber, paling cepat 15 detik setelah pembacaan terakhir).
+
+- **ICT Masterlist, tab COF**: kolom terakhir **File scan** dan, di atas tabel, lima kartu yang menghitung baris
+  sheet itu: **Total baris**, **Ada**, **Belum ada**, **Nama beda**, **Subfolder**. Klik sebuah kartu untuk hanya
+  melihat barisnya, klik lagi (atau kartu Total) untuk semuanya; kartu yang kosong tidak bisa diklik (kecuali yang
+  sedang terpilih). Pencarian tetap berlaku dan angka di kartu selalu untuk seluruh sheet. Kolom File scan **tidak
+  ikut dicari** (kata "ada" akan menemukan hampir semua baris; untuk itu ada kartu), tetapi bisa diurutkan. Hanya
+  sheet yang sedang tampil yang dicek: tab lain tidak membaca folder.
+  - **Ada**: file yang disebut link di kolom link ada di folder, dengan nama yang sama (huruf besar atau kecil
+    tidak dibedakan, seperti SharePoint). **Spasi dihitung**: link dengan satu spasi tidak menemukan file yang
+    namanya memakai dua spasi, dan sebaliknya. (Karena itu pembaca workbook meringkas spasi di sel biasa tetapi
+    tidak di sel yang berisi alamat web.) Link yang disalin dari penampil SharePoint, yang berekor `?web=1` atau
+    `#...`, dicocokkan juga tanpa ekor itu. Alamat yang disalin dari *address bar* library
+    (`.../Forms/AllItems.aspx?id=...&parent=...`) dan dari **Copy link** (`.../:b:/r/sites/...`) dibaca path
+    file-nya (dari `id=`, atau setelah awalan `/:b:/r`); link berbentuk token (`/:b:/s/...`) tidak memuat nama
+    file dan tidak bisa dicocokkan.
+  - **Nama beda**: tidak ada file dengan nama yang disebut link (link-nya kosong atau bukan alamat file, menyebut
+    nama lain, atau mengeja namanya lain: spasi lebih atau kurang), tetapi ada file dengan **nomor** yang sama
+    (`ICT/COF/123` di kolom COF No sama dengan `ICTCOF123` di nama file; tanda baca dan huruf besar atau kecil
+    tidak dibedakan). Nomor sebuah file adalah bagian namanya **sebelum ` - `** (spasi, tanda hubung, spasi,
+    sesuai pengaturan `name_split` folder itu): `ICTCOF123-Nama.pdf` atau `ICTCOF123 – Nama.pdf` tidak punya
+    nomor selain seluruh namanya, jadi baris dan filenya sama-sama dilaporkan sebagai tidak ketemu. Isi kolom COF No
+    yang tidak mengandung huruf atau angka (`-`, `/`) dianggap kosong, lalu nomor diambil dari link. Yang perlu
+    diperbaiki di Excel adalah link-nya, bukan filenya.
+  - **Subfolder**: link menunjuk ke subfolder di bawah folder COF Scan, biasanya karena nama pemohon yang diketik
+    mengandung tanda "/" (tanda itu tidak boleh ada di nama file, jadi link-nya tidak akan menemukan filenya, yang
+    biasanya ada di folder utama dengan nama lain).
+  - **Belum ada**: tidak ada file dengan nama maupun nomor itu.
+
+  Status **Ada**, **Nama beda**, dan **Subfolder** (bila filenya ada) punya jalan ke file di halaman COF Scan, yang
+  lalu hanya menampilkan file bernomor itu (**Tampilkan semua file** untuk kembali).
+- **COF Scan**: dua kolom baru, **Masterlist** dan **Catatan**. Masterlist: nomor baris Excel yang menyebut file itu
+  (**Baris N**, dan **+M** bila M baris lain menyebutnya juga), dengan jalan ke barisnya di ICT Masterlist, yang lalu
+  hanya menampilkan baris itu (**Tampilkan semua baris** untuk kembali); **Nama beda · baris N** bila baris itu
+  hanya punya nomornya, link-nya kosong, atau file ini salinan ganda dari file yang sudah disebut baris itu;
+  **Tidak ada baris** bila tidak ada baris sama sekali. Catatan: isi kolom Note dari baris pertama yang punya
+  catatan, dipotong pada 500 karakter (dengan "…"), empat baris kelihatan dan selebihnya ada di tooltip. Kolom
+  Masterlist bisa diurutkan (file tanpa baris di atas); Catatan hanya dari Excel dan tidak bisa diubah di sini.
+  Kedua kolom itu tidak ikut pencarian halaman, yang mencari nama file.
+- Jumlah file dan jumlah baris tidak harus sama: dua file dengan nomor yang sama tampil dengan baris yang sama
+  (yang kedua "Nama beda": itu salinan ganda, hapus salah satunya, bukan diganti namanya), dan baris Subfolder
+  punya file di folder utama dengan nama lain.
+- Dibuka dari halaman lain: ICT Masterlist menerima `?sheet=COF&line=2,9` (hanya baris Excel itu, sampai 20 nomor)
+  dan COF Scan menerima `?code=ICTCOF123` (hanya file bernomor itu); keduanya juga menerima `?search=...` seperti
+  pencarian biasa. `sheet` boleh nama sheet (huruf besar atau kecil tidak dibedakan; sheet yang namanya angka
+  dicari sebagai nama lebih dulu) atau nomor urutnya, **dihitung dari 0** (`sheet=1` tanpa sheet bernama "1" adalah
+  sheet kedua). Tab di halaman itu sendiri meminta sheet menurut urutannya (`tab=1`), jadi sheet yang namanya "1"
+  atau "2" tidak membingungkan tab. `code` bisa sampai 400 karakter: file yang namanya tanpa ` - ` bernomor seluruh
+  namanya. Tombol **Reset** menghapus pilihan kartu, baris, dan nomor itu juga.
+- Tiap halaman menampilkan tambahan dari sumber lain **hanya untuk yang boleh membuka halaman sumber itu**: menunya
+  ada untuk salah satu rolenya **dan** Read-nya dicentang (Super Admin selalu). Pembaca ICT Masterlist tanpa menu
+  COF Scan, atau tanpa Read-nya, tidak mendapat kolom File scan dan folder itu tidak dibaca sama sekali untuknya;
+  begitu pula sebaliknya. Bila alamat salah satu sumber di `.env` kosong, atau entri `scans` tidak lengkap (tanpa
+  `folder` atau `link`), tidak ada yang tampil dan tidak ada yang dikatakan.
+- Halaman tidak bergantung pada sumber lainnya: bila folder atau workbook yang satunya tidak bisa dibaca (Microsoft
+  tidak terjangkau, sheet atau kolom link-nya tidak ada, isi folder terlalu banyak atau sheet terlalu panjang
+  untuk dibaca seluruhnya, waktu permintaan habis), halaman tampil seperti biasa dan menyebut kenapa kolom
+  tambahannya kosong. Di COF Scan kedua kolomnya tetap ada (berisi tanda "-"); di ICT Masterlist kolom File scan
+  dan kartunya tidak tampil. Judul kolom nomor (`COF No`) atau catatan (`Note`) yang berubah di Excel tidak
+  disebut: nomor lalu diambil dari link, dan catatan kosong.
+- Waktu: menunggu Microsoft untuk dua sumber sekaligus dibatasi 27 detik per permintaan (dihitung sejak
+  permintaan mulai; waktu sebelum controller berjalan ikut dihitung sampai 10 detik). Sumber pertama dibaca dengan
+  batas waktunya sendiri (`time_limit` untuk folder, `preview_time_limit` untuk workbook); sumber kedua dengan sisa
+  waktunya, tidak lebih dari batas waktunya sendiri, dan workbook yang menjadi sumber kedua disisakan 5 detik untuk
+  dibaca setelah diunduh. Sumber kedua tidak ditanya bila sisa waktunya kurang dari 3 detik, atau bila sumber
+  pertama hanya bisa diberikan dari data tersimpan karena Microsoft tidak terjangkau; data yang masih segar di
+  cache dipakai tanpa syarat itu.
+  Sumber kedua yang gagal dibaca karena Microsoft tidak terjangkau atau terlalu lambat tidak ditanya lagi selama
+  semenit, **oleh kedua halaman**: itu tanda yang sama dengan yang dipakai halaman sumber itu sendiri. Jawaban
+  yang pasti (izin dicabut, tidak ada) tidak ditahan: ditanya lagi di permintaan berikutnya. Pengecualiannya
+  waktu yang dipotong sumber pertama sampai kurang dari separuh yang paling banyak bisa didapat sumber kedua
+  (dengan pengaturan bawaan: 11 detik untuk workbook, 10 untuk folder): kehabisan waktu seperti itu bukan tanda Microsoft bermasalah,
+  jadi sumber itu tidak ditahan dan halamannya sendiri tidak ikut terhenti. Batas 27 detik itu tidak ikut naik
+  bila `time_limit` atau `preview_time_limit` dinaikkan (angkanya ada di `ScanLinks`). Workbook yang menjadi
+  sumber pertama tetap bisa memakan `preview_time_limit` ditambah 5 detik membaca (dan waktu sebelum controller),
+  jadi di server yang `max_execution_time`-nya 30 detik dan menghitung waktu sebenarnya (seperti Windows),
+  turunkan `preview_time_limit` atau naikkan `max_execution_time`.
+- Yang dicocokkan diatur di `scans` pada entri workbook di `modules/SharePointDocs/Config/sharepoint-docs.php`:
+  sheet **COF** dihubungkan ke folder `cof-scan`, dengan judul kolom link (`Column4`), kolom nomor dokumen
+  (`COF No`) dan kolom catatan (`Note`) seperti tertulis di workbook (huruf besar atau kecil dan spasi di tepi
+  judul tidak dibedakan). Bila judul kolom link diubah di Excel, halaman bilang kolomnya tidak ditemukan dan kolom
+  tambahan tidak tampil sampai pengaturannya disesuaikan; sebuah tes menjaga isi pengaturan itu.
+
 ## Struktur kode
 
 ```text
@@ -348,18 +522,25 @@ modules/RadioManagement/
 database/migrations/2026_10_03_100000_create_radio_management_tables.php
 database/seeders/RadioMasterSeeder.php, RadioMenuSeeder.php
 modules/Dashboard/          diganti menjadi dashboard radio
-modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist)
+modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist, Persetujuan Edit)
   Config/sharepoint-docs.php        folder dan workbook yang ditampilkan, batas ukuran dan waktu
   Services/                 GraphClient (token aplikasi, baca Graph, ambil isi file), SharePointFolder
                             (cari folder, daftar isi, simpan sementara, file untuk ditampilkan),
                             SharePointWorkbook (cari workbook, unduh bila berubah, simpan sementara),
                             WorkbookReader (isi .xlsx menjadi tabel teks), XlsxReader (sel-sel dari XML
-                            di dalam .xlsx), GraphException (alasan gagal + pesannya)
+                            di dalam .xlsx), GraphException (alasan gagal + pesannya), ScanRegister
+                            (pencocokan baris COF dengan file folder), ScanLinks (dua sumber sekaligus,
+                            waktu, izin), MenuAccess (boleh membuka halaman lain?), CellEdits (mengajukan,
+                            menyetujui, menolak, menulis perubahan sel), XlsxPatcher (membaca dan menulis
+                            satu sel di dalam .xlsx), EditException, SheetNotFound
+  Models/EditRequest.php    satu pengajuan perubahan sel, dan nasibnya (tabel sharepoint_edit_requests)
   Http/                     FolderController (halaman, daftar, file), WorkbookController (halaman,
-                            baris: cari/urut/halaman), Middleware/RequireMenu
+                            baris: cari/urut/halaman, ajukan perubahan), EditApprovalController
+                            (daftar pengajuan, setujui, tolak), Middleware/RequireMenu
   Resources/views/          index (folder + pop-up penampil file), file-unavailable (pesan di pop-up),
-                            workbook (tab per sheet + tabel)
-database/seeders/DocumentMenuSeeder.php (dasar), CofScanMenuSeeder.php, IctMasterlistMenuSeeder.php
+                            workbook (tab per sheet + tabel + pop-up pengajuan), edit-approvals
+database/seeders/DocumentMenuSeeder.php (dasar), CofScanMenuSeeder.php, IctMasterlistMenuSeeder.php,
+                 EditApprovalsMenuSeeder.php, DocumentEditAccessSeeder.php (role Document Controller + hak ubah)
 ```
 
 ## Catatan SQL Server
@@ -409,7 +590,8 @@ JavaScript di halaman tidak dijalankan oleh PHPUnit sendiri; beberapa test memak
 - `SharePointPageScriptTest` menjalankan skrip halaman COF Scan dan ICT Masterlist dengan pengganti
   jQuery (`tests/tools/page-sandbox.mjs`, dipakai juga oleh checker tombol Cetak di bawah) dan
   memeriksa perilakunya: teks dari SharePoint selalu di-escape, permintaan yang dikirim saat
-  mencari/mengurutkan/berpindah halaman atau tab, dan pop-up penampil file
+  mencari/mengurutkan/berpindah halaman atau tab, fokus papan ketik, bentuk markup yang ditulis skrip
+  (tag dikenal dan tertutup), dan pop-up penampil file
   (`sharepoint-page-behaviour.mjs`, `sharepoint-workbook-behaviour.mjs`).
 - `RadioCheckoutFormTest` menjalankan empat checker untuk tombol Cetak, di `tests/tools/`:
   `radio-index-behaviour.mjs` (tombol di baris daftar membawa alamat form dan label radionya ke pop-up),
@@ -424,7 +606,22 @@ JavaScript di halaman tidak dijalankan oleh PHPUnit sendiri; beberapa test memak
   Test yang sama juga memeriksa CSS cetak (tanpa margin halaman, padding 12 mm, tombol dan kanvas tidak
   ikut tercetak), bahwa halaman form hanya memuat logo dari luar dirinya, dan bahwa tidak ada skrip di
   dalamnya yang mengirim atau menyimpan tanda tangan (fetch, localStorage, dan sebagainya).
-- `PageSandboxTest` memeriksa pengganti jQuery itu sendiri (`page-sandbox-selftest.mjs`), karena checker
+- `SharePointScansTest` (kedua sumber dimainkan Microsoft tiruan) dan `ScanRegisterTest` (pencocokan murni)
+  memeriksa pencocokan COF dengan folder: status tiap baris dan file, kartu, filter, loncat ke baris atau nomor,
+  urutan, pencarian, izin menu (menu dan Read, masing-masing), waktu yang tersisa di kedua arah, penyegaran,
+  dan halaman yang tetap tampil bila sumber lain gagal. Skrip kedua halamannya
+  diperiksa checker `sharepoint-*-behaviour.mjs` seperti di atas.
+- `SharePointEditTest` memeriksa pengajuan dan persetujuan dengan Microsoft tiruan yang menyimpan workbook
+  yang ditulis ke sana: siapa boleh mengajukan dan menyetujui (menu), tidak ada yang menyetujui pengajuannya
+  sendiri, apa yang diketik menjadi isi sel apa, sel tertulis dan hanya sel itu (versi file dikirim sebagai
+  `If-Match`), konflik (sel berubah, baris bergeser, rumus, sheet hilang, file disimpan orang lain saat
+  menulis), penulisan yang sebenarnya berhasil walau jawabannya hilang, file terkunci / tanpa izin tulis /
+  tidak terjangkau, daftar dan hitungannya, menu dan role, serta migrasinya. `XlsxPatcherTest` (di `tests/Unit`)
+  memeriksa penulis selnya: teks tetap teks, angka dan gayanya, sel dan baris yang belum ada, dan bahwa bagian file
+  lain sama persis. `sharepoint-approvals-behaviour.mjs` menjalankan skrip halaman Persetujuan Edit, dan
+  `sharepoint-workbook-behaviour.mjs` juga memeriksa ikon pensil dan pop-up pengajuan.
+- `PageSandboxTest` memeriksa pengganti jQuery itu sendiri (`page-sandbox-selftest.mjs`: cara jQuery menulis
+  permintaan dan gagal pada setengah karakter, apa yang di-`trigger`, pemeriksa bentuk markup), karena checker
   hanya sebaik pengganti yang dipakainya. Checker memerlukan Node.js 18 atau lebih baru.
 
 Yang **tidak** bisa dibuktikan test di atas, dan apa yang sudah dan belum dicek sungguhan:

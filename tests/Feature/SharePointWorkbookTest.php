@@ -180,13 +180,15 @@ class SharePointWorkbookTest extends TestCase
                 'sort' => 'row',
                 'dir' => 'desc',
                 'truncated' => false,
+                // Super Admin may ask for a change: every column of the sheet is a cell (none is the check against a folder).
+                'editable_columns' => 7,
             ])
             // The last row of the sheet first; every cell as the text Excel shows, numbers written the Indonesian way.
             ->assertJsonPath('data', [
                 ['line' => 6, 'cells' => ['ICT/SRF/3', '14-03-2023', 'Dewi Lestari', '1', '', 'sn-10', 'TRUE']],
                 ['line' => 4, 'cells' => ['ICT/SRF/10', '', 'Citra Dewi', '', '', '', '']],
                 ['line' => 3, 'cells' => ['ICT/SRF/2', '16-03-2023 12:00', 'Andi Wijaya', '10', '250.000,50', 'SN-9', '']],
-                ['line' => 2, 'cells' => ['ICT/SRF/1', '15-03-2023', 'Budi Santoso', '2', '1.500.000', '000123', '4']],
+                ['line' => 2, 'cells' => ['ICT/SRF/1', '15-03-2023', 'Budi Santoso', '2', '1.500.000', '000123', '4'], 'locked' => [6]],
             ])
             ->assertJsonPath('meta', ['current_page' => 1, 'from' => 1, 'last_page' => 1, 'per_page' => 25, 'to' => 4, 'total' => 4])
             ->assertJsonPath('workbook', [
@@ -318,7 +320,7 @@ class SharePointWorkbookTest extends TestCase
 
         // What another version of the application kept is not used. (It is kept per address and per choice of sheets and rows.)
         $key = 'sharepoint-docs:book:' . sha1(self::ADDRESS . "\nevery row\nSRF");
-        $this->assertSame(2, Cache::get($key)['format'] ?? null, 'This is where a workbook is kept, with its format.');
+        $this->assertSame(4, Cache::get($key)['format'] ?? null, 'This is where a workbook is kept, with its format.');
         Cache::put($key, ['fetched_at' => now()->getTimestamp(), 'sheets' => [['name' => 'Lama']]], 3600);
         $this->rows()->assertOk()->assertJsonPath('sheets.*.name', ['SRF']);
         $this->assertSame(4, $this->sent(self::DOWNLOAD));
@@ -557,6 +559,30 @@ class SharePointWorkbookTest extends TestCase
         $this->rows()->assertOk()->assertJsonPath('workbook.stale', false);
     }
 
+    public function test_a_time_that_ran_out_on_the_workbooks_own_page_holds_it_back_for_a_minute(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $this->travelTo(Carbon::parse('2026-10-07 02:00:00', 'UTC'));
+        // The page has 5 seconds for everything: the item takes 3 of them, and the request for the file runs out of the 2 that are left (it is
+        // made shorter than usual). There is no other source on this page to share the time with: that is the workbook's own trouble.
+        config(['sharepoint-docs.preview_time_limit' => 5]);
+        $this->microsoft['item'] = $this->after(3, fn () => Http::response($this->item()));
+        $this->microsoft['download'] = self::timeout();
+
+        $this->rows()->assertStatus(503)->assertJsonPath('reason', 'unavailable');
+        $asked = Http::recorded()->count();
+
+        // It is not asked again for a minute...
+        $this->microsoft['download'] = fn () => Http::response($this->bytes);
+        $this->rows()->assertStatus(503)->assertJsonPath('reason', 'unavailable');
+        $this->assertSame($asked, Http::recorded()->count());
+
+        // ...and then it is.
+        $this->travel(61)->seconds();
+        $this->microsoft['item'] = fn () => Http::response($this->item());
+        $this->rows()->assertOk();
+    }
+
     public function test_reading_a_workbook_has_one_time_limit_for_everything_it_needs(): void
     {
         $this->actingAs($this->superAdmin());
@@ -639,8 +665,8 @@ class SharePointWorkbookTest extends TestCase
             ->assertJsonPath('sheets.0.rows', 2)
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('data', [
-                ['line' => 3, 'cells' => ['REG/2', '', 'Andi Wijaya', 'https://contoso.example/scan/REG/2']],
-                ['line' => 2, 'cells' => ['REG/1', '15-03-2023', 'Budi Santoso', 'https://contoso.example/scan/REG/1']],
+                ['line' => 3, 'cells' => ['REG/2', '', 'Andi Wijaya', 'https://contoso.example/scan/REG/2'], 'locked' => [3]],
+                ['line' => 2, 'cells' => ['REG/1', '15-03-2023', 'Budi Santoso', 'https://contoso.example/scan/REG/1'], 'locked' => [3]],
             ]);
         $this->assertSame(2, $this->sent(self::DOWNLOAD));
         // The choice has not changed and neither has the workbook: what is kept is used.
@@ -813,6 +839,10 @@ class SharePointWorkbookTest extends TestCase
 
     public function test_the_menu_is_added_below_cof_scan_and_makes_room_for_itself(): void
     {
+        // A database from before the menu "Persetujuan Edit" (it has its own test): that migration rolled back, which also takes
+        // away the right to change the masterlist that Admin Radio and the Document Controller were given with it.
+        (require database_path('migrations/2026_10_12_110000_add_edit_approvals_menu.php'))->down();
+
         $order = fn () => DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'User Management', 'Approval Management'])
             ->orderBy('order')->pluck('order', 'title')->map(fn ($place) => (int) $place)->all();
         $menu = DB::table('menu')->where('route', IctMasterlistMenuSeeder::ROUTE)->sole();
@@ -824,7 +854,7 @@ class SharePointWorkbookTest extends TestCase
         $read = CheckMenuPermission::PERMISSION_IDS['Read'];
         $adminRole = (int) DB::table('roles')->where('name', 'Admin Radio')->value('id');
         $grants = fn (string $route) => DB::table('menu_role_permission')
-            ->where('menu_id', DB::table('menu')->where('route', $route)->value('id'))->orderBy('role_id')->get()
+            ->where('menu_id', DB::table('menu')->where('route', $route)->value('id'))->orderBy('role_id')->orderBy('permission_id')->get()
             ->map(fn ($grant) => [(int) $grant->role_id, (int) $grant->permission_id])->all();
         // Super Admin and Admin Radio, read only; not Viewer Radio.
         $this->assertSame([[1, $read], [$adminRole, $read]], $grants(IctMasterlistMenuSeeder::ROUTE));
@@ -856,7 +886,9 @@ class SharePointWorkbookTest extends TestCase
         DB::table('roles')->whereIn('id', $radioRoles)->delete();
         $this->seed(RadioMenuSeeder::class);
         $adminRole = (int) DB::table('roles')->where('name', 'Admin Radio')->value('id');
-        $this->assertSame([[1, $read], [$adminRole, $read]], $grants(IctMasterlistMenuSeeder::ROUTE));
+        // (Admin Radio is also given the right to ask for a change of the masterlist, which somebody else approves.)
+        $update = CheckMenuPermission::PERMISSION_IDS['Update'];
+        $this->assertSame([[1, $read], [$adminRole, $read], [$adminRole, $update]], $grants(IctMasterlistMenuSeeder::ROUTE));
         $this->assertContains([$adminRole, $read], $grants(CofScanMenuSeeder::ROUTE));
     }
 }

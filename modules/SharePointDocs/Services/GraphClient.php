@@ -13,8 +13,9 @@ use Psr\Http\Message\ResponseInterface;
 use Throwable;
 
 /**
- * Read-only access to Microsoft Graph with the application's own identity (client credentials
- * of the Entra app in services.azure, the one that also does the Microsoft sign-in).
+ * Access to Microsoft Graph with the application's own identity (client credentials of the Entra
+ * app in services.azure, the one that also does the Microsoft sign-in). It reads; the one thing it
+ * writes is the content of a file (upload()), and only when a change has been approved.
  *
  * The token lives in this object only, never in the cache or a file: it can read every site
  * the application was given.
@@ -42,6 +43,9 @@ class GraphClient
     /** Time (see clock()) by which the reading in within() must be over; null outside one. */
     private ?float $deadline = null;
 
+    /** Whether the time of the reading in within() was cut out of the time of a whole request that has more to do, and made much shorter than usual (see within()). */
+    private bool $shared = false;
+
     public function configured(): bool
     {
         return filled(config('services.azure.tenant'))
@@ -55,19 +59,35 @@ class GraphClient
      * When it is used up nothing more is asked and the reading fails as "unavailable" (a file
      * that was arriving: "too slow"), instead of keeping a page, and a one-request-at-a-time
      * server, waiting. Inside another within() the time of the outer one counts.
+     *
+     * @param bool $shared the time is what was left of a request that has another source to read too, and is
+     *     much shorter than the time this reading ordinarily gets: running out of it says nothing about
+     *     Microsoft (see shared())
      */
-    public function within(float $seconds, callable $reading): mixed
+    public function within(float $seconds, callable $reading, bool $shared = false): mixed
     {
         if ($this->deadline !== null) {
             return $reading();
         }
 
         $this->deadline = self::clock() + $seconds;
+        $this->shared = $shared;
         try {
             return $reading();
         } finally {
             $this->deadline = null;
+            $this->shared = false;
         }
+    }
+
+    /**
+     * Whether the reading that is going on has a time cut out of a bigger request's and made much shorter than usual
+     * (within() with $shared). A reading that ran out of such a time was not too slow for Microsoft's sake: it is not
+     * held back for it.
+     */
+    public function shared(): bool
+    {
+        return $this->deadline !== null && $this->shared;
     }
 
     /** One resource, e.g. "/shares/{id}/driveItem". */
@@ -205,6 +225,40 @@ class GraphClient
         return $response->body();
     }
 
+    /**
+     * Puts $bytes in the place of the content of a workbook, for e.g. "/drives/{id}/items/{id}/content".
+     *
+     * $ifMatch is the version (eTag) of the file that $bytes were made from: SharePoint saves them only when that is
+     * still the version it has (else CHANGED, and nothing is written), so that a file somebody saved in between is
+     * never written over. A file that somebody has open in Excel cannot be written (LOCKED). Every save is a new
+     * version of the file in SharePoint, which can be restored there.
+     *
+     * (A busy Microsoft is asked a second time, like any request, and that second request can be refused as CHANGED
+     * when the first one was saved after all: whoever calls this checks the file before taking that for a failure.)
+     *
+     * @return array the file as Graph describes it after the save
+     */
+    public function upload(string $path, string $bytes, ?string $ifMatch = null): array
+    {
+        $token = $this->token();
+        $atMost = max(1, (float) config('sharepoint-docs.preview_time_limit', 25));
+        $headers = $ifMatch !== null && $ifMatch !== '' ? ['If-Match' => $ifMatch] : [];
+
+        $response = $this->send(fn (PendingRequest $http) => $http->withToken($token)->withHeaders($headers)
+            ->withBody($bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->put(self::GRAPH . $path . '?@microsoft.graph.conflictBehavior=replace'), $atMost);
+
+        if (! $response->successful()) {
+            throw $this->refusal($response);
+        }
+        $body = $response->json();
+        if (! is_array($body)) {
+            throw new GraphException(GraphException::UNAVAILABLE, "An answer with status {$response->status()} whose body is not JSON, so not Graph's.");
+        }
+
+        return $body;
+    }
+
     /** The paging link is followed only when it stays on Graph: the token goes nowhere else. */
     private function nextLink(array $body): ?string
     {
@@ -257,6 +311,8 @@ class GraphClient
             401 => GraphException::CREDENTIALS,
             403 => GraphException::FORBIDDEN,
             404 => GraphException::NOT_FOUND,
+            412 => GraphException::CHANGED,
+            423 => GraphException::LOCKED,
             default => GraphException::UNAVAILABLE,
         }, $detail, $response->status());
     }

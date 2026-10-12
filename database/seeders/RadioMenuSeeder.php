@@ -33,9 +33,9 @@ class RadioMenuSeeder extends Seeder
         ];
         $import = $this->menu('radio-management.import.index', 'Import Excel', 'file-import', 6);
 
-        // Keep the base sections below the radio section (3-6) and the "Dokumen" entries (7-8).
-        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 9]);
-        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 10]);
+        // Keep the base sections below the radio section (3-6) and the "Dokumen" entries (7-9).
+        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 10]);
+        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 11]);
 
         $dashboardId = (int) DB::table('menu')->where('route', 'dashboard.index')->value('id') ?: null;
         $routedMenus = array_merge([$register, $history, $import], $masters);
@@ -52,6 +52,9 @@ class RadioMenuSeeder extends Seeder
         if ($adminIsNew) {
             CofScanMenuSeeder::grantRead($admin);
             IctMasterlistMenuSeeder::grantRead($admin);
+            EditApprovalsMenuSeeder::grantRead($admin);
+            // Admin Radio may ask for a change of a cell of the masterlist (somebody else approves it).
+            IctMasterlistMenuSeeder::grant($admin, ['Update']);
         }
 
         foreach ([$superAdmin, $admin, $viewer] as $roleId) {

@@ -19,10 +19,26 @@
             word-break: break-word;
         }
 
+        /* With the columns of the sheet (Masterlist, Catatan) the name would be left almost nothing at a laptop's width: the table scrolls sideways instead. */
+        #docsTable.docs-register .docs-name {
+            min-width: 13rem;
+        }
+
         .docs-kind {
             font-size: 0.65rem;
             font-weight: 600;
             white-space: nowrap;
+        }
+
+        /* The note of the row of the sheet: a few lines, the whole of it in the tooltip. */
+        .docs-note {
+            display: -webkit-box;
+            max-width: 16rem;
+            overflow: hidden;
+            overflow-wrap: anywhere;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 4;
+            line-clamp: 4;
         }
 
         /* The file viewer: a wide dialog whose body is the file itself. */
@@ -83,7 +99,7 @@
                             </div>
                             <div class="col-md-7 d-flex gap-2 flex-wrap">
                                 <x-global.btn-detail label="" color="red" size="sm" outline="true" onclick="spDocs.reset()"
-                                    data-bs-toggle="tooltip" data-bs-title="Reset pencarian dan urutan">
+                                    data-bs-toggle="tooltip" data-bs-title="Reset pencarian, pilihan nomor, dan urutan">
                                     <x-slot:icon>
                                         <i class="ti ti-restore"></i>
                                     </x-slot:icon>
@@ -115,16 +131,28 @@
                                     Daftar dibaca dari SharePoint dan diperbarui tiap {{ $cacheMinutes }} menit. Tombol
                                     <i class="ti ti-eye"></i> menampilkan file di sini; klik namanya untuk membukanya di SharePoint
                                     dengan akun Microsoft Anda.
+                                    @if ($register)
+                                        Kolom Masterlist dan Catatan dari sheet {{ $register['sheet'] }} di {{ $register['title'] }}:
+                                        baris yang menyebut file itu, dan catatannya.
+                                    @endif
                                 </div>
                                 <div class="small mt-1 d-none" id="docsCrumbs"></div>
                                 <div class="docs-muted" id="docsInfo"></div>
                                 <div id="docsNotice"></div>
+                                {{-- Said when a link from the page of the workbook asked for the files of one document number only. (The live
+                                     region is always there, so that what appears in it is read out; a region that appears with its text may not be.) --}}
+                                <div role="status">
+                                    <div class="alert alert-info py-2 small mt-2 mb-0 text-break d-none" id="docsCodeBar">
+                                        <span id="docsCodeText"></span>
+                                        <a href="#" id="docsCodeClear" class="ms-1">Tampilkan semua file</a>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="col-12 mt-2">
                                 <div class="card overflow-hidden mdka-border-gray-200">
                                     <div class="card-body table-responsive p-0">
-                                        <table class="table table-vcenter mdka-border-gray-100 mb-0" id="docsTable">
+                                        <table class="table table-vcenter mdka-border-gray-100 mb-0{{ $register ? ' docs-register' : '' }}" id="docsTable">
                                             <thead>
                                                 <tr class="mdka-bg-gray-50">
                                                     <th class="text-capitalize fs-5 py-3 text-center" width="30">No</th>
@@ -133,6 +161,10 @@
                                                         <th class="text-capitalize fs-5 py-3" data-key="label">{{ $split['label'] }}</th>
                                                     @else
                                                         <th class="text-capitalize fs-5 py-3" data-key="name">Nama</th>
+                                                    @endif
+                                                    @if ($register)
+                                                        <th class="text-capitalize fs-5 py-3" data-key="masterlist" width="150">Masterlist</th>
+                                                        <th class="text-capitalize fs-5 py-3" width="200">Catatan</th>
                                                     @endif
                                                     <th class="text-capitalize fs-5 py-3" data-key="extension" width="80">Tipe</th>
                                                     <th class="text-capitalize fs-5 py-3" data-key="modified" width="150">Diubah</th>
@@ -271,6 +303,46 @@
                     return `<span class="badge bg-${color}-lt docs-kind">${spUi.esc(String(row.extension).toUpperCase())}</span>`;
                 },
                 /**
+                 * An address on this site (what the server gives for another page of the application): "/…", never "//…" nor
+                 * "/\…" (a browser reads both as another host), and no blank in it ("/<tab>/…" is read the same way).
+                 */
+                isPath(url) {
+                    return typeof url === 'string' && /^\/(?![\/\\])[^\s\\]*$/.test(url);
+                },
+                /**
+                 * The "Masterlist" column: the row of the sheet that names the file (a way to it on the page of the workbook), a row that
+                 * only has its number, or none. Said as the page's own words; the row number is a number.
+                 */
+                masterlist(row) {
+                    if (row.type === 'folder') return '';
+                    const own = row.masterlist;
+                    if (!own) return spUi.dash('');
+                    const line = Number.isInteger(own.line) && own.line > 0 ? own.line : '?';
+                    const others = Number(own.more) > 0 ? Number(own.more) : 0;
+                    const more = others > 0 ? ` +${others}` : '';
+                    const andMore = others > 0 ? ` (dan ${others} baris lain)` : '';
+                    const goes = spUi.isPath(own.url);
+                    // [colour, words, what it means]: the words are the page's own, the numbers are numbers.
+                    const kinds = {
+                        linked: ['green', `Baris ${line}${more}`, `Baris di Masterlist yang menyebut file ini${andMore}`],
+                        differs: ['orange', `Nama beda · baris ${line}${more}`, `Ada baris dengan nomor ini, tetapi link-nya kosong atau menyebut nama file yang lain (atau file ini salinan ganda dari file yang sudah disebut)${andMore}`],
+                        unlinked: ['red', 'Tidak ada baris', 'Tidak ada baris di Masterlist untuk file ini'],
+                    };
+                    if (!Object.prototype.hasOwnProperty.call(kinds, own.status)) return spUi.dash('');
+                    const [tone, text, hint] = kinds[own.status];
+                    // The way to the row is told in the tooltip of the badge (the badge is all there is to point at) and, for a screen reader, in the name of the link.
+                    const badge = `<span class="badge bg-${tone}-lt docs-kind" title="${spUi.esc(hint + (goes ? `. Klik untuk melihat barisnya di ${spDocs.register.title}` : ''))}">${text}</span>`;
+
+                    return goes ?
+                        `<a href="${spUi.esc(own.url)}" class="text-decoration-none" aria-label="${spUi.esc(`${text}: lihat barisnya di ${spDocs.register.title}`)}">${badge}</a>` :
+                        badge;
+                },
+                /** The "Catatan" column: the note of the row, up to four lines with the whole of it in the tooltip. */
+                note(row) {
+                    if (row.type === 'folder') return '';
+                    return row.note ? `<span class="docs-note" title="${spUi.esc(row.note)}">${spUi.esc(row.note)}</span>` : spUi.dash('');
+                },
+                /**
                  * The "Lihat" column: the eye shows the file here; a file that cannot be shown here
                  * (not a PDF or an image, or too large) gets a link to SharePoint's own viewer.
                  */
@@ -290,12 +362,16 @@
                 title: @json($title),
                 split: @json($split !== null),
                 home: @json($sharePointUrl),
+                /** The sheet that lists these files (title of the workbook and of the sheet), when the reader may open it; else null. */
+                register: @json($register),
                 page: 1,
                 limit: 25,
                 search: '',
                 sort: 'modified',
                 dir: 'desc',
                 path: '',
+                /** The document number that a link from the page of the workbook asked for (only the files with it are shown); '' : all. */
+                code: '',
                 request: 0,
                 columns: [],
                 /** The rows on screen, in table order: what "Lihat" opens and steps through. */
@@ -321,7 +397,18 @@
                         render: r => spUi.name(r, r.name)
                     }];
 
-                    spDocs.columns = ['index', ...name, {
+                    const register = spDocs.register ? [{
+                        key: 'masterlist',
+                        sortable: true,
+                        headerClassName: '',
+                        className: 'text-nowrap',
+                        render: r => spUi.masterlist(r)
+                    }, {
+                        key: 'note',
+                        render: r => spUi.note(r)
+                    }] : [];
+
+                    spDocs.columns = ['index', ...name, ...register, {
                         key: 'extension',
                         sortable: true,
                         headerClassName: '',
@@ -390,16 +477,21 @@
                         sort: spDocs.sort,
                         dir: spDocs.dir,
                         path: spDocs.path,
+                        ...(spDocs.code !== '' ? { code: spDocs.code } : {}),
                         ...(refresh ? { refresh: 1 } : {}),
                     }).done(response => {
                         if (request !== spDocs.request) return;
                         spDocs.page = response.meta.current_page;
+                        // The document number that the answer is limited to (the server says what it applied).
+                        spDocs.code = typeof response.folder.code === 'string' ? response.folder.code : '';
+                        spDocs.codeBar();
                         spDocs.render({
                             data: response.data,
                             meta: response.meta,
-                            emptyText: spDocs.search ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Folder ini kosong.',
+                            emptyText: spDocs.code !== '' ? `Tidak ada file dengan nomor ${spUi.esc(spDocs.code)}${spDocs.search ? ' yang cocok dengan pencarian' : ''}.` :
+                                (spDocs.search ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Folder ini kosong.'),
                         });
-                        spDocs.describe(response.folder);
+                        spDocs.describe(response.folder, response.register);
                     }).fail(xhr => {
                         if (request !== spDocs.request) return;
                         spDocs.render({ emptyText: 'Daftar tidak bisa dimuat.' });
@@ -411,6 +503,16 @@
                     });
                 },
 
+                /** A link from the page of the workbook asked for the files of one document number: said, with a way back to all of them. */
+                codeBar() {
+                    // The link that gives the number up goes with its bar: when it had the focus (used with the keyboard), the search box gets it.
+                    const focused = document.activeElement;
+                    const had = !!focused && focused.id === 'docsCodeClear';
+                    $('#docsCodeBar').toggleClass('d-none', spDocs.code === '');
+                    $('#docsCodeText').text(spDocs.code === '' ? '' : `Hanya file dengan nomor ${spDocs.code}.`);
+                    if (had && spDocs.code === '') $('#docsSearch').trigger('focus');
+                },
+
                 failure(xhr) {
                     if (xhr.status === 401) return 'Sesi Anda sudah berakhir. Muat ulang halaman untuk masuk lagi.';
                     if (xhr.status === 403) return 'Role Anda tidak punya izin Read untuk menu ini.';
@@ -419,12 +521,13 @@
                         body.message : 'Daftar tidak bisa dimuat. Coba lagi beberapa saat lagi.';
                 },
 
-                describe(folder) {
+                describe(folder, register) {
                     const parts = [];
                     if (folder.folders) parts.push(`${folder.folders} folder`);
                     parts.push(`${folder.files} file`);
                     if (folder.files) parts.push(folder.size);
                     parts.push(`data SharePoint per ${folder.fetched_at}`);
+                    if (register && register.fetched_at) parts.push(`${register.title} per ${register.fetched_at}`);
                     $('#docsInfo').text(parts.join(' · '));
 
                     const notices = [];
@@ -438,6 +541,15 @@
                         notices.push({
                             kind: 'info',
                             text: 'Isi folder ini sangat banyak: hanya sebagian yang ditampilkan. Buka di SharePoint untuk melihat semuanya.'
+                        });
+                    }
+                    if (register && register.unavailable) {
+                        notices.push({ kind: 'info', text: register.unavailable });
+                    }
+                    if (register && register.stale) {
+                        notices.push({
+                            kind: 'warning',
+                            text: `SharePoint sedang tidak bisa dihubungi atau terlalu lambat menjawab. Kolom Masterlist dan Catatan memakai isi terakhir ${register.title} yang berhasil diambil (${register.fetched_at}).`
                         });
                     }
                     spDocs.notice(notices);
@@ -479,6 +591,8 @@
                     spDocs.path = path;
                     spDocs.page = 1;
                     spDocs.search = '';
+                    spDocs.code = '';
+                    spDocs.codeBar();
                     $('#docsSearch').val('');
                     spDocs.crumbs();
                     spDocs.target(null);
@@ -495,6 +609,8 @@
                     $('#docsSearch').val('');
                     spDocs.sort = 'modified';
                     spDocs.dir = 'desc';
+                    spDocs.code = '';
+                    spDocs.codeBar();
                     spDocs.apply();
                 },
             };
@@ -621,6 +737,25 @@
                 });
                 $('#docsTable').on('click', 'button.docs-view', function() {
                     spViewer.open(Number($(this).attr('data-index')));
+                });
+                // A link from the page of the workbook ("?code=ICTCOF123" shows the files with that number, "?search=" searches the names) opens the folder so.
+                const query = new URLSearchParams(location.search);
+                // Cut by characters, not by the halves of one: a character outside the basic plane cut in two cannot be put into an address.
+                const cut = (text, most) => Array.from(text).slice(0, most).join('');
+                const asked = cut((query.get('search') || '').trim(), 100);
+                if (asked !== '') {
+                    spDocs.search = asked;
+                    $('#docsSearch').val(asked);
+                }
+                // Any text up to the length the server takes (400, the longest name a file can have): it decides whether that is a document
+                // number, and says in its answer whether it applied it.
+                spDocs.code = cut((query.get('code') || '').trim(), 400);
+                $('#docsCodeClear').on('click', function(e) {
+                    e.preventDefault();
+                    spDocs.code = '';
+                    spDocs.codeBar();
+                    spDocs.page = 1;
+                    spDocs.load();
                 });
                 $('#docsViewerPrevious').on('click', () => spViewer.step(-1));
                 $('#docsViewerNext').on('click', () => spViewer.step(1));

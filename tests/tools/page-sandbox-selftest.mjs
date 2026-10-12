@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { checker, loadPage } from './page-sandbox.mjs';
+import { assertWellFormed, checker, isWellFormed, loadPage } from './page-sandbox.mjs';
 
 const page = `<!doctype html><html><body>
 <table id="t"><thead><tr><th data-key="a">A</th><th data-key="b">B</th></tr></thead></table>
@@ -37,6 +37,16 @@ const demo = {
     },
     later() {
         setTimeout(() => { demo.fired = true; }, 500);
+    },
+    save() {
+        $.ajax({ url: '/save', type: 'POST', dataType: 'json', data: { _method: 'PATCH', n: 1 } })
+            .done(body => { demo.saved = body; }).fail(xhr => { demo.refused = xhr; }).always(() => { demo.finished = true; });
+    },
+    ask() {
+        // As a dialog's own function does: the answer or the refusal, both as a value.
+        $.ajax({ url: '/ask', type: 'POST' }).then(response => { demo.value = { ok: true, response }; }, xhr => { demo.value = { ok: false, xhr }; });
+        Swal.fire({ title: 'Sure?', html: '<b>x</b>', icon: 'question' }).then(result => { demo.answer = result.isConfirmed; });
+        Swal.fire('Done', 'Text', 'success');
     },
     frame() {
         const frame = document.createElement('iframe');
@@ -149,6 +159,91 @@ check('an element the script made and put into the page is there until it is tak
     assert.deepEqual(inside('elsewhere'), []);
     demo.drop();
     assert.deepEqual(inside('host'), []);
+});
+
+check('a request is written as jQuery writes it: every part encoded, a blank as "+", and half of a character is a failure', () => {
+    const { demo, $, requests } = fresh();
+    assert.equal($.param({ a: 'x y', b: 'A&B "C"', c: '', d: null, 'e f': 'ü' }), 'a=x+y&b=A%26B+%22C%22&c=&d=&e+f=%C3%BC');
+    // (jQuery leaves "!'()*~" as they are, as encodeURIComponent does; URLSearchParams would encode some of them.)
+    assert.equal($.param({ id: "b!x(1)'*~" }), "id=b!x(1)'*~");
+    // Half of a character that has two (outside the basic plane) cannot be written: it throws before anything is sent, like jQuery.
+    assert.throws(() => $.param({ q: '😀'.slice(0, 1) }), URIError);
+    assert.throws(() => $.getJSON('/data', { q: 'a' + '😀'.slice(0, 1) }), URIError);
+    assert.equal(requests.length, 0);
+    $.getJSON('/data', { q: 'a😀' });
+    assert.equal(requests.length, 1);
+    demo.fetch();
+    assert.equal(requests.length, 2);
+});
+
+check('a text with half of a character is told from one without', () => {
+    const half = '\u{1F600}'.slice(0, 1);
+    for (const whole of ['', 'abc', '\u{1F600}', 'a\u{1F600}b', 'é']) assert.equal(isWellFormed(whole), true, JSON.stringify(whole));
+    for (const broken of [half, half + 'a', 'a' + half, '\u{1F600}'.slice(1), 'a\u{1F600}'.slice(0, 2)]) assert.equal(isWellFormed(broken), false, JSON.stringify(broken));
+});
+
+check('what a script triggers on an element is written down', () => {
+    const page = fresh();
+    const { $, node } = page;
+    assert.deepEqual(node('#box').triggered, []);
+    $('#box').trigger('focus');
+    $('#box').trigger('focus').trigger('change');
+    assert.deepEqual(node('#box').triggered, ['focus', 'focus', 'change']);
+    assert.deepEqual(node('#other').triggered, []);
+});
+
+check('markup that a script wrote is held to be well formed: known tags, each closed by its own end', () => {
+    for (const good of ['', 'text only', '<tr><td class="a b">x</td><td><span title="a > b">y</span></td></tr>', '<ul><li><a href="#" class="x">1</a></li></ul>', 'a<br>b<input type="text">',
+        '<div role="status"><div class="alert d-none" id="x">&lt;b&gt; is text</div></div>']) {
+        assertWellFormed(good, good);
+    }
+    for (const [bad, why] of [
+        ['<tr><td>x</tr>', 'closed by another'], ['<div><span>x</div></span>', 'crossed'], ['<div>x', 'left open'], ['x</div>', 'closed twice'],
+        ['<Qr class="x">y</Qr>', 'not a tag of the pages'], ['<tr><tdd>x</tdd></tr>', 'a typo'], ['a < b', 'a "<" that is no tag'], ['<div class="a>x</div>', 'a quote left open'],
+    ]) {
+        assert.throws(() => assertWellFormed(bad, bad), assert.AssertionError, why);
+    }
+});
+
+check('a write request waits for the test to answer it, as a read does, and a library can chain on it', () => {
+    const { demo, requests, answer, refuse } = fresh();
+    demo.save();
+    assert.equal(requests.length, 1);
+    assert.deepEqual([requests[0].url, requests[0].type, requests[0].dataType, { ...requests[0].data }], ['/save', 'POST', 'json', { _method: 'PATCH', n: 1 }]);
+    assert.equal(demo.saved, undefined, 'nothing is answered by itself');
+    answer(requests[0], { ok: 1 });
+    assert.deepEqual([{ ...demo.saved }, demo.finished], [{ ok: 1 }, true]);
+
+    const again = fresh();
+    again.demo.save();
+    again.refuse(again.requests[0], { status: 422 });
+    assert.deepEqual([{ ...again.demo.refused }, again.demo.finished], [{ status: 422 }, true]);
+    // A request that is made like a read ("GET" unless it says otherwise) is told as such; an answer can be given before anybody listens.
+    assert.equal(typeof refuse, 'function');
+
+    // What a library chains on it gets the answer, or the refusal, whichever it is.
+    const chained = fresh();
+    chained.demo.ask();
+    assert.equal(chained.requests[0].type, 'POST');
+    chained.answer(chained.requests[0], { message: 'm' });
+    assert.deepEqual({ ...chained.demo.value, response: { ...chained.demo.value.response } }, { ok: true, response: { message: 'm' } });
+    const refused = fresh();
+    refused.demo.ask();
+    refused.refuse(refused.requests[0], { status: 409 });
+    assert.deepEqual([refused.demo.value.ok, refused.demo.value.xhr.status], [false, 409]);
+});
+
+check('a dialog is written down with its options, and the test says what the person answered', () => {
+    const { demo, dialogs, resolve } = fresh();
+    demo.ask();
+    assert.equal(dialogs.length, 2);
+    assert.deepEqual([dialogs[0].options.title, dialogs[0].options.html, dialogs[0].options.icon], ['Sure?', '<b>x</b>', 'question']);
+    // The short form: title, text, icon.
+    assert.deepEqual([...dialogs[1].args], ['Done', 'Text', 'success']);
+    assert.deepEqual([dialogs[1].options.title, dialogs[1].options.html, dialogs[1].options.icon], ['Done', 'Text', 'success']);
+    assert.equal(demo.answer, undefined, 'the person has not answered yet');
+    resolve({ isConfirmed: true }, dialogs[0]);
+    assert.equal(demo.answer, true);
 });
 
 check('the ids a script reached for are told, from selectors and from getElementById alike', () => {

@@ -15,6 +15,6 @@ class PageSandboxTest extends TestCase
 
     public function test_the_stand_in_for_jquery_behaves_like_jquery_where_the_checkers_lean_on_it(): void
     {
-        $this->checkTool('tests/tools/page-sandbox-selftest.mjs', 9);
+        $this->checkTool('tests/tools/page-sandbox-selftest.mjs', 15);
     }
 }

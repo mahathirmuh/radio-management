@@ -20,7 +20,7 @@ class DatabaseSeederTest extends TestCase
     {
         $this->assertSame(0, User::withTrashed()->count());
         $this->assertSame(0, DB::table('role_user')->count());
-        $this->assertSame(['Admin Radio', 'Super Admin', 'Viewer Radio'], DB::table('roles')->orderBy('name')->pluck('name')->all());
+        $this->assertSame(['Admin Radio', 'Document Controller', 'Super Admin', 'Viewer Radio'], DB::table('roles')->orderBy('name')->pluck('name')->all());
         $this->assertTrue(DB::table('menu')->where('route', 'radio-management.radio.index')->exists());
     }
 

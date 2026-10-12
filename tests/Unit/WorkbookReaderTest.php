@@ -258,6 +258,42 @@ class WorkbookReaderTest extends TestCase
         }
     }
 
+    public function test_a_web_address_keeps_the_blanks_it_was_typed_with_and_any_other_text_has_them_collapsed(): void
+    {
+        $nbsp = "\u{00A0}";
+        $bytes = self::workbook(['Daftar' =>
+            '<row r="1">' . self::cell('A1', 'Nama') . self::cell('B1', 'Tautan') . '</row>'
+            // Text: every run of blanks, a tab and a line break is one space, and the ends are trimmed.
+            . '<row r="2">' . self::cell('A2', "  Andi   \t  Wijaya\nLestari  ") . self::cell('B2', 'https://contoso.sharepoint.com/sites/Team/ICTCOF2 - Andi  Wijaya.pdf') . '</row>'
+            // An address: its blanks stay (a file of that name is looked for, letter for letter); the ends are trimmed; the scheme may be in capitals.
+            . '<row r="3">' . self::cell('A3', "a{$nbsp}{$nbsp}b") . self::cell('B3', "  HTTPS://contoso.sharepoint.com/a/b  c.pdf\n") . '</row>'
+            // A line break inside it is a space like in any other cell, with the blanks next to it; a no-break space stays.
+            . '<row r="4">' . self::cell('A4', 'http://contoso.sharepoint.com/a  b.pdf') . self::cell('B4', "https://contoso.sharepoint.com/a \n  b.pdf") . '</row>'
+            . '<row r="5">' . self::cell('A5', 'tidak https://contoso.sharepoint.com/a  b.pdf') . self::cell('B5', "https://contoso.sharepoint.com/a{$nbsp}{$nbsp}b.pdf") . '</row>'
+            // No-break spaces at its ends are blanks at its ends too.
+            . '<row r="6">' . self::cell('A6', "{$nbsp}x{$nbsp}") . self::cell('B6', "{$nbsp}https://contoso.sharepoint.com/a.pdf{$nbsp}") . '</row>'
+            // Up to 2048 bytes it is an address (its blanks stay); a longer cell is no address, and is text like any other.
+            . '<row r="7">' . self::cell('A7', 'edge') . self::cell('B7', $edge = 'https://x.y/' . str_repeat('a', 2033) . '  b') . '</row>'
+            . '<row r="8">' . self::cell('A8', 'over') . self::cell('B8', 'https://x.y/' . str_repeat('a', 2034) . '  b') . '</row>'
+            . '<row r="9">' . self::cell('A9', 'blanks') . self::cell('B9', 'https://x.y/' . str_repeat(' ', 40000) . 'z.pdf') . '</row>'
+            // The length is the bytes of the cell, not its characters (the limit is for how slow the reading can get).
+            . '<row r="10">' . self::cell('A10', 'bytes') . self::cell('B10', 'https://x.y/' . str_repeat('é', 1100) . '  b') . '</row>',
+        ]);
+
+        $rows = self::read($bytes)[0]['rows'];
+
+        $this->assertSame(['Andi Wijaya Lestari', 'https://contoso.sharepoint.com/sites/Team/ICTCOF2 - Andi  Wijaya.pdf'], $rows[0]);
+        $this->assertSame(['a b', 'HTTPS://contoso.sharepoint.com/a/b  c.pdf'], $rows[1]);
+        $this->assertSame(['http://contoso.sharepoint.com/a b.pdf', 'https://contoso.sharepoint.com/a b.pdf'], $rows[2], 'only an https address is kept as it was, and a line break is a space even there');
+        $this->assertSame(['tidak https://contoso.sharepoint.com/a b.pdf', "https://contoso.sharepoint.com/a{$nbsp}{$nbsp}b.pdf"], $rows[3]);
+        $this->assertSame(['x', 'https://contoso.sharepoint.com/a.pdf'], $rows[4]);
+        $this->assertSame(2048, strlen($edge));
+        $this->assertSame($edge, $rows[5][1]);
+        $this->assertSame('https://x.y/' . str_repeat('a', 2034) . ' b', $rows[6][1]);
+        $this->assertSame('https://x.y/ z.pdf', $rows[7][1], 'a long run of blanks is one blank, and is read at once');
+        $this->assertSame('https://x.y/' . str_repeat('é', 1100) . ' b', $rows[8][1], 'two bytes a character: more than 2048 bytes, fewer characters');
+    }
+
     public function test_the_separators_of_the_library_are_put_back_and_no_copy_of_the_workbook_stays(): void
     {
         // Whatever the library had before (here two marks no locale has) is what it has after, in every way a reading ends.

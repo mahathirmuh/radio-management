@@ -378,6 +378,11 @@ class XlsxReader
                     continue;
                 }
                 if ($raw === null || $raw === '') {
+                    // A formula that gives nothing yet is still a formula: it is told, so that nobody writes over it.
+                    if ($formula) {
+                        $cells[$row][$column] = ['', null, true];
+                    }
+
                     continue;
                 }
 
@@ -391,6 +396,10 @@ class XlsxReader
                     default => self::unescaped($raw),
                 };
                 if ($value === '') {
+                    if ($formula) {
+                        $cells[$row][$column] = ['', null, true];
+                    }
+
                     continue;
                 }
                 if (is_float($value)) {
