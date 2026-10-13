@@ -1,18 +1,19 @@
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userModal" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered ">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <div class=" mb-2">
-                    <h3 class="modal-title mb-2">Title</h3>
+    <div class="modal-dialog modal-fullscreen-md-down modal-dialog-centered user-form-dialog">
+        <div class="modal-content">
+            <div class="modal-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h3 class="modal-title mb-0">Title</h3>
+                    <button type="button" class="btn-close position-static m-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <form id="form">
-                    <div class="row g-2">
+                    <div class="row g-3">
                         <div class="col-12">
                             <div class="row">
                                 <label for="name" class="col-md-4 col-form-label required">Name
                                 </label>
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <input type="text" id="name" class="form-control" name="name"
                                         placeholder="Name.." required>
                                 </div>
@@ -22,9 +23,10 @@
                             <div class="row">
                                 <label for="email" class="col-md-4 col-form-label required">Email
                                 </label>
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <input type="email" id="email" class="form-control" name="email"
                                         placeholder="Email.." required>
+                                    <div class="form-hint">The work address Microsoft signs this person in with.</div>
                                 </div>
                             </div>
                         </div>
@@ -34,7 +36,7 @@
                                 </label>
                                 <div class="col-md-8">
                                     <select id="positionSelect" name="position" class="form-select" required>
-                                        <option></option>
+                                        <option value="">Select position</option>
                                         @foreach ($positions as $position)
                                             <option value="{{ $position }}">{{ $position }}</option>
                                         @endforeach
@@ -45,46 +47,44 @@
 
                         <div class="col-12">
                             <div class="row">
-                                <label class="col-md-4 col-form-label required">Role
+                                <label for="roleSelect" class="col-md-4 col-form-label required">Role
                                 </label>
                                 <div class="col-md-8">
-                                    <div class="table-responsive border rounded">
-                                        <table class="table table-sm table-vcenter mb-0" id="userRoleTable">
-                                            <thead>
-                                                <tr class="mdka-bg-gray-50">
-                                                    <th class="py-2 text-center" width="60">
-                                                        <input class="form-check-input" type="checkbox"
-                                                               id="selectAllRoles" />
-                                                    </th>
-                                                    <th class="py-2">Role</th>
-                                                    <th class="py-2">Type</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($roles as $role)
-                                                    <tr>
-                                                        <td class="text-center">
-                                                            <input class="form-check-input user-role-checkbox"
-                                                                   name="role_id[]" type="checkbox"
-                                                                   value="{{ $role->id }}" />
-                                                        </td>
-                                                        <td>{{ $role->name }}</td>
-                                                        <td>{{ $role->func_role }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <select id="roleSelect" name="role_id[]" class="form-select" required>
+                                        <option value="">Select role</option>
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <div class="form-hint d-none" id="userOtherRolesNote"></div>
                                 </div>
 
                             </div>
                         </div>
 
-                        <div class="col-12 mt-3">
+                        <div class="col-12">
                             <div class="row">
-                                <div class="col-md-12 d-flex justify-content-end gap-2" id="actionButtons">
-                                    <x-global.btn-detail label="Update" color="orange" size="sm"
+                                <label for="statusSelect" class="col-md-4 col-form-label required">Status
+                                </label>
+                                <div class="col-md-8">
+                                    <select id="statusSelect" name="active" class="form-select" required>
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                    <div class="form-hint d-none" id="userOwnStatusNote">Your own account stays
+                                        active.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <div class="row">
+                                <div class="col-md-12 d-flex justify-content-end align-items-center gap-2"
+                                    id="actionButtons">
+                                    <a href="#" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal"
+                                        role="button">Cancel</a>
+
+                                    <x-global.btn-detail label="Update" color="orange" size="md"
                                         onclick="userSubmit(event, this)" id="userModalUpdateButton" type="submit"
                                         data-type="edit" data-form-id="id">
                                         <x-slot name="icon">
@@ -92,7 +92,7 @@
                                         </x-slot>
                                     </x-global.btn-detail>
 
-                                    <x-global.btn-detail label="Submit" color="blue" size="sm"
+                                    <x-global.btn-detail label="Submit" color="blue" size="md"
                                         onclick="userSubmit(event, this)" id="userModalSubmitButton" type="submit"
                                         data-type="submit" data-form-id="id">
                                         <x-slot name="icon">
@@ -148,28 +148,6 @@
 </div>
 
 @push('javascript')
-    {{-- select2 declaration --}}
-    <script>
-        $(function() {
-            $('#userModal #positionSelect').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Position',
-                allowClear: true,
-                multiple: false,
-                dropdownParent: $('#userModal'),
-                width: '100%',
-                closeOnSelect: false
-            });
-        });
-    </script>
-
-    {{-- role checkbox table --}}
-    <script>
-        $('#selectAllRoles').click(function() {
-            $('.user-role-checkbox').prop('checked', $(this).prop('checked'));
-        });
-    </script>
-
     {{-- url --}}
     <script>
         const urlUserShow = "{{ route('user-management.user-registered.show', ':id') }}";
@@ -237,14 +215,13 @@
                     success: function(response) {
                         modal.find("#name").val(response.data.name);
                         modal.find("#email").val(response.data.email);
-                        modal.find("#positionSelect").val(response.data.position).trigger("change");
-
-                        modal.find(".user-role-checkbox").prop("checked", false);
-                        (response.data.role_id || []).forEach((roleId) => {
-                            modal.find('.user-role-checkbox[value="' + roleId + '"]').prop("checked",
-                                true);
-                        });
+                        modal.find("#positionSelect").val(response.data.position || "");
+                        // One role is chosen here: of the roles this form lists, the first the user holds.
+                        const held = (response.data.role_id || []).map(String);
+                        const listed = modal.find("#roleSelect option").map((i, option) => option.value).get();
+                        modal.find("#roleSelect").val(listed.find((roleId) => roleId && held.includes(roleId)) || "");
                         setOtherRoles(modal, response.data.other_role_count);
+                        setOwnStatus(modal, response.data.active, response.data.is_self);
 
                         modal.modal("show");
                     },
@@ -255,9 +232,8 @@
                 });
             } else {
                 modal.find("#form")[0].reset();
-                modal.find("#positionSelect").val(null).trigger("change");
-                modal.find(".user-role-checkbox").prop("checked", false);
                 setOtherRoles(modal, 0);
+                setOwnStatus(modal, true, false);
 
                 modal.modal("show");
             }
@@ -272,6 +248,12 @@
                 .toggleClass("d-none", count === 0)
                 .text(count + " other role(s) of this user are not listed here because you cannot manage them. They stay as they are.");
         };
+
+        // Nobody sets their own account to inactive (the server refuses it as well): there the choice is shown, not offered.
+        const setOwnStatus = (modal, active, own) => {
+            modal.find("#statusSelect").val(active === false ? "0" : "1").prop("disabled", !!own);
+            modal.find("#userOwnStatusNote").toggleClass("d-none", !own);
+        };
     </script>
 
     {{-- Close Modal --}}
@@ -281,10 +263,8 @@
                 // Reset the form fields
                 $(this).find("#form")[0].reset();
 
-                // Clear Select2 selections
-                $(this).find("#positionSelect").val(null).trigger("change");
-                $(this).find(".user-role-checkbox").prop("checked", false);
                 setOtherRoles($(this), 0);
+                setOwnStatus($(this), true, false);
             });
         });
     </script>
@@ -303,9 +283,10 @@
             formData.append("name", modal.find("#name").val().trim());
             formData.append("email", modal.find("#email").val().trim());
             formData.append("position", modal.find("#positionSelect").val() || "");
-            modal.find(".user-role-checkbox:checked").each(function() {
-                formData.append("role_id[]", $(this).val());
-            });
+            if (modal.find("#roleSelect").val()) {
+                formData.append("role_id[]", modal.find("#roleSelect").val());
+            }
+            formData.append("active", modal.find("#statusSelect").val());
 
             let type, url;
 

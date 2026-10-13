@@ -348,6 +348,55 @@ class UserManagementTest extends TestCase
         \Illuminate\Support\Facades\Cache::forget('users-sign-in-columns');
     }
 
+    public function test_the_form_chooses_one_role_and_the_status(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+        $viewer = $this->roleId('Viewer Radio');
+
+        // The form: one role from a list, a status, and a way out without saving. No table of boxes to tick any more.
+        $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
+        foreach (['id="roleSelect"', 'id="statusSelect"', '>Cancel</a>'] as $part) {
+            $this->assertSame(1, substr_count($page, $part), $part);
+        }
+        $this->assertMatchesRegularExpression('#<select id="statusSelect"[^>]*>\s*<option value="1">Active</option>\s*<option value="0">Inactive</option>#', $page);
+        $this->assertStringContainsString('<option value="' . $viewer . '">Viewer Radio</option>', $page);
+        foreach (['user-role-checkbox', 'selectAllRoles', 'userRoleTable'] as $gone) {
+            $this->assertStringNotContainsString($gone, $page, $gone);
+        }
+
+        // Added as inactive: the account is there, and cannot sign in until it is set to active.
+        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT Field', 'role_id' => [$viewer]];
+        $this->postJson(route('user-management.user-registered.store'), ['active' => '0'] + $form)->assertOk();
+        $user = User::where('email', 'budi@merdekabattery.com')->sole();
+        $this->assertSame('0', $user->active);
+        $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk()
+            ->assertJsonPath('data.active', false)->assertJsonPath('data.is_self', false);
+
+        // Changed in the form; a save that does not say leaves it.
+        $update = fn (User $who, array $with) => $this->putJson(route('user-management.user-registered.update', $who->id), $with + $form);
+        $update($user, ['active' => '1'])->assertOk();
+        $this->assertSame('1', $user->fresh()->active);
+        DB::table('users')->where('id', $user->id)->update(['remember_token' => 'kept-on-a-laptop']);
+        $update($user, [])->assertOk();
+        $this->assertSame(['1', 'kept-on-a-laptop'], [$user->fresh()->active, $user->fresh()->remember_token]);
+        $update($user, ['active' => '0'])->assertOk();
+        $this->assertSame(['0', null], [$user->fresh()->active, $user->fresh()->remember_token]);
+        $update($user, ['active' => 'mungkin'])->assertStatus(422);
+        $this->postJson(route('user-management.user-registered.store'), ['email' => 'lain@merdekabattery.com', 'active' => 'mungkin'] + $form)->assertStatus(422);
+
+        // Your own account: the form is told it is yours, and it does not go inactive.
+        $own = ['name' => $admin->name, 'email' => $admin->email, 'role_id' => [1]];
+        $this->getJson(route('user-management.user-registered.show', $admin->id))->assertJsonPath('data.is_self', true)->assertJsonPath('data.active', true);
+        $this->putJson(route('user-management.user-registered.update', $admin->id), ['active' => '0'] + $own + $form)->assertStatus(422);
+        $this->assertSame('1', $admin->fresh()->active);
+        $this->putJson(route('user-management.user-registered.update', $admin->id), ['active' => '1'] + $own + $form)->assertOk();
+
+        // Added without a status (as a request from before does): active.
+        $this->postJson(route('user-management.user-registered.store'), ['email' => 'lain@merdekabattery.com'] + $form)->assertOk();
+        $this->assertSame('1', User::where('email', 'lain@merdekabattery.com')->value('active'));
+    }
+
     public function test_pages_and_lists_load(): void
     {
         $this->actingAs($this->admin());

@@ -215,6 +215,8 @@ class UserRegisteredController extends Controller
                 'company_orangehr_code' => $user->company?->company_orangehr_code,
                 'company_name' => $user->company?->name,
                 'position' => $user->position,
+                'active' => $user->isActive(),
+                'is_self' => (int) $user->id === (int) $request->user()->id,
                 'role_id' => $user->roles->pluck('id'),
                 'role_name' => $user->roles->pluck('name')->implode(', '),
                 // Roles of this user that the caller's form does not list; an update leaves them alone.
@@ -234,6 +236,8 @@ class UserRegisteredController extends Controller
             // A request that still names one is held to the same rules as before.
             'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
             'position' => ['required', 'string', Rule::in(User::POSITIONS)],
+            // The status the form chose; a request without one makes an active account.
+            'active' => ['nullable', 'boolean'],
             'role_id' => ['required', 'array', 'min:1'],
             // Roles are soft-deleted: a deleted one must not be handed out (the user would be left without a usable role).
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
@@ -284,7 +288,7 @@ class UserRegisteredController extends Controller
                     // NOT NULL columns without a default.
                     'verify_key' => '',
                     'mark_user' => '',
-                    'active' => '1',
+                    'active' => $request->boolean('active', true) ? '1' : '0',
                 ];
 
                 if ($user = $existing) {
@@ -315,6 +319,8 @@ class UserRegisteredController extends Controller
             // Not asked for by the form any more: without it the company of the user stays what it is.
             'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
             'position' => ['required', 'string', Rule::in(User::POSITIONS)],
+            // The status the form chose; without one it stays what it is.
+            'active' => ['nullable', 'boolean'],
             // A caller with a limited set of roles may leave every box unticked: the roles of the
             // user that their form does not list stay. The resulting list is checked below.
             'role_id' => $assignable === null ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
@@ -345,6 +351,12 @@ class UserRegisteredController extends Controller
             ?? $this->denySuperAdminGrant($request, $user)
             ?? $this->denyRolesOutOfScope($request, $user)) {
             return $denied;
+        }
+
+        // As in status(): setting your own account to inactive would end your own access.
+        $active = $request->filled('active') ? $request->boolean('active') : null;
+        if ($active === false && (int) $user->id === (int) $request->user()->id) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => ['You cannot deactivate your own account.']], 422);
         }
 
         // The company that was named, else the one the user has.
@@ -386,14 +398,16 @@ class UserRegisteredController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $user, $companySelected, $roleIds) {
+            DB::transaction(function () use ($request, $user, $companySelected, $roleIds, $active) {
                 // Update user data
                 $user->update([
                     'name' => $request->name,
                     'email' => $request->email,
                     'company_id' => $companySelected->id,
                     'position' => $request->position,
-                ]);
+                ] + ($active === null ? [] : ['active' => $active ? '1' : '0'])
+                  // A "remember me" cookie must not bring an inactive account back in.
+                  + ($active === false ? ['remember_token' => null] : []));
 
                 $user->roles()->sync($roleIds->all());
             });

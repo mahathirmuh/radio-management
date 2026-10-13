@@ -10,6 +10,15 @@
             border-color: #a8a8a8;
         }
 
+        /* The form of a user: a title with the cross at its right, labels at the left. */
+        .user-form-dialog {
+            max-width: 650px;
+        }
+
+        #userModal .col-form-label {
+            font-weight: 500;
+        }
+
         /* The list of users: rows with room, text to the left, the actions at the right edge. */
         #userRegisterdSearch {
             width: 290px;
