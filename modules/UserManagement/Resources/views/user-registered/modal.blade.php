@@ -138,13 +138,6 @@
                                             this directory is set up. No password is stored here; the one they already
                                             use is checked against the directory each time.
                                         </small>
-                                        @unless ($ldapUsable)
-                                            <small class="form-hint text-orange" id="userDirectoryOffNote">
-                                                This server cannot check a directory password yet (the PHP ldap
-                                                extension is not loaded). Until it can, the account signs in with
-                                                Microsoft.
-                                            </small>
-                                        @endunless
                                     </div>
                                 </div>
                             </div>

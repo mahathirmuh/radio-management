@@ -96,8 +96,6 @@ class UserRegisteredController extends Controller
                 // One method is no choice: with Microsoft alone the form does not ask.
                 'signInMethods' => $this->offeredSignInMethods(),
                 'signInMeanings' => User::SIGN_IN_MEANINGS,
-                // Whether a directory password can be checked from this server (see config/ldap.php).
-                'ldapUsable' => app(LdapAuthenticator::class)->usable(),
 
             ]);
         } catch (Exception $e) {

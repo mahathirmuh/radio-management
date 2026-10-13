@@ -221,15 +221,21 @@ Form tambah/edit user:
 - Login LDAP: di form e-mail + password, password diperiksa dengan bind ke Active Directory sebagai orang itu
   (`App\Services\Directory\LdapAuthenticator`); tidak ada password yang disimpan. Password kosong ditolak sebelum
   sampai ke direktori, direktori yang tidak bisa dihubungi dilaporkan sebagai gangguan (bukan "password salah"),
-  dan tanpa "remember me". **Perlu ekstensi PHP `ldap`**; selama ekstensi itu tidak dimuat, form user memberi
-  catatan dan akun LDAP tetap bisa masuk lewat Microsoft.
+  dan tanpa "remember me". **Tidak perlu ekstensi PHP `ldap`**: direktori dihubungi dengan pustaka `freedsx/ldap`
+  (PHP murni, terpasang lewat `composer install`). Akun yang dinonaktifkan di Active Directory, atau nama yang
+  cocok dengan lebih dari satu entri, ditolak.
+- Sambungan ke direktori selalu terenkripsi: `LDAP_URL=ldaps://host` (TLS sejak awal, port 636) atau
+  `ldap://host` (port 389, StartTLS dulu sebelum password apa pun dikirim; jalur StartTLS ini belum pernah dicoba
+  ke server sungguhan).
 - `LDAP_TLS_VERIFY` sebaiknya `true`. `false` hanya selama sertifikat domain controller berasal dari CA internal
   yang belum dipercaya server ini: tanpa pemeriksaan, password yang diketik bisa diterima pihak yang menyadap.
+  Untuk menyalakannya, simpan sertifikat CA itu sebagai berkas PEM dan isi `LDAP_CA_CERT` dengan path lengkapnya.
 
 Kolomnya ditambahkan migrasi `2026_10_13_100000_add_sign_in_to_users_table` (login terakhir) dan
 `2026_10_13_110000_add_directory_sign_in_to_users_table` (Directory username). Sebelum migrasi dijalankan halaman
 tetap jalan: Sign-In tampil "Pending", dan pilihan LDAP belum ada. Tes tidak pernah menghubungi database HR atau
-Active Directory (`phpunit.xml` mengosongkan setelannya; penggantinya di `tests/Concerns/FakesDirectory.php`).
+Active Directory (`phpunit.xml` mengosongkan setelannya; penggantinya di `tests/Concerns/FakesDirectory.php`, dan
+untuk percakapan dengan direktori itu sendiri di `tests/Feature/LdapAuthenticatorTest.php`).
 
 Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
 

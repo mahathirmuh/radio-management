@@ -2,7 +2,16 @@
 
 namespace App\Services\Directory;
 
+use Exception;
+use FreeDSx\Ldap\Entry\Entry;
+use FreeDSx\Ldap\Exception\BindException;
+use FreeDSx\Ldap\Exception\OperationException;
+use FreeDSx\Ldap\LdapClient;
+use FreeDSx\Ldap\Operation\ResultCode;
+use FreeDSx\Ldap\Operations;
+use FreeDSx\Ldap\Search\Filters;
 use Illuminate\Support\Facades\Log;
+use SensitiveParameter;
 
 /**
  * Checks a password against Active Directory (config/ldap.php).
@@ -11,12 +20,16 @@ use Illuminate\Support\Facades\Log;
  * nobody types. Then a second connection binds as that person with the password that was typed. Binding is the
  * check: no hash is read, compared or kept.
  *
- * Three refusals that are easy to get wrong:
+ * The directory is spoken to with freedsx/ldap, a client written in PHP, so the PHP ldap extension is not needed.
+ *
+ * Refusals that are easy to get wrong:
  * - An empty password binds successfully (LDAP calls it an unauthenticated bind): any username with no password
  *   would be let in as that person. It is refused before anything reaches the directory.
- * - A directory that cannot be asked is not a wrong password: it throws DirectoryUnavailable.
+ * - A directory that cannot be asked is not a wrong password: it throws DirectoryUnavailable. So does a service
+ *   account the directory refuses: that is a wrong setting here, not a wrong password of whoever signs in.
  * - Two entries for one username are refused, not resolved by taking the first: that would sign somebody in as an
  *   account that is not theirs. An account the directory has disabled is refused as well.
+ * - No password travels unencrypted: ldaps:// is TLS from the start, and on ldap:// StartTLS comes before any bind.
  */
 class LdapAuthenticator
 {
@@ -29,18 +42,12 @@ class LdapAuthenticator
         return filled(config('ldap.url')) && filled(config('ldap.bind_dn'));
     }
 
-    /** Whether it can be asked from this server at all: set up, and the PHP ldap extension loaded. */
-    public function usable(): bool
-    {
-        return $this->isConfigured() && extension_loaded('ldap');
-    }
-
     /**
      * The person, when the password is theirs; null when it is not.
      *
      * @throws DirectoryUnavailable when the directory cannot be asked
      */
-    public function authenticate(string $username, string $password): ?LdapIdentity
+    public function authenticate(string $username, #[SensitiveParameter] string $password): ?LdapIdentity
     {
         // Never sent: the directory would answer "yes" to an empty password for any username that exists.
         if (trim($username) === '' || $password === '') {
@@ -51,123 +58,211 @@ class LdapAuthenticator
             throw new DirectoryUnavailable('The directory is not configured (LDAP_URL, LDAP_BIND_DN).');
         }
 
-        $connection = $this->connect();
+        $entry = $this->find($username);
+
+        // The same answer as a wrong password: "that account is disabled" would tell somebody who has not
+        // proved who they are that the account exists.
+        if ($entry === null || $this->isDisabled($entry)) {
+            return null;
+        }
+
+        $dn = $entry->getDn()->toString();
+        if (! $this->accepts($dn, $password)) {
+            return null;
+        }
+
+        return new LdapIdentity(
+            $this->attribute($entry, (string) config('ldap.attributes.username', 'samaccountname')) ?? $username,
+            $dn,
+            $this->attribute($entry, (string) config('ldap.attributes.mail', 'mail')),
+            $this->attribute($entry, (string) config('ldap.attributes.name', 'displayname')),
+        );
+    }
+
+    /**
+     * The entry of this username, looked up as the service account; null when there is none (or more than one).
+     *
+     * @throws DirectoryUnavailable
+     */
+    private function find(string $username): ?Entry
+    {
+        $client = $this->open();
 
         try {
-            $entry = $this->find($connection, $username);
+            $client->bind((string) config('ldap.bind_dn'), (string) config('ldap.bind_password'));
+        } catch (Exception $e) {
+            $this->close($client);
 
-            // The same answer as a wrong password: "that account is disabled" would tell somebody who has not
-            // proved who they are that the account exists.
-            if ($entry === null || $this->isDisabled($entry)) {
-                return null;
+            throw $this->unavailable('could not bind as the service account', $e, 'The directory could not be reached.');
+        }
+
+        $found = [];
+        $tooMany = false;
+
+        try {
+            $filter = str_replace('{username}', $this->escape($username), (string) config('ldap.user_search_filter'));
+
+            // Two entries at most are asked for: one is the answer, a second says the filter does not name one person.
+            $found = $client->search(
+                Operations::search(Filters::raw($filter), ...$this->attributes())
+                    ->base((string) config('ldap.user_search_base'))
+                    ->sizeLimit(2)
+            )->toArray();
+        } catch (OperationException $e) {
+            // With more than were asked for, the directory says so instead of handing over the first ones.
+            $tooMany = $e->getCode() === ResultCode::SIZE_LIMIT_EXCEEDED;
+            if (! $tooMany) {
+                throw $this->unavailable('the search failed', $e, 'The directory could not be searched.');
             }
-
-            // A connection of its own, so a failed attempt cannot leave the one of the service account bound as
-            // somebody else.
-            $asUser = $this->connect();
-
-            try {
-                if (! @ldap_bind($asUser, $entry['dn'], $password)) {
-                    return null;
-                }
-            } finally {
-                @ldap_unbind($asUser);
-            }
-
-            return new LdapIdentity(
-                $this->attribute($entry, (string) config('ldap.attributes.username', 'samaccountname')) ?? $username,
-                (string) $entry['dn'],
-                $this->attribute($entry, (string) config('ldap.attributes.mail', 'mail')),
-                $this->attribute($entry, (string) config('ldap.attributes.name', 'displayname')),
-            );
+        } catch (Exception $e) {
+            throw $this->unavailable('the search failed', $e, 'The directory could not be searched.');
         } finally {
-            @ldap_unbind($connection);
-        }
-    }
-
-    /**
-     * A connection, bound as the service account.
-     *
-     * @return \LDAP\Connection
-     *
-     * @throws DirectoryUnavailable
-     */
-    private function connect()
-    {
-        if (! extension_loaded('ldap')) {
-            throw new DirectoryUnavailable('The PHP ldap extension is not loaded on this server.');
+            $this->close($client);
         }
 
-        // Set for every connection, before one exists: on a connection that is already there it is ignored, which
-        // shows as "Can't contact LDAP server" against a port that is open.
-        ldap_set_option(null, LDAP_OPT_X_TLS_REQUIRE_CERT, config('ldap.tls_verify') ? LDAP_OPT_X_TLS_DEMAND : LDAP_OPT_X_TLS_NEVER);
-
-        $connection = @ldap_connect((string) config('ldap.url'));
-        if ($connection === false) {
-            throw new DirectoryUnavailable('The address of the directory (LDAP_URL) could not be used.');
-        }
-
-        ldap_set_option($connection, LDAP_OPT_PROTOCOL_VERSION, 3);
-        // A referral that is followed is a second connection that was never bound, and it hangs instead of failing.
-        ldap_set_option($connection, LDAP_OPT_REFERRALS, 0);
-        ldap_set_option($connection, LDAP_OPT_NETWORK_TIMEOUT, max(1, (int) config('ldap.timeout', 5)));
-
-        if (! @ldap_bind($connection, (string) config('ldap.bind_dn'), (string) config('ldap.bind_password'))) {
-            // The reason goes to the log only: it can name the domain controller and the service account.
-            Log::error('LDAP: could not bind as the service account: ' . ldap_error($connection));
-            @ldap_unbind($connection);
-
-            throw new DirectoryUnavailable('The directory could not be reached.');
-        }
-
-        return $connection;
-    }
-
-    /**
-     * The entry of this username, or null when there is none (or more than one).
-     *
-     * @param \LDAP\Connection $connection
-     *
-     * @throws DirectoryUnavailable
-     */
-    private function find($connection, string $username): ?array
-    {
-        $filter = str_replace('{username}', ldap_escape($username, '', LDAP_ESCAPE_FILTER), (string) config('ldap.user_search_filter'));
-        $attributes = array_values(array_unique(array_map('strtolower', array_merge(
-            array_filter((array) config('ldap.attributes'), 'is_string'),
-            ['useraccountcontrol'],
-        ))));
-
-        // Two entries at most are asked for: one is the answer, a second says the filter does not name one person.
-        $search = @ldap_search($connection, (string) config('ldap.user_search_base'), $filter, $attributes, 0, 2);
-        if ($search === false) {
-            Log::error('LDAP: the search failed: ' . ldap_error($connection));
-
-            throw new DirectoryUnavailable('The directory could not be searched.');
-        }
-
-        $entries = ldap_get_entries($connection, $search);
-        $count = (int) ($entries['count'] ?? 0);
-
-        if ($count > 1) {
+        if ($tooMany || count($found) > 1) {
             Log::warning('LDAP: a username matched more than one entry; nobody is signed in on that.', [
                 'filter' => config('ldap.user_search_filter'),
             ]);
+
+            return null;
         }
 
-        return $count === 1 ? $entries[0] : null;
+        return $found[0] ?? null;
     }
 
-    private function isDisabled(array $entry): bool
+    /**
+     * Whether the directory takes $password for the entry $dn: a bind as that person. On a connection of its own,
+     * so the one of the service account is never left bound as somebody else.
+     *
+     * @throws DirectoryUnavailable
+     */
+    private function accepts(string $dn, #[SensitiveParameter] string $password): bool
+    {
+        $client = $this->open();
+
+        try {
+            $client->bind($dn, $password);
+
+            return true;
+        } catch (BindException $e) {
+            // What the directory answers to a wrong password, and to an account that is locked or has expired.
+            if ($e->getCode() === ResultCode::INVALID_CREDENTIALS) {
+                return false;
+            }
+
+            throw $this->unavailable('a bind was refused for another reason than the password', $e, 'The directory could not check the password.');
+        } catch (Exception $e) {
+            throw $this->unavailable('a password could not be checked', $e, 'The directory could not be reached.');
+        } finally {
+            $this->close($client);
+        }
+    }
+
+    /**
+     * A client for the directory, on an encrypted connection. (The connection itself is made by the first request.)
+     *
+     * @throws DirectoryUnavailable
+     */
+    private function open(): LdapClient
+    {
+        $url = parse_url((string) config('ldap.url')) ?: [];
+        $scheme = strtolower((string) ($url['scheme'] ?? ''));
+        if (! in_array($scheme, ['ldap', 'ldaps'], true) || blank($url['host'] ?? null)) {
+            throw new DirectoryUnavailable('The address of the directory (LDAP_URL) could not be used: it reads ldaps://host or ldap://host.');
+        }
+
+        $timeout = max(1, (int) config('ldap.timeout', 5));
+        $client = $this->client([
+            'servers' => [$url['host']],
+            'port' => (int) ($url['port'] ?? ($scheme === 'ldaps' ? 636 : 389)),
+            'use_ssl' => $scheme === 'ldaps',
+            'ssl_validate_cert' => (bool) config('ldap.tls_verify'),
+            'ssl_ca_cert' => config('ldap.ca_cert') ?: null,
+            'timeout_connect' => $timeout,
+            'timeout_read' => $timeout,
+        ]);
+
+        // ldap:// starts in the clear, and a bind carries a password: the connection is encrypted first.
+        if ($scheme === 'ldap') {
+            try {
+                $client->startTls();
+            } catch (Exception $e) {
+                $this->close($client);
+
+                throw $this->unavailable('the connection could not be encrypted (StartTLS)', $e, 'The directory could not be reached.');
+            }
+        }
+
+        return $client;
+    }
+
+    /**
+     * The client itself. (A method of its own, so that a test can put a stand-in in the place of the directory.)
+     *
+     * @throws DirectoryUnavailable
+     */
+    protected function client(array $options): LdapClient
+    {
+        // Without it this would end in an error page; the login form has an answer for a directory that is not there.
+        if (! class_exists(LdapClient::class)) {
+            throw new DirectoryUnavailable('The LDAP client (freedsx/ldap) is not installed: run "composer install".');
+        }
+
+        return new LdapClient($options);
+    }
+
+    private function close(LdapClient $client): void
+    {
+        try {
+            if ($client->isConnected()) {
+                $client->unbind();
+            }
+        } catch (Exception) {
+            // It was being closed anyway.
+        }
+    }
+
+    /**
+     * What went wrong goes to the log only (it can name the domain controller and the service account); the caller
+     * gets a sentence. The exception itself is not passed on: its trace holds what was sent.
+     */
+    private function unavailable(string $what, Exception $e, string $said): DirectoryUnavailable
+    {
+        $reasons = [];
+        for ($at = $e; $at !== null; $at = $at->getPrevious()) {
+            $reasons[] = $at->getMessage();
+        }
+        Log::error("LDAP: {$what}: " . implode(' <- ', array_unique(array_filter($reasons))));
+
+        return new DirectoryUnavailable($said);
+    }
+
+    /** $value as it stands in a search filter (RFC 4515): what a filter reads as a sign of its own is written as its code. */
+    private function escape(string $value): string
+    {
+        return strtr($value, ['\\' => '\5c', '*' => '\2a', '(' => '\28', ')' => '\29', "\x00" => '\00']);
+    }
+
+    /** The attributes that are asked for: those config/ldap.php names, and the one that says an account is disabled. */
+    private function attributes(): array
+    {
+        return array_values(array_unique(array_map('strtolower', array_merge(
+            array_filter((array) config('ldap.attributes'), 'is_string'),
+            ['useraccountcontrol'],
+        ))));
+    }
+
+    private function isDisabled(Entry $entry): bool
     {
         $control = $this->attribute($entry, 'useraccountcontrol');
 
         return $control !== null && ((int) $control & self::ACCOUNT_DISABLED) !== 0;
     }
 
-    private function attribute(array $entry, string $name): ?string
+    private function attribute(Entry $entry, string $name): ?string
     {
-        $value = $entry[strtolower($name)][0] ?? null;
+        $value = $entry->get($name)?->firstValue();
 
         return is_string($value) && $value !== '' ? $value : null;
     }

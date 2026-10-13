@@ -36,11 +36,6 @@ trait FakesDirectory
             {
             }
 
-            public function usable(): bool
-            {
-                return true;
-            }
-
             public function authenticate(string $username, string $password): ?LdapIdentity
             {
                 if (trim($username) === '' || $password === '') {

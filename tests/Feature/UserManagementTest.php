@@ -443,14 +443,6 @@ class UserManagementTest extends TestCase
         sort($sorted);
         $this->assertSame($sorted, $order);
         $this->assertNotContains(false, $order);
-        // The stand-in directory can be asked, so nothing warns that it cannot.
-        $this->assertStringNotContainsString('userDirectoryOffNote', $full);
-
-        // Set up, but this PHP cannot ask it: the form says so where the directory username is typed.
-        if (! extension_loaded('ldap')) {
-            $this->app->forgetInstance(\App\Services\Directory\LdapAuthenticator::class);
-            $this->assertStringContainsString('id="userDirectoryOffNote"', $page());
-        }
 
         // Who may only read the page is not shown the search: it reads out everyone employed.
         $this->actingAs($this->user('baca@merdekabattery.com', $this->readerRole()));

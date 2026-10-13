@@ -121,13 +121,12 @@ class DirectoryLoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_without_the_ldap_extension_or_its_settings_the_answer_is_the_same_outage(): void
+    public function test_a_directory_that_is_not_set_up_or_not_there_is_the_same_outage(): void
     {
         $user = $this->directoryAccount('budi.santoso@merdekabattery.com', 'budi.santoso');
 
         // Not set up at all (phpunit.xml leaves LDAP_URL empty): the real authenticator says so.
         $this->assertFalse(app(LdapAuthenticator::class)->isConfigured());
-        $this->assertFalse(app(LdapAuthenticator::class)->usable());
         $this->login($user->email, 'Kata-Sandi-AD-1')->assertOk();
         $this->assertGuest();
         $this->assertStringContainsString('directory cannot be reached', $this->said());
@@ -142,21 +141,23 @@ class DirectoryLoginTest extends TestCase
             $this->assertStringContainsString('not configured', $e->getMessage());
         }
 
-        // Set up, but this PHP has no ldap extension (the state of a server where it could not be loaded).
-        if (! extension_loaded('ldap')) {
-            config(['ldap.url' => 'ldaps://dc.example.test', 'ldap.bind_dn' => 'CN=svc-radio,DC=example,DC=test']);
-            $this->assertTrue(app(LdapAuthenticator::class)->isConfigured());
-            $this->assertFalse(app(LdapAuthenticator::class)->usable());
-            try {
-                app(LdapAuthenticator::class)->authenticate('budi.santoso', 'Kata-Sandi-AD-1');
-                $this->fail('Nothing can be asked without the extension.');
-            } catch (DirectoryUnavailable $e) {
-                $this->assertStringContainsString('ldap extension', $e->getMessage());
-            }
-            $this->login($user->email, 'Kata-Sandi-AD-1')->assertOk();
-            $this->assertGuest();
-            $this->assertStringContainsString('directory cannot be reached', $this->said());
+        // Set up, with an address where no directory answers (this very machine, a port nothing listens on): the
+        // real client, the real refusal of the connection, and the same answer on the login page.
+        config([
+            'ldap.url' => 'ldaps://127.0.0.1:9', 'ldap.timeout' => 1,
+            'ldap.bind_dn' => 'CN=svc-radio,DC=example,DC=test', 'ldap.bind_password' => 'Sandi-Layanan-1',
+        ]);
+        $this->assertTrue(app(LdapAuthenticator::class)->isConfigured());
+        try {
+            app(LdapAuthenticator::class)->authenticate('budi.santoso', 'Kata-Sandi-AD-1');
+            $this->fail('Nothing answers there.');
+        } catch (DirectoryUnavailable $e) {
+            $this->assertSame('The directory could not be reached.', $e->getMessage());
         }
+        $this->login($user->email, 'Kata-Sandi-AD-1')->assertOk();
+        $this->assertGuest();
+        $this->assertStringContainsString('directory cannot be reached', $this->said());
+        $this->assertStringNotContainsString('Wrong', $this->said());
     }
 
     public function test_an_inactive_account_or_one_without_a_role_is_not_let_in_by_the_directory(): void

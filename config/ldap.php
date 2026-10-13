@@ -13,13 +13,16 @@
 | Without LDAP_URL and LDAP_BIND_DN the directory is "not configured": User Management does not offer LDAP, and
 | the form of a user is the one it was before.
 |
-| The PHP ldap extension has to be loaded for it. Where it is not, such a sign-in is answered with "the directory
-| cannot be reached" (never with "wrong password"), and signing in with Microsoft keeps working.
+| The directory is spoken to with freedsx/ldap (a client written in PHP): the PHP ldap extension is not needed.
+| A directory that cannot be asked is answered with "the directory cannot be reached" (never with "wrong
+| password"), and signing in with Microsoft keeps working.
 |
 */
 
 return [
 
+    // ldaps://host[:port] (TLS from the start, port 636), or ldap://host[:port] (port 389): there StartTLS is asked
+    // for before anything else, so a password is never sent in the clear.
     'url' => env('LDAP_URL'),
 
     'base_dn' => env('LDAP_BASE_DN'),
@@ -39,8 +42,12 @@ return [
 
     // Whether the certificate of the domain controller is checked. A bind sends the password of the person, so
     // without the check whoever answers the connection receives it. Off only where the certificate comes from an
-    // internal CA this server does not trust yet: install that CA, then turn this on again.
+    // internal CA this server does not trust yet: name that CA below, then turn this on again.
     'tls_verify' => filter_var(env('LDAP_TLS_VERIFY', true), FILTER_VALIDATE_BOOL),
+
+    // The certificate of the CA that issued the one of the domain controller, as a PEM file (a full path). Without
+    // it the check goes by the CAs PHP knows (openssl.cafile in php.ini).
+    'ca_cert' => env('LDAP_CA_CERT'),
 
     // Which attributes of the directory carry what is read from it.
     'attributes' => [
