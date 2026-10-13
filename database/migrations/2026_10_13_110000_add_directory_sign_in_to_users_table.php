@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -30,6 +31,8 @@ return new class extends Migration
                 ->whereNull('microsoft_linked_at')
                 ->update(['microsoft_linked_at' => DB::raw('last_login_at')]);
         }
+
+        $this->askAgain();
     }
 
     public function down(): void
@@ -40,5 +43,17 @@ return new class extends Migration
                 $table->dropColumn(['ldap_username', 'microsoft_linked_at']);
             });
         }
+
+        $this->askAgain();
+    }
+
+    /**
+     * The pages ask once a minute whether these columns (and those of the migration before this one) are there, and
+     * remember the answer: forgotten here, so that what the migration changed shows on the next request.
+     */
+    private function askAgain(): void
+    {
+        Cache::forget('users-directory-columns');
+        Cache::forget('users-sign-in-columns');
     }
 };

@@ -228,13 +228,15 @@ class DirectoryLoginTest extends TestCase
         DB::table('users')->where('id', $viaMicrosoft->id)->update(['last_login_at' => '2026-10-13 08:00:00', 'last_login_method' => 'Microsoft']);
         DB::table('users')->where('id', $viaPassword->id)->update(['last_login_at' => '2026-10-13 09:00:00', 'last_login_method' => 'Password']);
 
+        // (The pages remember for a minute whether the columns are there; the migration makes them ask again.)
+        $this->assertTrue(User::directoryReady());
         $migration = require database_path('migrations/2026_10_13_110000_add_directory_sign_in_to_users_table.php');
         $migration->down();
-        Cache::forget('users-directory-columns');
         $this->assertFalse(Schema::hasColumn('users', 'ldap_username'));
+        $this->assertFalse(User::directoryReady());
         $migration->up();
         $migration->up(); // run twice: nothing to do the second time
-        Cache::forget('users-directory-columns');
+        $this->assertTrue(User::directoryReady());
 
         $this->assertSame('2026-10-13 08:00', $viaMicrosoft->fresh()->microsoft_linked_at->format('Y-m-d H:i'));
         $this->assertNull($viaPassword->fresh()->microsoft_linked_at);
