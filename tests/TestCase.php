@@ -15,6 +15,10 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // A time limit that the code under test gives its own request (CellEdits::approve takes 75 seconds) would
+        // go on counting for the tests that follow, and on a slow day end the whole run in the middle of one of them.
+        set_time_limit(0);
+
         // No test reaches the network: a request that is not faked fails the test instead.
         Http::preventStrayRequests();
 
