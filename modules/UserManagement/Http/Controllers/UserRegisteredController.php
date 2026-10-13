@@ -3,9 +3,12 @@
 namespace Modules\UserManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CheckMenuPermission;
 use App\Models\Organization\Company;
 use App\Models\UserManagement\Role;
 use App\Models\UserManagement\User;
+use App\Services\Directory\LdapAuthenticator;
+use Modules\UserManagement\Services\EmployeeDirectory;
 
 use Exception;
 use Illuminate\Http\Request;
@@ -19,6 +22,18 @@ use Illuminate\Validation\Rules\Password;
 
 class UserRegisteredController extends Controller
 {
+    /**
+     * A name: letters (of any script: a name may come from the employee directory as it is written there), numbers,
+     * spaces and . , - '
+     */
+    private const NAME_RULE = "regex:/^[\\pL\\pM0-9\\s\\-\\.,'\x{2019}]+$/u";
+
+    /** What the form sends for the sign-in method, and what is said when a name is not one. */
+    private const MESSAGES = [
+        'name.regex' => "The name may only have letters, numbers, spaces and . , - '",
+        'ldap_username.regex' => 'The directory username may only have letters, numbers and . _ - @',
+        'sign_in_method.in' => 'This sign-in method is not available here.',
+    ];
 
     protected $pageTitle;
     protected $menuItems;
@@ -73,6 +88,16 @@ class UserRegisteredController extends Controller
                 'positions' => User::POSITIONS,
                 'signInReady' => User::signInReady(),
                 'roles' => $roles,
+                // The role the form starts with: the one that only reads, where the caller may hand it out.
+                'defaultRoleId' => $roles->firstWhere('name', 'Viewer Radio')?->id,
+                // "Find employee": only where there is a directory to search, and for who may add or change a user.
+                'directoryAvailable' => app(EmployeeDirectory::class)->isAvailable() && $this->mayChangeUsers($caller),
+                'directoryMinimum' => app(EmployeeDirectory::class)->minimum(),
+                // One method is no choice: with Microsoft alone the form does not ask.
+                'signInMethods' => $this->offeredSignInMethods(),
+                'signInMeanings' => User::SIGN_IN_MEANINGS,
+                // Whether a directory password can be checked from this server (see config/ldap.php).
+                'ldapUsable' => app(LdapAuthenticator::class)->usable(),
 
             ]);
         } catch (Exception $e) {
@@ -165,8 +190,10 @@ class UserRegisteredController extends Controller
                 'position' => $user->position ?: '-',
                 'role' => $user->roles->pluck('name')->implode(', ') ?? '-',
                 'active' => $user->isActive(),
-                // How the account last signed in ("Microsoft", "Password", ...); null while it never has.
-                'sign_in' => $signIn ? $user->last_login_method : null,
+                // How the account gets in: LDAP, Microsoft, Both or Pending (User::signInMethod()).
+                'sign_in' => $user->signInMethod(),
+                // It signs in with its directory password: there is none to set here.
+                'directory' => $user->signsInWithDirectory(),
                 'last_sign_in' => $signIn ? $user->last_login_at?->format('Y-m-d H:i') : null,
                 // The caller's own row: it is marked, and offers the edit only.
                 'is_self' => (int) $user->id === $callerId,
@@ -217,6 +244,9 @@ class UserRegisteredController extends Controller
                 'position' => $user->position,
                 'active' => $user->isActive(),
                 'is_self' => (int) $user->id === (int) $request->user()->id,
+                // What the form shows as chosen: LDAP for an account with a directory username, else Microsoft.
+                'sign_in_method' => $user->signsInWithDirectory() ? User::SIGN_IN_LDAP : User::SIGN_IN_MICROSOFT,
+                'ldap_username' => $user->signsInWithDirectory() ? $user->ldap_username : null,
                 'role_id' => $user->roles->pluck('id'),
                 'role_name' => $user->roles->pluck('name')->implode(', '),
                 // Roles of this user that the caller's form does not list; an update leaves them alone.
@@ -230,7 +260,7 @@ class UserRegisteredController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s\-\.,]+$/'],
+            'name' => ['required', 'string', 'max:255', self::NAME_RULE],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
             // The form asks for the position, not for the company any more: the company is the caller's own (see newUserCompany()).
             // A request that still names one is held to the same rules as before.
@@ -238,10 +268,13 @@ class UserRegisteredController extends Controller
             'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             // The status the form chose; a request without one makes an active account.
             'active' => ['nullable', 'boolean'],
+            // How the account signs in: see directoryUsername(). A request without it records no directory username.
+            'sign_in_method' => ['nullable', 'string', Rule::in($this->offeredSignInMethods())],
+            'ldap_username' => ['nullable', 'string', 'max:128', 'regex:/^[A-Za-z0-9._@\-]+$/'],
             'role_id' => ['required', 'array', 'min:1'],
             // Roles are soft-deleted: a deleted one must not be handed out (the user would be left without a usable role).
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
-        ]);
+        ], self::MESSAGES);
 
         if ($validator->fails()) {
             return response()->json([
@@ -269,15 +302,19 @@ class UserRegisteredController extends Controller
             ], 422);
         }
 
+        // False when the form did not say (or the column is not there yet): no directory username is recorded.
+        $directoryUsername = $this->directoryUsername($request);
+
         if ($denied = $this->denyCompanyOutOfScope($request, $companySelected->id)
             ?? ($existing ? $this->denyUnlessManageable($request, $existing) : null)
             ?? $this->denySuperAdminGrant($request)
-            ?? $this->denyRolesOutOfScope($request)) {
+            ?? $this->denyRolesOutOfScope($request)
+            ?? $this->denyDirectoryUsernameTaken($directoryUsername, $existing?->id)) {
             return $denied;
         }
 
         try {
-            DB::transaction(function () use ($request, $companySelected, $existing) {
+            DB::transaction(function () use ($request, $companySelected, $existing, $directoryUsername) {
                 $attributes = [
                     'name' => $request->name,
                     'company_id' => $companySelected->id,
@@ -289,7 +326,7 @@ class UserRegisteredController extends Controller
                     'verify_key' => '',
                     'mark_user' => '',
                     'active' => $request->boolean('active', true) ? '1' : '0',
-                ];
+                ] + (User::directoryReady() ? ['ldap_username' => $directoryUsername ?: null] : []);
 
                 if ($user = $existing) {
                     $user->restore();
@@ -314,18 +351,21 @@ class UserRegisteredController extends Controller
         $assignable = $this->assignableRoleIds($request->user());
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9\s\-\.,]+$/'],
+            'name' => ['required', 'string', 'max:255', self::NAME_RULE],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($id)],
             // Not asked for by the form any more: without it the company of the user stays what it is.
             'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
             'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             // The status the form chose; without one it stays what it is.
             'active' => ['nullable', 'boolean'],
+            // How the account signs in: see directoryUsername(). Without it the directory username stays what it is.
+            'sign_in_method' => ['nullable', 'string', Rule::in($this->offeredSignInMethods())],
+            'ldap_username' => ['nullable', 'string', 'max:128', 'regex:/^[A-Za-z0-9._@\-]+$/'],
             // A caller with a limited set of roles may leave every box unticked: the roles of the
             // user that their form does not list stay. The resulting list is checked below.
             'role_id' => $assignable === null ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
-        ]);
+        ], self::MESSAGES);
 
         if ($validator->fails()) {
             return response()->json([
@@ -388,6 +428,20 @@ class UserRegisteredController extends Controller
             ], 403);
         }
 
+        // The directory account is a way in as well: whoever points an account at another one can sign in as it.
+        $directoryUsername = $this->directoryUsername($request);
+        $changesDirectory = $directoryUsername !== false
+            && strcasecmp((string) $directoryUsername, (string) $user->ldap_username) !== 0;
+        if ($unmanaged->isNotEmpty() && $changesDirectory) {
+            return response()->json([
+                'message' => 'Invalid Input!',
+                'errors' => ['You cannot change how a user who holds roles you cannot manage signs in.'],
+            ], 403);
+        }
+        if ($changesDirectory && ($denied = $this->denyDirectoryUsernameTaken($directoryUsername, (int) $user->id))) {
+            return $denied;
+        }
+
         // The roles the user ends up with.
         $roleIds = collect((array) $request->role_id)->map(fn ($roleId) => (int) $roleId)->merge($unmanaged)->unique()->values();
         if ($roleIds->isEmpty()) {
@@ -398,7 +452,12 @@ class UserRegisteredController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $user, $companySelected, $roleIds, $active) {
+            DB::transaction(function () use ($request, $user, $companySelected, $roleIds, $active, $directoryUsername, $changesDirectory) {
+                // "Has signed in with Microsoft" was said of the address the account had: a new address has not.
+                if (User::directoryReady() && strcasecmp((string) $request->email, (string) $user->email) !== 0) {
+                    $user->microsoft_linked_at = null;
+                }
+
                 // Update user data
                 $user->update([
                     'name' => $request->name,
@@ -407,7 +466,13 @@ class UserRegisteredController extends Controller
                     'position' => $request->position,
                 ] + ($active === null ? [] : ['active' => $active ? '1' : '0'])
                   // A "remember me" cookie must not bring an inactive account back in.
-                  + ($active === false ? ['remember_token' => null] : []));
+                  + ($active === false ? ['remember_token' => null] : [])
+                  + ($directoryUsername === false ? [] : ['ldap_username' => $directoryUsername])
+                  // From now on its password is the one of the directory: a password that was set for it here, and a
+                  // browser that was remembered with it, must not stay a way in (or come back as one later).
+                  + ($changesDirectory && is_string($directoryUsername)
+                      ? ['password' => bcrypt(Str::random(40)), 'remember_token' => null]
+                      : []));
 
                 $user->roles()->sync($roleIds->all());
             });
@@ -501,6 +566,10 @@ class UserRegisteredController extends Controller
             return $denied;
         }
 
+        if ($user->signsInWithDirectory()) {
+            return response()->json(['message' => 'This account signs in with its Active Directory password. There is no password to set here.'], 422);
+        }
+
         // Whoever sets the password of an account can sign in as it, and so use the roles it holds:
         // the same rule as for changing its e-mail (see update()).
         $assignable = $this->assignableRoleIds($request->user());
@@ -511,6 +580,95 @@ class UserRegisteredController extends Controller
         $user->update(['password' => bcrypt($request->password), 'remember_token' => null]);
 
         return response()->json(['message' => 'Password saved.'], 200);
+    }
+
+    /**
+     * Colleagues from the employee directory whose name or work address holds what was typed: the form of a user takes
+     * a name and an address from one of them ("Find employee").
+     */
+    public function employees(Request $request)
+    {
+        // The names and addresses of everyone employed: only for who may add or change a user.
+        if (! $this->mayChangeUsers($request->user())) {
+            abort(403);
+        }
+
+        $directory = app(EmployeeDirectory::class);
+        $typed = $request->query('q');
+
+        return response()->json([
+            'available' => $directory->isAvailable(),
+            'data' => is_string($typed) ? $directory->search($typed) : [],
+        ]);
+    }
+
+    /** Whether the caller may add a user or change one (Create or Update on this menu). */
+    private function mayChangeUsers(User $caller): bool
+    {
+        if ($this->isSuperAdmin($caller)) {
+            return true;
+        }
+        $menu = CheckMenuPermission::menuForRoute('user-management.user-registered.index');
+
+        return $menu !== null && (
+            $caller->hasMenuPermission($menu->id, CheckMenuPermission::PERMISSION_IDS['Create'])
+            || $caller->hasMenuPermission($menu->id, CheckMenuPermission::PERMISSION_IDS['Update'])
+        );
+    }
+
+    /**
+     * The sign-in methods the form offers. Microsoft always; LDAP only where the directory is set up (and its column
+     * is there): elsewhere an account made that way would have a way in that nothing can open.
+     *
+     * @return string[]
+     */
+    private function offeredSignInMethods(): array
+    {
+        return User::directoryReady() && app(LdapAuthenticator::class)->isConfigured()
+            ? [User::SIGN_IN_LDAP, User::SIGN_IN_MICROSOFT]
+            : [User::SIGN_IN_MICROSOFT];
+    }
+
+    /**
+     * The directory username the form asks for. With LDAP: what was typed, or the part of the e-mail before the @
+     * (in this directory the two agree; the field is for the accounts where they do not). With Microsoft: none (null).
+     * Lower case, because the directory does not mind the case and one account must not be recorded twice.
+     * False when the form did not say: what the account has stays.
+     *
+     * @return string|null|false
+     */
+    private function directoryUsername(Request $request)
+    {
+        if (! User::directoryReady() || ! $request->filled('sign_in_method')) {
+            return false;
+        }
+        if ($request->sign_in_method !== User::SIGN_IN_LDAP) {
+            return null;
+        }
+        $typed = trim((string) $request->ldap_username);
+
+        return Str::lower($typed !== '' ? $typed : Str::before((string) $request->email, '@'));
+    }
+
+    /**
+     * One directory account belongs to one account here: with two, "who signed in" would have two answers.
+     *
+     * @param string|null|false $username
+     */
+    private function denyDirectoryUsernameTaken($username, ?int $exceptId)
+    {
+        if (! is_string($username) || $username === '') {
+            return null;
+        }
+        $taken = $this->user->newQuery()
+            ->where('ldap_username', $username)
+            ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->exists();
+
+        return $taken ? response()->json([
+            'message' => 'Invalid Input!',
+            'errors' => ["The directory username \"{$username}\" already belongs to another account."],
+        ], 422) : null;
     }
 
     private function isSuperAdmin(User $user): bool

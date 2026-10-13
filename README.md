@@ -155,7 +155,12 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
   menulis `127.0.0.1`; dari sana tombol Microsoft otomatis pindah ke `localhost` dulu.
 - Pendaftaran mandiri (`/register`) dan reset password dimatikan. User dibuat lewat **User Management** atau
   `php artisan user:register <email> --role="Admin Radio" --company=MTI`. Password akun diisi acak, jadi form
-  e-mail + password tidak bisa dipakai untuk akun tersebut.
+  e-mail + password tidak bisa dipakai untuk akun tersebut, kecuali:
+  - akun yang punya **Directory username** (metode sign-in **LDAP** di User Management): form itu memeriksa
+    password Active Directory-nya, lihat [Halaman Users](#halaman-users);
+  - akun yang diberi password lewat tombol kunci di User Management.
+- Akun yang dinonaktifkan di User Management ditolak di semua cara login, dan sesi yang masih terbuka berakhir
+  pada permintaan berikutnya.
 - Login SSO tidak memakai "remember me": akses berakhir bersama sesi (`SESSION_LIFETIME`).
 - Setelah login, user masuk ke halaman awal role-nya (atau menu pertama yang boleh dibukanya).
 - Form e-mail + password dibatasi 10 percobaan per menit.
@@ -179,6 +184,52 @@ Form tambah/edit user menanyakan **Position** (Manager, Superintendent, Supervis
 perusahaan akun yang sudah ada tidak berubah saat diedit. Akun lama belum punya Position sampai diedit. Kolom
 `users.position` ditambahkan migrasi `2026_10_12_140000_add_position_to_users_table`; sebelum migrasi dijalankan,
 menyimpan user ditolak dengan keterangan itu.
+
+### Halaman Users
+
+Daftar user (`/user-management/user-registered`) menampilkan Name (dengan Position di bawahnya), Email, Role,
+**Status**, **Sign-In** dan **Last Sign-In**. Tombol per baris: edit, nonaktifkan/aktifkan, atur password, hapus;
+baris akun sendiri hanya punya edit.
+
+**Sign-In** tidak disimpan, tetapi dibaca dari dua hal (`User::signInMethod()`): apakah akun punya Directory
+username (`users.ldap_username`), dan apakah akun pernah login lewat Microsoft (`users.microsoft_linked_at`).
+
+| Sign-In | Artinya |
+| --- | --- |
+| LDAP | Punya Directory username; belum pernah login lewat Microsoft |
+| Microsoft | Login lewat Microsoft saja |
+| Both | Punya Directory username dan pernah login lewat Microsoft |
+| Pending | Belum pernah dipakai login. Bila terus begini, periksa apakah e-mailnya sama dengan alamat di Microsoft |
+
+Akun tanpa keduanya yang pernah masuk dengan password buatan admin tampil sebagai "Password". Tombol kunci
+(atur password) tidak ada pada akun LDAP: password akun itu ada di Active Directory, bukan di sini.
+
+Form tambah/edit user:
+
+- **Find employee**: mencari karyawan di database HR menurut nama atau e-mail kantor; memilih satu mengisi Name
+  dan Email. Hanya alamat di domain `EMPLOYEE_DIRECTORY_DOMAINS` yang ditawarkan (alamat pribadi atau isian
+  seperti "no need" tidak bisa login di sini). Tampil hanya bila `HR_DB_HOST` dkk. diisi di `.env`
+  (`config/employee_directory.php`, koneksi `hr` di `config/database.php`), dan hanya untuk yang boleh menambah
+  atau mengubah user. Yang dibaca tiga kolom saja (nomor karyawan, nama, e-mail kantor): nama tabel (lebih baik
+  sebuah view berisi tiga kolom itu saja) dan nama kolomnya disetel lewat `EMPLOYEE_DIRECTORY_TABLE` dan
+  `EMPLOYEE_DIRECTORY_*_COLUMN` di `.env`.
+  Database HR tidak terjangkau = pencarian kosong (dicatat di log), form tetap bisa diisi dengan mengetik.
+- **Sign-in method** (LDAP / Microsoft) dan **Directory username**: tampil hanya bila Active Directory disetel
+  (`LDAP_URL` dan `LDAP_BIND_DN` di `.env`, `config/ldap.php`). LDAP mencatat Directory username; dikosongkan
+  berarti diambil dari bagian e-mail sebelum `@`. Microsoft tidak mencatat apa pun. Satu akun direktori hanya
+  untuk satu akun di sini.
+- Login LDAP: di form e-mail + password, password diperiksa dengan bind ke Active Directory sebagai orang itu
+  (`App\Services\Directory\LdapAuthenticator`); tidak ada password yang disimpan. Password kosong ditolak sebelum
+  sampai ke direktori, direktori yang tidak bisa dihubungi dilaporkan sebagai gangguan (bukan "password salah"),
+  dan tanpa "remember me". **Perlu ekstensi PHP `ldap`**; selama ekstensi itu tidak dimuat, form user memberi
+  catatan dan akun LDAP tetap bisa masuk lewat Microsoft.
+- `LDAP_TLS_VERIFY` sebaiknya `true`. `false` hanya selama sertifikat domain controller berasal dari CA internal
+  yang belum dipercaya server ini: tanpa pemeriksaan, password yang diketik bisa diterima pihak yang menyadap.
+
+Kolomnya ditambahkan migrasi `2026_10_13_100000_add_sign_in_to_users_table` (login terakhir) dan
+`2026_10_13_110000_add_directory_sign_in_to_users_table` (Directory username). Sebelum migrasi dijalankan halaman
+tetap jalan: Sign-In tampil "Pending", dan pilihan LDAP belum ada. Tes tidak pernah menghubungi database HR atau
+Active Directory (`phpunit.xml` mengosongkan setelannya; penggantinya di `tests/Concerns/FakesDirectory.php`).
 
 Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
 

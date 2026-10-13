@@ -8,6 +8,8 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('user-management')->nam
     Route::prefix('user-registered')->name('user-registered.')->group(function () {
             Route::get('/', [UserRegisteredController::class, 'index'])->name('index');
             Route::get('list', [UserRegisteredController::class, 'list'])->name('list');
+            // "Find employee" of the form. Held back so the page cannot be used to read the whole directory out.
+            Route::get('employees', [UserRegisteredController::class, 'employees'])->name('employees')->middleware('throttle:60,1');
             Route::get('/{id}', [UserRegisteredController::class, 'show'])->name('show');
             Route::post('/', [UserRegisteredController::class, 'store'])->name('store');
             Route::put('/{id}', [UserRegisteredController::class, 'update'])->name('update');

@@ -6,11 +6,13 @@ use App\Http\Middleware\CheckMenuPermission;
 use App\Models\UserManagement\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
 {
+    use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
 
@@ -181,11 +183,11 @@ class UserManagementTest extends TestCase
         }
         $this->assertStringNotContainsString('toggleSearchButton', $page);
 
-        // Nobody has signed in yet: the page shows that as "Pending" and "Never". The caller's own row is marked.
+        // Nobody has signed in yet: "Pending" and (as the page words a missing date) "Never". The caller's own row is marked.
         $list = fn (array $query = []) => collect($this->getJson(route('user-management.user-registered.list', $query))->assertOk()->json('data'));
         $row = fn (string $email) => array_intersect_key($list()->firstWhere('email', $email), array_flip(['active', 'sign_in', 'last_sign_in', 'is_self']));
-        $this->assertSame(['active' => true, 'sign_in' => null, 'last_sign_in' => null, 'is_self' => true], $row($admin->email));
-        $this->assertSame(['active' => true, 'sign_in' => null, 'last_sign_in' => null, 'is_self' => false], $row($staff->email));
+        $this->assertSame(['active' => true, 'sign_in' => 'Pending', 'last_sign_in' => null, 'is_self' => true], $row($admin->email));
+        $this->assertSame(['active' => true, 'sign_in' => 'Pending', 'last_sign_in' => null, 'is_self' => false], $row($staff->email));
 
         // After a sign-in: how, and when. It is no change of the account itself.
         $changed = $staff->fresh()->updated_at;
@@ -337,7 +339,7 @@ class UserManagementTest extends TestCase
 
         $this->get(route('user-management.user-registered.index'))->assertOk()->assertSee('const userSignInReady = false', false);
         $this->getJson(route('user-management.user-registered.list', ['orderBy' => 'last_login_at']))->assertOk()
-            ->assertJsonPath('data.0.sign_in', null)
+            ->assertJsonPath('data.0.sign_in', 'Pending')
             ->assertJsonPath('data.0.last_sign_in', null)
             ->assertJsonPath('data.0.active', true);
 
@@ -395,6 +397,319 @@ class UserManagementTest extends TestCase
         // Added without a status (as a request from before does): active.
         $this->postJson(route('user-management.user-registered.store'), ['email' => 'lain@merdekabattery.com'] + $form)->assertOk();
         $this->assertSame('1', User::where('email', 'lain@merdekabattery.com')->value('active'));
+    }
+
+    /** A role that may open the page of the users and read it, nothing more. */
+    private function readerRole(): int
+    {
+        $reader = DB::table('roles')->insertGetId(['name' => 'Baca User', 'home_page' => '1', 'func_role' => 'ALL', 'created_at' => now(), 'updated_at' => now()]);
+        $menu = DB::table('menu')->where('route', 'user-management.user-registered.index')->value('id');
+        DB::table('menu_role')->insert(['menu_id' => $menu, 'role_id' => $reader, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('menu_role_permission')->insert(['menu_id' => $menu, 'role_id' => $reader, 'permission_id' => CheckMenuPermission::PERMISSION_IDS['Read'], 'created_at' => now(), 'updated_at' => now()]);
+
+        return $reader;
+    }
+
+    public function test_the_form_offers_the_employee_search_and_the_sign_in_method_only_where_they_are_set_up(): void
+    {
+        $this->actingAs($this->admin());
+        $page = fn () => (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
+
+        // Nothing set up (the state of the tests, and of an installation without the two): the form of before.
+        $plain = $page();
+        foreach (['id="employeeLookup"', 'type="radio" name="sign_in_method"', 'id="ldapUsername"', 'id="userMicrosoftNote"'] as $absent) {
+            $this->assertStringNotContainsString($absent, $plain, $absent);
+        }
+        // A new user starts with the role that only reads.
+        $this->assertStringContainsString('const userDefaultRole = "' . $this->roleId('Viewer Radio') . '";', $plain);
+
+        // An employee directory, and Active Directory beside Microsoft.
+        $this->fakeEmployeeDirectory([]);
+        $this->fakeDirectory();
+        $full = $page();
+        foreach (['id="employeeLookup"', 'id="employeeMatches"', 'id="ldapUsername"', 'id="userDirectoryRow"', 'id="userMicrosoftNote"'] as $part) {
+            $this->assertSame(1, substr_count($full, $part), $part);
+        }
+        $this->assertStringContainsString('placeholder="Name or work email.."', $full);
+        $this->assertStringContainsString('placeholder="Taken from the email if left blank"', $full);
+        // LDAP first, then Microsoft, each with what it means.
+        preg_match_all('#type="radio" name="sign_in_method"\s+value="([^"]+)"#', $full, $methods);
+        $this->assertSame(['LDAP', 'Microsoft'], $methods[1]);
+        $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['LDAP']), $full);
+        $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['Microsoft']), $full);
+        // The order of the form: who, then what they may do, then how they get in.
+        $order = array_map(fn (string $part) => strpos($full, $part), ['id="employeeLookup"', 'id="name"', 'id="email"', 'id="positionSelect"', 'id="roleSelect"', 'id="statusSelect"', 'type="radio" name="sign_in_method"', 'id="ldapUsername"', 'id="userModalSubmitButton"']);
+        $sorted = $order;
+        sort($sorted);
+        $this->assertSame($sorted, $order);
+        $this->assertNotContains(false, $order);
+        // The stand-in directory can be asked, so nothing warns that it cannot.
+        $this->assertStringNotContainsString('userDirectoryOffNote', $full);
+
+        // Set up, but this PHP cannot ask it: the form says so where the directory username is typed.
+        if (! extension_loaded('ldap')) {
+            $this->app->forgetInstance(\App\Services\Directory\LdapAuthenticator::class);
+            $this->assertStringContainsString('id="userDirectoryOffNote"', $page());
+        }
+
+        // Who may only read the page is not shown the search: it reads out everyone employed.
+        $this->actingAs($this->user('baca@merdekabattery.com', $this->readerRole()));
+        $this->assertStringNotContainsString('id="employeeLookup"', $page());
+    }
+
+    public function test_an_employee_is_found_by_name_or_work_address(): void
+    {
+        $this->fakeEmployeeDirectory([
+            ['E001', 'Budi Santoso', 'budi.santoso@merdekabattery.com'],
+            ['E002', 'Budi Hartono', 'budi.hartono@gmail.com'],              // a private address: cannot sign in here
+            ['E003', 'Budiman Jaya', 'no need'],                             // a note, not an address
+            ['E004', 'Citra Lestari', 'Citra.Lestari@MerdekaBattery.com'],
+            ['E004', 'Citra Lestari', 'Citra.Lestari@MerdekaBattery.com'],   // the same row twice
+            ['E005', 'Sri Wahyuni', 'sri.wahyuni@merdekabattery.com'],
+            ['E006', 'Eko Prasetyo', 'sri.wahyuni@merdekabattery.com'],      // one address on two people: a mistake of the data
+            ['E007', 'Dewi 100%', 'dewi@merdekabattery.com'],
+            ['E008', 'A_B Tester', 'a.b@merdekabattery.com'],
+            ['E009', 'AxB Tester', 'axb@merdekabattery.com'],
+            ['E010', 'Tanpa Alamat', null],
+            ['E011', 'Orang Lain', 'orang@merdekabattery.com.example.net'],  // somebody else's domain
+        ]);
+        $this->actingAs($this->admin());
+        $find = fn ($typed) => $this->getJson(route('user-management.user-registered.employees', ['q' => $typed]))->assertOk();
+        $names = fn ($typed) => array_column($find($typed)->json('data'), 'name');
+
+        // By the name: the one whose address can sign in, with the three things the form needs and nothing else.
+        $find('budi')->assertJsonPath('available', true)->assertExactJson(['available' => true, 'data' => [
+            ['employee_id' => 'E001', 'name' => 'Budi Santoso', 'email' => 'budi.santoso@merdekabattery.com'],
+        ]]);
+        // By the address, whatever its case.
+        $this->assertSame(['Citra Lestari'], $names('citra.lestari@merdeka'));
+        $this->assertSame(['Budi Santoso'], $names('  SANTOSO '));
+        // Two people on one address are both shown (by name), for somebody to choose between.
+        $this->assertSame(['Eko Prasetyo', 'Sri Wahyuni'], $names('sri.wahyuni'));
+        $this->assertSame(['E006', 'E005'], array_column($find('sri.wahyuni')->json('data'), 'employee_id'));
+
+        // Too little to search for; and what LIKE reads as a wildcard is the letter it is.
+        $this->assertSame([], $names('b'));
+        $this->assertSame([], $names(''));
+        $this->assertSame([], $names('%%'));
+        $this->assertSame(['Dewi 100%'], $names('100%'));
+        $this->assertSame(['A_B Tester'], $names('A_B'));
+        $this->assertSame([], $names('tanpa alamat'));
+        $this->assertSame([], $names('orang lain'));
+        $this->getJson(route('user-management.user-registered.employees', ['q' => ['budi']]))->assertOk()->assertJsonPath('data', []);
+        $this->getJson(route('user-management.user-registered.employees'))->assertOk()->assertJsonPath('data', []);
+
+        // No more than the limit: more means the search was too vague.
+        config(['employee_directory.limit' => 2]);
+        $this->assertSame(['A_B Tester', 'AxB Tester'], $names('tester'));
+        $this->assertCount(2, $names('merdekabattery'));
+        config(['employee_directory.limit' => 8]);
+
+        // Without the list of domains every address is offered; what is no address still is not.
+        config(['employee_directory.sign_in_domains' => []]);
+        $this->assertSame(['Budi Hartono', 'Budi Santoso'], $names('budi'));
+        config(['employee_directory.sign_in_domains' => ['merdekabattery.com']]);
+
+        // A setting that is not a plain name never reaches the query, and a table that is not there is no error:
+        // the search is a help, and a user can still be typed.
+        config(['employee_directory.columns.email' => 'email; DROP TABLE users']);
+        $find('budi')->assertJsonPath('data', []);
+        config(['employee_directory.columns.email' => 'email', 'employee_directory.table' => 'tidak_ada']);
+        $find('budi')->assertJsonPath('data', []);
+        config(['employee_directory.table' => 'employee_directory']);
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('users'));
+
+        // Switched off: said so, and nothing is searched.
+        config(['employee_directory.enabled' => false]);
+        $find('budi')->assertExactJson(['available' => false, 'data' => []]);
+        config(['employee_directory.enabled' => true]);
+
+        // For who may add or change a user only; and nobody who is not signed in.
+        $manager = $this->user('manager@merdekabattery.com', $this->role('Admin User', ['user-management.user-registered']));
+        $this->actingAs($manager);
+        $this->assertSame(['Budi Santoso'], $names('budi'));
+        $this->actingAs($this->user('baca@merdekabattery.com', $this->readerRole()));
+        $this->getJson(route('user-management.user-registered.list'))->assertOk();
+        $this->getJson(route('user-management.user-registered.employees', ['q' => 'budi']))->assertForbidden();
+        $this->post('/logout');
+        $this->getJson(route('user-management.user-registered.employees', ['q' => 'budi']))->assertUnauthorized();
+    }
+
+    public function test_a_user_is_made_for_ldap_or_for_microsoft(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+        $this->fakeDirectory();
+        $viewer = $this->roleId('Viewer Radio');
+        $form = fn (string $email, array $more = []) => $more + ['name' => 'Budi Santoso', 'email' => $email, 'position' => 'IT Field', 'role_id' => [$viewer]];
+        $store = fn (string $email, array $more = []) => $this->postJson(route('user-management.user-registered.store'), $form($email, $more));
+        $username = fn (string $email) => User::where('email', $email)->sole()->ldap_username;
+        $row = fn (string $email) => collect($this->getJson(route('user-management.user-registered.list'))->assertOk()->json('data'))->firstWhere('email', $email);
+
+        // LDAP, the box left blank: the part of the address before the @, in lower case.
+        $store('Budi.Santoso@merdekabattery.com', ['sign_in_method' => 'LDAP', 'ldap_username' => ''])->assertOk();
+        $this->assertSame('budi.santoso', $username('Budi.Santoso@merdekabattery.com'));
+        // LDAP, typed: what was typed, in lower case (the directory does not mind the case; one account, one record).
+        $store('citra@merdekabattery.com', ['sign_in_method' => 'LDAP', 'ldap_username' => ' CLestari '])->assertOk();
+        $this->assertSame('clestari', $username('citra@merdekabattery.com'));
+        // Microsoft: none is recorded, whatever was still in the box.
+        $store('dewi@merdekabattery.com', ['sign_in_method' => 'Microsoft', 'ldap_username' => 'dewi'])->assertOk();
+        $this->assertNull($username('dewi@merdekabattery.com'));
+        // A request that does not say (as one from before the form asked): none either.
+        $store('eko@merdekabattery.com')->assertOk();
+        $this->assertNull($username('eko@merdekabattery.com'));
+
+        // The list says how each gets in, and that a directory account has no password to set here.
+        $this->assertSame(['LDAP', true], [$row('Budi.Santoso@merdekabattery.com')['sign_in'], $row('Budi.Santoso@merdekabattery.com')['directory']]);
+        $this->assertSame(['Pending', false], [$row('dewi@merdekabattery.com')['sign_in'], $row('dewi@merdekabattery.com')['directory']]);
+        $budi = User::where('email', 'Budi.Santoso@merdekabattery.com')->sole();
+        $dewi = User::where('email', 'dewi@merdekabattery.com')->sole();
+        $budi->recordSignIn('Microsoft');
+        $dewi->recordSignIn('Microsoft');
+        $this->assertSame('Both', $row($budi->email)['sign_in']);
+        $this->assertSame('Microsoft', $row($dewi->email)['sign_in']);
+        $first = $budi->fresh()->microsoft_linked_at;
+        $this->travel(5)->minutes();
+        $budi->fresh()->recordSignIn('Microsoft');
+        $this->travelBack();
+        $this->assertEquals($first, $budi->fresh()->microsoft_linked_at, 'the first sign-in with Microsoft is the one that is kept');
+        $this->putJson(route('user-management.user-registered.password', $budi->id), ['password' => 'Radio-2026', 'password_confirmation' => 'Radio-2026'])
+            ->assertStatus(422)->assertJsonPath('message', fn ($message) => str_contains($message, 'Active Directory password'));
+        $this->putJson(route('user-management.user-registered.password', $dewi->id), ['password' => 'Radio-2026', 'password_confirmation' => 'Radio-2026'])->assertOk();
+
+        // One directory account, one account here.
+        $store('lain@merdekabattery.com', ['sign_in_method' => 'LDAP', 'ldap_username' => 'Budi.Santoso'])->assertStatus(422)
+            ->assertJsonPath('errors.0', 'The directory username "budi.santoso" already belongs to another account.');
+        $store('budi.santoso@example.test', ['sign_in_method' => 'LDAP'])->assertStatus(422); // the same name, taken from another address
+        $this->assertFalse(User::whereIn('email', ['lain@merdekabattery.com', 'budi.santoso@example.test'])->exists());
+        // ... until that account is removed: then the name is free again.
+        $this->deleteJson(route('user-management.user-registered.destroy', User::where('email', 'citra@merdekabattery.com')->value('id')))->assertOk();
+        $store('lain@merdekabattery.com', ['sign_in_method' => 'LDAP', 'ldap_username' => 'clestari'])->assertOk();
+
+        // What is no username, and what is no method.
+        foreach ([['ldap_username' => 'budi santoso'], ['ldap_username' => 'budi)(uid=*'], ['ldap_username' => str_repeat('a', 129)], ['ldap_username' => ['budi']]] as $wrong) {
+            $store('salah@merdekabattery.com', ['sign_in_method' => 'LDAP'] + $wrong)->assertStatus(422);
+        }
+        $store('salah@merdekabattery.com', ['sign_in_method' => 'Both'])->assertStatus(422);
+        $store('salah@merdekabattery.com', ['sign_in_method' => 'Password'])->assertStatus(422)
+            ->assertJsonPath('errors.0', 'This sign-in method is not available here.');
+        $this->assertFalse(User::where('email', 'salah@merdekabattery.com')->exists());
+
+        // The form of an edit is told what the account has, and changes it.
+        $show = fn (User $user) => $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk();
+        $show($budi)->assertJsonPath('data.sign_in_method', 'LDAP')->assertJsonPath('data.ldap_username', 'budi.santoso');
+        $show($dewi)->assertJsonPath('data.sign_in_method', 'Microsoft')->assertJsonPath('data.ldap_username', null);
+        $update = fn (User $user, array $more = []) => $this->putJson(route('user-management.user-registered.update', $user->id), $form($user->email, $more));
+        $update($budi)->assertOk();                                                     // not said: it stays
+        $this->assertSame('budi.santoso', $budi->fresh()->ldap_username);
+        $update($budi, ['sign_in_method' => 'LDAP', 'ldap_username' => 'budi.santoso'])->assertOk(); // the same again: its own name is not "taken"
+        $update($budi, ['sign_in_method' => 'LDAP', 'ldap_username' => 'BSantoso'])->assertOk();
+        $this->assertSame('bsantoso', $budi->fresh()->ldap_username);
+        $update($dewi, ['sign_in_method' => 'LDAP', 'ldap_username' => 'bsantoso'])->assertStatus(422);
+        // (This account was given a password above, and a browser remembers it.)
+        DB::table('users')->where('id', $dewi->id)->update(['remember_token' => 'kept-on-a-laptop']);
+        $this->assertTrue(password_verify('Radio-2026', $dewi->fresh()->password));
+        $update($dewi, ['sign_in_method' => 'LDAP'])->assertOk();                       // blank: from the address
+        $this->assertSame(['dewi', 'Both'], [$dewi->fresh()->ldap_username, $dewi->fresh()->signInMethod()]);
+        // Its password is the one of the directory now: the one set here is gone, and does not come back with Microsoft.
+        $this->assertFalse(password_verify('Radio-2026', $dewi->fresh()->password));
+        $this->assertNull($dewi->fresh()->remember_token);
+        $update($dewi, ['sign_in_method' => 'Microsoft'])->assertOk();
+        $this->assertFalse(password_verify('Radio-2026', $dewi->fresh()->password));
+        $update($dewi, ['sign_in_method' => 'LDAP'])->assertOk();
+        $update($budi, ['sign_in_method' => 'Microsoft'])->assertOk();
+        $this->assertSame([null, 'Microsoft'], [$budi->fresh()->ldap_username, $budi->fresh()->signInMethod()]);
+
+        // "Has signed in with Microsoft" was said of the address the account had; a new address has not.
+        $this->assertNotNull($budi->fresh()->microsoft_linked_at);
+        $update($budi, ['email' => 'BUDI.SANTOSO@merdekabattery.com'])->assertOk();    // another case is no other address
+        $this->assertNotNull($budi->fresh()->microsoft_linked_at);
+        $update($budi, ['email' => 'budi.baru@merdekabattery.com'])->assertOk();
+        $this->assertSame([null, 'Pending'], [$budi->fresh()->microsoft_linked_at, $budi->fresh()->signInMethod()]);
+    }
+
+    public function test_ldap_is_not_offered_where_the_directory_is_not_set_up(): void
+    {
+        $this->actingAs($this->admin());
+        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT Field', 'role_id' => [$this->roleId('Viewer Radio')]];
+
+        // An account made for a way in that nothing can open would be worse than no choice.
+        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'LDAP'] + $form)->assertStatus(422)
+            ->assertJsonPath('errors.0', 'This sign-in method is not available here.');
+        $this->assertFalse(User::where('email', 'budi@merdekabattery.com')->exists());
+        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'Microsoft'] + $form)->assertOk();
+        $user = User::where('email', 'budi@merdekabattery.com')->sole();
+        $this->assertNull($user->ldap_username);
+
+        // An account that was given a directory username while there was a directory keeps it through a save here.
+        $user->update(['ldap_username' => 'budi']);
+        $this->putJson(route('user-management.user-registered.update', $user->id), ['sign_in_method' => 'Microsoft'] + $form)->assertOk();
+        $this->assertNull($user->fresh()->ldap_username, 'Microsoft, said outright, still takes it away');
+        $user->fresh()->update(['ldap_username' => 'budi']);
+        $this->putJson(route('user-management.user-registered.update', $user->id), $form)->assertOk();
+        $this->assertSame('budi', $user->fresh()->ldap_username);
+
+        // Before the migration has run nothing of it is asked or written.
+        \Illuminate\Support\Facades\Schema::table('users', function ($table) {
+            $table->dropIndex(['ldap_username']);
+            $table->dropColumn(['ldap_username', 'microsoft_linked_at']);
+        });
+        \Illuminate\Support\Facades\Cache::forget('users-directory-columns');
+        $this->fakeDirectory();
+        $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
+        $this->assertStringNotContainsString('type="radio" name="sign_in_method"', $page);
+        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'LDAP', 'email' => 'lain@merdekabattery.com'] + $form)->assertStatus(422);
+        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'Microsoft', 'email' => 'lain@merdekabattery.com'] + $form)->assertOk();
+        $this->putJson(route('user-management.user-registered.update', $user->id), ['sign_in_method' => 'Microsoft', 'email' => 'budi.baru@merdekabattery.com'] + $form)->assertOk();
+        $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk()
+            ->assertJsonPath('data.sign_in_method', 'Microsoft')->assertJsonPath('data.ldap_username', null);
+        $this->getJson(route('user-management.user-registered.list'))->assertOk()->assertJsonPath('data.0.directory', false);
+        \Illuminate\Support\Facades\Cache::forget('users-directory-columns');
+    }
+
+    public function test_how_an_account_signs_in_is_only_changed_by_who_may_hold_its_roles(): void
+    {
+        $this->fakeDirectory();
+        $own = $this->role('Admin User MCG', ['user-management.user-registered']);
+        DB::table('roles')->where('id', $own)->update(['func_role' => 'COMPANY', 'setting_role' => json_encode(['3'])]);
+        $manager = $this->user('manager.mcg@merdekabattery.com', $own);
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio')); // a role the manager cannot hand out
+        $staff->update(['ldap_username' => 'staf']);
+        $managed = $this->user('dikelola@merdekabattery.com', $own);
+        $form = fn (User $user, array $more) => $more + ['name' => 'Tester', 'email' => $user->email, 'position' => 'IT Field', 'company_id' => 'MCG'];
+        $update = fn (User $user, array $more) => $this->putJson(route('user-management.user-registered.update', $user->id), $form($user, $more));
+
+        $this->actingAs($manager);
+
+        // Whoever points an account at another directory account (their own, say) can sign in as it.
+        $response = $update($staff, ['sign_in_method' => 'LDAP', 'ldap_username' => 'manager.mcg'])->assertForbidden();
+        $this->assertStringContainsString('cannot change how', implode(' ', (array) $response->json('errors')));
+        $update($staff, ['sign_in_method' => 'Microsoft'])->assertForbidden();
+        $this->assertSame('staf', $staff->fresh()->ldap_username);
+        // Saved as it is (the form sends what the account has), it is no change.
+        $update($staff, ['sign_in_method' => 'LDAP', 'ldap_username' => 'STAF'])->assertOk();
+        $this->assertSame('staf', $staff->fresh()->ldap_username);
+
+        // A user whose roles are all theirs to manage is theirs to change.
+        $update($managed, ['sign_in_method' => 'LDAP', 'role_id' => [$own]])->assertOk();
+        $this->assertSame('dikelola', $managed->fresh()->ldap_username);
+    }
+
+    public function test_a_name_from_the_employee_directory_is_kept_as_it_is_written_there(): void
+    {
+        $this->actingAs($this->admin());
+        $form = fn (string $name, string $email) => ['name' => $name, 'email' => $email, 'position' => 'IT Field', 'role_id' => [$this->roleId('Viewer Radio')]];
+
+        foreach (["Ma'ruf Nur\u{2019}aini" => 'maruf@merdekabattery.com', "\u{5F20}\u{4E09}" => 'zhang.san@merdekabattery.com', 'Siti-N., S.Kom 2' => 'siti@merdekabattery.com'] as $name => $email) {
+            $this->postJson(route('user-management.user-registered.store'), $form($name, $email))->assertOk();
+            $this->assertSame($name, User::where('email', $email)->value('name'));
+        }
+        // What is no name is still refused, and said in words that can be acted on.
+        foreach (['Budi;DROP', 'Budi (Kontraktor)', 'Budi "Si" Kecil', 'Budi `id`'] as $wrong) {
+            $this->postJson(route('user-management.user-registered.store'), $form($wrong, 'salah@merdekabattery.com'))->assertStatus(422)
+                ->assertJsonPath('errors.0', "The name may only have letters, numbers, spaces and . , - '");
+        }
+        $this->assertFalse(User::where('email', 'salah@merdekabattery.com')->exists());
     }
 
     public function test_pages_and_lists_load(): void

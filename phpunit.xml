@@ -36,6 +36,15 @@
         <env name="MS_GRAPH_CLIENT_SECRET" value=""/>
         <env name="SHAREPOINT_COF_SCAN_URL" value=""/>
         <env name="SHAREPOINT_ICT_MASTERLIST_URL" value=""/>
+        <!-- Nor to the HR database or Active Directory, whatever .env holds for them. -->
+        <env name="HR_DB_HOST" value=""/>
+        <env name="HR_DB_DATABASE" value=""/>
+        <env name="HR_DB_USERNAME" value=""/>
+        <env name="HR_DB_PASSWORD" value=""/>
+        <env name="EMPLOYEE_DIRECTORY_CONNECTION" value="hr"/>
+        <env name="LDAP_URL" value=""/>
+        <env name="LDAP_BIND_DN" value=""/>
+        <env name="LDAP_BIND_PASSWORD" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

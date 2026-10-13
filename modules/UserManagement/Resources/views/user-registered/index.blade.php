@@ -10,13 +10,17 @@
             border-color: #a8a8a8;
         }
 
-        /* The form of a user: a title with the cross at its right, labels at the left. */
-        .user-form-dialog {
-            max-width: 650px;
-        }
-
+        /* The form of a user: labels at the left, and what the employee directory found under its search. */
         #userModal .col-form-label {
             font-weight: 500;
+        }
+
+        #userModal .user-directory-note {
+            font-size: .75rem;
+        }
+
+        #userModal .user-directory-id {
+            font-size: .7rem;
         }
 
         /* The list of users: rows with room, text to the left, the actions at the right edge. */
@@ -174,6 +178,11 @@
         </div>
     </div>
 
+    <p class="text-secondary mt-3 mb-0" style="font-size: .75rem">
+        Deactivating ends the account's session on its next request and keeps everything it did. Deleting takes the
+        account off this list. Prefer deactivation for someone who has left.
+    </p>
+
     @include('UserManagement::user-registered.modal')
 
 @endsection
@@ -201,12 +210,17 @@
 
         // What comes from the data goes into the page as text, never as markup.
         const userEsc = (value) => $('<div>').text(value == null ? '' : String(value)).html();
-        const userBadge = (text, color) => `<span class="badge bg-${color}-lt">${userEsc(text)}</span>`;
+        const userBadge = (text, color, title = '') =>
+            `<span class="badge bg-${color}-lt"${title ? ` title="${userEsc(title).replace(/"/g, '&quot;')}"` : ''}>${userEsc(text)}</span>`;
+        // How an account gets in (User::signInMethod()). No good/bad scale: only "Pending" is tinted to be seen,
+        // because it is the one where somebody may be locked out without knowing it.
         const userSignInColors = {
+            LDAP: 'secondary',
             Microsoft: 'blue',
-            Google: 'red',
-            Password: 'secondary',
+            Both: 'purple',
+            Pending: 'yellow',
         };
+        const userSignInMeanings = @json($signInMeanings);
 
         const columns = [{
                 key: 'name',
@@ -234,8 +248,10 @@
             {
                 key: 'sign_in',
                 sortable: false,
-                render: (item) => item.sign_in ?
-                    userBadge(item.sign_in, userSignInColors[item.sign_in] || 'secondary') : userBadge('Pending', 'orange')
+                render: (item) => {
+                    const method = item.sign_in || 'Pending';
+                    return userBadge(method, userSignInColors[method] || 'secondary', userSignInMeanings[method] || '');
+                }
             },
             {
                 key: 'last_login_at',
@@ -270,13 +286,15 @@
                             </x-slot:icon>
                         </x-global.btn-detail>`;
 
-                    return edit + status + `
+                    // An account that signs in with its directory password has none to set here.
+                    const password = item.directory ? '' : `
                         <x-global.btn-detail label="" color="blue" size="sm" data-id="${id}" onclick="toggleUserPasswordModal(${id})" data-bs-toggle="tooltip" data-bs-title="Set password" aria-label="Set password">
                             <x-slot:icon>
                                 <i class="ti ti-key"></i>
                             </x-slot:icon>
-                        </x-global.btn-detail>
+                        </x-global.btn-detail>`;
 
+                    return edit + status + password + `
                         <x-global.btn-detail label="" color="red" size="sm" data-id="${id}" onclick="userDelete(${id})" data-bs-toggle="tooltip" data-bs-title="Delete" aria-label="Delete">
                             <x-slot:icon>
                                 <i class="ti ti-trash"></i>

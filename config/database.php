@@ -206,6 +206,25 @@ return [
             'login_timeout' => env('DB_LOGIN_TIMEOUT', 5),
         ],
 
+        // The HR database, read only: "Find employee" in User Management (config/employee_directory.php). Without
+        // HR_DB_HOST there is no such search. Encrypt and trust are yes/no words because they go into the
+        // connection string as they are.
+        'hr' => [
+            'driver' => 'sqlsrv',
+            'host' => env('HR_DB_HOST'),
+            'port' => env('HR_DB_PORT', '1433'),
+            'database' => env('HR_DB_DATABASE'),
+            'username' => env('HR_DB_USERNAME'),
+            'password' => env('HR_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => filter_var(env('HR_DB_ENCRYPT', false), FILTER_VALIDATE_BOOL) ? 'yes' : 'no',
+            'trust_server_certificate' => filter_var(env('HR_DB_TRUST_SERVER_CERTIFICATE', true), FILTER_VALIDATE_BOOL) ? 'yes' : 'no',
+            // The form waits for it: a server that does not answer is given up on quickly.
+            'login_timeout' => env('HR_DB_LOGIN_TIMEOUT', 5),
+        ],
+
     ],
 
     /*

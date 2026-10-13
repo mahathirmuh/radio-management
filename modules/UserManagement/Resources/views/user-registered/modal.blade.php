@@ -1,5 +1,11 @@
+{{--
+    The form of a user, for adding one and for changing one.
+
+    "Find employee" is there only where an employee directory is set up, the sign-in method only where there is
+    more than one to choose from (Active Directory is set up as well as Microsoft): see UserRegisteredController.
+--}}
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userModal" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen-md-down modal-dialog-centered user-form-dialog">
+    <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-body p-3">
                 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -7,15 +13,35 @@
                     <button type="button" class="btn-close position-static m-0" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-                <form id="form">
+                <form id="form" autocomplete="off">
                     <div class="row g-3">
+                        @if ($directoryAvailable)
+                            {{-- Above the name, because it fills in the name and the address: the address is the
+                                 part that has to be right, and choosing it is surer than typing it. --}}
+                            <div class="col-12">
+                                <div class="row">
+                                    <label for="employeeLookup" class="col-md-4 col-form-label">Find employee
+                                    </label>
+                                    <div class="col-md-8">
+                                        <input type="search" id="employeeLookup" class="form-control"
+                                            placeholder="Name or work email.." autocomplete="off">
+                                        <small class="form-hint">
+                                            Optional. Choosing somebody fills in their name and work address, which
+                                            is the address Microsoft signs them in with.
+                                        </small>
+                                        <div id="employeeMatches" aria-live="polite"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="col-12">
                             <div class="row">
                                 <label for="name" class="col-md-4 col-form-label required">Name
                                 </label>
                                 <div class="col-md-8">
                                     <input type="text" id="name" class="form-control" name="name"
-                                        placeholder="Name.." required>
+                                        placeholder="Name.." autocomplete="off" required>
                                 </div>
                             </div>
                         </div>
@@ -25,8 +51,7 @@
                                 </label>
                                 <div class="col-md-8">
                                     <input type="email" id="email" class="form-control" name="email"
-                                        placeholder="Email.." required>
-                                    <div class="form-hint">The work address Microsoft signs this person in with.</div>
+                                        placeholder="Email.." autocomplete="off" required>
                                 </div>
                             </div>
                         </div>
@@ -77,31 +102,87 @@
                             </div>
                         </div>
 
-                        <div class="col-12 mt-4">
-                            <div class="row">
-                                <div class="col-md-12 d-flex justify-content-end align-items-center gap-2"
-                                    id="actionButtons">
-                                    <a href="#" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal"
-                                        role="button">Cancel</a>
-
-                                    <x-global.btn-detail label="Update" color="orange" size="md"
-                                        onclick="userSubmit(event, this)" id="userModalUpdateButton" type="submit"
-                                        data-type="edit" data-form-id="id">
-                                        <x-slot name="icon">
-                                            <i class="ti ti-device-floppy"></i>
-                                        </x-slot>
-                                    </x-global.btn-detail>
-
-                                    <x-global.btn-detail label="Submit" color="blue" size="md"
-                                        onclick="userSubmit(event, this)" id="userModalSubmitButton" type="submit"
-                                        data-type="submit" data-form-id="id">
-                                        <x-slot name="icon">
-                                            <i class="ti ti-device-floppy"></i>
-                                        </x-slot>
-                                    </x-global.btn-detail>
+                        @if (count($signInMethods) > 1)
+                            {{-- How the account is entered. LDAP: it has a directory username, and the login form
+                                 checks its password against Active Directory. Microsoft: it has none. --}}
+                            <div class="col-12">
+                                <div class="row">
+                                    <label class="col-md-4 col-form-label required">Sign-in method
+                                    </label>
+                                    <div class="col-md-8">
+                                        @foreach ($signInMethods as $method)
+                                            <label class="form-check">
+                                                <input class="form-check-input" type="radio" name="sign_in_method"
+                                                    value="{{ $method }}">
+                                                <span class="form-check-label">
+                                                    <i class="ti {{ $method === 'LDAP' ? 'ti-server' : 'ti-brand-windows' }} me-1"></i>{{ $method }}
+                                                </span>
+                                                <span class="form-check-description">{{ $signInMeanings[$method] }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+
+                            <div class="col-12" id="userDirectoryRow">
+                                <div class="row">
+                                    <label for="ldapUsername" class="col-md-4 col-form-label">Directory username
+                                    </label>
+                                    <div class="col-md-8">
+                                        <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
+                                            maxlength="128" autocomplete="off"
+                                            placeholder="Taken from the email if left blank">
+                                        <small class="form-hint">
+                                            The Active Directory account this person signs in with. Left blank it is
+                                            taken from the part of the email before the &commat; &mdash; which is how
+                                            this directory is set up. No password is stored here; the one they already
+                                            use is checked against the directory each time.
+                                        </small>
+                                        @unless ($ldapUsable)
+                                            <small class="form-hint text-orange" id="userDirectoryOffNote">
+                                                This server cannot check a directory password yet (the PHP ldap
+                                                extension is not loaded). Until it can, the account signs in with
+                                                Microsoft.
+                                            </small>
+                                        @endunless
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- With Microsoft there is no box, not a greyed one: nothing is recorded. --}}
+                            <div class="col-12 d-none" id="userMicrosoftNote">
+                                <div class="row">
+                                    <div class="col-md-8 offset-md-4">
+                                        <div class="alert alert-info mb-0 py-2" role="alert">
+                                            No directory username is recorded for this account. The email above must
+                                            be the address Microsoft knows this person by &mdash; that is how
+                                            Microsoft sign-in finds the account.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-3" id="actionButtons">
+                        <a href="#" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal"
+                            role="button">Cancel</a>
+
+                        <x-global.btn-detail label="Update" color="orange" size="md"
+                            onclick="userSubmit(event, this)" id="userModalUpdateButton" type="submit"
+                            data-type="edit" data-form-id="id">
+                            <x-slot name="icon">
+                                <i class="ti ti-device-floppy"></i>
+                            </x-slot>
+                        </x-global.btn-detail>
+
+                        <x-global.btn-detail label="Submit" color="blue" size="md"
+                            onclick="userSubmit(event, this)" id="userModalSubmitButton" type="submit"
+                            data-type="submit" data-form-id="id">
+                            <x-slot name="icon">
+                                <i class="ti ti-device-floppy"></i>
+                            </x-slot>
+                        </x-global.btn-detail>
                     </div>
                 </form>
             </div>
@@ -109,13 +190,17 @@
     </div>
 </div>
 
-{{-- A password for the e-mail + password form of the login page --}}
+{{-- A password for the e-mail + password form of the login page. Not for an account that signs in with its
+     directory password: that one has none here. --}}
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userPasswordModal" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <h3 class="modal-title mb-1">Set Password</h3>
+        <div class="modal-content">
+            <div class="modal-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <h3 class="modal-title mb-0">Set Password</h3>
+                    <button type="button" class="btn-close position-static m-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
                 <p class="text-secondary mb-3" id="userPasswordWho"></p>
                 <form id="userPasswordForm" autocomplete="off">
                     <div class="mb-2">
@@ -156,6 +241,126 @@
         const urlUserDestroy = "{{ route('user-management.user-registered.destroy', ':id') }}";
         const urlUserStatus = "{{ route('user-management.user-registered.status', ':id') }}";
         const urlUserPassword = "{{ route('user-management.user-registered.password', ':id') }}";
+        const urlUserEmployees = "{{ route('user-management.user-registered.employees') }}";
+        // The role a new user starts with (the one that only reads), when this form lists it.
+        const userDefaultRole = @json($defaultRoleId ? (string) $defaultRoleId : '');
+    </script>
+
+    {{-- sign-in method --}}
+    <script>
+        // The directory username belongs to LDAP. With Microsoft none is recorded: the box goes, and what was typed in it.
+        // (Without a choice on this page, nothing is done.)
+        const setSignInMethod = (modal, method) => {
+            const choices = modal.find('input[name="sign_in_method"]');
+            if (!choices.length) {
+                return;
+            }
+            if (!choices.filter((i, choice) => choice.value === method).length) {
+                method = choices.first().val();
+            }
+            choices.each((i, choice) => {
+                choice.checked = choice.value === method;
+            });
+
+            const directory = method === "LDAP";
+            modal.find("#userDirectoryRow").toggleClass("d-none", !directory);
+            modal.find("#userMicrosoftNote").toggleClass("d-none", directory);
+            if (!directory) {
+                modal.find("#ldapUsername").val("");
+            }
+        };
+
+        $(function() {
+            $("#userModal").on("change", 'input[name="sign_in_method"]', function() {
+                setSignInMethod($("#userModal"), this.value);
+            });
+        });
+    </script>
+
+    {{-- find employee --}}
+    <script>
+        // Empties the search and drops an answer that is still on its way. (Nothing to do on a page without the search.)
+        let resetEmployeeLookup = () => {};
+
+        $(function() {
+            const lookup = $("#employeeLookup");
+            const matches = $("#employeeMatches");
+            if (!lookup.length) {
+                return;
+            }
+            const minimum = {{ (int) $directoryMinimum }};
+            let asked = 0;
+
+            resetEmployeeLookup = () => {
+                asked += 1;
+                lookup.val("");
+                matches.empty();
+            };
+
+            // Put in as text, never as markup: the names and addresses come from another system.
+            const show = (found) => {
+                matches.empty();
+                if (!found.length) {
+                    // True whether nobody matched or the directory could not be reached (the log says which).
+                    $('<div class="text-secondary mt-2 user-directory-note">')
+                        .text("No match in the employee directory. Type the address yourself if you know it.")
+                        .appendTo(matches);
+                    return;
+                }
+
+                const list = $('<div class="list-group list-group-flush mt-2 border rounded">');
+                found.forEach((employee) => {
+                    $('<button type="button" class="list-group-item list-group-item-action py-2">')
+                        .append($('<span class="d-block fw-bold">').text(employee.name))
+                        .append($('<span class="d-block text-secondary">').text(employee.email))
+                        // The staff number tells apart two people who are recorded with one address.
+                        .append($('<span class="d-block text-secondary user-directory-id">').text(employee.employee_id))
+                        .on("click", () => {
+                            const modal = $("#userModal");
+                            modal.find("#name").val(employee.name);
+                            modal.find("#email").val(employee.email);
+                            resetEmployeeLookup();
+                        })
+                        .appendTo(list);
+                });
+                list.appendTo(matches);
+            };
+
+            const search = () => {
+                const typed = lookup.val().trim();
+                const mine = ++asked;
+                if (typed.length < minimum) {
+                    matches.empty();
+                    return;
+                }
+                $.ajax({
+                    url: urlUserEmployees,
+                    type: "GET",
+                    dataType: "json",
+                    data: {
+                        q: typed
+                    },
+                    // Only the answer to what was typed last is shown.
+                    success: (response) => {
+                        if (mine === asked) {
+                            show(response.data || []);
+                        }
+                    },
+                    error: () => {
+                        if (mine === asked) {
+                            show([]);
+                        }
+                    },
+                });
+            };
+
+            lookup.on("input", debounce(search, 400)).on("keydown", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    search();
+                }
+            });
+        });
     </script>
 
     {{-- toggle Modal --}}
@@ -222,6 +427,9 @@
                         modal.find("#roleSelect").val(listed.find((roleId) => roleId && held.includes(roleId)) || "");
                         setOtherRoles(modal, response.data.other_role_count);
                         setOwnStatus(modal, response.data.active, response.data.is_self);
+                        setSignInMethod(modal, response.data.sign_in_method);
+                        modal.find("#ldapUsername").val(response.data.ldap_username || "");
+                        resetEmployeeLookup();
 
                         modal.modal("show");
                     },
@@ -232,8 +440,11 @@
                 });
             } else {
                 modal.find("#form")[0].reset();
+                modal.find("#roleSelect").val(userDefaultRole);
                 setOtherRoles(modal, 0);
                 setOwnStatus(modal, true, false);
+                setSignInMethod(modal, "LDAP");
+                resetEmployeeLookup();
 
                 modal.modal("show");
             }
@@ -265,6 +476,8 @@
 
                 setOtherRoles($(this), 0);
                 setOwnStatus($(this), true, false);
+                setSignInMethod($(this), "LDAP");
+                resetEmployeeLookup();
             });
         });
     </script>
@@ -287,6 +500,12 @@
                 formData.append("role_id[]", modal.find("#roleSelect").val());
             }
             formData.append("active", modal.find("#statusSelect").val());
+            // Sent only where the form asks for it; a directory username only with LDAP.
+            const signInMethod = modal.find('input[name="sign_in_method"]:checked').val();
+            if (signInMethod) {
+                formData.append("sign_in_method", signInMethod);
+                formData.append("ldap_username", signInMethod === "LDAP" ? modal.find("#ldapUsername").val().trim() : "");
+            }
 
             let type, url;
 

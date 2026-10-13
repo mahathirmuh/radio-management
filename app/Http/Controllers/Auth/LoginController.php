@@ -7,6 +7,8 @@ use App\Models\UserManagement\User;
 use App\Models\Log\LogActivity;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
+use App\Services\Directory\DirectoryUnavailable;
+use App\Services\Directory\LdapAuthenticator;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -78,6 +80,9 @@ class LoginController extends Controller
                 //PROCCESS Login
                 $account = User::where('email', $request->emailusername)->first();
                 $email = $account?->email;
+                if (isset($email) && $account->signsInWithDirectory()) {
+                    return $this->loginWithDirectory($request, $account);
+                }
                 if (isset($email)) {
                     // An account set to inactive in User Management is refused the way a wrong password is.
                     $active = fn ($user) => $user->isActive();
@@ -98,6 +103,49 @@ class LoginController extends Controller
                 return view('auth.login');
             };
         }
+    }
+    /**
+     * The login form for an account that has a directory username (User Management, "LDAP"): the password is the one
+     * of its Active Directory account, checked by binding to the directory as that person. The password this
+     * application keeps for the account is not looked at.
+     */
+    private function loginWithDirectory(Request $request, User $account)
+    {
+        $wrong = function () {
+            Alert::warning('Username or Password Wrong!', 'Try Again!');
+            return view('auth.login');
+        };
+
+        // Set to inactive in User Management: refused the way a wrong password is, and the directory is not asked.
+        if (! $account->isActive()) {
+            return $wrong();
+        }
+
+        try {
+            $identity = app(LdapAuthenticator::class)->authenticate((string) $account->ldap_username, (string) $request->password);
+        } catch (DirectoryUnavailable $e) {
+            // Not a wrong password: saying so would send people to reset one that was right.
+            Log::error('A sign-in could not be checked against the directory: ' . $e->getMessage());
+            Alert::warning('The directory cannot be reached', 'Try again shortly, or sign in with Microsoft.')->persistent(true);
+            return view('auth.login');
+        }
+
+        if ($identity === null) {
+            return $wrong();
+        }
+
+        // As with Microsoft: every page is gated by menu/role, so an account without a role could only see 403 pages.
+        if ($account->roles()->doesntExist()) {
+            Alert::warning('No access yet', $account->email . ' has no role in this application. Ask the admin to assign one.')->persistent(true);
+            return view('auth.login');
+        }
+
+        // No "remember me", as with Microsoft: access ends with the session, and with the directory account.
+        Auth::login($account);
+        $account->recordSignIn(User::SIGN_IN_LDAP);
+        $request->session()->regenerate();
+
+        return redirect()->route($account->homeRoute());
     }
     //LOGIN MERDEKA APPS
     public function redirectToApps(Request $request)
