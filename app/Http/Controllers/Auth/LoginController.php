@@ -78,7 +78,7 @@ class LoginController extends Controller
                 // $auth = false;
                 $remember = $request->input('remember');
                 //PROCCESS Login
-                $account = User::where('email', $request->emailusername)->first();
+                $account = $this->accountFor((string) $request->emailusername);
                 $email = $account?->email;
                 if (isset($email) && $account->signsInWithDirectory()) {
                     return $this->loginWithDirectory($request, $account);
@@ -104,6 +104,27 @@ class LoginController extends Controller
             };
         }
     }
+    /**
+     * The account the login form is about. It is named by its e-mail, or by its directory username: who signs in with
+     * the Active Directory password may type the name Windows knows them by ("budi.santoso"), without the "@...".
+     */
+    private function accountFor(string $typed): ?User
+    {
+        $typed = trim($typed);
+        if ($account = User::where('email', $typed)->first()) {
+            return $account;
+        }
+        if ($typed === '' || ! User::directoryReady()) {
+            return null;
+        }
+
+        // One directory username belongs to one account (User Management sees to it). Should two answer to it all the
+        // same, nobody is signed in on that: it would be the first one found, not the one who typed it.
+        $named = User::whereRaw('LOWER(ldap_username) = ?', [Str::lower($typed)])->limit(2)->get();
+
+        return $named->count() === 1 ? $named->first() : null;
+    }
+
     /**
      * The login form for an account that has a directory username (User Management, "LDAP"): the password is the one
      * of its Active Directory account, checked by binding to the directory as that person. The password this

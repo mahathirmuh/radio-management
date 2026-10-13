@@ -81,6 +81,50 @@ class DirectoryLoginTest extends TestCase
         $this->assertSame(['bsantoso', 'bsantoso'], $directory->asked);
     }
 
+    public function test_the_login_form_takes_the_directory_username_as_well_as_the_address(): void
+    {
+        $user = $this->directoryAccount('budi.santoso@merdekabattery.com', 'bsantoso');
+        $other = $this->makeUser('citra@merdekabattery.com', 'Viewer Radio'); // signs in with a password of its own
+        $directory = $this->fakeDirectory(['bsantoso' => 'Kata-Sandi-AD-1']);
+
+        // The box is not one that only takes an address: a browser refuses "bsantoso" in an input of type "email".
+        $page = (string) $this->get('/login')->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<input type="text"[^>]*name="emailusername"#s', $page);
+        $this->assertStringNotContainsString('type="email"', $page);
+        $this->assertStringContainsString('Email or username', $page);
+
+        // The name Windows knows the person by, in any case, with the directory password.
+        $this->login('BSantoso', 'Kata-Sandi-AD-1')->assertRedirect(route('dashboard.index'));
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame(['bsantoso'], $directory->asked);
+        $this->assertSame('LDAP', $user->fresh()->last_login_method);
+        $this->post('/logout');
+
+        // A wrong password for it is a wrong password.
+        $this->login('bsantoso', 'salah')->assertOk();
+        $this->assertGuest();
+        $this->assertStringContainsString('Username or Password Wrong', $this->said());
+
+        // What stands before the "@" of an address is no name of an account; only a directory username is.
+        foreach (['budi.santoso', 'citra'] as $prefix) {
+            $this->login($prefix, 'secret-password')->assertOk();
+            $this->assertGuest();
+            $this->assertStringContainsString('not registered', $this->said());
+        }
+        $this->assertCount(2, $directory->asked, 'and the directory is not asked about them');
+        // (An account without a directory username signs in by its address, with its own password, as before.)
+        $this->login($other->email, 'secret-password')->assertRedirect(route('dashboard.index'));
+        $this->post('/logout');
+
+        // Two accounts that answer to one directory username: nobody is signed in on it. By the address each still is.
+        DB::table('users')->where('id', $other->id)->update(['ldap_username' => 'BSANTOSO']);
+        $this->login('bsantoso', 'Kata-Sandi-AD-1')->assertOk();
+        $this->assertGuest();
+        $this->assertStringContainsString('not registered', $this->said());
+        $this->login($user->email, 'Kata-Sandi-AD-1')->assertRedirect(route('dashboard.index'));
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_a_wrong_or_empty_password_is_refused_and_the_password_kept_here_opens_nothing(): void
     {
         $user = $this->directoryAccount('budi.santoso@merdekabattery.com', 'budi.santoso');
@@ -209,6 +253,11 @@ class DirectoryLoginTest extends TestCase
         $this->assertFalse(User::directoryReady());
         $this->assertFalse($user->fresh()->signsInWithDirectory());
         $this->assertSame('Pending', $user->fresh()->signInMethod());
+
+        // A name without an "@" is nobody's yet (and is not looked for in a column that is not there).
+        $this->login('lama', 'secret-password')->assertOk();
+        $this->assertGuest();
+        $this->assertStringContainsString('not registered', $this->said());
 
         $this->login($user->email, 'secret-password')->assertRedirect(route('dashboard.index'));
         $this->assertAuthenticatedAs($user);

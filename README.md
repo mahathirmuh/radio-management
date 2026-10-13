@@ -157,7 +157,9 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
   `php artisan user:register <email> --role="Admin Radio" --company=MTI`. Password akun diisi acak, jadi form
   e-mail + password tidak bisa dipakai untuk akun tersebut, kecuali:
   - akun yang punya **Directory username** (metode sign-in **LDAP** di User Management): form itu memeriksa
-    password Active Directory-nya, lihat [Halaman Users](#halaman-users);
+    password Active Directory-nya, lihat [Halaman Users](#halaman-users). Akun seperti ini boleh diketik dengan
+    e-mailnya **atau** dengan Directory username-nya (`budi.santoso`, tanpa `@...`); awalan e-mail yang bukan
+    Directory username tidak dikenali;
   - akun yang diberi password lewat tombol kunci di User Management.
 - Akun yang dinonaktifkan di User Management ditolak di semua cara login, dan sesi yang masih terbuka berakhir
   pada permintaan berikutnya.

@@ -96,9 +96,13 @@
                                         @csrf
                                         <div class="row g-3">
                                             <div class="col-12">
-                                                <label for="employeeId" class="form-label  ">Email</label>
-                                                <input type="email" class="form-control" id="employeeId"
-                                                    name="emailusername" placeholder="Email" required>
+                                                {{-- Not type="email": an account that signs in with its Active Directory
+                                                     password may be named by its directory username, which has no "@". --}}
+                                                <label for="employeeId" class="form-label  ">Email or username</label>
+                                                <input type="text" class="form-control" id="employeeId"
+                                                    name="emailusername" placeholder="Email or username"
+                                                    autocomplete="username" autocapitalize="none" spellcheck="false"
+                                                    required>
                                             </div>
                                             <div class="col-12">
 
