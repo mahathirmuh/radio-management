@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserRegisteredController extends Controller
 {
@@ -29,7 +30,7 @@ class UserRegisteredController extends Controller
     public function __construct()
     {
         $this->menuId = 98; //User Registered
-        $this->pageTitle = "User Registred";
+        $this->pageTitle = "Users";
         $this->menuItems = [
             ['url' => '/', 'label' => 'Home', 'active' => false],
             ['url' => '/user-management', 'label' => 'User Management', 'active' => true],
@@ -70,6 +71,7 @@ class UserRegisteredController extends Controller
                 'menuItems' => $this->menuItems,
                 'companies' => $companies,
                 'positions' => User::POSITIONS,
+                'signInReady' => User::signInReady(),
                 'roles' => $roles,
 
             ]);
@@ -88,7 +90,9 @@ class UserRegisteredController extends Controller
         //Table Control
         $paginated = min(max((int) $request->get('paginated', 10), 1), 100);
         $search = $request->get('search', null);
-        $orderBy = in_array($request->get('orderBy'), ['id', 'name', 'email'], true) ? $request->get('orderBy') : 'id';
+        $signIn = User::signInReady();
+        $sortable = array_merge(['id', 'name', 'email', 'active'], $signIn ? ['last_login_at'] : []);
+        $orderBy = in_array($request->get('orderBy'), $sortable, true) ? $request->get('orderBy') : 'name';
         $orderDir = $request->get('orderDir') === 'desc' ? 'desc' : 'asc';
 
 
@@ -110,6 +114,13 @@ class UserRegisteredController extends Controller
             // Filter: by company
             ->when($request->company != null, function ($query) use ($companyIdList) {
                 return $query->whereIn('company_id', $companyIdList);
+            })
+
+            // Filter: by status ('0' is inactive, see User::isActive())
+            ->when(in_array($request->status, ['active', 'inactive'], true), function ($query) use ($request) {
+                return $request->status === 'inactive'
+                    ? $query->where('active', '0')
+                    : $query->where(fn ($q) => $q->where('active', '!=', '0')->orWhereNull('active'));
             })
 
             // Filter: by position
@@ -137,13 +148,15 @@ class UserRegisteredController extends Controller
                 });
             })
 
-            //Sorting
+            //Sorting (by id as well: rows that are equal keep one order from page to page)
             ->orderBy($orderBy, $orderDir)
+            ->when($orderBy !== 'id', fn ($query) => $query->orderBy('id'))
 
             //Pagination
             ->paginate($paginated);
 
-        $formatted = $data->getCollection()->map(function ($user) {
+        $callerId = (int) $request->user()->id;
+        $formatted = $data->getCollection()->map(function ($user) use ($callerId, $signIn) {
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -151,6 +164,12 @@ class UserRegisteredController extends Controller
                 'company' => $user->company->name ?? '-',
                 'position' => $user->position ?: '-',
                 'role' => $user->roles->pluck('name')->implode(', ') ?? '-',
+                'active' => $user->isActive(),
+                // How the account last signed in ("Microsoft", "Password", ...); null while it never has.
+                'sign_in' => $signIn ? $user->last_login_method : null,
+                'last_sign_in' => $signIn ? $user->last_login_at?->format('Y-m-d H:i') : null,
+                // The caller's own row: it is marked, and offers the edit only.
+                'is_self' => (int) $user->id === $callerId,
             ];
         });
 
@@ -418,6 +437,66 @@ class UserRegisteredController extends Controller
 
             return response()->json(['message' => 'The user could not be deleted. Details are in the application log.'], 500);
         }
+    }
+
+    /** Sets an account to active or inactive. An inactive account cannot sign in, and a session it has open ends. */
+    public function status(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), ['active' => ['required', 'boolean']]);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+        }
+
+        $user = $this->user->find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+        // As with deleting: it would end your own access, and may leave the application without an admin.
+        if ((int) $user->id === (int) $request->user()->id) {
+            return response()->json(['message' => 'You cannot deactivate your own account.'], 422);
+        }
+        if ($denied = $this->denyUnlessManageable($request, $user)) {
+            return $denied;
+        }
+
+        $active = $request->boolean('active');
+        // A "remember me" cookie of the account must not bring it back in.
+        $user->update(['active' => $active ? '1' : '0'] + ($active ? [] : ['remember_token' => null]));
+
+        return response()->json(['message' => $active ? 'User activated.' : 'User deactivated.'], 200);
+    }
+
+    /**
+     * Gives an account a password for the e-mail + password form of the login page (an account is made with a random
+     * one, for Microsoft sign-in only). The password is the caller's to pass on; it is not shown or sent anywhere.
+     */
+    public function password(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string', 'max:72', 'confirmed', Password::min(8)->letters()->numbers()],
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+        }
+
+        $user = $this->user->with('roles')->find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+        if ($denied = $this->denyUnlessManageable($request, $user)) {
+            return $denied;
+        }
+
+        // Whoever sets the password of an account can sign in as it, and so use the roles it holds:
+        // the same rule as for changing its e-mail (see update()).
+        $assignable = $this->assignableRoleIds($request->user());
+        if ($assignable !== null && $user->roles->pluck('id')->map(fn ($roleId) => (int) $roleId)->diff($assignable)->isNotEmpty()) {
+            return response()->json(['message' => 'You cannot set the password of a user who holds roles you cannot manage.'], 403);
+        }
+
+        $user->update(['password' => bcrypt($request->password), 'remember_token' => null]);
+
+        return response()->json(['message' => 'Password saved.'], 200);
     }
 
     private function isSuperAdmin(User $user): bool

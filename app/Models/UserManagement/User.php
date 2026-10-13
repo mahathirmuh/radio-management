@@ -15,7 +15,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Class User
@@ -52,6 +54,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
         'company_id' => 'int'
     ];
 
@@ -80,6 +83,38 @@ class User extends Authenticatable
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Whether the account may sign in. Only '0' in the column means inactive (set in User Management): whatever
+     * else an account from before carries there keeps it active.
+     */
+    public function isActive(): bool
+    {
+        return (string) $this->active !== '0';
+    }
+
+    /**
+     * Whether the columns of the last sign-in are there. The code of this folder is live as soon as it is saved, the
+     * migration is run by hand: until then nothing is recorded, instead of failing. (Asked once a minute.)
+     */
+    public static function signInReady(): bool
+    {
+        return Cache::remember('users-sign-in-columns', 60, fn () => Schema::hasColumn('users', 'last_login_at'));
+    }
+
+    /** Notes that the account signed in just now, and how ("Microsoft", "Password", ...). */
+    public function recordSignIn(string $method): void
+    {
+        if (! self::signInReady()) {
+            return;
+        }
+
+        // Written past the model: a sign-in is no change of the account (updated_at stays).
+        static::query()->whereKey($this->getKey())->toBase()->update([
+            'last_login_at' => now(),
+            'last_login_method' => $method,
+        ]);
     }
 
     /** Guard User */

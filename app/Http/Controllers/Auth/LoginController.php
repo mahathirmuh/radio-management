@@ -76,9 +76,13 @@ class LoginController extends Controller
                 // $auth = false;
                 $remember = $request->input('remember');
                 //PROCCESS Login
-                $email = User::where('email', $request->emailusername)->value('email');
+                $account = User::where('email', $request->emailusername)->first();
+                $email = $account?->email;
                 if (isset($email)) {
-                    if (Auth::guard('web')->attempt(['email' => $email, 'password' => $request->password], $remember)) {
+                    // An account set to inactive in User Management is refused the way a wrong password is.
+                    $active = fn ($user) => $user->isActive();
+                    if (Auth::guard('web')->attemptWhen(['email' => $email, 'password' => $request->password], $active, $remember)) {
+                        Auth::user()->recordSignIn('Password');
                         $request->session()->regenerate();
                         return redirect()->route(Auth::user()->homeRoute());
                     } else {
@@ -106,11 +110,16 @@ class LoginController extends Controller
                 if (isset($gate)) {
                     //cek keys dengan Apps Tujuan
                     $user = User::where('email', $gate->email)->first();
+                    if ($user && ! $user->isActive()) {
+                        Alert::warning('Account inactive', 'Ask the admin to activate it.');
+                        return redirect()->route('login');
+                    }
                     if ($user) {
                         if (!Auth::check()) {
                             $gate->remember_token = null;
                             $gate->save();
                             Auth::login($user, true);
+                            $user->recordSignIn('Merdeka Apps');
                             $request->session()->regenerate();
                             return redirect()->route('dashboard.index');
                         } else {
@@ -220,8 +229,16 @@ class LoginController extends Controller
             return redirect()->route('login');
         }
 
+        // Set to inactive in User Management.
+        if (! $user->isActive()) {
+            Log::warning($provider . ' SSO refused: account is inactive', ['email' => $email]);
+            Alert::warning('Account inactive', $email . ' has been deactivated in this application. Ask the admin to activate it.')->persistent(true);
+            return redirect()->route('login');
+        }
+
         // No "remember me": access should end with the session, not outlive the SSO account by months.
         Auth::login($user);
+        $user->recordSignIn($provider);
         $request->session()->regenerate();
 
         return redirect()->route($user->homeRoute());

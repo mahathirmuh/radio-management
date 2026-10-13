@@ -60,6 +60,23 @@ class SsoLoginTest extends TestCase
         $this->get(route('dashboard.index'))->assertOk();
     }
 
+    public function test_a_sign_in_is_noted_on_the_account_and_an_inactive_account_is_refused(): void
+    {
+        $user = $this->register('budi@merdekabattery.com');
+        $this->microsoftReturns('budi@merdekabattery.com');
+
+        $this->get(self::CALLBACK)->assertRedirect(route('dashboard.index'));
+        $this->assertSame('Microsoft', $user->fresh()->last_login_method);
+        $this->assertNotNull($user->fresh()->last_login_at);
+
+        // Set to inactive in User Management: Microsoft says who it is, the application does not let it in.
+        $this->post('/logout');
+        DB::table('users')->where('id', $user->id)->update(['active' => '0', 'last_login_at' => null]);
+        $this->get(self::CALLBACK)->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertNull($user->fresh()->last_login_at);
+    }
+
     public function test_an_unregistered_microsoft_account_is_refused(): void
     {
         $this->microsoftReturns('stranger@merdekabattery.com');

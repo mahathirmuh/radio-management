@@ -25,6 +25,14 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label for="statusSelectFilter" class=" form-label">Status </label>
+                        <select id="statusSelectFilter" name="status" class="form-select">
+                            <option value="">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -88,12 +96,14 @@
         let filterList = {
             position: null,
             role: null,
+            status: null,
         };
 
         const applyFilter = () => {
             filterList = {
                 position: $('#userFilterCard #positionSelectFilter').val(),
                 role: $('#userFilterCard #roleSelectFilter').val(),
+                status: $('#userFilterCard #statusSelectFilter').val() || null,
             };
             currentPage = 1; // biar reset ke halaman pertama
             userRegisteredTable();
@@ -102,6 +112,7 @@
         const resetFilter = () => {
             $('#userFilterCard #positionSelectFilter').val(null).trigger('change');
             $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
+            $('#userFilterCard #statusSelectFilter').val('');
             applyFilter();
         };
     </script>

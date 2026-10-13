@@ -11,6 +11,8 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('user-management')->nam
             Route::get('/{id}', [UserRegisteredController::class, 'show'])->name('show');
             Route::post('/', [UserRegisteredController::class, 'store'])->name('store');
             Route::put('/{id}', [UserRegisteredController::class, 'update'])->name('update');
+            Route::put('/{id}/status', [UserRegisteredController::class, 'status'])->name('status');
+            Route::put('/{id}/password', [UserRegisteredController::class, 'password'])->name('password');
             Route::delete('/{id}', [UserRegisteredController::class, 'destroy'])->name('destroy');
         });
         Route::get('role-permission/list', [RolePermissionsController::class, 'list'])->name('role-permission.list');

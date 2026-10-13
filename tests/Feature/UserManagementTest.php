@@ -67,7 +67,7 @@ class UserManagementTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin);
 
-        // The page: a position to choose (six of them), in the form, the filter and the table; nothing about the company.
+        // The page: a position to choose (six of them), in the form and the filter, and shown under the name; nothing about the company.
         $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
         foreach (['id="positionSelect"', 'id="positionSelectFilter"'] as $part) {
             $this->assertSame(1, substr_count($page, $part), $part);
@@ -75,7 +75,7 @@ class UserManagementTest extends TestCase
         $this->assertSame(['Manager', 'Superintendent', 'Supervisor', 'IT Field', 'IT System Support', 'IT Assistant'], User::POSITIONS);
         $options = implode('\s*', array_map(fn (string $position) => '<option value="' . $position . '">' . $position . '</option>', User::POSITIONS));
         $this->assertSame(2, preg_match_all('#' . $options . '#', $page), 'in the form and in the filter, in that order');
-        $this->assertMatchesRegularExpression('#<th [^>]*>Position\s*</th>#', $page);
+        $this->assertStringContainsString('<span class="user-position">${userEsc(item.position)}</span>', $page);
         $this->assertStringNotContainsString('companySelect', $page);
         $this->assertDoesNotMatchRegularExpression('#<th [^>]*>Company\s*</th>|>Company\s*</label>#', $page);
 
@@ -162,6 +162,190 @@ class UserManagementTest extends TestCase
         $this->assertSame(['ALL', null], [$role->func_role, $role->setting_role]);
         $this->postJson(route('user-management.role-permission.store'), ['role_name' => 'Lain', 'role_type' => 'SEMUA'] + $form)->assertStatus(422);
         $this->assertFalse(DB::table('roles')->where('name', 'Lain')->exists());
+    }
+
+    public function test_the_list_says_who_is_active_and_how_and_when_they_last_signed_in(): void
+    {
+        $admin = $this->admin();
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $this->actingAs($admin);
+
+        // The page: these columns, in this order (the last one holds the buttons), and a search by name or e-mail.
+        $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
+        preg_match_all('#<th scope="col"[^>]*>\s*(?:<span[^>]*>)?([^<]*?)\s*<#', $page, $titles);
+        $this->assertSame(['Name', 'Email', 'Role', 'Status', 'Sign-In', 'Last Sign-In', 'Action'], $titles[1]);
+        $this->assertStringContainsString('placeholder="Name or email"', $page);
+        $this->assertStringContainsString('<h2 class="mb-3">Users</h2>', $page);
+        foreach (['id="statusSelectFilter"', 'id="userPasswordModal"', 'id="userAddButton"'] as $part) {
+            $this->assertSame(1, substr_count($page, $part), $part);
+        }
+        $this->assertStringNotContainsString('toggleSearchButton', $page);
+
+        // Nobody has signed in yet: the page shows that as "Pending" and "Never". The caller's own row is marked.
+        $list = fn (array $query = []) => collect($this->getJson(route('user-management.user-registered.list', $query))->assertOk()->json('data'));
+        $row = fn (string $email) => array_intersect_key($list()->firstWhere('email', $email), array_flip(['active', 'sign_in', 'last_sign_in', 'is_self']));
+        $this->assertSame(['active' => true, 'sign_in' => null, 'last_sign_in' => null, 'is_self' => true], $row($admin->email));
+        $this->assertSame(['active' => true, 'sign_in' => null, 'last_sign_in' => null, 'is_self' => false], $row($staff->email));
+
+        // After a sign-in: how, and when. It is no change of the account itself.
+        $changed = $staff->fresh()->updated_at;
+        $this->travelTo('2026-10-13 11:23:45');
+        $staff->recordSignIn('Microsoft');
+        $this->travelBack();
+        $this->assertSame(['active' => true, 'sign_in' => 'Microsoft', 'last_sign_in' => '2026-10-13 11:23', 'is_self' => false], $row($staff->email));
+        $this->assertEquals($changed, $staff->fresh()->updated_at);
+
+        // By name unless asked otherwise; by the last sign-in when asked.
+        $this->assertSame([$admin->email, $staff->email], $list()->pluck('email')->all(), 'Super Admin, Tester');
+        $this->assertSame([$staff->email, $admin->email], $list(['orderBy' => 'last_login_at', 'orderDir' => 'desc'])->pluck('email')->all());
+        $this->assertSame([$staff->email, $admin->email], $list(['orderBy' => 'name', 'orderDir' => 'desc'])->pluck('email')->all());
+    }
+
+    public function test_an_account_can_be_set_to_inactive_and_back(): void
+    {
+        $admin = $this->admin();
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio'));
+        DB::table('users')->where('id', $staff->id)->update(['remember_token' => 'kept-on-a-laptop']);
+        $status = fn (int $id, $active) => $this->putJson(route('user-management.user-registered.status', $id), ['active' => $active]);
+        $list = fn (array $query = []) => collect($this->getJson(route('user-management.user-registered.list', $query))->assertOk()->json('data'));
+
+        // The account is at work in another browser.
+        $this->actingAs($staff)->get(route('dashboard.index'))->assertOk();
+
+        $this->actingAs($admin);
+        $status($staff->id, false)->assertOk()->assertJsonPath('message', 'User deactivated.');
+        $this->assertSame(['0', null], [$staff->fresh()->active, $staff->fresh()->remember_token]);
+        $this->assertFalse($list()->firstWhere('email', $staff->email)['active']);
+        $this->assertSame([$staff->email], $list(['status' => 'inactive'])->pluck('email')->all());
+        $this->assertSame([$admin->email], $list(['status' => 'active'])->pluck('email')->all());
+        $this->assertCount(2, $list(['status' => 'apa saja']));
+
+        // Its open session ends at the next request: a page sends it to the login page, a request of a page gets 401.
+        $this->actingAs($staff->fresh())->get(route('dashboard.index'))->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->actingAs($staff->fresh())->getJson(route('radio-management.radio.list'))->assertStatus(401);
+        $this->assertGuest();
+
+        // And it cannot sign in with a password, right as the password is.
+        $this->post('/login', ['emailusername' => $staff->email, 'password' => 'secret-password']);
+        $this->assertGuest();
+
+        // Back to active: it signs in again.
+        $this->actingAs($admin);
+        $status($staff->id, true)->assertOk()->assertJsonPath('message', 'User activated.');
+        $this->assertSame('1', $staff->fresh()->active);
+        $this->post('/logout');
+        $this->post('/login', ['emailusername' => $staff->email, 'password' => 'secret-password'])->assertRedirect(route('dashboard.index'));
+        $this->assertAuthenticatedAs($staff);
+        $this->assertSame('Password', $staff->fresh()->last_login_method);
+        $this->assertNotNull($staff->fresh()->last_login_at);
+
+        // Not your own account, not one that is not there, and it is yes or no.
+        $this->actingAs($admin);
+        $status($admin->id, false)->assertStatus(422);
+        $this->assertSame('1', $admin->fresh()->active);
+        $status(999999, false)->assertNotFound();
+        $status($staff->id, 'mungkin')->assertStatus(422);
+        $this->putJson(route('user-management.user-registered.status', $staff->id), [])->assertStatus(422);
+        $this->assertSame('1', $staff->fresh()->active);
+
+        // Only '0' is inactive: what an account from before carries in the column keeps it working.
+        DB::table('users')->where('id', $staff->id)->update(['active' => '']);
+        $this->assertTrue($staff->fresh()->isActive());
+        $this->assertSame([$admin->email, $staff->email], $list(['status' => 'active'])->pluck('email')->all());
+    }
+
+    public function test_an_account_can_be_given_a_password_for_the_login_form(): void
+    {
+        $admin = $this->admin();
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio'));
+        DB::table('users')->where('id', $staff->id)->update(['remember_token' => 'kept-on-a-laptop']);
+        $password = fn (int $id, array $form) => $this->putJson(route('user-management.user-registered.password', $id), $form);
+        $twice = fn (string $typed) => ['password' => $typed, 'password_confirmation' => $typed];
+
+        $this->actingAs($admin);
+
+        // Eight characters at least, a letter and a number, typed twice the same.
+        foreach ([$twice('pendek1'), $twice('hanyahuruf'), $twice('1234567890'), ['password' => 'Radio-2026'], ['password' => 'Radio-2026', 'password_confirmation' => 'Radio-2027'], []] as $wrong) {
+            $password($staff->id, $wrong)->assertStatus(422);
+        }
+        $this->assertTrue(password_verify('secret-password', $staff->fresh()->password));
+        $password(999999, $twice('Radio-2026'))->assertNotFound();
+
+        $response = $password($staff->id, $twice('Radio-2026'))->assertOk();
+        $this->assertStringNotContainsString('Radio-2026', $response->getContent());
+        $this->assertNull($staff->fresh()->remember_token, 'a browser that was remembered has to sign in again');
+
+        // The new one signs in, the old one does not.
+        $this->post('/logout');
+        $this->post('/login', ['emailusername' => $staff->email, 'password' => 'secret-password']);
+        $this->assertGuest();
+        $this->post('/login', ['emailusername' => $staff->email, 'password' => 'Radio-2026'])->assertRedirect(route('dashboard.index'));
+        $this->assertAuthenticatedAs($staff);
+
+        // The password is not written to the activity log.
+        $this->assertFalse(DB::table('activity_logs')->where('data', 'like', '%Radio-2026%')->exists());
+    }
+
+    public function test_a_password_is_only_set_by_who_may_hold_the_roles_of_the_account(): void
+    {
+        $admin = $this->admin();
+        $own = $this->role('Admin User MCG', ['user-management.user-registered']);
+        DB::table('roles')->where('id', $own)->update(['func_role' => 'COMPANY', 'setting_role' => json_encode(['3'])]);
+        $manager = $this->user('manager.mcg@merdekabattery.com', $own);
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio')); // a role the manager cannot hand out
+        $managed = $this->user('dikelola@merdekabattery.com', $own);
+        $form = ['password' => 'Radio-2026', 'password_confirmation' => 'Radio-2026'];
+        $password = fn (User $user) => $this->putJson(route('user-management.user-registered.password', $user->id), $form);
+
+        $this->actingAs($manager);
+
+        // Whoever sets the password of an account can sign in as it.
+        $password($admin)->assertForbidden();
+        $password($staff)->assertForbidden();
+        $this->assertTrue(password_verify('secret-password', $admin->fresh()->password));
+        $this->assertTrue(password_verify('secret-password', $staff->fresh()->password));
+        $password($managed)->assertOk();
+        $this->assertTrue(password_verify('Radio-2026', $managed->fresh()->password));
+
+        // The Super Admin account is not theirs to switch off either; an ordinary one is.
+        $this->putJson(route('user-management.user-registered.status', $admin->id), ['active' => false])->assertForbidden();
+        $this->assertSame('1', $admin->fresh()->active);
+        $this->putJson(route('user-management.user-registered.status', $staff->id), ['active' => false])->assertOk();
+
+        // A role that may only read the page changes nothing.
+        $reader = DB::table('roles')->insertGetId(['name' => 'Baca User', 'home_page' => '1', 'func_role' => 'ALL', 'created_at' => now(), 'updated_at' => now()]);
+        $menu = DB::table('menu')->where('route', 'user-management.user-registered.index')->value('id');
+        DB::table('menu_role')->insert(['menu_id' => $menu, 'role_id' => $reader, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('menu_role_permission')->insert(['menu_id' => $menu, 'role_id' => $reader, 'permission_id' => CheckMenuPermission::PERMISSION_IDS['Read'], 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($this->user('baca@merdekabattery.com', $reader));
+        $this->getJson(route('user-management.user-registered.list'))->assertOk();
+        $password($managed)->assertForbidden();
+        $this->putJson(route('user-management.user-registered.status', $managed->id), ['active' => false])->assertForbidden();
+        $this->assertSame('1', $managed->fresh()->active);
+    }
+
+    public function test_before_the_sign_in_migration_has_run_the_page_and_the_sign_in_still_work(): void
+    {
+        // The code of this folder is live as soon as it is saved; the migration is run by hand, later.
+        \Illuminate\Support\Facades\Schema::table('users', fn ($table) => $table->dropColumn(['last_login_at', 'last_login_method']));
+        \Illuminate\Support\Facades\Cache::forget('users-sign-in-columns');
+        $admin = $this->admin();
+
+        $this->post('/login', ['emailusername' => $admin->email, 'password' => 'secret-password'])->assertRedirect(route('dashboard.index'));
+        $this->assertAuthenticatedAs($admin);
+
+        $this->get(route('user-management.user-registered.index'))->assertOk()->assertSee('const userSignInReady = false', false);
+        $this->getJson(route('user-management.user-registered.list', ['orderBy' => 'last_login_at']))->assertOk()
+            ->assertJsonPath('data.0.sign_in', null)
+            ->assertJsonPath('data.0.last_sign_in', null)
+            ->assertJsonPath('data.0.active', true);
+
+        // Setting an account to inactive needs no new column.
+        $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $this->putJson(route('user-management.user-registered.status', $staff->id), ['active' => false])->assertOk();
+        $this->assertSame('0', $staff->fresh()->active);
+        \Illuminate\Support\Facades\Cache::forget('users-sign-in-columns');
     }
 
     public function test_pages_and_lists_load(): void

@@ -109,6 +109,44 @@
     </div>
 </div>
 
+{{-- A password for the e-mail + password form of the login page --}}
+<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userPasswordModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-3">
+            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-body p-0">
+                <h3 class="modal-title mb-1">Set Password</h3>
+                <p class="text-secondary mb-3" id="userPasswordWho"></p>
+                <form id="userPasswordForm" autocomplete="off">
+                    <div class="mb-2">
+                        <label for="userPassword" class="form-label required">New password</label>
+                        <input type="password" id="userPassword" class="form-control" autocomplete="new-password"
+                            maxlength="72" required>
+                        <div class="form-hint">At least 8 characters, with a letter and a number.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userPasswordAgain" class="form-label required">Repeat the password</label>
+                        <input type="password" id="userPasswordAgain" class="form-control"
+                            autocomplete="new-password" maxlength="72" required>
+                    </div>
+                    <div class="form-hint mb-3">
+                        With it the account can sign in through the e-mail + password form, next to Microsoft. It is
+                        not sent to the user: pass it on yourself.
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <x-global.btn-detail label="Save" color="blue" size="sm" type="submit"
+                            id="userPasswordSaveButton">
+                            <x-slot name="icon">
+                                <i class="ti ti-device-floppy"></i>
+                            </x-slot>
+                        </x-global.btn-detail>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('javascript')
     {{-- select2 declaration --}}
     <script>
@@ -138,6 +176,8 @@
         const urlUserStore = "{{ route('user-management.user-registered.store') }}";
         const urlUserUpdate = "{{ route('user-management.user-registered.update', ':id') }}";
         const urlUserDestroy = "{{ route('user-management.user-registered.destroy', ':id') }}";
+        const urlUserStatus = "{{ route('user-management.user-registered.status', ':id') }}";
+        const urlUserPassword = "{{ route('user-management.user-registered.password', ':id') }}";
     </script>
 
     {{-- toggle Modal --}}
@@ -341,6 +381,113 @@
                 }
             });
         };
+
+        // The reason the server gave, as plain text.
+        const userReason = (xhr, fallback) => {
+            const r = xhr.responseJSON || {};
+            return [].concat(r.errors || r.message || fallback).join(" ");
+        };
+
+        const userRowName = (id) => $('#userTable [data-id="' + id + '"]').first().closest("tr").find(".user-name").text();
+
+        const userStatus = (id, active) => {
+            const name = userRowName(id) || "this user";
+            Swal.fire({
+                title: active ? "Activate this user?" : "Deactivate this user?",
+                text: active ?
+                    name + " will be able to sign in again." :
+                    name + " will not be able to sign in, and is signed out. The account and its history stay.",
+                icon: active ? "question" : "warning",
+                showCancelButton: true,
+                confirmButtonText: '<i class="ti ti-check"></i> ' + (active ? "Activate" : "Deactivate"),
+                cancelButtonText: '<i class="ti ti-x"></i> Cancel',
+                reverseButtons: true
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+                $.ajax({
+                    url: urlUserStatus.replace(":id", id),
+                    type: "PUT",
+                    data: {
+                        active: active ? 1 : 0
+                    },
+                    success: function(response) {
+                        Swal.fire("Saved!", response.message, "success");
+                        userRegisteredTable();
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error!",
+                            text: userReason(xhr, "The status could not be changed.")
+                        });
+                    }
+                });
+            });
+        };
+
+        const toggleUserPasswordModal = (id) => {
+            const modal = $("#userPasswordModal");
+            modal.data("userId", id);
+            modal.find("#userPasswordForm")[0].reset();
+            modal.find("#userPasswordWho").text(userRowName(id));
+            modal.modal("show");
+        };
+
+        $(function() {
+            $("#userPasswordModal").on("hidden.bs.modal", function() {
+                $(this).find("#userPasswordForm")[0].reset();
+            });
+
+            $("#userPasswordForm").on("submit", function(event) {
+                event.preventDefault();
+                $("#userPasswordSaveButton").trigger("click");
+            });
+
+            $("#userPasswordSaveButton").on("click", function(event) {
+                event.preventDefault();
+                const modal = $("#userPasswordModal");
+                const password = modal.find("#userPassword").val();
+                const again = modal.find("#userPasswordAgain").val();
+
+                let errors = [];
+                if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+                    errors.push("<strong>Password</strong> needs at least 8 characters, with a letter and a number");
+                }
+                if (password !== again) {
+                    errors.push("The two passwords are <strong>not the same</strong>");
+                }
+                if (errors.length > 0) {
+                    showError(errors);
+                    return;
+                }
+
+                const button = $(this).prop("disabled", true);
+                $.ajax({
+                    url: urlUserPassword.replace(":id", modal.data("userId")),
+                    type: "PUT",
+                    data: {
+                        password: password,
+                        password_confirmation: again
+                    },
+                    success: function(response) {
+                        modal.modal("hide");
+                        Swal.fire("Saved!", response.message, "success");
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error!",
+                            text: userReason(xhr, "The password could not be saved.")
+                        });
+                    },
+                    complete: function() {
+                        button.prop("disabled", false);
+                    }
+                });
+            });
+        });
 
         const userDelete = (id) => {
             Swal.fire({
