@@ -161,7 +161,9 @@ class SsoLoginTest extends TestCase
             ->assertNotFound();
         $this->assertFalse(User::where('email', 'x@x.com')->exists());
         $this->get('/password/reset')->assertNotFound();
-        $this->get('/login')->assertOk()->assertDontSee('Register new account');
+        $this->get('/login')->assertOk()->assertDontSee('Register new account')
+            // Nor a link to reset a password elsewhere: the one of a directory account is changed in Active Directory.
+            ->assertDontSee('Forgot Password')->assertDontSee('ForgotPassword');
     }
 
     public function test_passwords_typed_into_the_login_form_are_not_logged(): void

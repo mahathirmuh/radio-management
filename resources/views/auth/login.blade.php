@@ -105,14 +105,9 @@
                                                     required>
                                             </div>
                                             <div class="col-12">
-
-                                                <div class="d-flex justify-content-between">
-                                                    <label for="employeeId" class="form-label  ">Password</label>
-                                                    <a href="https://msafe.merdekacoppergold.com/Account/ForgotPassword"
-                                                        class="text-primary" target="_blank" rel="noopener">Forgot
-                                                        Password</a>
-                                                </div>
-
+                                                {{-- No "Forgot Password": the password of a directory account is the one of
+                                                     Active Directory, and this application resets none. --}}
+                                                <label for="password" class="form-label  ">Password</label>
                                                 <input type="password" class="form-control" id="password"
                                                     name="password" placeholder="Password" required>
                                             </div>
