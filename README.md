@@ -290,7 +290,8 @@ selalu ditandatangani di kertas.
   pernah tanda tangan orang lain: Super Admin yang mendaftarkan tanda tangan seseorang tidak mendapatkannya di formnya
   sendiri. Jadi tanda tangan di PROCESSED BY menyatakan siapa yang memproses. Akun tanpa tanda tangan (atau yang
   dinonaktifkan) mendapat kotak kosong, untuk ditandatangani di kertas seperti dulu.
-- Tanda tangan bisa **dilepas dari satu form** sebelum dicetak (tombol × di kotaknya); yang di E-Sign Master tetap.
+- Tanda tangan itu **tidak bisa dihapus dari form**: ia menyatakan siapa yang memproses, dan pemakaiannya dicatat.
+  Yang tidak ingin tanda tangannya muncul minta Super Admin menonaktifkannya di E-Sign Master.
 - **Setiap pemakaian dicatat** (siapa, radio mana, kapan) dan bisa dilihat lewat tombol riwayat. Dicatat saat form
   dibuka dengan tanda tangan di dalamnya, bukan saat dicetak (aplikasi tidak tahu apakah dialog cetak diselesaikan).
 - **Penyimpanan**: gambar disimpan di database, terenkripsi dengan kunci aplikasi (`APP_KEY`), tidak pernah sebagai file

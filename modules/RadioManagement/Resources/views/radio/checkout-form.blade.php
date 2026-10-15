@@ -543,8 +543,9 @@
                     <button type="button" class="sig-remove no-print" id="signRemove" aria-label="Hapus tanda tangan" title="Hapus tanda tangan" hidden>&times;</button>
                 </td>
                 @if ($ictSignature ?? null)
-                    {{-- The signature of whoever opened the form, from E-Sign Master: theirs and nobody else's. It can be taken off before printing. --}}
-                    <td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="{{ $ictSignature['image'] }}" alt="Tanda tangan {{ $ictSignature['name'] }}"><span class="ict-sig-name">{{ $ictSignature['name'] }}</span><button type="button" class="sig-remove no-print" id="ictSignRemove" aria-label="Hapus tanda tangan ICT dari form ini" title="Hapus tanda tangan ICT dari form ini">&times;</button></td>
+                    {{-- The signature of whoever opened the form, from E-Sign Master: theirs and nobody else's. It is not taken off here: it
+                         says who processed the radio, and that is on record (it_signature_uses). --}}
+                    <td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="{{ $ictSignature['image'] }}" alt="Tanda tangan {{ $ictSignature['name'] }}"><span class="ict-sig-name">{{ $ictSignature['name'] }}</span></td>
                 @else
                     <td class="sign" rowspan="3"></td>
                 @endif
@@ -597,16 +598,6 @@
             document.querySelectorAll('.alt').forEach(word => {
                 word.addEventListener('click', () => word.classList.toggle('struck'));
             });
-
-            // The signature of the person at ICT can be taken off this form (it is signed on paper then); the one in E-Sign Master stays.
-            const ictRemove = document.getElementById('ictSignRemove');
-            if (ictRemove) {
-                ictRemove.addEventListener('click', () => {
-                    const box = document.getElementById('ictSignCell');
-                    box.querySelectorAll('.ict-sig-img, .ict-sig-name').forEach(part => part.remove());
-                    ictRemove.remove();
-                });
-            }
 
             // The form is one A4 page. What is typed can make it longer: it is then made smaller for the printing (a second page would have
             // no margin above and below), and the person is told, because the text gets smaller too.

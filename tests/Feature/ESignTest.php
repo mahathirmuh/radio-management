@@ -253,13 +253,13 @@ class ESignTest extends TestCase
         $this->assertStringNotContainsString('ictSignCell"', $this->form($radio));
         $this->assertSame(0, ItSignatureUse::count());
 
-        // The owner does: the picture and the name are in the box "PROCESSED BY", with a button to take them off this form.
+        // The owner does: the picture and the name are in the box "PROCESSED BY", and nothing on the form takes them off.
         $this->actingAs($owner);
         $page = $this->form($radio);
         $flat = self::flat($page);
         $this->assertStringContainsString(
             '<td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="' . $signature->image . '" alt="Tanda tangan Teknisi &lt;Satu&gt;">'
-            . '<span class="ict-sig-name">Teknisi &lt;Satu&gt;</span><button type="button" class="sig-remove no-print" id="ictSignRemove"',
+            . '<span class="ict-sig-name">Teknisi &lt;Satu&gt;</span></td>',
             $flat
         );
         $this->assertStringNotContainsString('<td class="sign" rowspan="3"></td>', $flat);
@@ -306,8 +306,8 @@ class ESignTest extends TestCase
         $this->assertSame(2, preg_match_all('#\b(?:src|href|action|data|poster|srcset)="([^"]*)"#', $markup, $addresses));
         $this->assertStringEndsWith('/assets/img/branding/mti-logo.png', $addresses[1][0]);
         $this->assertStringStartsWith('data:image/png;base64,', $addresses[1][1]);
-        // What is for the screen only: the five of the form, and the button that takes the signature off.
-        $this->assertSame(6, preg_match_all('#class="[^"]*\bno-print\b[^"]*"#', $markup));
+        // What is for the screen only: the five of the form. (No button takes the signature of ICT off.)
+        $this->assertSame(5,preg_match_all('#class="[^"]*\bno-print\b[^"]*"#', $markup));
         // The scripts are the two the form has, and neither sends or keeps anything.
         $this->assertSame(2, preg_match_all('#<script\b([^>]*)>(.*?)</script\s*>#is', $page, $scripts, PREG_SET_ORDER));
         foreach ($scripts as [, $attributes, $body]) {
@@ -319,8 +319,9 @@ class ESignTest extends TestCase
         // The picture and its name have a place in the box, and the picture leaves room for the name.
         $this->assertMatchesRegularExpression('/\.ict-sig-img \{ position: absolute; inset: 1mm 1mm 3\.4mm;[^}]*object-fit: contain; \}/', self::flat($page));
         $this->assertMatchesRegularExpression('/\.ict-sig-name \{ position: absolute;[^}]*white-space: nowrap;/', self::flat($page));
-        // Taking it off the form is the form's own doing.
-        $this->assertStringContainsString("document.getElementById('ictSignRemove')", $page);
+        // It says who processed the radio, and that is on record: the form has no way to take it off.
+        $this->assertStringNotContainsString('ictSignRemove', $page);
+        $this->assertStringNotContainsString('.ict-sig-img, .ict-sig-name', $page);
     }
 
     public function test_the_page_with_the_pad_is_the_pad_of_the_form_and_keeps_nothing(): void
