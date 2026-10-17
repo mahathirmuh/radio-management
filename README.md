@@ -215,11 +215,13 @@ Form tambah/edit user:
   atau mengubah user. Yang dibaca tiga kolom saja (nomor karyawan, nama, e-mail kantor): nama tabel (lebih baik
   sebuah view berisi tiga kolom itu saja) dan nama kolomnya disetel lewat `EMPLOYEE_DIRECTORY_TABLE` dan
   `EMPLOYEE_DIRECTORY_*_COLUMN` di `.env`.
-  Database HR tidak terjangkau = pencarian kosong (dicatat di log), form tetap bisa diisi dengan mengetik.
-- **Sign-in method** (LDAP / Microsoft) dan **Directory username**: tampil hanya bila Active Directory disetel
-  (`LDAP_URL` dan `LDAP_BIND_DN` di `.env`, `config/ldap.php`). LDAP mencatat Directory username; dikosongkan
-  berarti diambil dari bagian e-mail sebelum `@`. Microsoft tidak mencatat apa pun. Satu akun direktori hanya
-  untuk satu akun di sini.
+  Bila database HR tidak terjangkau, atau nama tabel/kolomnya salah, form menulis bahwa direktori tidak bisa dicari
+  (alasannya di log), bukan "No match"; form tetap bisa diisi dengan mengetik.
+- **Sign-in method** (LDAP / Microsoft) dan **Directory username**: selalu ada di form (seperti di trilingual-docon),
+  begitu kolomnya ada (migrasi `2026_10_13_110000`). LDAP mencatat Directory username; dikosongkan berarti diambil
+  dari bagian e-mail sebelum `@`. Microsoft tidak mencatat apa pun. Satu akun direktori hanya untuk satu akun di
+  sini. Bila Active Directory belum disetel (`LDAP_URL` dan `LDAP_BIND_DN` di `.env`, `config/ldap.php`), form
+  menuliskannya di bawah Directory username; akun LDAP tetap bisa masuk lewat Microsoft sampai direktori disetel.
 - Login LDAP: di form e-mail + password, password diperiksa dengan bind ke Active Directory sebagai orang itu
   (`App\Services\Directory\LdapAuthenticator`); tidak ada password yang disimpan. Password kosong ditolak sebelum
   sampai ke direktori, direktori yang tidak bisa dihubungi dilaporkan sebagai gangguan (bukan "password salah"),

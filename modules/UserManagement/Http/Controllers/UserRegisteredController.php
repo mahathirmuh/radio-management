@@ -96,6 +96,8 @@ class UserRegisteredController extends Controller
                 // One method is no choice: with Microsoft alone the form does not ask.
                 'signInMethods' => $this->offeredSignInMethods(),
                 'signInMeanings' => User::SIGN_IN_MEANINGS,
+                // Whether Active Directory is set up here (LDAP_URL, LDAP_BIND_DN): the form says so when it is not.
+                'ldapConfigured' => app(LdapAuthenticator::class)->isConfigured(),
 
             ]);
         } catch (Exception $e) {
@@ -593,10 +595,13 @@ class UserRegisteredController extends Controller
 
         $directory = app(EmployeeDirectory::class);
         $typed = $request->query('q');
+        $found = is_string($typed) ? $directory->search($typed) : [];
 
         return response()->json([
             'available' => $directory->isAvailable(),
-            'data' => is_string($typed) ? $directory->search($typed) : [],
+            'data' => $found,
+            // Nobody found, and nobody could be looked for, are two answers: the form says which (why, is in the log).
+            'failed' => $directory->failed(),
         ]);
     }
 
@@ -615,14 +620,16 @@ class UserRegisteredController extends Controller
     }
 
     /**
-     * The sign-in methods the form offers. Microsoft always; LDAP only where the directory is set up (and its column
-     * is there): elsewhere an account made that way would have a way in that nothing can open.
+     * The sign-in methods the form offers: LDAP and Microsoft, as in the form this one follows (trilingual-docon), once
+     * the column of the directory username is there. The choice does not come and go with the settings of Active
+     * Directory: where they are missing the form says so (ldapConfigured), and an account made for LDAP meanwhile signs
+     * in with Microsoft (the login form answers its directory password with "cannot be reached").
      *
      * @return string[]
      */
     private function offeredSignInMethods(): array
     {
-        return User::directoryReady() && app(LdapAuthenticator::class)->isConfigured()
+        return User::directoryReady()
             ? [User::SIGN_IN_LDAP, User::SIGN_IN_MICROSOFT]
             : [User::SIGN_IN_MICROSOFT];
     }

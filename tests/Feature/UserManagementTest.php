@@ -410,16 +410,22 @@ class UserManagementTest extends TestCase
         return $reader;
     }
 
-    public function test_the_form_offers_the_employee_search_and_the_sign_in_method_only_where_they_are_set_up(): void
+    public function test_the_form_always_asks_how_the_account_signs_in_and_says_what_is_not_set_up(): void
     {
         $this->actingAs($this->admin());
         $page = fn () => (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
 
-        // Nothing set up (the state of the tests, and of an installation without the two): the form of before.
+        // Neither an employee directory nor Active Directory set up (the state of the tests): no search, but the choice
+        // of how the account signs in is there all the same, as in the form this one follows. It does not come and go
+        // with the settings: what is missing is said where it is missed.
         $plain = $page();
-        foreach (['id="employeeLookup"', 'type="radio" name="sign_in_method"', 'id="ldapUsername"', 'id="userMicrosoftNote"'] as $absent) {
-            $this->assertStringNotContainsString($absent, $plain, $absent);
+        $this->assertStringNotContainsString('id="employeeLookup"', $plain);
+        preg_match_all('#type="radio" name="sign_in_method"\s+value="([^"]+)"#', $plain, $methods);
+        $this->assertSame(['LDAP', 'Microsoft'], $methods[1]);
+        foreach (['id="ldapUsername"', 'id="userDirectoryRow"', 'id="userMicrosoftNote"', 'id="userLdapOffNote"'] as $part) {
+            $this->assertSame(1, substr_count($plain, $part), $part);
         }
+        $this->assertStringContainsString('Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN', $plain);
         // A new user starts with the role that only reads.
         $this->assertStringContainsString('const userDefaultRole = "' . $this->roleId('Viewer Radio') . '";', $plain);
 
@@ -443,6 +449,8 @@ class UserManagementTest extends TestCase
         sort($sorted);
         $this->assertSame($sorted, $order);
         $this->assertNotContains(false, $order);
+        // Nothing is missing, so nothing is said about it.
+        $this->assertStringNotContainsString('id="userLdapOffNote"', $full);
 
         // Who may only read the page is not shown the search: it reads out everyone employed.
         $this->actingAs($this->user('baca@merdekabattery.com', $this->readerRole()));
@@ -470,9 +478,11 @@ class UserManagementTest extends TestCase
         $names = fn ($typed) => array_column($find($typed)->json('data'), 'name');
 
         // By the name: the one whose address can sign in, with the three things the form needs and nothing else.
-        $find('budi')->assertJsonPath('available', true)->assertExactJson(['available' => true, 'data' => [
+        $find('budi')->assertJsonPath('available', true)->assertExactJson(['available' => true, 'failed' => false, 'data' => [
             ['employee_id' => 'E001', 'name' => 'Budi Santoso', 'email' => 'budi.santoso@merdekabattery.com'],
         ]]);
+        // Nobody found is an answer of its own, not a failure.
+        $find('tidak ada orangnya')->assertExactJson(['available' => true, 'failed' => false, 'data' => []]);
         // By the address, whatever its case.
         $this->assertSame(['Citra Lestari'], $names('citra.lestari@merdeka'));
         $this->assertSame(['Budi Santoso'], $names('  SANTOSO '));
@@ -502,18 +512,20 @@ class UserManagementTest extends TestCase
         $this->assertSame(['Budi Hartono', 'Budi Santoso'], $names('budi'));
         config(['employee_directory.sign_in_domains' => ['merdekabattery.com']]);
 
-        // A setting that is not a plain name never reaches the query, and a table that is not there is no error:
-        // the search is a help, and a user can still be typed.
+        // A setting that is not a plain name never reaches the query, and a table that is not there is no error page:
+        // the search is a help, and a user can still be typed. That it could not be searched is said, though: a table
+        // named wrong in .env must not look like a directory in which nobody is employed.
         config(['employee_directory.columns.email' => 'email; DROP TABLE users']);
-        $find('budi')->assertJsonPath('data', []);
+        $find('budi')->assertExactJson(['available' => true, 'failed' => true, 'data' => []]);
         config(['employee_directory.columns.email' => 'email', 'employee_directory.table' => 'tidak_ada']);
-        $find('budi')->assertJsonPath('data', []);
+        $find('budi')->assertExactJson(['available' => true, 'failed' => true, 'data' => []]);
         config(['employee_directory.table' => 'employee_directory']);
         $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('users'));
+        $find('budi')->assertJsonPath('failed', false)->assertJsonPath('data.0.employee_id', 'E001');
 
         // Switched off: said so, and nothing is searched.
         config(['employee_directory.enabled' => false]);
-        $find('budi')->assertExactJson(['available' => false, 'data' => []]);
+        $find('budi')->assertExactJson(['available' => false, 'failed' => false, 'data' => []]);
         config(['employee_directory.enabled' => true]);
 
         // For who may add or change a user only; and nobody who is not signed in.
@@ -620,23 +632,22 @@ class UserManagementTest extends TestCase
         $this->assertSame([null, 'Pending'], [$budi->fresh()->microsoft_linked_at, $budi->fresh()->signInMethod()]);
     }
 
-    public function test_ldap_is_not_offered_where_the_directory_is_not_set_up(): void
+    public function test_ldap_can_be_chosen_before_active_directory_is_set_up_but_not_before_the_migration(): void
     {
         $this->actingAs($this->admin());
         $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT Field', 'role_id' => [$this->roleId('Viewer Radio')]];
 
-        // An account made for a way in that nothing can open would be worse than no choice.
-        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'LDAP'] + $form)->assertStatus(422)
-            ->assertJsonPath('errors.0', 'This sign-in method is not available here.');
-        $this->assertFalse(User::where('email', 'budi@merdekabattery.com')->exists());
-        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'Microsoft'] + $form)->assertOk();
+        // Active Directory is not set up (phpunit.xml leaves LDAP_URL empty). LDAP is a choice all the same, as in the form
+        // this one follows: the account signs in with Microsoft until the directory is set up (the login form answers its
+        // directory password with "cannot be reached", see DirectoryLoginTest), and the form says so.
+        $this->assertFalse(app(\App\Services\Directory\LdapAuthenticator::class)->isConfigured());
+        $this->postJson(route('user-management.user-registered.store'), ['sign_in_method' => 'LDAP'] + $form)->assertOk();
         $user = User::where('email', 'budi@merdekabattery.com')->sole();
-        $this->assertNull($user->ldap_username);
+        $this->assertSame(['budi', 'LDAP'], [$user->ldap_username, $user->signInMethod()]);
 
-        // An account that was given a directory username while there was a directory keeps it through a save here.
-        $user->update(['ldap_username' => 'budi']);
+        // Microsoft, said outright, takes the directory username away; a save that does not say leaves it.
         $this->putJson(route('user-management.user-registered.update', $user->id), ['sign_in_method' => 'Microsoft'] + $form)->assertOk();
-        $this->assertNull($user->fresh()->ldap_username, 'Microsoft, said outright, still takes it away');
+        $this->assertNull($user->fresh()->ldap_username);
         $user->fresh()->update(['ldap_username' => 'budi']);
         $this->putJson(route('user-management.user-registered.update', $user->id), $form)->assertOk();
         $this->assertSame('budi', $user->fresh()->ldap_username);

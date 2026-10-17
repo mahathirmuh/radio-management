@@ -19,6 +19,9 @@ use Throwable;
  */
 class EmployeeDirectory
 {
+    /** Whether the last search could not be made (the server did not answer, or a table or column is wrong). */
+    private bool $failed = false;
+
     /** Whether there is a directory to search: switched on, and its connection has a host and a database. */
     public function isAvailable(): bool
     {
@@ -42,6 +45,7 @@ class EmployeeDirectory
      */
     public function search(string $term): array
     {
+        $this->failed = false;
         $term = trim($term);
 
         if (! $this->isAvailable() || mb_strlen($term) < $this->minimum()) {
@@ -53,9 +57,19 @@ class EmployeeDirectory
         } catch (Throwable $e) {
             // A warning, not an error: nothing of this application is broken when that server does not answer.
             Log::warning('The employee directory could not be searched: ' . $e->getMessage());
+            $this->failed = true;
 
             return [];
         }
+    }
+
+    /**
+     * Whether the last search() could not be made, as opposed to finding nobody. The form says so: a table or column
+     * that is named wrong in .env would otherwise look like a directory in which nobody is employed.
+     */
+    public function failed(): bool
+    {
+        return $this->failed;
     }
 
     private function connection(): string

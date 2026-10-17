@@ -104,7 +104,8 @@
 
                         @if (count($signInMethods) > 1)
                             {{-- How the account is entered. LDAP: it has a directory username, and the login form
-                                 checks its password against Active Directory. Microsoft: it has none. --}}
+                                 checks its password against Active Directory. Microsoft: it has none. Always asked once
+                                 the column is there (before its migration there is one method, so no choice). --}}
                             <div class="col-12">
                                 <div class="row">
                                     <label class="col-md-4 col-form-label required">Sign-in method
@@ -138,6 +139,15 @@
                                             this directory is set up. No password is stored here; the one they already
                                             use is checked against the directory each time.
                                         </small>
+                                        @unless ($ldapConfigured)
+                                            {{-- Said, instead of the choice going away: a setting that went missing
+                                                 should show where it is missed. --}}
+                                            <small class="form-hint text-orange" id="userLdapOffNote">
+                                                Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
+                                                in .env). Until it is, this account cannot sign in with its directory
+                                                password; it can with Microsoft.
+                                            </small>
+                                        @endunless
                                     </div>
                                 </div>
                             </div>
@@ -291,12 +301,16 @@
             };
 
             // Put in as text, never as markup: the names and addresses come from another system.
-            const show = (found) => {
+            const show = (found, failed) => {
                 matches.empty();
                 if (!found.length) {
-                    // True whether nobody matched or the directory could not be reached (the log says which).
-                    $('<div class="text-secondary mt-2 user-directory-note">')
-                        .text("No match in the employee directory. Type the address yourself if you know it.")
+                    // Nobody matched, or the directory could not be searched (why, is in the application log): they are
+                    // said apart, or a setting that is wrong would look like a directory with nobody in it.
+                    $('<div class="mt-2 user-directory-note">')
+                        .addClass(failed ? "text-orange" : "text-secondary")
+                        .text(failed ?
+                            "The employee directory could not be searched just now (the reason is in the application log). Type the name and the address yourself." :
+                            "No match in the employee directory. Type the address yourself if you know it.")
                         .appendTo(matches);
                     return;
                 }
@@ -336,12 +350,12 @@
                     // Only the answer to what was typed last is shown.
                     success: (response) => {
                         if (mine === asked) {
-                            show(response.data || []);
+                            show(response.data || [], response.failed === true);
                         }
                     },
                     error: () => {
                         if (mine === asked) {
-                            show([]);
+                            show([], true);
                         }
                     },
                 });
