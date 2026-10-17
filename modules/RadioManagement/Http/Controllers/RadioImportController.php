@@ -4,6 +4,7 @@ namespace Modules\RadioManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\CheckMenuPermission;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -98,6 +99,16 @@ class RadioImportController extends Controller
         $report['at'] = now()->format('d-m-Y H:i');
         $report['by'] = $request->user()?->name;
         Cache::forever(self::REPORT_CACHE_KEY, $report);
+        // One entry for the whole file (the radios it made each get their line in "Riwayat Radio").
+        app(AuditLogger::class)->log(AuditLogger::RADIO_IMPORTED, new: [
+            'File' => $report['file'] ?? $file->getClientOriginalName(),
+            'Hapus data lama' => ($report['fresh'] ?? false) ? 'Ya' : 'Tidak',
+            'Diimpor' => $report['imported'] ?? 0,
+            'Aktif' => $report['imported_active'] ?? 0,
+            'Arsip' => $report['imported_archived'] ?? 0,
+            'Perlu dicek' => $report['flagged'] ?? 0,
+            'Dilewati' => count($report['skipped'] ?? []),
+        ]);
 
         return response()->json(['message' => 'Impor selesai.', 'report' => $report]);
     }

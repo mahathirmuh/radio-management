@@ -568,6 +568,12 @@ class RadioRegisterRulesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('report.imported', 1);
         $this->assertSame(1, Radio::withTrashed()->count());
+
+        // The audit trail has one line per file that went in (not the refused one), by whoever sent it.
+        $imports = \App\Models\Log\AuditLog::where('action', \App\Services\Audit\AuditLogger::RADIO_IMPORTED)->orderBy('id')->get();
+        $this->assertSame([(int) $importer->id, (int) $deleter->id], $imports->pluck('user_id')->map(fn ($id) => (int) $id)->all());
+        $this->assertSame(['Tidak', 'Ya'], $imports->map(fn ($entry) => $entry->new_values['Hapus data lama'])->all());
+        $this->assertSame(1, $imports->last()->new_values['Diimpor']);
     }
 
     public function test_adding_a_history_line_needs_update_not_create(): void

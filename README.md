@@ -17,6 +17,7 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | Persetujuan Edit | Pengajuan perubahan sel workbook, dan persetujuannya; baru setelah disetujui orang lain workbook di SharePoint berubah (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)) |
+| Audit Log | Jejak audit: siapa login (berhasil, gagal, keluar) dan siapa mengubah apa, dengan nilai sebelum → sesudah (lihat [Audit Log](#audit-log)) |
 
 Aturan utama:
 
@@ -185,7 +186,9 @@ docker compose down                     # hentikan (data storage tetap)
   memblokir CSS/JS http:// di halaman https. `TRUSTED_PROXIES` tetap perlu benar: dari situ aplikasi tahu alamat asli
   pengunjung, yang dipakai log aktivitas dan batas 10 percobaan per menit form login (tanpa itu semua orang tampak
   datang dari satu alamat, dan berbagi batas itu). Alamat asal proxy terlihat di kolom pertama
-  `docker compose logs --tail 5 app`; tambahkan ke `TRUSTED_PROXIES`. Setelah mengubah `.env`:
+  `docker compose logs --tail 5 app`, atau di kolom IP menu Audit Log (bila semua baris beralamat sama, itulah
+  proxy-nya); tambahkan ke `TRUSTED_PROXIES`. Alamat itu biasanya gateway jaringan Docker milik container, dan bisa
+  berganti bila jaringannya dibuat ulang (`docker compose down` lalu `up`). Setelah mengubah `.env`:
   `docker compose restart app`.
 - Untuk server: `APP_ENV=production` dan `APP_DEBUG=false`. Image dibangun tanpa paket dev (tanpa debugbar).
 - **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
@@ -323,6 +326,45 @@ buka **Role & Permission**, edit role-nya, lalu centang halaman di bawah **Appro
 Di form role, grup dan halamannya saling mengikuti: mencentang sebuah halaman ikut mencentang grupnya
 (halaman hanya tampil di sidebar bila grupnya juga diberikan), dan melepas centang grup melepas semua
 halaman di bawahnya.
+
+## Audit Log
+
+Menu **Audit Log** (bagian **Settings** di sidebar, `/audit-log`) adalah jejak audit: siapa login, siapa gagal login
+dan kenapa, siapa keluar, dan setiap perubahan data dengan nilai **sebelum → sesudah**. Halamannya mengikuti Audit log
+di trilingual-docon:
+
+- Tampilan **Table** (default): When, User (nama + e-mail), Action (kunci seperti `user.updated`), Entity (jenis + id
+  dan nama record-nya, misalnya `Radio #12` / `ID 4021 · 867TZB5309`), Change (per field, nilai lama dicoret), IP.
+- Tampilan **Log Activity**: timeline gaya Base-Apps-Merdeka ("Budi updated radio ID 4021 · … • 2 hours ago").
+- Filter **User email** (juga mencari nama akun, dan yang diketik pada login gagal) dan **Action**. Alamat halaman ikut
+  berubah (`?view=timeline&action=auth.login_failed&q=budi`), jadi tampilan itu bisa dibagikan.
+
+| Action | Dicatat saat |
+| --- | --- |
+| `auth.login`, `auth.login_failed`, `auth.logout` | Login berhasil (Via: Password, LDAP, Microsoft, Google), ditolak (yang diketik, caranya, dan alasannya: Wrong password, Not registered, Account not active, No role, Public e-mail address), dan keluar |
+| `user.created`, `user.updated`, `user.status_changed`, `user.password_reset`, `user.deleted` | User Management, dan `php artisan user:register` (tercatat sebagai System) |
+| `role.created`, `role.updated`, `role.deleted` | Role & Permission; akses per menu ditulis "Menu Register Radio: Create, Read" |
+| `radio.created`, `radio.updated`, `radio.archived`, `radio.restored`, `radio.history_added`, `radio.deleted`, `radio.imported` | Register Radio, riwayat manual, Import Excel (satu baris per file) |
+| `master_data.created`, `master_data.updated`, `master_data.deleted` | Tipe Radio, Perusahaan, Department, Template Channel |
+| `esign.created`, `esign.updated`, `esign.deleted`, `esign.used` | E-Sign Master, dan form Cetak yang dibuka dengan tanda tangan pembukanya |
+| `document.edit_requested`, `document.edit_approved`, `document.edit_rejected` | Pengajuan perubahan sel ICT Masterlist dan keputusannya (hasil penulisan ke SharePoint ikut dicatat) |
+
+- Yang dicatat hanya aksi yang **berhasil**, dan hanya field yang benar-benar berubah: menyimpan form tanpa perubahan
+  tidak menulis apa-apa.
+- **Tidak pernah dicatat**: password (yang diketik saat login, maupun yang diatur lewat tombol kunci: hanya bahwa
+  password diatur), token, dan gambar tanda tangan. Nilai yang namanya berisi password, secret, token, dan sejenisnya
+  diganti `[redacted]`; nilai panjang dipotong di 500 karakter.
+- Jejak hanya bisa dibaca: tidak ada tombol ubah atau hapus, dan aplikasi menolak mengubah atau menghapus baris
+  `audit_logs`. Bila menulis jejak gagal, aksinya tetap jalan (kegagalannya masuk log aplikasi).
+- Menu ini hanya untuk **Super Admin**; role lain bisa diberi lewat Role & Permission. Selama baris menunya belum ada,
+  halamannya tertutup untuk selain Super Admin.
+- Kolom IP berisi alamat pengunjung bila `TRUSTED_PROXIES` benar (lihat [Docker](#docker)); bila semua baris
+  menunjukkan alamat yang sama, itu alamat proxy.
+- Butuh dua migrasi: `2026_10_17_100000_create_audit_logs_table` (tabel) dan `2026_10_17_110000_add_audit_log_menu`
+  (menu, di tempat **Approval Management** yang tersembunyi; menu itu turun satu). Sebelum dijalankan, aplikasi tetap
+  jalan, tidak ada yang dicatat, dan halamannya bilang belum aktif.
+- Log aktivitas bawaan (`activity_logs`: setiap request POST/PUT/DELETE) tetap ada. Sejak 17-10-2026 gambar tanda
+  tangan E-Sign tidak lagi ikut tersimpan di sana (field `image` dilewati, seperti password).
 
 ## E-Sign Master
 
@@ -698,6 +740,12 @@ modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu
                             workbook (tab per sheet + tabel + pop-up pengajuan), edit-approvals
 database/seeders/DocumentMenuSeeder.php (dasar), CofScanMenuSeeder.php, IctMasterlistMenuSeeder.php,
                  EditApprovalsMenuSeeder.php, DocumentEditAccessSeeder.php (role Document Controller + hak ubah)
+app/Services/Audit/AuditLogger.php  menulis jejak audit (nama aksi, sebelum/sesudah, [redacted]); dipanggil dari login,
+                                    User Management, Role & Permission, RadioService, master data, E-Sign, import,
+                                    pengajuan/persetujuan sel
+app/Models/Log/AuditLog.php         satu baris jejak (tabel audit_logs; tidak bisa diubah atau dihapus)
+modules/AuditLog/                   halaman menu Audit Log: AuditLogController (halaman, daftar), Resources/views/index
+database/seeders/AuditLogMenuSeeder.php
 ```
 
 ## Catatan SQL Server

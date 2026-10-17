@@ -3,6 +3,7 @@
 namespace Modules\SharePointDocs\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -182,6 +183,8 @@ class WorkbookController extends Controller
 
             return response()->json(['message' => self::message($e), 'reason' => $e->reason], $e->httpStatus());
         }
+        app(AuditLogger::class)->log(AuditLogger::EDIT_REQUESTED, $made, ['Value' => $made->oldShown()],
+            ['Value' => $made->newShown()] + array_filter(['Column' => $made->column_title]), label: EditApprovalController::auditLabel($made));
 
         return response()->json([
             'message' => "Pengajuan perubahan sel {$made->cell} dikirim. Isi workbook baru berubah setelah disetujui.",

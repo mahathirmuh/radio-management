@@ -9,8 +9,11 @@ use Illuminate\Support\Str;
 
 class LogApps
 {
-    /** Request fields that must never be written to activity_logs / error_logs. */
-    public const SENSITIVE_INPUT = ['password', 'password_confirmation', 'current_password', '_token', 'token'];
+    /**
+     * Request fields that must never be written to activity_logs / error_logs. "image" is the signature of E-Sign
+     * Master: it is kept encrypted, and a copy in plain text here would undo that.
+     */
+    public const SENSITIVE_INPUT = ['password', 'password_confirmation', 'current_password', '_token', 'token', 'image'];
 
     public static function activityLog(Request $request, $user)
     {

@@ -61,6 +61,8 @@ class DatabaseSeeder extends Seeder
         // Changing the SharePoint workbook: the page where changes are approved, and who may ask for and approve them.
         $this->call(EditApprovalsMenuSeeder::class);
         $this->call(DocumentEditAccessSeeder::class);
+        // The audit trail of sign-ins and changes (section "Settings", in the place of "Approval Management").
+        $this->call(AuditLogMenuSeeder::class);
         // The base approval module does not work here: its menus are seeded above but not shown.
         // (Only on a new install: on a database in use the owner's later choice is left alone.)
         $this->call(HideApprovalMenusSeeder::class);

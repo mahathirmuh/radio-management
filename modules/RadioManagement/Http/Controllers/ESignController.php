@@ -4,6 +4,7 @@ namespace Modules\RadioManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -145,7 +146,7 @@ class ESignController extends Controller
 
         $user = User::findOrFail($data['user_id']);
         $name = trim((string) ($data['display_name'] ?? '')) ?: (string) $user->name;
-        ItSignature::create([
+        $signature = ItSignature::create([
             'user_id' => $user->id,
             'display_name' => mb_substr($name, 0, 150),
             'image' => $image,
@@ -153,6 +154,8 @@ class ESignController extends Controller
             'created_by' => $request->user()?->id,
             'updated_by' => $request->user()?->id,
         ]);
+        // Never the picture: that one was made, for whom, and the name under it.
+        app(AuditLogger::class)->log(AuditLogger::ESIGN_CREATED, $signature, new: $this->facts($signature, $user), label: $user->email);
 
         return response()->json(['message' => "Tanda tangan {$name} berhasil didaftarkan."]);
     }
@@ -184,7 +187,11 @@ class ESignController extends Controller
                 return $this->invalid([$e->getMessage()]);
             }
         }
+        $owner = User::withTrashed()->find($signature->user_id);
+        $before = $this->facts($signature, $owner);
         $signature->update($changes);
+        app(AuditLogger::class)->logChanges(AuditLogger::ESIGN_UPDATED, $signature, $before,
+            $this->facts($signature, $owner) + (isset($changes['image']) ? ['Signature' => 'Replaced'] : []), $owner?->email);
 
         return response()->json(['message' => "Tanda tangan {$signature->display_name} berhasil disimpan."]);
     }
@@ -194,9 +201,26 @@ class ESignController extends Controller
     {
         $signature = ItSignature::findOrFail($id);
         $name = $signature->display_name;
+        $owner = User::withTrashed()->find($signature->user_id);
+        $before = $this->facts($signature, $owner);
         DB::transaction(fn () => $signature->delete());
+        app(AuditLogger::class)->log(AuditLogger::ESIGN_DELETED, $signature, old: $before, label: $owner?->email);
 
         return response()->json(['message' => "Tanda tangan {$name} dihapus."]);
+    }
+
+    /**
+     * A signature as the audit trail shows it: whose it is and the name printed under it. Never the picture.
+     *
+     * @return array<string, string|null>
+     */
+    private function facts(ItSignature $signature, ?User $owner): array
+    {
+        return [
+            'Account' => $owner?->email,
+            'Name printed' => $signature->display_name,
+            'Active' => $signature->active ? 'Yes' : 'No',
+        ];
     }
 
     private function invalid(array $errors): JsonResponse

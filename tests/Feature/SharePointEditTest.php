@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\CheckMenuPermission;
+use App\Models\Log\AuditLog;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use Database\Seeders\DocumentEditAccessSeeder;
 use Database\Seeders\EditApprovalsMenuSeeder;
 use Database\Seeders\IctMasterlistMenuSeeder;
@@ -356,6 +358,15 @@ class SharePointEditTest extends TestCase
         $this->assertNotNull($request->applied_at);
         $this->assertSame('Admin Radio Satu', $request->requested_by_name);
 
+        // In the audit trail: who asked for what, who approved it, and what came of it.
+        $label = config('sharepoint-docs.workbooks.ict-masterlist.title') . ' · SRF!C2';
+        $asked = AuditLog::where('action', AuditLogger::EDIT_REQUESTED)->sole();
+        $this->assertSame([$this->admin()->id, 'EditRequest', $request->id, $label, 'Budi S.'],
+            [(int) $asked->user_id, $asked->entity_type, (int) $asked->entity_id, $asked->entity_label, $asked->new_values['Value']]);
+        $approved = AuditLog::where('action', AuditLogger::EDIT_APPROVED)->sole();
+        $this->assertSame([$this->controller()->id, $label, ['Value' => 'Budi S.', 'Result' => 'Diterapkan']],
+            [(int) $approved->user_id, $approved->entity_label, $approved->new_values]);
+
         // The page shows the new content at once.
         $this->actingAs($this->superAdmin());
         $this->getJson(route('documents.ict-masterlist.rows', ['sort' => 'row', 'dir' => 'asc']))
@@ -461,7 +472,11 @@ class SharePointEditTest extends TestCase
         $request->refresh();
         $this->assertSame(['rejected', 'Nama salah', 'Doc Controller Satu'], [$request->status, $request->decision_note, $request->decided_by_name]);
         $this->assertSame(0, $this->puts());
+        $rejected = AuditLog::where('action', AuditLogger::EDIT_REJECTED)->sole();
+        $this->assertSame([$this->controller()->id, ['Value' => 'Budi S.', 'Note' => 'Nama salah']], [(int) $rejected->user_id, $rejected->new_values]);
         $this->approve($request)->assertStatus(409);
+        // Refused (decided already): nothing more in the trail.
+        $this->assertFalse(AuditLog::where('action', AuditLogger::EDIT_APPROVED)->exists());
 
         // The cell is free for a new request.
         $this->actingAs($this->admin());
@@ -675,9 +690,10 @@ class SharePointEditTest extends TestCase
         // The page of the approvals: in the section "Dokumen" below the masterlist, the others below it.
         $menu = DB::table('menu')->where('route', EditApprovalsMenuSeeder::ROUTE)->sole();
         $this->assertSame(['Persetujuan Edit', 'Dokumen', null, 9], [$menu->title, $menu->section, $menu->parent_id, (int) $menu->order]);
+        // (Since 2026-10-17 "Audit Log" takes place 11, before the hidden "Approval Management": AuditLogTest.)
         $this->assertSame(
-            ['COF Scan' => 7, 'ICT Masterlist' => 8, 'Persetujuan Edit' => 9, 'User Management' => 10, 'Approval Management' => 11],
-            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Approval Management'])
+            ['COF Scan' => 7, 'ICT Masterlist' => 8, 'Persetujuan Edit' => 9, 'User Management' => 10, 'Audit Log' => 11, 'Approval Management' => 12],
+            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Audit Log', 'Approval Management'])
                 ->orderBy('order')->pluck('order', 'title')->map(fn ($place) => (int) $place)->all()
         );
         $this->assertSame('/documents/edit-approvals', route(EditApprovalsMenuSeeder::ROUTE, [], false));
@@ -699,6 +715,8 @@ class SharePointEditTest extends TestCase
 
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
+        // The database as it was when this migration was new: without the later "Audit Log".
+        (require database_path('migrations/2026_10_17_110000_add_audit_log_menu.php'))->down();
         $migration = require database_path('migrations/2026_10_12_110000_add_edit_approvals_menu.php');
         $update = CheckMenuPermission::PERMISSION_IDS['Update'];
         $order = fn () => DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Approval Management'])

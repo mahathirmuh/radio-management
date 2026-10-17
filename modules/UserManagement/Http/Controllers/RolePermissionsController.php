@@ -3,6 +3,7 @@
 namespace Modules\UserManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\CheckMenuPermission;
 use App\Models\Organization\Company;
 use App\Models\UserManagement\Menu;
 use App\Models\UserManagement\MenuRolePermission;
@@ -10,6 +11,7 @@ use App\Models\UserManagement\Permission;
 use App\Models\UserManagement\Role;
 use App\Models\Organization\Site;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -257,6 +259,28 @@ class RolePermissionsController extends Controller
     }
 
     /**
+     * A role as the audit trail shows it: its name, its home page, and what it may do on each menu it opens
+     * ("Menu Register Radio" => "Create, Read").
+     *
+     * @return array<string, string|null>
+     */
+    private function auditFacts(Role $role): array
+    {
+        $granted = MenuRolePermission::where('role_id', $role->id)->get()->groupBy('menu_id')
+            ->map(fn ($rows) => $rows->pluck('permission_id')->map(fn ($id) => (int) $id)->all());
+        $menus = Menu::query()->whereIn('id', DB::table('menu_role')->where('role_id', $role->id)->select('menu_id'))
+            ->orderBy('title')->get(['id', 'title']);
+
+        $facts = ['Name' => $role->name, 'Home page' => $role->home_page];
+        foreach ($menus as $menu) {
+            $names = array_keys(array_filter(CheckMenuPermission::PERMISSION_IDS, fn ($id) => in_array($id, $granted[$menu->id] ?? [], true)));
+            $facts['Menu ' . $menu->title] = $names === [] ? 'Access only' : implode(', ', $names);
+        }
+
+        return $facts;
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
@@ -295,7 +319,8 @@ class RolePermissionsController extends Controller
                         break;
                 }
 
-                DB::transaction(function () use ($request, $setting_role, $role_type) {
+                $made = null;
+                DB::transaction(function () use ($request, $setting_role, $role_type, &$made) {
 
                     $data = $this->role->create([
                         'name' => $request->role_name,
@@ -307,7 +332,9 @@ class RolePermissionsController extends Controller
                     $data->menus()->attach($request->menu_list);
 
                     $this->syncMenuPermissions($data, $request->menu_list ?? [], $request->input('menu_permission', []));
+                    $made = $data;
                 });
+                app(AuditLogger::class)->log(AuditLogger::ROLE_CREATED, $made, new: $this->auditFacts($made), label: $made->name);
 
                 return response()->json(["message" => "Data Updated Succesfully"], 200);
             } catch (Exception $e) {
@@ -428,6 +455,8 @@ class RolePermissionsController extends Controller
                 }
 
 
+                $role = $this->role->findOrFail($id);
+                $before = $this->auditFacts($role);
                 DB::transaction(function () use ($request, $id, $setting_role) {
 
 
@@ -445,6 +474,8 @@ class RolePermissionsController extends Controller
 
                     $this->syncMenuPermissions($data, $request->menu_list ?? [], $request->input('menu_permission', []));
                 });
+                $role->refresh();
+                app(AuditLogger::class)->logChanges(AuditLogger::ROLE_UPDATED, $role, $before, $this->auditFacts($role), $role->name);
 
                 return response()->json(["message" => "Data Updated Succesfully"], 200);
             } catch (Exception $e) {
@@ -468,9 +499,11 @@ class RolePermissionsController extends Controller
                 return response()->json(["message" => "Role still assigned to user"], 500);
             } else {
 
+                $before = $this->auditFacts($data);
                 DB::transaction(function () use ($data) {
                     $data->delete();
                 });
+                app(AuditLogger::class)->log(AuditLogger::ROLE_DELETED, $data, old: $before, label: $data->name);
                 return response()->json(["message" => "Data Deleted Successfully"], 200);
             }
         } catch (Exception $e) {

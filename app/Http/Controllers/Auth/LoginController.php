@@ -7,6 +7,7 @@ use App\Models\UserManagement\User;
 use App\Models\Log\LogActivity;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
+use App\Services\Audit\AuditLogger;
 use App\Services\Directory\DirectoryUnavailable;
 use App\Services\Directory\LdapAuthenticator;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
@@ -91,10 +92,12 @@ class LoginController extends Controller
                         $request->session()->regenerate();
                         return redirect()->route(Auth::user()->homeRoute());
                     } else {
+                        $this->refused((string) $request->emailusername, $account, 'Password', $account->isActive() ? 'Wrong password' : 'Account not active');
                         Alert::warning('Username or Password Wrong!', 'Try Again!');
                         return view('auth.login');
                     }
                 } else {
+                    $this->refused((string) $request->emailusername, null, 'Login form', 'Not registered');
                     Alert::warning('Your account is not registered!', 'please contact IT the Helpdesk');
                     return view('auth.login');
                 }
@@ -126,20 +129,38 @@ class LoginController extends Controller
     }
 
     /**
+     * A refused sign-in, for the audit trail: what was typed into the form or sent by the provider (never a password),
+     * the way in, and why it was refused. What the screen says does not change: the reason is for whoever reads the
+     * trail (a wrong password and an inactive account still look the same to the person at the form).
+     */
+    private function refused(string $typed, ?User $account, string $via, string $reason): void
+    {
+        $typed = mb_substr(trim($typed), 0, 255);
+        $values = ['Account' => $typed !== '' ? $typed : null, 'Via' => $via, 'Reason' => $reason];
+        // Signing in with the directory username: the address of the account says whose it is.
+        if ($account !== null && strcasecmp($typed, (string) $account->email) !== 0) {
+            $values['Email'] = $account->email;
+        }
+
+        app(AuditLogger::class)->log(AuditLogger::LOGIN_FAILED, new: array_filter($values, fn ($value) => $value !== null));
+    }
+
+    /**
      * The login form for an account that has a directory username (User Management, "LDAP"): the password is the one
      * of its Active Directory account, checked by binding to the directory as that person. The password this
      * application keeps for the account is not looked at.
      */
     private function loginWithDirectory(Request $request, User $account)
     {
-        $wrong = function () {
+        $wrong = function (string $reason) use ($request, $account) {
+            $this->refused((string) $request->emailusername, $account, User::SIGN_IN_LDAP, $reason);
             Alert::warning('Username or Password Wrong!', 'Try Again!');
             return view('auth.login');
         };
 
         // Set to inactive in User Management: refused the way a wrong password is, and the directory is not asked.
         if (! $account->isActive()) {
-            return $wrong();
+            return $wrong('Account not active');
         }
 
         try {
@@ -152,11 +173,12 @@ class LoginController extends Controller
         }
 
         if ($identity === null) {
-            return $wrong();
+            return $wrong('Wrong password');
         }
 
         // As with Microsoft: every page is gated by menu/role, so an account without a role could only see 403 pages.
         if ($account->roles()->doesntExist()) {
+            $this->refused((string) $request->emailusername, $account, User::SIGN_IN_LDAP, 'No role');
             Alert::warning('No access yet', $account->email . ' has no role in this application. Ask the admin to assign one.')->persistent(true);
             return view('auth.login');
         }
@@ -274,11 +296,13 @@ class LoginController extends Controller
         $email = trim((string) $email);
         if ($email === '') {
             Log::warning($provider . ' SSO returned no e-mail / userPrincipalName');
+            $this->refused('', null, $provider, 'No e-mail address from ' . $provider);
             Alert::warning('Sign-in failed', $provider . ' did not send an e-mail address for this account.')->persistent(true);
             return redirect()->route('login');
         }
 
         if (Str::endsWith(Str::lower($email), ['@gmail.com', '@yahoo.com'])) {
+            $this->refused($email, null, $provider, 'Public e-mail address');
             Alert::warning('Sorry you are using public email for login!', 'Please contact HR immediately to address this issue. your email logged : ' . $email);
             return redirect()->route('login');
         }
@@ -287,6 +311,7 @@ class LoginController extends Controller
 
         if ($user === null) {
             Log::warning($provider . ' SSO refused: no users row', ['email' => $email]);
+            $this->refused($email, null, $provider, 'Not registered');
             Alert::warning("The user is not registered in {$provider} SSO!", 'Please contact HR immediately to address this issue. your email logged : ' . $email)->persistent(true);
             return redirect()->route('login');
         }
@@ -294,6 +319,7 @@ class LoginController extends Controller
         // Every page is gated by menu/role, so an account without a role could only see 403 pages.
         if ($user->roles()->doesntExist()) {
             Log::warning($provider . ' SSO refused: user has no role', ['email' => $email]);
+            $this->refused($email, $user, $provider, 'No role');
             Alert::warning('No access yet', $email . ' has no role in this application. Ask the admin to assign one.')->persistent(true);
             return redirect()->route('login');
         }
@@ -301,6 +327,7 @@ class LoginController extends Controller
         // Set to inactive in User Management.
         if (! $user->isActive()) {
             Log::warning($provider . ' SSO refused: account is inactive', ['email' => $email]);
+            $this->refused($email, $user, $provider, 'Account not active');
             Alert::warning('Account inactive', $email . ' has been deactivated in this application. Ask the admin to activate it.')->persistent(true);
             return redirect()->route('login');
         }
@@ -359,6 +386,10 @@ class LoginController extends Controller
     // LOGOUT
     public function logout(Request $request)
     {
+        // Written while it is still known who it is.
+        if (Auth::check()) {
+            app(AuditLogger::class)->log(AuditLogger::LOGOUT);
+        }
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();

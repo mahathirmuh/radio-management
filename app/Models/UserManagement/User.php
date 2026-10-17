@@ -9,6 +9,7 @@ namespace App\Models\UserManagement;
 use App\Models\Organization\Company;
 use App\Models\Organization\Site;
 use App\Models\WorkflowLevel;
+use App\Services\Audit\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -118,9 +119,11 @@ class User extends Authenticatable
         return Cache::remember('users-sign-in-columns', 60, fn () => Schema::hasColumn('users', 'last_login_at'));
     }
 
-    /** Notes that the account signed in just now, and how ("Microsoft", "LDAP", "Password", ...). */
+    /** Notes that the account signed in just now, and how ("Microsoft", "LDAP", "Password", ...), here and in the audit trail. */
     public function recordSignIn(string $method): void
     {
+        app(AuditLogger::class)->log(AuditLogger::LOGIN, new: ['Via' => $method], user: $this);
+
         $now = now();
         $noted = self::signInReady() ? ['last_login_at' => $now, 'last_login_method' => $method] : [];
 

@@ -7,6 +7,7 @@ use App\Http\Middleware\CheckMenuPermission;
 use App\Models\Organization\Company;
 use App\Models\UserManagement\Role;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use App\Services\Directory\LdapAuthenticator;
 use Modules\UserManagement\Services\EmployeeDirectory;
 
@@ -299,7 +300,8 @@ class UserRegisteredController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $companySelected, $existing, $directoryUsername) {
+            $saved = null;
+            DB::transaction(function () use ($request, $companySelected, $existing, $directoryUsername, &$saved) {
                 $attributes = [
                     'name' => $request->name,
                     'company_id' => $companySelected->id,
@@ -320,7 +322,12 @@ class UserRegisteredController extends Controller
                 }
 
                 $user->roles()->sync($request->role_id);
+                $saved = $user;
             });
+
+            // A deleted account that is added again keeps its row: the trail says so.
+            app(AuditLogger::class)->log(AuditLogger::USER_CREATED, $saved,
+                new: $this->auditFacts($saved) + ($existing ? ['Restored' => 'Yes, it had been deleted'] : []), label: $saved->email);
 
             return response()->json(["message" => "User Created Successfully"], 200);
         } catch (Exception $e) {
@@ -430,6 +437,8 @@ class UserRegisteredController extends Controller
             return $denied;
         }
 
+        $before = $this->auditFacts($user);
+
         try {
             DB::transaction(function () use ($request, $user, $companySelected, $roleIds, $active, $directoryUsername, $changesDirectory) {
                 // "Has signed in with Microsoft" was said of the address the account had: a new address has not.
@@ -454,6 +463,9 @@ class UserRegisteredController extends Controller
 
                 $user->roles()->sync($roleIds->all());
             });
+
+            $after = $this->auditFacts($user->fresh());
+            app(AuditLogger::class)->logChanges(AuditLogger::USER_UPDATED, $user, $before, $after, $user->email);
 
             return response()->json(["message" => "User Updated Successfully"], 200);
         } catch (Exception $e) {
@@ -480,6 +492,7 @@ class UserRegisteredController extends Controller
                 return $denied;
             }
 
+            $before = $this->auditFacts($user);
             DB::transaction(function () use ($user) {
                 // Hapus relasi role_user jika ada
                 $user->roles()->detach();
@@ -487,6 +500,7 @@ class UserRegisteredController extends Controller
                 // Hapus user
                 $user->delete();
             });
+            app(AuditLogger::class)->log(AuditLogger::USER_DELETED, $user, old: $before, label: $user->email);
 
             return response()->json(['message' => 'User deleted successfully!'], 200);
         } catch (Exception $e) {
@@ -517,8 +531,10 @@ class UserRegisteredController extends Controller
         }
 
         $active = $request->boolean('active');
+        $before = ['Status' => $user->isActive() ? 'Active' : 'Inactive'];
         // A "remember me" cookie of the account must not bring it back in.
         $user->update(['active' => $active ? '1' : '0'] + ($active ? [] : ['remember_token' => null]));
+        app(AuditLogger::class)->logChanges(AuditLogger::USER_STATUS_CHANGED, $user, $before, ['Status' => $active ? 'Active' : 'Inactive'], $user->email);
 
         return response()->json(['message' => $active ? 'User activated.' : 'User deactivated.'], 200);
     }
@@ -556,8 +572,29 @@ class UserRegisteredController extends Controller
         }
 
         $user->update(['password' => bcrypt($request->password), 'remember_token' => null]);
+        // That a password was set, by whom: never the password.
+        app(AuditLogger::class)->log(AuditLogger::USER_PASSWORD_RESET, $user, label: $user->email);
 
         return response()->json(['message' => 'Password saved.'], 200);
+    }
+
+    /**
+     * An account as the audit trail shows it: the fields of the form, the roles by name. ($user->roles is not used: it
+     * may have been loaded before the roles were changed.)
+     *
+     * @return array<string, string|null>
+     */
+    private function auditFacts(User $user): array
+    {
+        return [
+            'Name' => $user->name,
+            'Email' => $user->email,
+            'Role' => $user->roles()->orderBy('name')->pluck('name')->implode(', '),
+            'Status' => $user->isActive() ? 'Active' : 'Inactive',
+        ] + (User::directoryReady() ? [
+            'Sign-in method' => filled($user->ldap_username) ? User::SIGN_IN_LDAP : User::SIGN_IN_MICROSOFT,
+            'Directory username' => $user->ldap_username,
+        ] : []);
     }
 
     /**

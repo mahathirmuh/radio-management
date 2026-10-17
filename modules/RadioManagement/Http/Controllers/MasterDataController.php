@@ -3,6 +3,8 @@
 namespace Modules\RadioManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit\AuditLogger;
+use DateTimeInterface;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -84,7 +86,8 @@ class MasterDataController extends Controller
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
-        $master['model']::create($this->payload($master, $validator->validated()));
+        $item = $master['model']::create($this->payload($master, $validator->validated()));
+        app(AuditLogger::class)->log(AuditLogger::MASTER_CREATED, $item, new: $this->facts($master, $item), label: $this->label($master, $item));
 
         return response()->json(['message' => "{$master['title']} berhasil ditambahkan."]);
     }
@@ -97,7 +100,9 @@ class MasterDataController extends Controller
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
+        $before = $this->facts($master, $item);
         $item->update($this->payload($master, $validator->validated()));
+        app(AuditLogger::class)->logChanges(AuditLogger::MASTER_UPDATED, $item, $before, $this->facts($master, $item), $this->label($master, $item));
 
         return response()->json(['message' => "{$master['title']} berhasil disimpan."]);
     }
@@ -136,8 +141,36 @@ class MasterDataController extends Controller
                 . 'atau pindahkan radio ke data lain dulu.',
             ]);
         }
+        app(AuditLogger::class)->log(AuditLogger::MASTER_DELETED, $item, old: $this->facts($master, $item), label: $this->label($master, $item));
 
         return response()->json(['message' => "{$master['title']} dihapus."]);
+    }
+
+    /**
+     * A row of a master table as the audit trail shows it: the fields of its form, by their labels.
+     *
+     * @return array<string, mixed>
+     */
+    private function facts(array $master, Model $item): array
+    {
+        $facts = [];
+        foreach ($master['fields'] as $name => $field) {
+            $value = $item->getAttribute($name);
+            $facts[$field['label']] = match (true) {
+                $field['type'] === 'boolean' => $value ? 'Ya' : 'Tidak',
+                $value instanceof DateTimeInterface => $value->format('d-m-Y'),
+                $field['type'] === 'select' && is_scalar($value) => $field['options'][$value] ?? $value,
+                default => $value,
+            };
+        }
+
+        return $facts;
+    }
+
+    /** "Tipe Radio: MotoTrbo XiR P6620i": which table, and which row of it. */
+    private function label(array $master, Model $item): string
+    {
+        return $master['title'] . ': ' . ($item->getAttribute($master['unique']) ?? '#' . $item->getKey());
     }
 
     private function master(Request $request): array

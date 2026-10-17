@@ -839,8 +839,10 @@ class SharePointWorkbookTest extends TestCase
 
     public function test_the_menu_is_added_below_cof_scan_and_makes_room_for_itself(): void
     {
-        // A database from before the menu "Persetujuan Edit" (it has its own test): that migration rolled back, which also takes
-        // away the right to change the masterlist that Admin Radio and the Document Controller were given with it.
+        // A database from before the menus "Audit Log" and "Persetujuan Edit" (they have their own tests): those migrations
+        // rolled back, the later first. The second also takes away the right to change the masterlist that Admin Radio and the
+        // Document Controller were given with it.
+        (require database_path('migrations/2026_10_17_110000_add_audit_log_menu.php'))->down();
         (require database_path('migrations/2026_10_12_110000_add_edit_approvals_menu.php'))->down();
 
         $order = fn () => DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'User Management', 'Approval Management'])

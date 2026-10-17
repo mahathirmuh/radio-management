@@ -2,6 +2,7 @@
 
 namespace Modules\RadioManagement\Services;
 
+use App\Services\Audit\AuditLogger;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -15,7 +16,7 @@ use Modules\RadioManagement\Models\RadioType;
 
 /**
  * Every change to a radio goes through here so it lands in the history log
- * ("Riwayat") with a readable before/after.
+ * ("Riwayat") with a readable before/after, and in the audit trail (menu "Audit Log").
  *
  * Writes run one at a time (RegisterLock) and start from the radio's current row, so two
  * people saving at the same moment cannot hand out one Radio ID twice or undo each other.
@@ -69,6 +70,7 @@ class RadioService
 
             $radio = Radio::create($data + ['created_by' => $userId, 'updated_by' => $userId]);
             $this->log($radio, 'Dibuat', 'Radio didaftarkan.', $userId);
+            $this->audit(AuditLogger::RADIO_CREATED, $radio, new: $this->facts($radio));
 
             return $radio;
         });
@@ -108,6 +110,8 @@ class RadioService
                     'changes' => $changes,
                     'document_no' => $action === 'Serah Terima' ? $radio->document_no : null,
                 ]);
+                $this->audit(AuditLogger::RADIO_UPDATED, $radio,
+                    array_column($changes, 'old', 'label'), array_column($changes, 'new', 'label'));
             }
 
             return $radio;
@@ -140,6 +144,13 @@ class RadioService
                 $description .= ' ' . $note;
             }
             $this->log($radio, 'Arsip', $description, $userId, ['event_date' => $date]);
+            $this->audit(AuditLogger::RADIO_ARCHIVED, $radio,
+                $releasedId ? ['Radio ID' => (string) $releasedId] : null,
+                ($releasedId ? ['Radio ID' => null] : []) + array_filter([
+                    'Alasan' => $reason,
+                    'Tanggal' => Carbon::parse($date)->format('d-m-Y'),
+                    'Catatan' => filled($note) ? $note : null,
+                ], fn ($value) => $value !== null));
 
             return $radio;
         });
@@ -174,6 +185,7 @@ class RadioService
                     : " Radio ID lama {$previous} sekarang dipakai atau dicadangkan radio lain, isi Radio ID baru.";
             }
             $this->log($radio, 'Dipulihkan', $description, $userId);
+            $this->audit(AuditLogger::RADIO_RESTORED, $radio, new: ['Radio ID' => $radio->dmr_id ? (string) $radio->dmr_id : null, 'Keterangan' => $description]);
 
             return $radio;
         });
@@ -198,10 +210,18 @@ class RadioService
                 $radio->forceFill([$field => $date->toDateString(), 'updated_by' => $userId])->save();
             }
 
-            return $this->log($radio, $data['action'], $data['description'] ?? null, $userId, [
+            $entry = $this->log($radio, $data['action'], $data['description'] ?? null, $userId, [
                 'event_date' => $date->toDateString(),
                 'document_no' => $data['document_no'] ?? null,
             ]);
+            $this->audit(AuditLogger::RADIO_HISTORY_ADDED, $radio, new: array_filter([
+                'Jenis' => $data['action'],
+                'Tanggal' => $date->format('d-m-Y'),
+                'Keterangan' => $data['description'] ?? null,
+                'No. Dokumen' => $data['document_no'] ?? null,
+            ], fn ($value) => filled($value)));
+
+            return $entry;
         });
     }
 
@@ -211,7 +231,9 @@ class RadioService
         $this->lock->run(function () use ($radio, $userId) {
             $this->reload($radio);
             $this->log($radio, 'Dihapus', 'Data radio dihapus dari register.', $userId);
+            $facts = $this->facts($radio);
             $radio->delete();
+            $this->audit(AuditLogger::RADIO_DELETED, $radio, old: $facts);
         });
     }
 
@@ -226,6 +248,31 @@ class RadioService
             'changes' => $extra['changes'] ?? null,
             'user_id' => $userId,
         ]);
+    }
+
+    /** A line of the audit trail about the radio, by whoever is signed in. */
+    private function audit(string $action, Radio $radio, ?array $old = null, ?array $new = null): void
+    {
+        app(AuditLogger::class)->log($action, $radio, $old, $new, label: $radio->display_name);
+    }
+
+    /**
+     * The radio as the audit trail shows it when it is made or deleted: the fields worth a history line that are
+     * filled in, as the register shows them.
+     *
+     * @return array<string, string>
+     */
+    private function facts(Radio $radio): array
+    {
+        $facts = [];
+        foreach (self::TRACKED as $field => $label) {
+            $value = $this->display($field, $radio->getAttribute($field));
+            if ($value !== null) {
+                $facts[$label] = $value;
+            }
+        }
+
+        return $facts;
     }
 
     /** The row as it is now, not as it was when the request started waiting for the lock. */

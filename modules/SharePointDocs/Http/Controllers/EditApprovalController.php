@@ -3,6 +3,7 @@
 namespace Modules\SharePointDocs\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\SharePointDocs\Models\EditRequest;
@@ -94,6 +95,12 @@ class EditApprovalController extends Controller
         } catch (EditException $e) {
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
+        // Approved: what became of it is said too (written to SharePoint, or not, and why).
+        app(AuditLogger::class)->log(AuditLogger::EDIT_APPROVED, $done, new: array_filter([
+            'Value' => $done->newShown(),
+            'Result' => EditRequest::LABELS[$done->status] ?? $done->status,
+            'Note' => $done->failure ?: null,
+        ], fn ($value) => $value !== null), label: self::auditLabel($done));
 
         return match ($done->status) {
             EditRequest::APPLIED => response()->json([
@@ -114,8 +121,18 @@ class EditApprovalController extends Controller
         } catch (EditException $e) {
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
+        app(AuditLogger::class)->log(AuditLogger::EDIT_REJECTED, $done, new: array_filter([
+            'Value' => $done->newShown(),
+            'Note' => filled($done->decision_note) ? $done->decision_note : null,
+        ], fn ($value) => $value !== null), label: self::auditLabel($done));
 
         return response()->json(['message' => "Pengajuan perubahan sel {$done->cell} ditolak.", 'status' => $done->status]);
+    }
+
+    /** The cell a request is about, as the audit trail names it: "ICT Masterlist · COF!B12". */
+    public static function auditLabel(EditRequest $one): string
+    {
+        return config("sharepoint-docs.workbooks.{$one->workbook}.title", $one->workbook) . ' · ' . $one->sheet . '!' . $one->cell;
     }
 
     /** @return array<string, mixed> */

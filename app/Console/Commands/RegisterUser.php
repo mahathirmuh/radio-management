@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Organization\Company;
 use App\Models\UserManagement\Role;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -119,6 +120,15 @@ class RegisterUser extends Command
 
             return $user;
         });
+
+        // In the audit trail as done by the system (on the server, not in a browser).
+        app(AuditLogger::class)->log($user->wasRecentlyCreated ? AuditLogger::USER_CREATED : AuditLogger::USER_UPDATED, $user, new: [
+            'Name' => $user->name,
+            'Email' => $user->email,
+            'Role' => $user->roles()->orderBy('name')->pluck('name')->implode(', '),
+            'Status' => 'Active',
+            'Via' => 'php artisan user:register',
+        ], label: $user->email);
 
         $this->info(($user->wasRecentlyCreated ? 'Registered' : 'Updated') . " {$user->email}");
         $this->table(['Name', 'E-mail', 'Company', 'Roles'], [[

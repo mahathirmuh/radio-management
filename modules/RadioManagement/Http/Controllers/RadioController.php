@@ -3,6 +3,7 @@
 namespace Modules\RadioManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit\AuditLogger;
 use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
@@ -172,6 +173,7 @@ class RadioController extends Controller
                 'radio_label' => mb_substr(trim('ID ' . ($radio->dmr_id ?? '-') . ' · SN ' . ($radio->serial_number ?? '-') . ' · ' . ($radio->user_name ?? '-')), 0, 255),
                 'created_at' => now(),
             ]);
+            app(AuditLogger::class)->log(AuditLogger::ESIGN_USED, $radio, new: ['Signature' => $signature->display_name], label: $radio->display_name);
         }
 
         return view('RadioManagement::radio.checkout-form', [
