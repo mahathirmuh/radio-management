@@ -172,9 +172,17 @@ docker compose down                     # hentikan (data storage tetap)
   yang dibuka orang harus sama dengan alamat itu (host dan port) dan terdaftar di app Entra. Container di laptop
   (`http://localhost:26102`) baru bisa login Microsoft bila alamat itu yang dipakai di `MS_SSO_REDIRECT_URI` dan
   didaftarkan; di server, alamatnya adalah domain https yang diteruskan reverse proxy ke port 26102.
-- **Di belakang reverse proxy HTTPS** (misalnya Nginx Proxy Manager): isi `TRUSTED_PROXIES` di `.env` dengan alamat
-  asal proxy (bukan `*`), `APP_URL` dan `MS_SSO_REDIRECT_URI` dengan alamat https-nya, dan `SESSION_SECURE_COOKIE=true`.
-  Tanpa `TRUSTED_PROXIES`, halaman https memuat aset lewat http:// dan browser memblokirnya.
+- **Di belakang reverse proxy HTTPS** (misalnya Nginx Proxy Manager di server yang sama): di `.env` server isi
+  - `TRUSTED_PROXIES=<IP server itu>,172.16.0.0/12,127.0.0.1,::1` (bukan `*`). Proxy yang meneruskan ke port milik
+    container di server yang sama biasanya tiba dengan alamat server itu sendiri, kadang dengan alamat jaringan Docker
+    (172.16.0.0/12): keduanya ditulis.
+  - `APP_URL=https://<domain>` dan `MS_SSO_REDIRECT_URI=https://<domain>/auth/microsoft/callback`, dan alamat
+    callback itu didaftarkan di app Entra (Entra hanya menerima http untuk `localhost`).
+  - `SESSION_SECURE_COOKIE=true`.
+
+  Tanpa `TRUSTED_PROXIES` yang benar, halaman https menautkan CSS/JS dengan http:// dan browser memblokirnya:
+  halaman login tampil berantakan (hanya gambar besar, tanpa tata letak). Cara cek: buka sumber halaman login, alamat
+  `.../assets/...` harus diawali `https://`. Setelah mengubah `.env`: `docker compose restart app`.
 - Untuk server: `APP_ENV=production` dan `APP_DEBUG=false`. Image dibangun tanpa paket dev (tanpa debugbar).
 - **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
 - **Yang tidak masuk image** (`.dockerignore` memakai daftar yang boleh masuk): `.env`, file Excel/Word/PDF, seeder
