@@ -29,7 +29,7 @@ class UserResource extends JsonResource
             /** The Active Directory username, for an account that signs in with LDAP. */
             'directory_username' => $user->signsInWithDirectory() ? $user->ldap_username : null,
             'last_sign_in_at' => $signIn ? $user->last_login_at?->toIso8601String() : null,
-            /** "Password", "LDAP", "Microsoft" or "Google". */
+            /** "Password", "LDAP" or "Microsoft". */
             'last_sign_in_method' => $signIn ? $user->last_login_method : null,
             'created_at' => $user->created_at?->toIso8601String(),
         ];

@@ -233,22 +233,6 @@ class LoginController extends Controller
             return redirect()->route('login');
         }
     }
-    //LOGIN SSO GOOGLE
-    public function redirectToProviderGoogle()
-    {
-        return Socialite::driver('google')->redirect();
-    }
-    public function handleProviderCallbackGoogle(Request $request)
-    {
-        try {
-            $user = Socialite::driver('google')->user();
-            return $this->loginSsoUser($request, $user->getEmail(), 'Google');
-        } catch (\Throwable $e) {
-            Log::error('Google SSO login failed: ' . get_class($e) . ': ' . $e->getMessage());
-            Alert::error('Server Error!', 'please contact IT the Helpdesk');
-            return redirect()->route('login');
-        }
-    }
     //LOGIN SSO MICROSOFT
     public function redirectToProviderMicrosoft(Request $request)
     {

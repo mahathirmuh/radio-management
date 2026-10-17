@@ -403,7 +403,7 @@ di trilingual-docon:
 
 | Action | Dicatat saat |
 | --- | --- |
-| `auth.login`, `auth.login_failed`, `auth.logout` | Login berhasil (Via: Password, LDAP, Microsoft, Google), ditolak (yang diketik, caranya, dan alasannya: Wrong password, Not registered, Account not active, No role, Public e-mail address), dan keluar |
+| `auth.login`, `auth.login_failed`, `auth.logout` | Login berhasil (Via: Password, LDAP, Microsoft), ditolak (yang diketik, caranya, dan alasannya: Wrong password, Not registered, Account not active, No role, Public e-mail address), dan keluar |
 | `user.created`, `user.updated`, `user.status_changed`, `user.password_reset`, `user.deleted` | User Management, dan `php artisan user:register` (tercatat sebagai System) |
 | `role.created`, `role.updated`, `role.deleted` | Role & Permission; akses per menu ditulis "Menu Register Radio: Create, Read" |
 | `radio.created`, `radio.updated`, `radio.archived`, `radio.restored`, `radio.history_added`, `radio.deleted`, `radio.imported` | Register Radio, riwayat manual, Import Excel (satu baris per file) |

@@ -25,7 +25,7 @@ class RouteSmokeTest extends TestCase
 
     /** Routes that leave the app (SSO), need an OAuth code, or belong to dev tooling. */
     private const SKIP = [
-        '#^auth/(google|microsoft|merdeka)/#',
+        '#^auth/(microsoft|merdeka)/#',
         '#^_debugbar#',
         '#^_ignition#',
         '#^sanctum/#',

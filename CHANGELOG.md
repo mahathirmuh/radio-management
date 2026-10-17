@@ -8,6 +8,21 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.5.1] - 2026-10-17
+
+### Dihapus
+
+- Login: kartu "Merdeka Copper Gold Group, @merdekacoppergold.com, access via Google SSO" di **Access Login Guide**.
+  Aplikasi ini tidak punya login Google: login Google bawaan template (tombol yang tersembunyi selama tidak disetel,
+  alamat `auth/google/*`) belum pernah disetel dan ikut dihapus. Masuk tetap lewat Microsoft atau akun Merdeka
+  (password / Active Directory).
+
+### Diubah
+
+- Login: kartu Microsoft di Access Login Guide hanya menyebut `@merdekabattery.com` (tanpa `@scmnickel.com`).
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.5.0] - 2026-10-17
 
 ### Ditambahkan
@@ -117,6 +132,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.5.1]: https://github.com/mahathirmuh/radio-management/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/mahathirmuh/radio-management/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mahathirmuh/radio-management/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/mahathirmuh/radio-management/compare/v1.2.0...v1.3.0

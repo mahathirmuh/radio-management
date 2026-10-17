@@ -154,6 +154,22 @@ class SsoLoginTest extends TestCase
             ->assertRedirect('https://login.microsoftonline.com/x');
     }
 
+    public function test_the_login_page_offers_microsoft_and_not_google(): void
+    {
+        // No Google sign-in in this application: no button, no card in the Access Login Guide, no address.
+        $page = (string) $this->get('/login')->assertOk()->getContent();
+        $this->assertStringContainsString(route('sso-login-mirosoft'), $page);
+        $this->assertStringContainsString('Microsoft SSO', $page);
+        $this->assertStringNotContainsString('Google SSO', $page);
+        $this->assertStringNotContainsString('logo/google.png', $page);
+        $this->assertStringNotContainsString('auth/google', $page);
+        // The guide names the address of the people of this application only.
+        $this->assertStringContainsString('@merdekabattery.com', $page);
+        $this->assertStringNotContainsString('scmnickel', $page);
+        $this->get('/auth/google/redirect')->assertNotFound();
+        $this->get('/auth/google/callback?code=abc&state=xyz')->assertNotFound();
+    }
+
     public function test_self_registration_and_password_reset_are_closed(): void
     {
         $this->get('/register')->assertNotFound();

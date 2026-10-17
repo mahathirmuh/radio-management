@@ -69,15 +69,6 @@
                                         method="POST">
                                         @csrf
                                         <div class="d-flex flex-column flex-lg-row justify-content-center gap-3 mb-2">
-                                            @if (config('services.google.client_id'))
-                                            <a href="{{ route('sso-login') }}"
-                                                class="btn btn-login btn-lg p-3 d-flex flex-row gap-2"
-                                                style="width: 120px;">
-                                                <img src="{{ asset('assets/img/logo/google.png') }}" class="rounded-top"
-                                                    width="24" alt="">
-                                                <span class="h4 mb-0 "> Google </span>
-                                            </a>
-                                            @endif
                                             <a href="{{ route('sso-login-mirosoft') }}"
                                                 class="btn btn-login btn-lg p-3 d-flex flex-row gap-2"
                                                 style="width: 120px;">
@@ -140,33 +131,12 @@
     </section>
     <!-- Modal -->
     <div class="modal fade" id="accessLoginGuide" tabindex="-1" aria-labelledby="accessLoginGuide" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
+        {{-- Microsoft only: this application has no Google sign-in (the card for Merdeka Copper Gold Group was removed). --}}
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
                 <div class="modal-body p-3">
                     <div class="row row-deck">
-                        <div class="col ">
-                            <div class="px-3 py-5 w-100 border rounded d-flex flex-column gap-3">
-                                <div class="d-flex justify-content-center align-items-center gap-2">
-                                    <div>
-                                        <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="42px"
-                                            alt="">
-                                    </div>
-                                    <div><span class="display-5 text-secondary fw-light">|</span></div>
-                                    <div>
-                                        <img src="{{ asset('assets/img/logo/google.png') }}" class="rounded-top"
-                                            height="36px" alt="">
-                                    </div>
-                                </div>
-                                <div class="text-center">
-                                    Merdeka Copper Gold Group
-                                    <br><span class="text-warning small">@merdekacoppergold.com</span>
-                                    <br>access via
-                                    <br> <span class="text-primary fw-bold">Google SSO</span>
-                                </div>
-                            </div>
-
-                        </div>
                         <div class="col ">
                             <div class="px-3 py-5 w-100  border rounded d-flex flex-column gap-3">
                                 <div class="d-flex justify-content-center align-items-center gap-2">
@@ -182,7 +152,7 @@
                                 </div>
                                 <div class="text-center">
                                     Merdeka Battery Materials Group
-                                    <br><span class="text-warning small">@merdekabattery.com, @scmnickel.com</span>
+                                    <br><span class="text-warning small">@merdekabattery.com</span>
                                     <br>access via
                                     <br> <span class="text-azure fw-bold">Microsoft SSO</span>
                                 </div>
