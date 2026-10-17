@@ -166,9 +166,12 @@ docker compose down                     # hentikan (data storage tetap)
   Active Directory, dan Microsoft: semuanya harus terjangkau dari host Docker.
 - **Migrasi tidak pernah jalan otomatis** saat container start (databasenya dipakai bersama); jalankan sendiri dengan
   perintah di atas.
-- **Port**: `SERVER_PORT` di `.env` (8020). Login Microsoft kembali ke `MS_SSO_REDIRECT_URI`, jadi alamat yang dibuka
-  orang harus sama dengan alamat itu (host dan port), dan alamat itu harus terdaftar di app Entra. Di laptop yang
-  juga menjalankan `php artisan serve` di 8020, hentikan yang itu dulu (atau pakai port lain).
+- **Port: 26101** (format tahun, bulan, urutan aplikasi: 26 10 1 = 2026, Oktober, aplikasi pertama bulan itu;
+  trilingual-docon 26091). Bisa diganti lewat `DOCKER_PORT` di `.env`; `SERVER_PORT` (8020) tetap untuk
+  `php artisan serve`, jadi keduanya bisa jalan bersamaan. Login Microsoft kembali ke `MS_SSO_REDIRECT_URI`: alamat
+  yang dibuka orang harus sama dengan alamat itu (host dan port) dan terdaftar di app Entra. Container di laptop
+  (`http://localhost:26101`) baru bisa login Microsoft bila alamat itu yang dipakai di `MS_SSO_REDIRECT_URI` dan
+  didaftarkan; di server, alamatnya adalah domain https yang diteruskan reverse proxy ke port 26101.
 - **Di belakang reverse proxy HTTPS** (misalnya Nginx Proxy Manager): isi `TRUSTED_PROXIES` di `.env` dengan alamat
   asal proxy (bukan `*`), `APP_URL` dan `MS_SSO_REDIRECT_URI` dengan alamat https-nya, dan `SESSION_SECURE_COOKIE=true`.
   Tanpa `TRUSTED_PROXIES`, halaman https memuat aset lewat http:// dan browser memblokirnya.
