@@ -147,6 +147,38 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
 `php artisan migrate` lalu `php artisan db:seed --class=RadioMasterSeeder` dan
 `php artisan db:seed --class=RadioMenuSeeder`.
 
+## Docker
+
+`Dockerfile` + `docker-compose.yml` menjalankan aplikasi ini dalam satu container: PHP 8.4 + Apache, dengan driver
+SQL Server (ODBC 18) di dalamnya. Pola yang sama dengan trilingual-docon.
+
+```bash
+docker compose up -d --build            # build image lalu jalankan
+docker compose logs -f app              # log Apache
+docker compose exec app php artisan migrate     # bila sebuah update membawa migrasi
+docker compose down                     # hentikan (data storage tetap)
+```
+
+- **`.env` tidak masuk image**: file `.env` di samping `docker-compose.yml` dipasang ke container (hanya baca).
+  Mengubah `.env` cukup `docker compose restart app`, tanpa build ulang. Isinya sama dengan instalasi biasa (lihat
+  `.env.example`).
+- **Database tidak ada di compose**: aplikasi memakai SQL Server yang disebut `DB_HOST`. Begitu juga database HR,
+  Active Directory, dan Microsoft: semuanya harus terjangkau dari host Docker.
+- **Migrasi tidak pernah jalan otomatis** saat container start (databasenya dipakai bersama); jalankan sendiri dengan
+  perintah di atas.
+- **Port**: `SERVER_PORT` di `.env` (8020). Login Microsoft kembali ke `MS_SSO_REDIRECT_URI`, jadi alamat yang dibuka
+  orang harus sama dengan alamat itu (host dan port), dan alamat itu harus terdaftar di app Entra. Di laptop yang
+  juga menjalankan `php artisan serve` di 8020, hentikan yang itu dulu (atau pakai port lain).
+- **Di belakang reverse proxy HTTPS** (misalnya Nginx Proxy Manager): isi `TRUSTED_PROXIES` di `.env` dengan alamat
+  asal proxy (bukan `*`), `APP_URL` dan `MS_SSO_REDIRECT_URI` dengan alamat https-nya, dan `SESSION_SECURE_COOKIE=true`.
+  Tanpa `TRUSTED_PROXIES`, halaman https memuat aset lewat http:// dan browser memblokirnya.
+- Untuk server: `APP_ENV=production` dan `APP_DEBUG=false`. Image dibangun tanpa paket dev (tanpa debugbar).
+- **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
+- **Yang tidak masuk image** (`.dockerignore` memakai daftar yang boleh masuk): `.env`, file Excel/Word/PDF, seeder
+  berisi akun orang, `tests/`, `vendor/` laptop (dipasang ulang di image), isi `storage/`.
+- Bila `LDAP_TLS_VERIFY=true` dengan CA internal: pasang file sertifikat CA ke container (contoh ada sebagai komentar
+  di `docker-compose.yml`) dan isi `LDAP_CA_CERT` dengan path di dalam container.
+
 ## Login
 
 - **Microsoft SSO** (`MS_GRAPH_TENANT_ID`, `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_SSO_REDIRECT_URI` di `.env`).

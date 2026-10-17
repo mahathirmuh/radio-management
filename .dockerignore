@@ -1,0 +1,32 @@
+# What goes into the image: the code, and nothing else. It is a list of what is let in, so that a file of real
+# data kept in the project folder (the register workbook, the Word form, .env) never ends up in an image.
+*
+!app/
+!bootstrap/
+!config/
+!database/
+!modules/
+!public/
+!resources/
+!routes/
+!artisan
+!composer.json
+!composer.lock
+
+# Inside what is let in, out again.
+# Accounts of real people: git ignores these seeders too.
+database/seeders/UsersTableSeeder.php
+database/seeders/RoleUserTableSeeder.php
+database/seeders/ErrorLogsTableSeeder.php
+# Left behind by the PHP or the asset build of this machine; made again in the image where needed.
+bootstrap/cache/*.php
+public/build/
+public/hot
+public/storage
+# Documents are data, never code.
+**/*.xlsx
+**/*.xls
+**/*.docx
+**/*.doc
+**/*.pdf
+**/*.csv

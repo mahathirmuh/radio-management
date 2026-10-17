@@ -1,0 +1,67 @@
+# =====================================================================
+# MTI Radio Management
+#
+#   docker compose up -d --build
+#   http://localhost:8020            (the port is SERVER_PORT in .env)
+#
+# Before the first start:
+#   - .env next to this file (see .env.example, and README "Docker").
+#   - The hosts that .env names must be reachable from the Docker host:
+#     SQL Server, the HR database, Active Directory, and Microsoft
+#     (sign-in and SharePoint) on the internet.
+#
+# Not here, on purpose:
+#   SQL Server    - the application's database is the existing one in
+#                   .env (DB_HOST). A container would be a second, empty
+#                   one.
+#   Worker, cron  - QUEUE_CONNECTION is sync and nothing is scheduled.
+#   Nginx, TLS    - Apache serves public/ itself. HTTPS is the job of the
+#                   reverse proxy in front (and TRUSTED_PROXIES in .env).
+#
+# Starting never runs a migration: the database is shared with whatever
+# else uses it. When an update brings one:
+#
+#   docker compose exec app php artisan migrate
+# =====================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: radio-management-app:latest
+    container_name: radio-management-app
+    restart: unless-stopped
+
+    ports:
+      # SERVER_PORT outside (from .env; 8020 when it is not set), Apache's
+      # 80 inside. The Microsoft sign-in comes back to MS_SSO_REDIRECT_URI:
+      # the address people open must be that one, host and port.
+      - "${SERVER_PORT:-8020}:80"
+
+    volumes:
+      # Read only: the application never writes its settings, and the
+      # image carries no password.
+      - ./.env:/var/www/html/.env:ro
+
+      # Logs, sessions and cache: kept across `docker compose down` and
+      # rebuilds, and apart from those of any other copy of the app (a
+      # cache shared with a copy on another database mixes up the menus).
+      - storage:/var/www/html/storage
+
+      # The certificate of the CA of the domain controller, when
+      # LDAP_TLS_VERIFY is on (LDAP_CA_CERT=/var/www/html/certs/ca.pem):
+      # - ./certs/ca.pem:/var/www/html/certs/ca.pem:ro
+
+    healthcheck:
+      # The login page: Apache, PHP and the application answer. (A GET
+      # writes nothing to the database.)
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/login"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  storage:
+    name: radio-management-storage
