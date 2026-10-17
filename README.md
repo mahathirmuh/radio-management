@@ -373,8 +373,7 @@ di trilingual-docon:
 
 Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
 endpoint, parameter, contoh jawaban, dan tombol "Try it") ada di **`/docs/api`**, dibuat otomatis dari kode (paket
-`dedoc/scramble`), hanya untuk akun yang boleh memegang token. Bagian SharePoint (COF Scan, ICT Masterlist, Persetujuan
-Edit) dan E-Sign menyusul (tahap 3).
+`dedoc/scramble`), hanya untuk akun yang boleh memegang token. Semua halaman aplikasi ada di API (tahap 1–3, 17-10-2026).
 
 | Endpoint | Isi | Menu (hak) |
 | --- | --- | --- |
@@ -391,6 +390,14 @@ Edit) dan E-Sign menyusul (tahap 3).
 | `GET users`, `GET users/{id}` | akun User Management (baca saja; jangkauan per perusahaan sama dengan halaman) | User Registered |
 | `GET roles`, `GET roles/{id}` | role dan hak per menu (baca saja; Super Admin hanya terlihat oleh Super Admin) | Role & Permission |
 | `GET audit-log` | jejak audit; filter per action, tanggal, atau satu record (`entity_type=Radio&entity_id=12`) | Audit Log |
+| `GET documents/cof-scan` | isi folder scan: file, dan status tiap file di sheet COF (`linked` / `differs` / `unlinked`, baris Excel, catatan) | COF Scan |
+| `GET documents/cof-scan/files/{id}` | unduh satu file (PDF/gambar, maks. 10 MB, hanya file yang ada di daftar foldernya) | COF Scan |
+| `GET documents/ict-masterlist`, `.../rows` | workbook: sheet dan kolomnya; baris satu sheet (cari, urut, halaman; kolom "File scan" dan `status` di sheet COF) | ICT Masterlist |
+| `POST documents/ict-masterlist/edit-requests` | ajukan perubahan satu sel (belum ditulis ke SharePoint) | ICT Masterlist (Update) |
+| `GET documents/edit-requests`, `.../{id}` | pengajuan perubahan sel dan statusnya | Persetujuan Edit |
+| `POST documents/edit-requests/{id}/approve`, `.../reject` | setujui (baru saat itu ditulis ke SharePoint) / tolak; **hanya token pribadi**, bukan token klien API | Persetujuan Edit (Update) |
+| `GET e-signs`, `GET e-signs/{id}/uses` | tanda tangan tim ICT dan pemakaiannya, **tanpa gambarnya** | E-Sign Master |
+| `POST e-signs/{id}/deactivate` | nonaktifkan tanda tangan (mengaktifkan lagi, mendaftarkan, mengganti: di halaman) | E-Sign Master (Update) |
 
 **Token** dibuat di **Settings → API Tokens**, dikirim sebagai `Authorization: Bearer <token>`:
 
@@ -420,14 +427,28 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 | `404` | data tidak ada |
 | `409` | radio sudah diubah orang lain sejak dibaca (kirim `version` dari jawaban terakhir), atau register sedang sibuk |
 | `422` | ditolak aturan, `errors` per field (pesan dalam bahasa Indonesia, seperti di halaman) |
-| `429` | terlalu banyak request: 60/menit per token, import dan export Excel 10/menit (120/menit per alamat sebelum token diperiksa) |
-| `503` | migrasi API (atau Audit Log) belum dijalankan |
+| `429` | terlalu banyak request: 60/menit per token; import dan export Excel 10/menit; yang dibaca dari SharePoint 30/menit, menyetujui perubahan sel 10/menit (120/menit per alamat sebelum token diperiksa) |
+| `502`, `504` | SharePoint menjawab salah atau terlalu lambat (ada `reason`) |
+| `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`) |
 
 - Daftar: `?page=` dan `?per_page=` (maks. 100), dengan `meta` dan `links`. Filter bernilai banyak: `type[]=1&type[]=2`
   atau `type=1,2`.
 - **Import** lewat API: kirim file sebagai multipart (`file`, maks. 20 MB). Sama seperti halaman Import Excel: impor hanya
   mengisi register yang **kosong**; bila sudah ada radio, ditolak (422) kecuali `fresh=1` (hapus data lama, termasuk
   riwayatnya), yang juga butuh izin Delete di Register Radio. Satu impor pada satu waktu.
+- **SharePoint** lewat API dibaca dengan identitas aplikasi, sama seperti halamannya (yang boleh melihat ditentukan menu,
+  bukan hak orangnya di SharePoint), dan memakai salinan yang disimpan beberapa menit; `refresh=1` meminta ulang (bila
+  salinannya lebih dari 15 detik). `stale: true` berarti SharePoint sedang tidak bisa dihubungi dan yang dikirim adalah
+  salinan sebelumnya. Kolom Masterlist di daftar folder, dan kolom "File scan" di sheet COF, hanya ada bila pemilik token
+  juga boleh membuka halaman yang satunya, sama seperti di halaman. Setiap file yang diunduh lewat API dicatat di log
+  aplikasi (siapa, token mana, file apa), sama seperti file yang dilihat di halaman.
+- **Perubahan sel workbook** lewat API mengikuti alur halaman: diajukan (Update di ICT Masterlist), lalu disetujui orang
+  lain (Update di Persetujuan Edit), dan baru saat disetujui ditulis ke SharePoint (perlu izin tulis aplikasi di site itu,
+  lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)). Menyetujui dan menolak adalah
+  keputusan orang: hanya dengan token pribadi, dan tidak ada yang menyetujui pengajuannya sendiri. Pengajuan, persetujuan,
+  dan penolakan tercatat di Audit Log, dari halaman maupun dari API.
+- **E-Sign** lewat API: daftar dan riwayat pemakaian, dan menonaktifkan (misalnya saat orangnya keluar). Gambar tanda
+  tangan tidak pernah keluar lewat API; mendaftarkan, mengganti, dan mengaktifkan lagi hanya di halaman.
 - **CORS** tertutup: halaman web situs lain tidak bisa memanggil API dari browser pengunjungnya, kecuali situs itu
   ditulis di `CORS_ALLOWED_ORIGINS`. Aplikasi yang memanggil dari server-nya tidak perlu apa-apa.
 - Rute `/api/approval-management/...` bawaan template tetap ada (halaman Approval Management yang disembunyikan memakai
@@ -801,8 +822,10 @@ modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu
                             di dalam .xlsx), GraphException (alasan gagal + pesannya), ScanRegister
                             (pencocokan baris COF dengan file folder), ScanLinks (dua sumber sekaligus,
                             waktu, izin), MenuAccess (boleh membuka halaman lain?), CellEdits (mengajukan,
-                            menyetujui, menolak, menulis perubahan sel), XlsxPatcher (membaca dan menulis
-                            satu sel di dalam .xlsx), EditException, SheetNotFound
+                            menyetujui, menolak, menulis perubahan sel; mencatat di Audit Log), XlsxPatcher
+                            (membaca dan menulis satu sel di dalam .xlsx), EditException, SheetNotFound,
+                            FolderView / WorkbookView / EditRequestQuery (daftar folder, tabel sheet, daftar
+                            pengajuan: dipakai bersama halaman dan API)
   Models/EditRequest.php    satu pengajuan perubahan sel, dan nasibnya (tabel sharepoint_edit_requests)
   Http/                     FolderController (halaman, daftar, file), WorkbookController (halaman,
                             baris: cari/urut/halaman, ajukan perubahan), EditApprovalController
@@ -821,16 +844,16 @@ database/seeders/AuditLogMenuSeeder.php
 modules/Api/                        API /api/v1 dan halaman API Tokens
   Routes/api/v1.php                 endpoint, dan menu (hak akses) tiap endpoint
   Http/Middleware/                  ForceJsonResponse, LimitAddresses, ApiReady, EnsureApiAccount, ApiAccess (Role &
-                                    Permission + token read/write), CanReadApiDocs
+                                    Permission + token read/write), PersonOnly (bukan token klien API), CanReadApiDocs
   Http/Controllers/V1/              Me, References, Dashboard, Radio (+ export, checkout form), History, MasterData,
-                                    Import, User, Role, AuditLog
-  Http/Resources/, Http/Requests/   bentuk jawaban radio/riwayat/user/jejak; RadioApiRequest (aturan RadioRequest, error
-                                    per field), RadioListRequest (filter daftar dan export)
+                                    Import, User, Role, AuditLog, DocumentFolder, DocumentWorkbook, EditRequest, ESign
+  Http/Resources/, Http/Requests/   bentuk jawaban radio/riwayat/user/jejak/pengajuan; RadioApiRequest (aturan
+                                    RadioRequest, error per field), RadioListRequest (filter daftar dan export)
   Http/Controllers/ApiTokenController.php, Resources/views/tokens/   halaman API Tokens
   Services/ApiTokens.php            klien API dan token (dibuat, diubah, dicabut, dicatat di Audit Log)
   Models/ApiToken.php               token Sanctum + read/write, kedaluwarsa, IP terakhir
 modules/RadioManagement/Services/   MasterData, RadioRules, RadioHistoryQuery, RadioSummary, StaleRadio, RadioImports
-                                    (+ ImportProblem), CheckoutForm: aturan yang dipakai bersama halaman dan API
+                                    (+ ImportProblem), CheckoutForm, ESigns: aturan yang dipakai bersama halaman dan API
 modules/UserManagement/Services/UserScope.php   jangkauan akun per perusahaan (halaman User Management dan API)
 config/scramble.php, config/sanctum.php, config/cors.php
 database/seeders/ApiTokensMenuSeeder.php

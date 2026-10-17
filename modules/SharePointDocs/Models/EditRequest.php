@@ -72,4 +72,10 @@ class EditRequest extends Model
     {
         return (string) $this->old_text === '' ? '(kosong)' : (string) $this->old_text;
     }
+
+    /** The cell it is about, as the audit trail names it: "ICT Masterlist · COF!B12". */
+    public function auditLabel(): string
+    {
+        return config("sharepoint-docs.workbooks.{$this->workbook}.title", $this->workbook) . ' · ' . $this->sheet . '!' . $this->cell;
+    }
 }

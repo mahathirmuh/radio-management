@@ -7,7 +7,10 @@ use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Modules\Api\Models\ApiToken;
 use Modules\RadioManagement\Services\StaleRadio;
+use Modules\SharePointDocs\Services\GraphException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -31,6 +34,29 @@ abstract class ApiController extends Controller
         } catch (LockTimeoutException) {
             return response()->json(['message' => self::BUSY], 409);
         }
+    }
+
+    /**
+     * What SharePoint said, as the pages say it (what Microsoft said goes to the log only): the words, the reason (a key such as
+     * "unavailable", "forbidden", "not_found") and its status: 404, 413, 415, 502, 503 or 504.
+     */
+    protected function sharePointError(GraphException $e, bool $workbook = false): JsonResponse
+    {
+        return response()->json(['message' => $workbook ? $e->workbookMessage() : $e->userMessage(), 'reason' => $e->reason], $e->httpStatus());
+    }
+
+    /** Whether the token of the request may write (a read-only token is refused at a change anyway, by ApiAccess). */
+    protected function tokenWrites(Request $request): bool
+    {
+        $token = $request->user()?->currentAccessToken();
+
+        return $token instanceof ApiToken && $token->writes();
+    }
+
+    /** A moment kept as a Unix time, in ISO 8601 in the time zone of the application. */
+    protected static function iso(int|float|null $timestamp): ?string
+    {
+        return $timestamp === null ? null : Carbon::createFromTimestamp($timestamp, config('app.timezone'))->toIso8601String();
     }
 
     /** Rows per page: ?per_page=, 1 to 100, 25 when not given. */

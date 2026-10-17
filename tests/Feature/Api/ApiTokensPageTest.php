@@ -171,9 +171,17 @@ class ApiTokensPageTest extends TestCase
         $spec = $this->get('/docs/api.json')->assertOk()->json();
         $this->assertArrayHasKey('/radios', $spec['paths']);
         $this->assertArrayHasKey('/radios/{radio}/archive', $spec['paths']);
-        foreach (['/radios/export', '/radios/{radio}/checkout-form', '/import', '/users', '/users/{user}', '/roles', '/roles/{role}', '/audit-log'] as $path) {
+        foreach (['/radios/export', '/radios/{radio}/checkout-form', '/import', '/users', '/users/{user}', '/roles', '/roles/{role}', '/audit-log',
+            '/documents/cof-scan', '/documents/cof-scan/files/{id}', '/documents/ict-masterlist', '/documents/ict-masterlist/rows',
+            '/documents/ict-masterlist/edit-requests', '/documents/edit-requests', '/documents/edit-requests/{editRequest}',
+            '/documents/edit-requests/{editRequest}/approve', '/documents/edit-requests/{editRequest}/reject',
+            '/e-signs', '/e-signs/{signature}/uses', '/e-signs/{signature}/deactivate'] as $path) {
             $this->assertArrayHasKey($path, $spec['paths'], $path);
         }
+        // The folder of a page is no parameter of its address: only the file, and the folder below it is in.
+        $this->assertSame(['id', 'path'], array_column($spec['paths']['/documents/cof-scan/files/{id}']['get']['parameters'] ?? [], 'name'));
+        // Asking for a change takes the cell and its value.
+        $this->assertSame(['sheet', 'line', 'column', 'value'], array_keys($spec['paths']['/documents/ict-masterlist/edit-requests']['post']['requestBody']['content']['application/json']['schema']['properties'] ?? []));
         // The import takes the file of the page's form.
         $this->assertArrayHasKey('file', $spec['paths']['/import']['post']['requestBody']['content']['multipart/form-data']['schema']['properties'] ?? []);
         $this->assertArrayNotHasKey('/approval-management/flows', $spec['paths']);

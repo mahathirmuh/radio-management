@@ -4,6 +4,10 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Modules\Api\Http\Controllers\V1\AuditLogController;
 use Modules\Api\Http\Controllers\V1\DashboardController;
+use Modules\Api\Http\Controllers\V1\DocumentFolderController;
+use Modules\Api\Http\Controllers\V1\DocumentWorkbookController;
+use Modules\Api\Http\Controllers\V1\EditRequestController;
+use Modules\Api\Http\Controllers\V1\ESignController;
 use Modules\Api\Http\Controllers\V1\HistoryController;
 use Modules\Api\Http\Controllers\V1\ImportController;
 use Modules\Api\Http\Controllers\V1\MasterDataController;
@@ -17,6 +21,7 @@ use Modules\Api\Http\Middleware\ApiReady;
 use Modules\Api\Http\Middleware\EnsureApiAccount;
 use Modules\Api\Http\Middleware\ForceJsonResponse;
 use Modules\Api\Http\Middleware\LimitAddresses;
+use Modules\Api\Http\Middleware\PersonOnly;
 
 /*
 | The API, version 1: https://<host>/api/v1/..., a Bearer token from the page "API Tokens".
@@ -78,4 +83,43 @@ Route::prefix('api/v1')->name('api.v1.')
                 Route::delete('{id}', 'destroy')->whereNumber('id')->name('destroy')->defaults('master', $master)->middleware(ApiAccess::to($menu));
             });
         }
+
+        // "E-Sign Master": read, and switch off (an Update, as on the page). Never the picture.
+        Route::prefix('e-signs')->name('e-signs.')->controller(ESignController::class)->group(function () {
+            Route::get('/', 'index')->name('index')->middleware(ApiAccess::to('radio-management.e-sign'));
+            Route::get('{signature}/uses', 'uses')->whereNumber('signature')->name('uses')->middleware(ApiAccess::to('radio-management.e-sign'));
+            Route::post('{signature}/deactivate', 'deactivate')->whereNumber('signature')->name('deactivate')->middleware(ApiAccess::to('radio-management.e-sign', 'Update'));
+        });
+
+        // SharePoint: each folder and workbook of config('sharepoint-docs') with the menu of its page ("COF Scan", "ICT
+        // Masterlist"), and the requests to change a cell ("Persetujuan Edit"). What is read from SharePoint: 30 a minute per
+        // token; approving, which writes to it: 10. Asking for a change is an Update on the workbook's menu (PATCH on the page);
+        // approving and turning down are an Update on "Persetujuan Edit", with a personal token only.
+        Route::prefix('documents')->name('documents.')->middleware('throttle:api-v1-sharepoint')->group(function () {
+            foreach (array_keys((array) config('sharepoint-docs.folders', [])) as $folder) {
+                Route::prefix($folder)->name("{$folder}.")->controller(DocumentFolderController::class)->group(function () use ($folder) {
+                    Route::get('/', 'index')->name('index')->defaults('folder', $folder)->middleware(ApiAccess::to("documents.{$folder}"));
+                    Route::get('files/{id}', 'file')->where('id', '[^/]{1,200}')->name('file')->defaults('folder', $folder)->middleware(ApiAccess::to("documents.{$folder}"));
+                });
+            }
+
+            foreach (array_keys((array) config('sharepoint-docs.workbooks', [])) as $workbook) {
+                Route::prefix($workbook)->name("{$workbook}.")->controller(DocumentWorkbookController::class)->group(function () use ($workbook) {
+                    Route::get('/', 'show')->name('show')->defaults('workbook', $workbook)->middleware(ApiAccess::to("documents.{$workbook}"));
+                    Route::get('rows', 'rows')->name('rows')->defaults('workbook', $workbook)->middleware(ApiAccess::to("documents.{$workbook}"));
+                    Route::post('edit-requests', 'requestEdit')->name('edit-requests.store')->defaults('workbook', $workbook)
+                        ->middleware(ApiAccess::to("documents.{$workbook}", 'Update'));
+                });
+            }
+
+            Route::prefix('edit-requests')->name('edit-requests.')->controller(EditRequestController::class)->group(function () {
+                $approvals = 'documents.edit-approvals';
+                Route::get('/', 'index')->name('index')->middleware(ApiAccess::to($approvals));
+                Route::get('{editRequest}', 'show')->whereNumber('editRequest')->name('show')->middleware(ApiAccess::to($approvals));
+                Route::post('{editRequest}/approve', 'approve')->whereNumber('editRequest')->name('approve')
+                    ->middleware([PersonOnly::class, ApiAccess::to($approvals, 'Update'), 'throttle:api-v1-heavy']);
+                Route::post('{editRequest}/reject', 'reject')->whereNumber('editRequest')->name('reject')
+                    ->middleware([PersonOnly::class, ApiAccess::to($approvals, 'Update')]);
+            });
+        });
     });

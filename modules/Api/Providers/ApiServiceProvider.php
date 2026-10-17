@@ -27,8 +27,11 @@ class ApiServiceProvider extends ServiceProvider
 
     public const PER_ADDRESS = 120;
 
-    /** For what is slow or heavy (import and export of Excel, SharePoint). */
+    /** For what is slow or heavy (import and export of Excel, writing to SharePoint). */
     public const HEAVY_PER_TOKEN = 10;
+
+    /** For what is read from SharePoint (a folder, a workbook, a file): paging through a large sheet stays possible. */
+    public const SHAREPOINT_PER_TOKEN = 30;
 
     public function boot(): void
     {
@@ -41,6 +44,7 @@ class ApiServiceProvider extends ServiceProvider
         $token = fn (Request $request) => $request->user()?->currentAccessToken()?->getKey() ?? $request->ip();
         RateLimiter::for('api-v1', fn (Request $request) => Limit::perMinute(self::PER_TOKEN)->by('api-token:' . $token($request)));
         RateLimiter::for('api-v1-heavy', fn (Request $request) => Limit::perMinute(self::HEAVY_PER_TOKEN)->by('api-heavy:' . $token($request)));
+        RateLimiter::for('api-v1-sharepoint', fn (Request $request) => Limit::perMinute(self::SHAREPOINT_PER_TOKEN)->by('api-sharepoint:' . $token($request)));
         // (Per address, before the token: Http\Middleware\LimitAddresses.)
 
         // Where a token was last used from, next to when: Sanctum saves the token right after this event.

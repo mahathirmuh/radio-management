@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use Modules\RadioManagement\Models\ItSignature;
 use Modules\RadioManagement\Models\ItSignatureUse;
-use Modules\RadioManagement\Services\Like;
+use Modules\RadioManagement\Services\ESigns;
 use Modules\RadioManagement\Services\SignatureImage;
 
 /**
@@ -26,7 +26,11 @@ use Modules\RadioManagement\Services\SignatureImage;
  */
 class ESignController extends Controller
 {
-    private const NOT_READY = 'Tabel tanda tangan belum dibuat di database. Jalankan "php artisan migrate" dulu.';
+    public const NOT_READY = 'Tabel tanda tangan belum dibuat di database. Jalankan "php artisan migrate" dulu.';
+
+    public function __construct(private readonly ESigns $signatures)
+    {
+    }
 
     public function index()
     {
@@ -58,19 +62,8 @@ class ESignController extends Controller
         }
 
         $limit = min(max((int) $request->input('paginated', 25), 1), 100);
-        $search = trim((string) $request->input('search'));
-        $page = ItSignature::query()
-            ->with('user:id,name,email,deleted_at')
-            ->when($search !== '', fn ($query) => $query->where(function ($q) use ($search) {
-                Like::any($q, ['display_name'], $search);
-                $q->orWhereIn('user_id', User::withTrashed()->where(fn ($u) => Like::any($u, ['name', 'email'], $search))->select('id'));
-            }))
-            ->orderBy('display_name')
-            ->paginate($limit);
-
-        $ids = $page->getCollection()->modelKeys();
-        $uses = ItSignatureUse::query()->whereIn('signature_id', $ids)
-            ->selectRaw('signature_id, count(*) as total, max(created_at) as last_at')->groupBy('signature_id')->get()->keyBy('signature_id');
+        $page = $this->signatures->search((string) $request->input('search'))->paginate($limit);
+        $uses = $this->signatures->useCounts($page->getCollection()->modelKeys());
 
         return response()->json([
             'data' => $page->getCollection()->map(fn (ItSignature $one) => [
@@ -155,7 +148,7 @@ class ESignController extends Controller
             'updated_by' => $request->user()?->id,
         ]);
         // Never the picture: that one was made, for whom, and the name under it.
-        app(AuditLogger::class)->log(AuditLogger::ESIGN_CREATED, $signature, new: $this->facts($signature, $user), label: $user->email);
+        app(AuditLogger::class)->log(AuditLogger::ESIGN_CREATED, $signature, new: $this->signatures->facts($signature, $user), label: $user->email);
 
         return response()->json(['message' => "Tanda tangan {$name} berhasil didaftarkan."]);
     }
@@ -188,10 +181,10 @@ class ESignController extends Controller
             }
         }
         $owner = User::withTrashed()->find($signature->user_id);
-        $before = $this->facts($signature, $owner);
+        $before = $this->signatures->facts($signature, $owner);
         $signature->update($changes);
         app(AuditLogger::class)->logChanges(AuditLogger::ESIGN_UPDATED, $signature, $before,
-            $this->facts($signature, $owner) + (isset($changes['image']) ? ['Signature' => 'Replaced'] : []), $owner?->email);
+            $this->signatures->facts($signature, $owner) + (isset($changes['image']) ? ['Signature' => 'Replaced'] : []), $owner?->email);
 
         return response()->json(['message' => "Tanda tangan {$signature->display_name} berhasil disimpan."]);
     }
@@ -202,25 +195,11 @@ class ESignController extends Controller
         $signature = ItSignature::findOrFail($id);
         $name = $signature->display_name;
         $owner = User::withTrashed()->find($signature->user_id);
-        $before = $this->facts($signature, $owner);
+        $before = $this->signatures->facts($signature, $owner);
         DB::transaction(fn () => $signature->delete());
         app(AuditLogger::class)->log(AuditLogger::ESIGN_DELETED, $signature, old: $before, label: $owner?->email);
 
         return response()->json(['message' => "Tanda tangan {$name} dihapus."]);
-    }
-
-    /**
-     * A signature as the audit trail shows it: whose it is and the name printed under it. Never the picture.
-     *
-     * @return array<string, string|null>
-     */
-    private function facts(ItSignature $signature, ?User $owner): array
-    {
-        return [
-            'Account' => $owner?->email,
-            'Name printed' => $signature->display_name,
-            'Active' => $signature->active ? 'Yes' : 'No',
-        ];
     }
 
     private function invalid(array $errors): JsonResponse

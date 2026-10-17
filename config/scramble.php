@@ -41,8 +41,15 @@ at a time. Every change is in *Riwayat Radio* and in the *Audit Log*, with the t
 **Answers.** JSON. Lists come a page at a time (`page`, `per_page` up to 100) with `meta` and `links`. Errors:
 `401` no or a wrong token, `403` not allowed, `404` not found, `409` the radio was changed since you read it (send its
 `version`) or the register is busy, `422` refused (`errors` by field), `429` too many requests (60 a minute per token;
-import and export of Excel 10 a minute), `503` the API (or the audit log) is not switched on yet. Messages of the
-register are in Indonesian, as on the pages.
+import and export of Excel 10 a minute; what is read from SharePoint 30 a minute, approving a change 10), `503` the API
+(or the audit log) is not switched on yet, or SharePoint cannot be reached. Messages of the register are in Indonesian,
+as on the pages.
+
+**SharePoint.** The folder of scans and the workbook are read with the application's own Microsoft identity, as on
+their pages, and kept for some minutes (`stale: true`: SharePoint could not be reached, this is what was kept). An error
+of SharePoint comes with a `reason` (`unavailable`, `forbidden`, `not_found`, `too_large`, `too_slow`, ...). A change of
+a cell of the workbook is asked for, and written only when somebody else approves it; approving and turning down need a
+personal token, never the token of an API client.
 MD,
     ],
 

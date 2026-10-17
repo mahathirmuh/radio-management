@@ -3,19 +3,19 @@
 namespace Modules\SharePointDocs\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\SharePointDocs\Models\EditRequest;
 use Modules\SharePointDocs\Services\CellEdits;
 use Modules\SharePointDocs\Services\EditException;
+use Modules\SharePointDocs\Services\EditRequestQuery;
 use Modules\SharePointDocs\Services\MenuAccess;
 
 /**
  * The page "Persetujuan Edit": the requests to change a cell of a SharePoint workbook, and their approval.
  *
  * Who may do what is the menu's: opening the page and the list need Read, approving and rejecting need Update
- * (the routes are PATCH). That nobody approves their own request is CellEdits'.
+ * (the routes are PATCH). That nobody approves their own request is CellEdits', and so is the audit trail of it.
  */
 class EditApprovalController extends Controller
 {
@@ -42,34 +42,9 @@ class EditApprovalController extends Controller
             return response()->json(['message' => 'Tabel pengajuan belum dibuat di database. Jalankan "php artisan migrate" dulu.'], 503);
         }
 
-        $status = (string) $request->query('status', '');
-        $terms = preg_split('/\s+/u', mb_substr(trim((string) $request->query('search', '')), 0, 100), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        // Every request that matches the words typed (a word may be in any of the columns that are shown).
-        $matching = function () use ($terms) {
-            $query = EditRequest::query();
-            foreach ($terms as $term) {
-                // (SQL Server's LIKE has no backslash: its own wildcards are made plain by putting them in brackets.)
-                $like = '%' . str_replace(['[', '%', '_'], ['[[]', '[%]', '[_]'], $term) . '%';
-                $query->where(fn ($q) => $q
-                    ->where('cell', 'like', $like)->orWhere('sheet', 'like', $like)->orWhere('column_title', 'like', $like)
-                    ->orWhere('old_text', 'like', $like)->orWhere('new_value', 'like', $like)
-                    ->orWhere('requested_by_name', 'like', $like)->orWhere('decided_by_name', 'like', $like)
-                    ->orWhere('anchor_value', 'like', $like));
-            }
-
-            return $query;
-        };
-
-        // The counts are of everything that matches the words, whatever status is shown.
-        $counts = array_fill_keys(array_keys(EditRequest::LABELS), 0);
-        foreach ($matching()->toBase()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status') as $name => $total) {
-            $counts[$name] = (int) $total;
-        }
-        $query = $matching()->when(array_key_exists($status, EditRequest::LABELS), fn ($q) => $q->where('status', $status));
-
+        $terms = EditRequestQuery::terms((string) $request->query('search', ''));
         $perPage = min(max((int) $request->query('paginated', 25), 1), 100);
-        $page = $query->orderByDesc('id')->paginate($perPage, ['*'], 'page', max(1, (int) $request->query('page', 1)));
+        $page = EditRequestQuery::page($terms, (string) $request->query('status', ''), $perPage, (int) $request->query('page', 1));
         $user = $request->user();
         $mayDecide = MenuAccess::allows($user, 'documents.edit-approvals.approve', 'Update');
 
@@ -83,7 +58,8 @@ class EditApprovalController extends Controller
                 'to' => $page->lastItem(),
                 'total' => $page->total(),
             ],
-            'counts' => $counts,
+            // Of everything that matches the words, whatever status is shown.
+            'counts' => EditRequestQuery::counts($terms),
             'may_decide' => $mayDecide,
         ]);
     }
@@ -95,12 +71,6 @@ class EditApprovalController extends Controller
         } catch (EditException $e) {
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
-        // Approved: what became of it is said too (written to SharePoint, or not, and why).
-        app(AuditLogger::class)->log(AuditLogger::EDIT_APPROVED, $done, new: array_filter([
-            'Value' => $done->newShown(),
-            'Result' => EditRequest::LABELS[$done->status] ?? $done->status,
-            'Note' => $done->failure ?: null,
-        ], fn ($value) => $value !== null), label: self::auditLabel($done));
 
         return match ($done->status) {
             EditRequest::APPLIED => response()->json([
@@ -121,18 +91,8 @@ class EditApprovalController extends Controller
         } catch (EditException $e) {
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
-        app(AuditLogger::class)->log(AuditLogger::EDIT_REJECTED, $done, new: array_filter([
-            'Value' => $done->newShown(),
-            'Note' => filled($done->decision_note) ? $done->decision_note : null,
-        ], fn ($value) => $value !== null), label: self::auditLabel($done));
 
         return response()->json(['message' => "Pengajuan perubahan sel {$done->cell} ditolak.", 'status' => $done->status]);
-    }
-
-    /** The cell a request is about, as the audit trail names it: "ICT Masterlist · COF!B12". */
-    public static function auditLabel(EditRequest $one): string
-    {
-        return config("sharepoint-docs.workbooks.{$one->workbook}.title", $one->workbook) . ' · ' . $one->sheet . '!' . $one->cell;
     }
 
     /** @return array<string, mixed> */

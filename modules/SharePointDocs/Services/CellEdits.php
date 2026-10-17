@@ -3,6 +3,7 @@
 namespace Modules\SharePointDocs\Services;
 
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,8 @@ use Throwable;
  * Who may ask and who may approve is not decided here: it is the menu of each page (Update on the workbook's
  * menu, Update on the menu "Persetujuan Edit"), checked where the request comes in. What is decided here is what
  * the menu cannot say: nobody approves their own request, and a cell that holds a formula is not written over.
+ * Every request that is made, approved or turned down is written to the audit trail from here, wherever it came from
+ * (the pages, or the API).
  */
 class CellEdits
 {
@@ -109,7 +112,7 @@ class CellEdits
             throw new EditException("Sudah ada pengajuan untuk sel {$cell} yang menunggu keputusan (diajukan oleh {$waiting->requested_by_name}).", 409);
         }
 
-        return EditRequest::create([
+        $made = EditRequest::create([
             'workbook' => $workbook,
             'sheet' => $sheet['name'],
             'cell' => $cell,
@@ -126,6 +129,10 @@ class CellEdits
             'requested_by' => $user->id,
             'requested_by_name' => mb_substr((string) $user->name, 0, 255),
         ]);
+        app(AuditLogger::class)->log(AuditLogger::EDIT_REQUESTED, $made, ['Value' => $made->oldShown()],
+            ['Value' => $made->newShown()] + array_filter(['Column' => $made->column_title]), $user, $made->auditLabel());
+
+        return $made;
     }
 
     /**
@@ -180,6 +187,12 @@ class CellEdits
             'request' => $request->id, 'workbook' => $request->workbook, 'sheet' => $request->sheet, 'cell' => $request->cell,
             'status' => $status, 'requested_by' => $request->requested_by, 'decided_by' => $approver->id,
         ]);
+        // Approved: what became of it is said too (written to SharePoint, or not, and why).
+        app(AuditLogger::class)->log(AuditLogger::EDIT_APPROVED, $request, new: array_filter([
+            'Value' => $request->newShown(),
+            'Result' => EditRequest::LABELS[$request->status] ?? $request->status,
+            'Note' => $request->failure ?: null,
+        ], fn ($value) => $value !== null), user: $approver, label: $request->auditLabel());
 
         return $request;
     }
@@ -206,8 +219,13 @@ class CellEdits
         if ($rejected !== 1) {
             throw new EditException('Pengajuan ini sudah diputuskan atau sedang diproses. Muat ulang daftar.', 409);
         }
+        $request->refresh();
+        app(AuditLogger::class)->log(AuditLogger::EDIT_REJECTED, $request, new: array_filter([
+            'Value' => $request->newShown(),
+            'Note' => filled($request->decision_note) ? $request->decision_note : null,
+        ], fn ($value) => $value !== null), user: $decider, label: $request->auditLabel());
 
-        return $request->refresh();
+        return $request;
     }
 
     /**
