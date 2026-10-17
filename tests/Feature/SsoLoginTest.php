@@ -210,7 +210,6 @@ class SsoLoginTest extends TestCase
         $this->postJson(route('user-management.user-registered.store'), [
             'name' => 'Siti Aminah',
             'email' => 'siti.aminah@merdekabattery.com',
-            'position' => 'IT Field',
             'role_id' => [$roleId],
         ])->assertOk();
 

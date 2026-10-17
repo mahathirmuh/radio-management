@@ -8,14 +8,6 @@
             <div class="col-md-12">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label for="positionSelectFilter" class=" form-label">Position </label>
-                        <select id="positionSelectFilter" name="position[]" class="form-select" multiple="multiple">
-                            @foreach ($positions as $position)
-                                <option value="{{ $position }}">{{ $position }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
                         <label for="roleSelectFilter" class=" form-label">Role </label>
                         <select id="roleSelectFilter" name="role[]" class="form-select" multiple="multiple">
                             @foreach ($roles as $role)
@@ -70,15 +62,6 @@
     {{-- select2 declaration --}}
     <script>
         $(function() {
-            $('#userFilterCard #positionSelectFilter').select2({
-                theme: "bootstrap-5",
-                placeholder: 'Select Position',
-                allowClear: true,
-                multiple: true,
-                dropdownParent: $('#userFilterCard'),
-                width: '100%',
-                closeOnSelect: false
-            });
             $('#userFilterCard #roleSelectFilter').select2({
                 theme: "bootstrap-5",
                 placeholder: 'Select Role',
@@ -94,14 +77,12 @@
     {{-- Filter --}}
     <script>
         let filterList = {
-            position: null,
             role: null,
             status: null,
         };
 
         const applyFilter = () => {
             filterList = {
-                position: $('#userFilterCard #positionSelectFilter').val(),
                 role: $('#userFilterCard #roleSelectFilter').val(),
                 status: $('#userFilterCard #statusSelectFilter').val() || null,
             };
@@ -110,7 +91,6 @@
         };
 
         const resetFilter = () => {
-            $('#userFilterCard #positionSelectFilter').val(null).trigger('change');
             $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
             $('#userFilterCard #statusSelectFilter').val('');
             applyFilter();

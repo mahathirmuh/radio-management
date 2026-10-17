@@ -47,9 +47,6 @@ class User extends Authenticatable
     use HasFactory;
     use SoftDeletes;
 
-    /** The positions an account can have (User Management asks for one of them), the senior ones first. */
-    public const POSITIONS = ['Manager', 'Superintendent', 'Supervisor', 'IT Field', 'IT System Support', 'IT Assistant'];
-
     protected $table = 'users';
 
     /**
@@ -89,7 +86,6 @@ class User extends Authenticatable
         'email_verified_at',
         'verify_key',
         'company_id',
-        'position',
         'ldap_username',
         'password',
         'remember_token',

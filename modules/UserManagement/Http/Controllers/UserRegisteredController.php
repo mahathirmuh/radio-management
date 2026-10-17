@@ -12,9 +12,7 @@ use Modules\UserManagement\Services\EmployeeDirectory;
 
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -85,7 +83,6 @@ class UserRegisteredController extends Controller
                 'pageTitle' => $this->pageTitle,
                 'menuItems' => $this->menuItems,
                 'companies' => $companies,
-                'positions' => User::POSITIONS,
                 'signInReady' => User::signInReady(),
                 'roles' => $roles,
                 // The role the form starts with: the one that only reads, where the caller may hand it out.
@@ -148,11 +145,6 @@ class UserRegisteredController extends Controller
                     : $query->where(fn ($q) => $q->where('active', '!=', '0')->orWhereNull('active'));
             })
 
-            // Filter: by position
-            ->when($request->position != null, function ($query) use ($request) {
-                return $query->whereIn('position', array_intersect((array) $request->position, User::POSITIONS));
-            })
-
             //Filter: by role
             ->when($request->role != null, function ($query) use ($request) {
                 return $query->whereHas('roles', function ($query) use ($request) {
@@ -187,7 +179,6 @@ class UserRegisteredController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'company' => $user->company->name ?? '-',
-                'position' => $user->position ?: '-',
                 'role' => $user->roles->pluck('name')->implode(', ') ?? '-',
                 'active' => $user->isActive(),
                 // How the account gets in: LDAP, Microsoft, Both or Pending (User::signInMethod()).
@@ -241,7 +232,6 @@ class UserRegisteredController extends Controller
                 'email' => $user->email,
                 'company_orangehr_code' => $user->company?->company_orangehr_code,
                 'company_name' => $user->company?->name,
-                'position' => $user->position,
                 'active' => $user->isActive(),
                 'is_self' => (int) $user->id === (int) $request->user()->id,
                 // What the form shows as chosen: LDAP for an account with a directory username, else Microsoft.
@@ -262,10 +252,9 @@ class UserRegisteredController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255', self::NAME_RULE],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->whereNull('deleted_at')],
-            // The form asks for the position, not for the company any more: the company is the caller's own (see newUserCompany()).
-            // A request that still names one is held to the same rules as before.
+            // The form does not ask for the company: it is the caller's own (see newUserCompany()). A request that still
+            // names one is held to the same rules as before.
             'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
-            'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             // The status the form chose; a request without one makes an active account.
             'active' => ['nullable', 'boolean'],
             // How the account signs in: see directoryUsername(). A request without it records no directory username.
@@ -281,10 +270,6 @@ class UserRegisteredController extends Controller
                 'message' => 'Invalid Input!',
                 'errors' => $validator->errors()->all()
             ], 422);
-        }
-
-        if (! $this->positionReady()) {
-            return response()->json(['message' => 'Kolom Position belum ada di database. Jalankan "php artisan migrate" dulu.'], 503);
         }
 
         // Deleting a user is a soft delete and the row keeps its unique e-mail:
@@ -318,7 +303,6 @@ class UserRegisteredController extends Controller
                 $attributes = [
                     'name' => $request->name,
                     'company_id' => $companySelected->id,
-                    'position' => $request->position,
                     // Accounts sign in through SSO; a random hash keeps the e-mail + password form unusable for them.
                     'password' => bcrypt(Str::random(40)),
                     'remember_token' => null,
@@ -355,7 +339,6 @@ class UserRegisteredController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($id)],
             // Not asked for by the form any more: without it the company of the user stays what it is.
             'company_id' => ['nullable', 'string', 'exists:companies,company_orangehr_code'],
-            'position' => ['required', 'string', Rule::in(User::POSITIONS)],
             // The status the form chose; without one it stays what it is.
             'active' => ['nullable', 'boolean'],
             // How the account signs in: see directoryUsername(). Without it the directory username stays what it is.
@@ -372,10 +355,6 @@ class UserRegisteredController extends Controller
                 'message' => 'Invalid Input!',
                 'errors' => $validator->errors()->all()
             ], 422);
-        }
-
-        if (! $this->positionReady()) {
-            return response()->json(['message' => 'Kolom Position belum ada di database. Jalankan "php artisan migrate" dulu.'], 503);
         }
 
         // Cari user berdasarkan ID
@@ -463,7 +442,6 @@ class UserRegisteredController extends Controller
                     'name' => $request->name,
                     'email' => $request->email,
                     'company_id' => $companySelected->id,
-                    'position' => $request->position,
                 ] + ($active === null ? [] : ['active' => $active ? '1' : '0'])
                   // A "remember me" cookie must not bring an inactive account back in.
                   + ($active === false ? ['remember_token' => null] : [])
@@ -766,15 +744,6 @@ class UserRegisteredController extends Controller
         }
 
         return null;
-    }
-
-    /**
-     * Whether the column of the position is there. The code of this folder is live as soon as it is saved, the migration
-     * is run by hand: until then nothing is saved (and the reason is said), instead of failing. (Asked once a minute.)
-     */
-    private function positionReady(): bool
-    {
-        return Cache::remember('users-position-column', 60, fn () => Schema::hasColumn('users', 'position'));
     }
 
     /**

@@ -59,76 +59,60 @@ class UserManagementTest extends TestCase
         return array_merge([
             'name' => 'Budi Santoso',
             'email' => 'budi@merdekabattery.com',
-            'position' => 'IT Field', 'company_id' => 'MTI',
+            'company_id' => 'MTI',
             'role_id' => [$this->roleId('Viewer Radio')],
         ], $overrides);
     }
 
-    public function test_the_form_asks_for_a_position_and_no_longer_for_the_company(): void
+    public function test_the_form_asks_neither_for_the_company_nor_for_a_position(): void
     {
         $admin = $this->admin();
         $this->actingAs($admin);
 
-        // The page: a position to choose (six of them), in the form and the filter, and shown under the name; nothing about the company.
+        // The page: nothing about the company, and no position any more, in the form, the filter or the list.
         $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
-        foreach (['id="positionSelect"', 'id="positionSelectFilter"'] as $part) {
-            $this->assertSame(1, substr_count($page, $part), $part);
+        foreach (['companySelect', 'positionSelect', 'positionSelectFilter', 'user-position', 'Select position', 'item.position'] as $gone) {
+            $this->assertStringNotContainsString($gone, $page, $gone);
         }
-        $this->assertSame(['Manager', 'Superintendent', 'Supervisor', 'IT Field', 'IT System Support', 'IT Assistant'], User::POSITIONS);
-        $options = implode('\s*', array_map(fn (string $position) => '<option value="' . $position . '">' . $position . '</option>', User::POSITIONS));
-        $this->assertSame(2, preg_match_all('#' . $options . '#', $page), 'in the form and in the filter, in that order');
-        $this->assertStringContainsString('<span class="user-position">${userEsc(item.position)}</span>', $page);
-        $this->assertStringNotContainsString('companySelect', $page);
-        $this->assertDoesNotMatchRegularExpression('#<th [^>]*>Company\s*</th>|>Company\s*</label>#', $page);
+        $this->assertDoesNotMatchRegularExpression('#<th [^>]*>(Company|Position)\s*</th>|>(Company|Position)\s*</label>#', $page);
 
-        // Added as the form sends it, without a company: the new account is in the company of whoever added it.
-        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT System Support', 'role_id' => [$this->roleId('Viewer Radio')]];
+        // Added as the form sends it: the new account is in the company of whoever added it.
+        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'role_id' => [$this->roleId('Viewer Radio')]];
         $this->postJson(route('user-management.user-registered.store'), $form)->assertOk();
         $user = User::where('email', 'budi@merdekabattery.com')->sole();
-        $this->assertSame(['IT System Support', (int) $admin->company_id], [$user->position, (int) $user->company_id]);
+        $this->assertSame([(int) $admin->company_id, null], [(int) $user->company_id, $user->position]);
 
-        // The list and the form of an edit show it; the filter finds it.
-        $list = fn (array $query = []) => collect($this->getJson(route('user-management.user-registered.list', $query))->assertOk()->json('data'));
-        $this->assertSame('IT System Support', $list()->firstWhere('email', 'budi@merdekabattery.com')['position']);
-        $this->assertSame('-', $list()->firstWhere('email', $admin->email)['position'], 'an account from before has none yet');
-        $this->assertSame(['budi@merdekabattery.com'], $list(['position' => ['IT System Support']])->pluck('email')->all());
-        $this->assertSame([], $list(['position' => ['IT Field']])->all());
-        $this->assertSame([], $list(['position' => ['Direktur']])->all(), 'what is no position finds nobody');
-        $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk()->assertJsonPath('data.position', 'IT System Support');
+        // A page from before that still sends a position is not refused, and nothing of it is kept.
+        $this->postJson(route('user-management.user-registered.store'), ['email' => 'lain@merdekabattery.com', 'position' => 'IT Field'] + $form)->assertOk();
+        $this->assertNull(User::where('email', 'lain@merdekabattery.com')->value('position'));
 
-        // Changed: the position is what was chosen, the company stays what it was.
-        DB::table('users')->where('id', $user->id)->update(['company_id' => 1]);
-        $this->putJson(route('user-management.user-registered.update', $user->id), ['position' => 'IT Assistant'] + $form)->assertOk();
-        $this->assertSame(['IT Assistant', 1], [$user->fresh()->position, (int) $user->fresh()->company_id]);
+        // The list and the form of an edit say nothing of it.
+        $this->assertArrayNotHasKey('position', $this->getJson(route('user-management.user-registered.list'))->assertOk()->json('data.0'));
+        $this->assertArrayNotHasKey('position', $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk()->json('data'));
 
-        // One of the six, and one is asked for.
-        foreach ([[], ['position' => ''], ['position' => 'Direktur'], ['position' => ['IT Field']]] as $wrong) {
-            $payload = $wrong + array_diff_key(['email' => 'lain@merdekabattery.com'] + $form, ['position' => 1]);
-            $this->postJson(route('user-management.user-registered.store'), $payload)->assertStatus(422);
-            $this->putJson(route('user-management.user-registered.update', $user->id), $wrong + array_diff_key($form, ['position' => 1]))->assertStatus(422);
-        }
-        $this->assertFalse(User::where('email', 'lain@merdekabattery.com')->exists());
-        $this->assertSame('IT Assistant', $user->fresh()->position);
+        // Changed: the company stays what it was, and what an account had as its position is left as it is.
+        DB::table('users')->where('id', $user->id)->update(['company_id' => 1, 'position' => 'IT Assistant']);
+        $this->putJson(route('user-management.user-registered.update', $user->id), ['name' => 'Budi S'] + $form)->assertOk();
+        $this->assertSame(['Budi S', 1, 'IT Assistant'], [$user->fresh()->name, (int) $user->fresh()->company_id, $user->fresh()->position]);
 
         // An account that was removed and is added again keeps the company it had.
         $user->delete();
-        $this->postJson(route('user-management.user-registered.store'), ['position' => 'IT Field'] + $form)->assertOk();
-        $this->assertSame(['IT Field', 1], [$user->fresh()->position, (int) $user->fresh()->company_id]);
+        $this->postJson(route('user-management.user-registered.store'), $form)->assertOk();
+        $this->assertSame(1, (int) $user->fresh()->company_id);
     }
 
-    public function test_before_the_migration_has_run_a_user_is_not_saved_and_the_reason_is_said(): void
+    public function test_users_are_saved_on_a_database_without_the_column_of_the_position(): void
     {
-        // The code of this folder is live as soon as it is saved; the migration is run by hand, later.
+        // Nothing depends on that column any more (an installation that never ran its migration).
         \Illuminate\Support\Facades\Schema::table('users', fn ($table) => $table->dropColumn('position'));
-        \Illuminate\Support\Facades\Cache::forget('users-position-column');
         $this->actingAs($this->admin());
 
         $this->get(route('user-management.user-registered.index'))->assertOk();
-        $this->getJson(route('user-management.user-registered.list'))->assertOk()->assertJsonPath('data.0.position', '-');
-        $this->postJson(route('user-management.user-registered.store'), $this->form())->assertStatus(503)
-            ->assertJsonPath('message', fn ($message) => str_contains($message, 'php artisan migrate'));
-        $this->putJson(route('user-management.user-registered.update', $this->admin()->id), $this->form())->assertStatus(503);
-        $this->assertFalse(User::where('email', 'budi@merdekabattery.com')->exists());
+        $this->getJson(route('user-management.user-registered.list'))->assertOk();
+        $this->postJson(route('user-management.user-registered.store'), $this->form())->assertOk();
+        $user = User::where('email', 'budi@merdekabattery.com')->sole();
+        $this->putJson(route('user-management.user-registered.update', $user->id), $this->form(['name' => 'Budi S']))->assertOk();
+        $this->getJson(route('user-management.user-registered.show', $user->id))->assertOk()->assertJsonPath('data.name', 'Budi S');
     }
 
     public function test_roles_are_shown_and_made_without_a_type_or_a_list_of_companies(): void
@@ -368,7 +352,7 @@ class UserManagementTest extends TestCase
         }
 
         // Added as inactive: the account is there, and cannot sign in until it is set to active.
-        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT Field', 'role_id' => [$viewer]];
+        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'role_id' => [$viewer]];
         $this->postJson(route('user-management.user-registered.store'), ['active' => '0'] + $form)->assertOk();
         $user = User::where('email', 'budi@merdekabattery.com')->sole();
         $this->assertSame('0', $user->active);
@@ -444,7 +428,7 @@ class UserManagementTest extends TestCase
         $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['LDAP']), $full);
         $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['Microsoft']), $full);
         // The order of the form: who, then what they may do, then how they get in.
-        $order = array_map(fn (string $part) => strpos($full, $part), ['id="employeeLookup"', 'id="name"', 'id="email"', 'id="positionSelect"', 'id="roleSelect"', 'id="statusSelect"', 'type="radio" name="sign_in_method"', 'id="ldapUsername"', 'id="userModalSubmitButton"']);
+        $order = array_map(fn (string $part) => strpos($full, $part), ['id="employeeLookup"', 'id="name"', 'id="email"', 'id="roleSelect"', 'id="statusSelect"', 'type="radio" name="sign_in_method"', 'id="ldapUsername"', 'id="userModalSubmitButton"']);
         $sorted = $order;
         sort($sorted);
         $this->assertSame($sorted, $order);
@@ -545,7 +529,7 @@ class UserManagementTest extends TestCase
         $this->actingAs($admin);
         $this->fakeDirectory();
         $viewer = $this->roleId('Viewer Radio');
-        $form = fn (string $email, array $more = []) => $more + ['name' => 'Budi Santoso', 'email' => $email, 'position' => 'IT Field', 'role_id' => [$viewer]];
+        $form = fn (string $email, array $more = []) => $more + ['name' => 'Budi Santoso', 'email' => $email, 'role_id' => [$viewer]];
         $store = fn (string $email, array $more = []) => $this->postJson(route('user-management.user-registered.store'), $form($email, $more));
         $username = fn (string $email) => User::where('email', $email)->sole()->ldap_username;
         $row = fn (string $email) => collect($this->getJson(route('user-management.user-registered.list'))->assertOk()->json('data'))->firstWhere('email', $email);
@@ -635,7 +619,7 @@ class UserManagementTest extends TestCase
     public function test_ldap_can_be_chosen_before_active_directory_is_set_up_but_not_before_the_migration(): void
     {
         $this->actingAs($this->admin());
-        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'position' => 'IT Field', 'role_id' => [$this->roleId('Viewer Radio')]];
+        $form = ['name' => 'Budi Santoso', 'email' => 'budi@merdekabattery.com', 'role_id' => [$this->roleId('Viewer Radio')]];
 
         // Active Directory is not set up (phpunit.xml leaves LDAP_URL empty). LDAP is a choice all the same, as in the form
         // this one follows: the account signs in with Microsoft until the directory is set up (the login form answers its
@@ -679,7 +663,7 @@ class UserManagementTest extends TestCase
         $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio')); // a role the manager cannot hand out
         $staff->update(['ldap_username' => 'staf']);
         $managed = $this->user('dikelola@merdekabattery.com', $own);
-        $form = fn (User $user, array $more) => $more + ['name' => 'Tester', 'email' => $user->email, 'position' => 'IT Field', 'company_id' => 'MCG'];
+        $form = fn (User $user, array $more) => $more + ['name' => 'Tester', 'email' => $user->email, 'company_id' => 'MCG'];
         $update = fn (User $user, array $more) => $this->putJson(route('user-management.user-registered.update', $user->id), $form($user, $more));
 
         $this->actingAs($manager);
@@ -701,7 +685,7 @@ class UserManagementTest extends TestCase
     public function test_a_name_from_the_employee_directory_is_kept_as_it_is_written_there(): void
     {
         $this->actingAs($this->admin());
-        $form = fn (string $name, string $email) => ['name' => $name, 'email' => $email, 'position' => 'IT Field', 'role_id' => [$this->roleId('Viewer Radio')]];
+        $form = fn (string $name, string $email) => ['name' => $name, 'email' => $email, 'role_id' => [$this->roleId('Viewer Radio')]];
 
         foreach (["Ma'ruf Nur\u{2019}aini" => 'maruf@merdekabattery.com', "\u{5F20}\u{4E09}" => 'zhang.san@merdekabattery.com', 'Siti-N., S.Kom 2' => 'siti@merdekabattery.com'] as $name => $email) {
             $this->postJson(route('user-management.user-registered.store'), $form($name, $email))->assertOk();
@@ -818,19 +802,19 @@ class UserManagementTest extends TestCase
 
         // Writing: not on a user of another company ...
         $this->putJson(route('user-management.user-registered.update', $outside->id), $this->form([
-            'name' => 'Diambil', 'email' => $outside->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Diambil', 'email' => $outside->email, 'company_id' => 'MCG',
         ]))->assertForbidden();
         $this->deleteJson(route('user-management.user-registered.destroy', $outside->id))->assertForbidden();
         // ... not into another company, by creating or by moving ...
         $this->postJson(route('user-management.user-registered.store'), $this->form([
-            'email' => 'baru@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MTI', 'role_id' => [$roleId],
+            'email' => 'baru@merdekabattery.com', 'company_id' => 'MTI', 'role_id' => [$roleId],
         ]))->assertForbidden()->assertJsonPath('message', 'You are not allowed to manage users of this company.');
         $this->putJson(route('user-management.user-registered.update', $inside->id), $this->form([
-            'name' => 'Tester', 'email' => $inside->email, 'position' => 'IT Field', 'company_id' => 'MTI',
+            'name' => 'Tester', 'email' => $inside->email, 'company_id' => 'MTI',
         ]))->assertForbidden()->assertJsonPath('message', 'You are not allowed to manage users of this company.');
         // ... and not by re-adding a deleted user who belonged to another company.
         $this->postJson(route('user-management.user-registered.store'), $this->form([
-            'email' => $gone->email, 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$roleId],
+            'email' => $gone->email, 'company_id' => 'MCG', 'role_id' => [$roleId],
         ]))->assertForbidden()->assertJsonPath('message', 'You are not allowed to manage this user.');
 
         $this->assertFalse(User::where('email', 'baru@merdekabattery.com')->exists());
@@ -841,10 +825,10 @@ class UserManagementTest extends TestCase
 
         // Inside their company everything works.
         $this->postJson(route('user-management.user-registered.store'), $this->form([
-            'email' => 'baru@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$roleId],
+            'email' => 'baru@merdekabattery.com', 'company_id' => 'MCG', 'role_id' => [$roleId],
         ]))->assertOk();
         $this->putJson(route('user-management.user-registered.update', $inside->id), $this->form([
-            'name' => 'Inside Baru', 'email' => $inside->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Inside Baru', 'email' => $inside->email, 'company_id' => 'MCG',
         ]))->assertOk();
         $this->assertSame('Inside Baru', $inside->fresh()->name);
     }
@@ -876,7 +860,7 @@ class UserManagementTest extends TestCase
 
         $this->actingAs($manager);
         $new = fn (array $roles) => $this->postJson(route('user-management.user-registered.store'), $this->form([
-            'email' => 'baru@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => $roles,
+            'email' => 'baru@merdekabattery.com', 'company_id' => 'MCG', 'role_id' => $roles,
         ]));
 
         // A role that is not limited, one limited to another company, or one that reaches
@@ -890,7 +874,7 @@ class UserManagementTest extends TestCase
         // Not to themselves either.
         foreach ([$adminRadio, $regional] as $more) {
             $this->putJson(route('user-management.user-registered.update', $manager->id), $this->form([
-                'name' => 'Tester', 'email' => $manager->email, 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$own, $more],
+                'name' => 'Tester', 'email' => $manager->email, 'company_id' => 'MCG', 'role_id' => [$own, $more],
             ]))->assertForbidden();
         }
         $this->assertSame([$own], $roleIds($manager));
@@ -898,7 +882,7 @@ class UserManagementTest extends TestCase
         // Their own kind of role is fine, and what a user already has from someone else stays.
         $new([$own])->assertOk();
         $this->putJson(route('user-management.user-registered.update', $colleague->id), $this->form([
-            'name' => 'Kolega', 'email' => $colleague->email, 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$own],
+            'name' => 'Kolega', 'email' => $colleague->email, 'company_id' => 'MCG', 'role_id' => [$own],
         ]))->assertOk();
         $this->assertEqualsCanonicalizing([$own, $viewer], $roleIds($colleague));
 
@@ -915,7 +899,7 @@ class UserManagementTest extends TestCase
             $this->assertContains($colleague->email, $listed);
             $this->getJson(route('user-management.user-registered.show', $outside->id))->assertForbidden();
             $this->postJson(route('user-management.user-registered.store'), $this->form([
-                'email' => 'lain@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$adminRadio],
+                'email' => 'lain@merdekabattery.com', 'company_id' => 'MCG', 'role_id' => [$adminRadio],
             ]))->assertForbidden();
         }
     }
@@ -947,7 +931,7 @@ class UserManagementTest extends TestCase
 
         // A role covering exactly those two companies is now inside their reach.
         $this->postJson(route('user-management.user-registered.store'), $this->form([
-            'email' => 'regional@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MTI', 'role_id' => [$regional],
+            'email' => 'regional@merdekabattery.com', 'company_id' => 'MTI', 'role_id' => [$regional],
         ]))->assertOk();
         $this->assertSame(['Admin User Regional'], User::where('email', 'regional@merdekabattery.com')->firstOrFail()->roles->pluck('name')->all());
     }
@@ -963,7 +947,7 @@ class UserManagementTest extends TestCase
         $attempt = 0;
         $give = function (int $roleId) use (&$attempt) {
             return $this->postJson(route('user-management.user-registered.store'), $this->form([
-                'email' => 'baru' . ++$attempt . '@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$roleId],
+                'email' => 'baru' . ++$attempt . '@merdekabattery.com', 'company_id' => 'MCG', 'role_id' => [$roleId],
             ]));
         };
 
@@ -1043,7 +1027,7 @@ class UserManagementTest extends TestCase
         $viewer = $this->roleId('Viewer Radio');
         $roleIds = fn (User $user) => $user->fresh()->roles->pluck('id')->map(fn ($id) => (int) $id)->all();
         $edit = fn (User $user, array $roles) => $this->putJson(route('user-management.user-registered.update', $user->id), [
-            'name' => 'Tester', 'email' => $user->email, 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => $roles,
+            'name' => 'Tester', 'email' => $user->email, 'company_id' => 'MCG', 'role_id' => $roles,
         ]);
 
         $outside = $this->user('outside@merdekabattery.com', $viewer);
@@ -1075,7 +1059,7 @@ class UserManagementTest extends TestCase
         // their role, which is not the manager's to manage, stays.
         $free = $this->user('bebas@merdekabattery.com', $unlimited);
         $this->putJson(route('user-management.user-registered.update', $free->id), [
-            'name' => 'Admin Bebas', 'email' => $free->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Admin Bebas', 'email' => $free->email, 'company_id' => 'MCG',
         ])->assertOk();
         $this->assertSame('Admin Bebas', $free->fresh()->name);
         $this->assertSame([$unlimited], $roleIds($free));
@@ -1099,7 +1083,7 @@ class UserManagementTest extends TestCase
 
         // ... and a rename does not force the manager to hand out their own role.
         $this->putJson(route('user-management.user-registered.update', $staff->id), [
-            'name' => 'Staf Baru', 'email' => $staff->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Staf Baru', 'email' => $staff->email, 'company_id' => 'MCG',
         ])->assertOk();
         $staff->refresh();
         $this->assertSame('Staf Baru', $staff->name);
@@ -1108,29 +1092,29 @@ class UserManagementTest extends TestCase
         // Sign-in goes by e-mail: pointing that account at another address would hand its roles
         // to whoever owns the address, so the e-mail of such a user is not theirs to change.
         $response = $this->putJson(route('user-management.user-registered.update', $staff->id), [
-            'name' => 'Staf Baru', 'email' => 'milik.manager@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Staf Baru', 'email' => 'milik.manager@merdekabattery.com', 'company_id' => 'MCG',
         ])->assertForbidden();
         $this->assertStringContainsString('cannot change the e-mail', implode(' ', (array) $response->json('errors')));
         $this->assertSame('staf@merdekabattery.com', $staff->fresh()->email);
         // (the same address in another letter case is not a change, and a user whose roles are
         // all theirs to manage can be given a new address)
         $this->putJson(route('user-management.user-registered.update', $staff->id), [
-            'name' => 'Staf Baru', 'email' => 'STAF@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Staf Baru', 'email' => 'STAF@merdekabattery.com', 'company_id' => 'MCG',
         ])->assertOk();
         $managed = $this->user('dikelola@merdekabattery.com', $own);
         $this->putJson(route('user-management.user-registered.update', $managed->id), [
-            'name' => 'Dikelola', 'email' => 'alamat.baru@merdekabattery.com', 'position' => 'IT Field', 'company_id' => 'MCG', 'role_id' => [$own],
+            'name' => 'Dikelola', 'email' => 'alamat.baru@merdekabattery.com', 'company_id' => 'MCG', 'role_id' => [$own],
         ])->assertOk();
         $this->assertSame('alamat.baru@merdekabattery.com', $managed->fresh()->email);
 
         // A user who would be left with no role at all is still refused, as for everyone else.
         $bare = $this->user('kosong@merdekabattery.com', $own);
         $this->putJson(route('user-management.user-registered.update', $bare->id), [
-            'name' => 'Kosong', 'email' => $bare->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Kosong', 'email' => $bare->email, 'company_id' => 'MCG',
         ])->assertStatus(422);
         $this->actingAs($this->admin());
         $this->putJson(route('user-management.user-registered.update', $staff->id), [
-            'name' => 'Staf', 'email' => $staff->email, 'position' => 'IT Field', 'company_id' => 'MCG',
+            'name' => 'Staf', 'email' => $staff->email, 'company_id' => 'MCG',
         ])->assertStatus(422); // an unlimited caller sees every role, so one must be ticked
         $this->getJson(route('user-management.user-registered.show', $staff->id))->assertJsonPath('data.other_role_count', 0);
     }

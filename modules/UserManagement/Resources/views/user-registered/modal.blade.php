@@ -55,20 +55,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="row">
-                                <label for="positionSelect" class="col-md-4 col-form-label required">Position
-                                </label>
-                                <div class="col-md-8">
-                                    <select id="positionSelect" name="position" class="form-select" required>
-                                        <option value="">Select position</option>
-                                        @foreach ($positions as $position)
-                                            <option value="{{ $position }}">{{ $position }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
 
                         <div class="col-12">
                             <div class="row">
@@ -427,7 +413,6 @@
                     success: function(response) {
                         modal.find("#name").val(response.data.name);
                         modal.find("#email").val(response.data.email);
-                        modal.find("#positionSelect").val(response.data.position || "");
                         // One role is chosen here: of the roles this form lists, the first the user holds.
                         const held = (response.data.role_id || []).map(String);
                         const listed = modal.find("#roleSelect option").map((i, option) => option.value).get();
@@ -502,7 +487,6 @@
 
             formData.append("name", modal.find("#name").val().trim());
             formData.append("email", modal.find("#email").val().trim());
-            formData.append("position", modal.find("#positionSelect").val() || "");
             if (modal.find("#roleSelect").val()) {
                 formData.append("role_id[]", modal.find("#roleSelect").val());
             }
@@ -543,10 +527,6 @@
 
                     if (!formData.get("email")) {
                         errors.push("<strong>Email</strong> cannot be empty");
-                    }
-
-                    if (!formData.get("position")) {
-                        errors.push("<strong>Position</strong> must be selected");
                     }
 
                     const keepsOtherRoles = state !== "submit" && Number(modal.data("otherRoles")) > 0;

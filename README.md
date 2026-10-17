@@ -181,15 +181,14 @@ Database yang sudah ada (misalnya dari base app) cukup ditambah menu radio:
 
 Super Admin (role 1) otomatis mendapat semua menu. Atur user di **User Management**.
 
-Form tambah/edit user menanyakan **Position** (Manager, Superintendent, Supervisor, IT Field, IT System Support, IT Assistant; daftarnya di
-`User::POSITIONS`), bukan lagi Company. Akun baru otomatis masuk ke perusahaan orang yang menambahkannya, dan
-perusahaan akun yang sudah ada tidak berubah saat diedit. Akun lama belum punya Position sampai diedit. Kolom
-`users.position` ditambahkan migrasi `2026_10_12_140000_add_position_to_users_table`; sebelum migrasi dijalankan,
-menyimpan user ditolak dengan keterangan itu.
+Form tambah/edit user tidak menanyakan Company: akun baru otomatis masuk ke perusahaan orang yang menambahkannya, dan
+perusahaan akun yang sudah ada tidak berubah saat diedit. **Position** juga tidak ditanyakan lagi (dihapus dari form,
+daftar dan filter pada 17-10-2026). Kolom `users.position` (migrasi `2026_10_12_140000_add_position_to_users_table`)
+dibiarkan di database apa adanya dan tidak dipakai.
 
 ### Halaman Users
 
-Daftar user (`/user-management/user-registered`) menampilkan Name (dengan Position di bawahnya), Email, Role,
+Daftar user (`/user-management/user-registered`) menampilkan Name, Email, Role,
 **Status**, **Sign-In** dan **Last Sign-In**. Tombol per baris: edit, nonaktifkan/aktifkan, atur password, hapus;
 baris akun sendiri hanya punya edit.
 

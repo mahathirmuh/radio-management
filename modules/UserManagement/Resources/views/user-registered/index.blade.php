@@ -44,12 +44,6 @@
             height: 14px;
         }
 
-        #userTable .user-position {
-            display: block;
-            font-size: .75rem;
-            color: #667382;
-        }
-
         #userTable th {
             font-weight: 600;
         }
@@ -79,7 +73,6 @@
         }
 
         #userTable tr.user-off .user-name,
-        #userTable tr.user-off .user-position,
         #userTable tr.user-off .user-muted {
             opacity: .55;
         }
@@ -225,10 +218,8 @@
         const columns = [{
                 key: 'name',
                 sortable: true,
-                // The position goes under the name: it is said of the person, and the table keeps its width.
                 render: (item) => `<span class="user-name">${userEsc(item.name)}</span>` +
-                    (item.is_self ? ` <span class="badge bg-blue-lt ms-1">You</span>` : '') +
-                    (item.position && item.position !== '-' ? `<span class="user-position">${userEsc(item.position)}</span>` : '')
+                    (item.is_self ? ` <span class="badge bg-blue-lt ms-1">You</span>` : '')
             },
             {
                 key: 'email',
@@ -417,7 +408,6 @@
                 orderBy = 'name';
                 orderDir = 'asc';
                 filterList = {
-                    position: null,
                     role: null,
                     status: null,
                 };
@@ -426,7 +416,6 @@
                 $("#userRegisterdSearch").val('');
                 $("#userFilterCard").slideUp(300, function() {
                     // Reset filter inputs here if needed
-                    $('#userFilterCard #positionSelectFilter').val(null).trigger('change');
                     $('#userFilterCard #roleSelectFilter').val(null).trigger('change');
                     $('#userFilterCard #statusSelectFilter').val('');
                 });
