@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Modules\SharePointDocs\Services\WorkbookNotSaved;
 use Modules\SharePointDocs\Services\WorkbookReader;
 use Modules\SharePointDocs\Services\XlsxPatcher;
 use Modules\SharePointDocs\Services\XlsxReader;
@@ -133,6 +134,51 @@ class XlsxPatcherTest extends TestCase
         $beyond = $patcher->write($before, 'SRF', 'H2', 'jauh');
         $this->assertSame('jauh', $patcher->read($beyond, 'SRF', 'H2')['raw']);
         $this->assertSame('Budi Santoso', $patcher->read($beyond, 'SRF', 'C2')['raw']);
+    }
+
+    public function test_a_save_that_fails_is_made_again_and_a_workbook_without_the_change_never_comes_back(): void
+    {
+        $before = $this->book();
+        // As ZipArchive::close() does when Windows refuses to put the new file in place: false, and the copy as it was.
+        $refuse = function (ZipArchive $zip): bool {
+            $zip->unchangeAll();
+            $zip->close();
+
+            return false;
+        };
+
+        // Refused once (a virus scanner held the fresh copy): the change is made again on a new copy, and saved.
+        $saves = 0;
+        $patcher = new XlsxPatcher(function (ZipArchive $zip) use (&$saves, $refuse): bool {
+            return ++$saves === 1 ? $refuse($zip) : $zip->close();
+        });
+        $this->assertNull($patcher->read($patcher->write($before, 'SRF', 'C2', null), 'SRF', 'C2')['raw']);
+        $this->assertSame(2, $saves);
+
+        // Refused every time: said, after a few tries; never the workbook as it was, as if it had been changed.
+        $saves = 0;
+        $never = new XlsxPatcher(function (ZipArchive $zip) use (&$saves, $refuse): bool {
+            $saves++;
+
+            return $refuse($zip);
+        });
+        try {
+            $never->write($before, 'SRF', 'C2', null);
+            $this->fail('A workbook came back although it could not be saved.');
+        } catch (WorkbookNotSaved $e) {
+            $this->assertStringContainsString('could not be saved', $e->getMessage());
+            $this->assertSame(3, $saves);
+        }
+
+        // A save that says yes but left the copy as it was is caught by reading the saved workbook back.
+        $silent = new XlsxPatcher(function (ZipArchive $zip): bool {
+            $zip->unchangeAll();
+
+            return $zip->close();
+        });
+        $this->expectException(WorkbookNotSaved::class);
+        $this->expectExceptionMessage('does not have the change');
+        $silent->write($before, 'SRF', 'C2', 'Budi S.');
     }
 
     public function test_it_makes_a_row_that_is_not_there(): void

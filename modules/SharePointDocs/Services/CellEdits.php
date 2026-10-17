@@ -264,6 +264,10 @@ class CellEdits
                     default => (string) $request->new_value,
                 }
             );
+        } catch (WorkbookNotSaved $e) {
+            Log::warning('The changed workbook could not be saved on this server.', ['request' => $request->id, 'detail' => $e->getMessage()]);
+
+            return [EditRequest::FAILED, 'Workbook yang sudah diubah tidak bisa disimpan sementara di server aplikasi. Tidak ada yang ditulis ke SharePoint; coba setujui lagi.'];
         } catch (RuntimeException $e) {
             Log::warning('A change could not be made in the workbook.', ['request' => $request->id, 'detail' => $e->getMessage()]);
 

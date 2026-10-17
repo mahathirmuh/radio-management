@@ -22,6 +22,7 @@ use Modules\SharePointDocs\Services\XlsxPatcher;
 use Tests\Concerns\MakesUsers;
 use Tests\Concerns\MakesWorkbooks;
 use Tests\TestCase;
+use ZipArchive;
 
 /**
  * Changing a cell of the ICT Masterlist workbook: asked for by one role, approved by another, and only then written
@@ -630,6 +631,38 @@ class SharePointEditTest extends TestCase
         $this->assertSame(0, $this->puts());
 
         // (A workbook that is a workbook but has no such sheet any more is a conflict: see above.)
+    }
+
+    public function test_a_change_that_cannot_be_saved_on_the_server_is_a_failure_and_nothing_is_sent(): void
+    {
+        // The changed workbook cannot be saved to its temporary copy, every time the first approval tries (on Windows: a
+        // virus scanner holding it). (One patcher for the whole test: the controller that holds it is kept between requests.)
+        $saves = 0;
+        $this->app->instance(XlsxPatcher::class, new XlsxPatcher(function (ZipArchive $zip) use (&$saves): bool {
+            if (++$saves > 3) {
+                return $zip->close();
+            }
+            $zip->unchangeAll();
+            $zip->close();
+
+            return false;
+        }));
+        $this->actingAs($this->admin());
+        $this->ask([2, 2], 'Budi S.')->assertCreated();
+        $request = EditRequest::sole();
+
+        $this->actingAs($this->controller());
+        $this->approve($request)->assertStatus(502)->assertJsonPath('status', 'failed')
+            ->assertJsonPath('message', fn ($message) => str_contains($message, 'tidak bisa disimpan sementara') && str_contains($message, 'Tidak ada yang ditulis'));
+        $this->assertSame('failed', $request->fresh()->status);
+        $this->assertSame(3, $saves);
+        $this->assertSame(0, $this->puts());
+        $this->assertSame('Budi Santoso', $this->written('SRF', 'C2'));
+
+        // Saved as it should be again: the same request is approved, and written.
+        $this->approve($request)->assertOk()->assertJsonPath('status', 'applied');
+        $this->assertSame(4, $saves);
+        $this->assertSame('Budi S.', $this->written('SRF', 'C2'));
     }
 
     // ================================================================ the list

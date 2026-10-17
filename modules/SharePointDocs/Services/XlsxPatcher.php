@@ -2,6 +2,7 @@
 
 namespace Modules\SharePointDocs\Services;
 
+use Closure;
 use RuntimeException;
 use XMLReader;
 use ZipArchive;
@@ -28,6 +29,17 @@ final class XlsxPatcher
 
     /** A worksheet part that inflates to more than this is not changed here (bytes). */
     private const MAX_PART_BYTES = 192 * 1024 * 1024;
+
+    /** How many times a change is made and saved before the save counts as failed (see write()). */
+    private const SAVE_ATTEMPTS = 3;
+
+    /**
+     * @param  (Closure(ZipArchive): bool)|null  $save  saves and closes the archive of a change: ZipArchive::close(), unless
+     *     a test gives one that fails.
+     */
+    public function __construct(private readonly ?Closure $save = null)
+    {
+    }
 
     /**
      * The cell as the workbook has it.
@@ -90,34 +102,67 @@ final class XlsxPatcher
             throw new RuntimeException('The text has characters that a workbook cannot hold.');
         }
 
-        return $this->inArchive($bytes, true, function (ZipArchive $zip, string $file) use ($sheet, $address, $at, $value): string {
-            [$part] = $this->locate($zip, $sheet);
-            $xml = $this->part($zip, $part);
-            $row = (int) $at[2];
-
-            $cell = $this->cell($xml, $address);
-            if ($cell !== null) {
-                if (isset($cell['attributes']['cm']) || isset($cell['attributes']['vm'])) {
-                    throw new RuntimeException("The cell {$address} carries metadata of Excel (an array or a linked type) and is not written here.");
+        // Saving the archive replaces its temporary copy with a new file. On Windows that fails now and then while another
+        // process (a virus scanner) still holds the fresh copy, and the copy keeps the workbook as it was (measured: about
+        // one save in two hundred). The change is then made again on a new copy; a workbook without it never comes back.
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return $this->inArchive($bytes, true, fn (ZipArchive $zip, string $file): string => $this->change($zip, $file, $sheet, $address, $at, $value));
+            } catch (WorkbookNotSaved $e) {
+                if ($attempt >= self::SAVE_ATTEMPTS) {
+                    throw $e;
                 }
-                $new = self::cellXml($address, $cell['attributes']['s'] ?? null, $value);
-                $xml = substr_replace($xml, $new, $cell['start'], $cell['length']);
-            } else {
-                $xml = $this->insert($xml, $row, self::columnNumber($at[1]), self::cellXml($address, null, $value));
+                usleep(100000 * $attempt);
             }
+        }
+    }
 
-            $zip->addFromString($part, $xml);
-            $zip->setCompressionName($part, ZipArchive::CM_DEFLATE);
-            $this->recalculate($zip);
-            $zip->close();
+    /**
+     * Changes the cell in the open archive, saves it, and gives the saved workbook back.
+     *
+     * @param  array<int, string>  $at  the parts of the address: [1] the column letters, [2] the row number
+     */
+    private function change(ZipArchive $zip, string $file, string $sheet, string $address, array $at, string|float|null $value): string
+    {
+        [$part] = $this->locate($zip, $sheet);
+        $xml = $this->part($zip, $part);
 
-            $written = @file_get_contents($file);
-            if (! is_string($written) || ! str_starts_with($written, "PK\x03\x04")) {
-                throw new RuntimeException('The changed workbook could not be read back from the temporary file.');
+        $cell = $this->cell($xml, $address);
+        if ($cell !== null) {
+            if (isset($cell['attributes']['cm']) || isset($cell['attributes']['vm'])) {
+                throw new RuntimeException("The cell {$address} carries metadata of Excel (an array or a linked type) and is not written here.");
             }
+            $new = self::cellXml($address, $cell['attributes']['s'] ?? null, $value);
+            $xml = substr_replace($xml, $new, $cell['start'], $cell['length']);
+        } else {
+            $new = self::cellXml($address, null, $value);
+            $xml = $this->insert($xml, (int) $at[2], self::columnNumber($at[1]), $new);
+        }
 
-            return $written;
-        });
+        $zip->addFromString($part, $xml);
+        $zip->setCompressionName($part, ZipArchive::CM_DEFLATE);
+        $this->recalculate($zip);
+
+        // (Silenced: what went wrong is asked of the archive, and said by the exception.)
+        if (! ($this->save ?? static fn (ZipArchive $archive): bool => @$archive->close())($zip)) {
+            try {
+                $reason = $zip->getStatusString();
+            } catch (\ValueError) {
+                $reason = 'no reason given';
+            }
+            throw new WorkbookNotSaved("The changed workbook could not be saved: {$reason}.");
+        }
+
+        $written = @file_get_contents($file);
+        if (! is_string($written) || ! str_starts_with($written, "PK\x03\x04")) {
+            throw new RuntimeException('The changed workbook could not be read back from the temporary file.');
+        }
+        // What goes back to SharePoint has the cell as it was just written: a save that did not happen leaves the old one.
+        if (! str_contains($this->inArchive($written, false, fn (ZipArchive $saved): string => $this->part($saved, $part)), $new)) {
+            throw new WorkbookNotSaved('The saved workbook does not have the change.');
+        }
+
+        return $written;
     }
 
     /**
