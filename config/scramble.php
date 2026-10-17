@@ -21,7 +21,8 @@ return [
     'openapi_version' => \Dedoc\Scramble\OpenApiVersion::V3_1,
 
     'info' => [
-        'version' => '1.0',
+        // The version of the application (config/app.php, which is loaded before this file): /api/v1 is every 1.x.y.
+        'version' => config('app.version') ?: '1',
 
         'description' => <<<'MD'
 The register of radios of MTI Radio Management, for other applications.

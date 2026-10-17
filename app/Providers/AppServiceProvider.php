@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Exception;
+use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\URL;
@@ -41,6 +42,11 @@ class AppServiceProvider extends ServiceProvider
         // log of activity and the limit on tries of the login form go by.)
         if (str_starts_with(strtolower((string) config('app.url')), 'https://')) {
             URL::forceScheme('https');
+        }
+
+        // "php artisan about" names the version of the application (the file VERSION), e.g. inside the container.
+        if ($this->app->runningInConsole()) {
+            AboutCommand::add('Environment', 'Application Version', (string) (config('app.version') ?? 'unknown'));
         }
 
         $this->registerPermissionDirective();

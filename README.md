@@ -198,6 +198,50 @@ docker compose down                     # hentikan (data storage tetap)
 - Bila `LDAP_TLS_VERIFY=true` dengan CA internal: pasang file sertifikat CA ke container (contoh ada sebagai komentar
   di `docker-compose.yml`) dan isi `LDAP_CA_CERT` dengan path di dalam container.
 
+## Versi
+
+Nomor versi mengikuti [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`, misalnya `1.5.0`. Angkanya
+disimpan di satu tempat saja, file `VERSION` di root proyek. `config('app.version')` membacanya dari sana, dan angka
+itu tampil di footer setiap halaman, di dokumentasi API (`/docs/api`) dan di `php artisan about` (di container:
+`docker compose exec app php artisan about --only=environment`). Jadi versi yang sedang jalan di sebuah server
+terlihat di footer-nya. Apa yang berubah di tiap versi, dan apa yang perlu dilakukan saat deploy (migrasi, setting
+baru), ada di [CHANGELOG.md](CHANGELOG.md).
+
+"API publik" aplikasi ini, yaitu yang dipakai pihak lain dan bisa rusak tanpa mereka tahu, ada tiga:
+
+1. REST API `/api/v1` (endpoint, field, token);
+2. format file Excel Import;
+3. setting `.env` dan Docker (nama dan artinya).
+
+Tampilan halaman tidak termasuk.
+
+| Naik | Kapan |
+| --- | --- |
+| MAJOR (`2.0.0`) | Salah satu dari tiga di atas rusak bila pihak lain tidak ikut menyesuaikan: field atau endpoint API dihapus atau diganti nama (API sekaligus pindah ke `/api/v2`), format import lama ditolak, nama setting `.env` diganti tanpa yang lama tetap dibaca |
+| MINOR (`1.x.0`) | Fitur baru yang tidak merusak: menu atau halaman baru, endpoint atau field API baru, setting `.env` baru yang opsional, migrasi baru (aplikasi tetap jalan sebelum migrasinya dijalankan) |
+| PATCH (`1.x.y`) | Perbaikan bug, tanpa fitur baru |
+
+Perubahan yang hanya menyentuh README atau test tidak menaikkan versi; ikut ke versi berikutnya. Selama aplikasi
+masih 1.x.y, API tetap `/api/v1` dan hanya bertambah.
+
+Merilis sebuah versi: satu commit yang menaikkan `VERSION` dan menambah bagiannya paling atas di `CHANGELOG.md`
+(`VersionTest` memastikan keduanya sama), lalu tag git beranotasi dengan nomor itu, di-push bersama commit-nya:
+
+```bash
+git tag -a v1.6.0 -m "v1.6.0: <ringkasan>"
+git push origin main v1.6.0
+```
+
+Tidak ada bagian "Unreleased": setiap perubahan yang di-push ke `main` langsung menjadi sebuah versi. Label
+pre-release (`1.6.0-beta.1`) dan build metadata (`+abc1234`) belum dipakai.
+
+Kembali ke versi sebelumnya di server: `git checkout v1.4.0 && docker compose up -d --build`; kembali ke yang terbaru:
+`git checkout main && git pull && docker compose up -d --build`. Yang mundur hanya kodenya: tabel, kolom dan menu dari
+versi sesudahnya tetap ada di database (menu yang halamannya belum ada di versi lama tampil tanpa tautan).
+
+Versi 1.0.0 sampai 1.4.0 diberi nomor belakangan, saat penomoran versi dimulai di 1.5.0; footer versi-versi itu masih
+menulis v1.0.0.
+
 ## Login
 
 - **Microsoft SSO** (`MS_GRAPH_TENANT_ID`, `MS_GRAPH_CLIENT_ID`, `MS_GRAPH_CLIENT_SECRET`, `MS_SSO_REDIRECT_URI` di `.env`).

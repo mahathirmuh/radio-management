@@ -9,9 +9,11 @@
              <div class="col-12 text-center d-flex justify-content-center align-items-center">
                  Copyright &copy; {{ date('Y') }}, Development by <a href="https://merdekacoppergold.com/" target="_blank"
                      class="fw-normal ms-1"> Merdeka Group</a>
-                 <a href="/" class="badge mdka-bg-gray-700 rounded-2 ms-2">
-                     v1.0.0
-                 </a>
+                 @if (filled(config('app.version')))
+                     <a href="/" class="badge mdka-bg-gray-700 rounded-2 ms-2" title="Application version">
+                         v{{ config('app.version') }}
+                     </a>
+                 @endif
              </div>
          </div>
      </div>

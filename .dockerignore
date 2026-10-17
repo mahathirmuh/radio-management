@@ -12,6 +12,8 @@
 !artisan
 !composer.json
 !composer.lock
+# The version of the application (config/app.php reads it; the footer shows it).
+!VERSION
 
 # Inside what is let in, out again.
 # Accounts of real people: git ignores these seeders too.

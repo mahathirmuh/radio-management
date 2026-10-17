@@ -20,6 +20,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | MAJOR.MINOR.PATCH (Semantic Versioning), from the file VERSION at the root
+    | of the project: the one place the number is kept, raised with every
+    | release together with CHANGELOG.md (README, section "Versi"). Shown in the
+    | footer, in the API documentation and by "php artisan about". A file and
+    | not a git tag: the Docker image has no .git folder.
+    |
+    */
+
+    'version' => is_file(base_path('VERSION')) ? trim((string) file_get_contents(base_path('VERSION'))) : null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
