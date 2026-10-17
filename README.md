@@ -180,9 +180,13 @@ docker compose down                     # hentikan (data storage tetap)
     callback itu didaftarkan di app Entra (Entra hanya menerima http untuk `localhost`).
   - `SESSION_SECURE_COOKIE=true`.
 
-  Tanpa `TRUSTED_PROXIES` yang benar, halaman https menautkan CSS/JS dengan http:// dan browser memblokirnya:
-  halaman login tampil berantakan (hanya gambar besar, tanpa tata letak). Cara cek: buka sumber halaman login, alamat
-  `.../assets/...` harus diawali `https://`. Setelah mengubah `.env`: `docker compose restart app`.
+  Dengan `APP_URL` berawalan `https://`, semua tautan (CSS/JS, form, redirect) dibuat dengan https, walau proxy-nya
+  belum dipercaya: tanpa itu halaman login tampil berantakan (hanya gambar besar, tanpa tata letak) karena browser
+  memblokir CSS/JS http:// di halaman https. `TRUSTED_PROXIES` tetap perlu benar: dari situ aplikasi tahu alamat asli
+  pengunjung, yang dipakai log aktivitas dan batas 10 percobaan per menit form login (tanpa itu semua orang tampak
+  datang dari satu alamat, dan berbagi batas itu). Alamat asal proxy terlihat di kolom pertama
+  `docker compose logs --tail 5 app`; tambahkan ke `TRUSTED_PROXIES`. Setelah mengubah `.env`:
+  `docker compose restart app`.
 - Untuk server: `APP_ENV=production` dan `APP_DEBUG=false`. Image dibangun tanpa paket dev (tanpa debugbar).
 - **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
 - **Yang tidak masuk image** (`.dockerignore` memakai daftar yang boleh masuk): `.env`, file Excel/Word/PDF, seeder

@@ -5,6 +5,7 @@ namespace App\Providers;
 use Exception;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Http\Request;
 use App\Exceptions\Handler;
 use App\Helpers\LogApps;
@@ -31,6 +32,15 @@ class AppServiceProvider extends ServiceProvider
         // is stored exactly as typed ("E & I", "a < b").
         if (! $request->is('radio-management', 'radio-management/*')) {
             $request->merge(LogApps::sanitizeInput($request->all()));
+        }
+
+        // An https address in APP_URL (the production server, behind its reverse proxy) is the address people open:
+        // links are made with https whatever the request looked like when it reached the container. Otherwise a proxy
+        // that is not named in TRUSTED_PROXIES leaves the pages linking their CSS/JS with http://, which the browser
+        // blocks on an https page. (TRUSTED_PROXIES is still wanted: it gives the address of the visitor, which the
+        // log of activity and the limit on tries of the login form go by.)
+        if (str_starts_with(strtolower((string) config('app.url')), 'https://')) {
+            URL::forceScheme('https');
         }
 
         $this->registerPermissionDirective();

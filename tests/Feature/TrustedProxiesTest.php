@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Providers\AppServiceProvider;
 use Tests\TestCase;
 
 /**
@@ -46,6 +47,35 @@ class TrustedProxiesTest extends TestCase
         $page = $this->loginPageFrom('10.9.9.9');
         $this->assertStringNotContainsString('https://radio.example.test/', $page);
         $this->assertStringContainsString('http://10.0.0.5:8020/assets/', $page);
+    }
+
+    public function test_with_an_https_app_url_the_pages_link_with_https_even_when_the_proxy_is_not_believed(): void
+    {
+        // As on the production server: APP_URL is the https address, and the proxy arrives from an address that
+        // TRUSTED_PROXIES does not name. (APP_URL is looked at when the application starts: its start is run again.)
+        config(['app.url' => 'https://radio.example.test', 'trustedproxy.proxies' => '10.1.2.3']);
+        $this->app->getProvider(AppServiceProvider::class)->boot($this->app['request']);
+
+        $page = (string) $this->withServerVariables(['REMOTE_ADDR' => '192.168.48.1'])
+            ->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-For' => '10.60.1.2'])
+            ->get('http://radio.example.test/login')->assertOk()->getContent();
+
+        // The assets and the forms are linked the way the visitor opened the page ...
+        $this->assertStringContainsString('https://radio.example.test/assets/', $page);
+        $this->assertStringNotContainsString('http://radio.example.test/', $page);
+        // ... while the address of the visitor still comes only from a believed proxy.
+        $this->assertSame('192.168.48.1', request()->ip());
+    }
+
+    public function test_with_an_http_app_url_nothing_is_forced(): void
+    {
+        // The laptop (and the tests): APP_URL is http, links follow the request as before.
+        $this->assertStringStartsWith('http://', (string) config('app.url'));
+        config(['trustedproxy.proxies' => null]);
+
+        $page = $this->loginPageFrom('10.1.2.3');
+        $this->assertStringContainsString('http://10.0.0.5:8020/assets/', $page);
+        $this->assertStringNotContainsString('https://', implode(' ', preg_match_all('#(?:href|src)="(https?://[^"]+/assets/[^"]*)"#', $page, $m) ? $m[1] : []));
     }
 
     public function test_the_setting_is_read_from_the_environment(): void
