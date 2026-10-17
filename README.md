@@ -256,22 +256,39 @@ username (`users.ldap_username`), dan apakah akun pernah login lewat Microsoft (
 Akun tanpa keduanya yang pernah masuk dengan password buatan admin tampil sebagai "Password". Tombol kunci
 (atur password) tidak ada pada akun LDAP: password akun itu ada di Active Directory, bukan di sini.
 
-Form tambah/edit user:
+Form tambah/edit user, dari atas: **Sign-in method**, **Find employee**, Name, Email, **Directory username** (khusus
+LDAP), Role, Status. Metode sign-in sengaja paling atas (berbeda dari trilingual-docon), karena metode itulah yang
+menentukan di mana Find employee mencari.
 
-- **Find employee**: mencari karyawan di database HR menurut nama atau e-mail kantor; memilih satu mengisi Name
-  dan Email. Hanya alamat di domain `EMPLOYEE_DIRECTORY_DOMAINS` yang ditawarkan (alamat pribadi atau isian
-  seperti "no need" tidak bisa login di sini). Tampil hanya bila `HR_DB_HOST` dkk. diisi di `.env`
-  (`config/employee_directory.php`, koneksi `hr` di `config/database.php`), dan hanya untuk yang boleh menambah
-  atau mengubah user. Yang dibaca tiga kolom saja (nomor karyawan, nama, e-mail kantor): nama tabel (lebih baik
-  sebuah view berisi tiga kolom itu saja) dan nama kolomnya disetel lewat `EMPLOYEE_DIRECTORY_TABLE` dan
-  `EMPLOYEE_DIRECTORY_*_COLUMN` di `.env`.
-  Bila database HR tidak terjangkau, atau nama tabel/kolomnya salah, form menulis bahwa direktori tidak bisa dicari
-  (alasannya di log), bukan "No match"; form tetap bisa diisi dengan mengetik.
-- **Sign-in method** (LDAP / Microsoft) dan **Directory username**: selalu ada di form (seperti di trilingual-docon),
-  begitu kolomnya ada (migrasi `2026_10_13_110000`). LDAP mencatat Directory username; dikosongkan berarti diambil
-  dari bagian e-mail sebelum `@`. Microsoft tidak mencatat apa pun. Satu akun direktori hanya untuk satu akun di
-  sini. Bila Active Directory belum disetel (`LDAP_URL` dan `LDAP_BIND_DN` di `.env`, `config/ldap.php`), form
-  menuliskannya di bawah Directory username; akun LDAP tetap bisa masuk lewat Microsoft sampai direktori disetel.
+- **Sign-in method** (LDAP / Microsoft) dan **Directory username**: selalu ada di form begitu kolomnya ada (migrasi
+  `2026_10_13_110000`). LDAP mencatat Directory username; dikosongkan berarti diambil dari bagian e-mail sebelum
+  `@`. Microsoft tidak mencatat apa pun. Satu akun direktori hanya untuk satu akun di sini. Bila Active Directory
+  belum disetel (`LDAP_URL` dan `LDAP_BIND_DN` di `.env`, `config/ldap.php`), form menuliskannya di bawah Directory
+  username; akun LDAP tetap bisa masuk lewat Microsoft sampai direktori disetel.
+- **Find employee** mencari di tempat yang sesuai dengan metode yang dipilih; berganti metode mengosongkan
+  pencariannya.
+  - **LDAP** (bila Active Directory sudah disetel): mencari di **Active Directory** menurut nama, username atau
+    e-mail. Memilih satu mengisi Name, Email dan Directory username persis seperti di direktori (username AD tidak
+    selalu sama dengan awalan e-mail). Akun yang dinonaktifkan di AD tidak ditawarkan. Paling banyak 8 orang
+    ditampilkan; bila lebih, form meminta mengetik lebih banyak. Yang mencari adalah akun layanan (`LDAP_BIND_DN`),
+    di bawah `LDAP_USER_SEARCH_BASE`, dengan filter `LDAP_PEOPLE_SEARCH_FILTER` (bawaannya: akun orang yang aktif,
+    dicocokkan ke `displayName`, `sAMAccountName`, `mail` dan `userPrincipalName`).
+  - **Microsoft** (dan LDAP selama Active Directory belum disetel): mencari karyawan di **database HR** menurut nama
+    atau e-mail kantor; memilih satu mengisi Name dan Email. Hanya alamat di domain `EMPLOYEE_DIRECTORY_DOMAINS`
+    yang ditawarkan (alamat pribadi atau isian seperti "no need" tidak bisa login di sini). Database HR dipakai bila
+    `HR_DB_HOST` dkk. diisi di `.env` (`config/employee_directory.php`, koneksi `hr` di `config/database.php`).
+    Yang dibaca tiga kolom saja (nomor karyawan, nama, e-mail kantor): nama tabel (lebih baik sebuah view berisi
+    tiga kolom itu saja) dan nama kolomnya disetel lewat `EMPLOYEE_DIRECTORY_TABLE` dan
+    `EMPLOYEE_DIRECTORY_*_COLUMN` di `.env`.
+
+  Find employee hanya untuk yang boleh menambah atau mengubah user, dan tidak tampil untuk metode yang tidak punya
+  tempat mencari. Bila direktorinya tidak terjangkau (atau, untuk HR, nama tabel/kolomnya salah), form menulis
+  bahwa direktori tidak bisa dicari (alasannya di log), bukan "No match"; form tetap bisa diisi dengan mengetik.
+- **Saat Submit** dengan metode LDAP, Directory username diperiksa dulu ke Active Directory (bila sudah disetel).
+  Username yang tidak ada di direktori, atau akun yang dinonaktifkan di sana, ditolak dengan pesan apa yang perlu
+  diperiksa, dan tidak ada yang disimpan. Bila Active Directory sedang tidak terjangkau, penyimpanan juga ditolak
+  (coba lagi sebentar lagi). Saat edit, pemeriksaan ini hanya dilakukan bila Directory username-nya berubah
+  (termasuk beralih dari Microsoft ke LDAP).
 - Login LDAP: di form e-mail + password, password diperiksa dengan bind ke Active Directory sebagai orang itu
   (`App\Services\Directory\LdapAuthenticator`); tidak ada password yang disimpan. Password kosong ditolak sebelum
   sampai ke direktori, direktori yang tidak bisa dihubungi dilaporkan sebagai gangguan (bukan "password salah"),

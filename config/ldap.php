@@ -37,6 +37,15 @@ return [
     // {username} is replaced with the directory username of the account, escaped for a filter.
     'user_search_filter' => env('LDAP_USER_SEARCH_FILTER') ?: '(sAMAccountName={username})',
 
+    // "Find employee" of User Management, with LDAP chosen: the people whose name, username or address holds what is typed
+    // ({term}, escaped for a filter), people only (no computers, no contacts) and not disabled.
+    'people_search_filter' => env('LDAP_PEOPLE_SEARCH_FILTER') ?: '(&(objectCategory=person)(objectClass=user)'
+        . '(!(userAccountControl:1.2.840.113556.1.4.803:=2))'
+        . '(|(displayName=*{term}*)(sAMAccountName=*{term}*)(mail=*{term}*)(userPrincipalName=*{term}*)))',
+
+    // How many people that search shows (more means the search was too vague: type more).
+    'people_search_limit' => 8,
+
     // Seconds. The login page waits while the directory is asked: one that does not answer should say so quickly.
     'timeout' => (int) env('LDAP_TIMEOUT', 5),
 

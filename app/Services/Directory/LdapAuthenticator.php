@@ -3,6 +3,7 @@
 namespace App\Services\Directory;
 
 use Exception;
+use FreeDSx\Ldap\Controls;
 use FreeDSx\Ldap\Entry\Entry;
 use FreeDSx\Ldap\Exception\BindException;
 use FreeDSx\Ldap\Exception\OperationException;
@@ -30,6 +31,9 @@ use SensitiveParameter;
  * - Two entries for one username are refused, not resolved by taking the first: that would sign somebody in as an
  *   account that is not theirs. An account the directory has disabled is refused as well.
  * - No password travels unencrypted: ldaps:// is TLS from the start, and on ldap:// StartTLS comes before any bind.
+ *
+ * For User Management it also looks people up, as the service account, never with anybody's password: search() for
+ * "Find employee" (with LDAP chosen), lookup() to check a directory username before an account is saved with it.
  */
 class LdapAuthenticator
 {
@@ -80,21 +84,86 @@ class LdapAuthenticator
     }
 
     /**
+     * The people of the directory whose name, username or address holds $term (config ldap.people_search_filter: people
+     * only, disabled accounts left out), for "Find employee" of User Management: at most $limit of them, sorted by name,
+     * and whether the directory has more. Looked up as the service account.
+     *
+     * @return array{people: array<int, array{username: string, name: ?string, email: ?string}>, more: bool}
+     *
+     * @throws DirectoryUnavailable when the directory cannot be asked (or is not set up)
+     */
+    public function search(string $term, int $limit = 8): array
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return ['people' => [], 'more' => false];
+        }
+        if (! $this->isConfigured()) {
+            throw new DirectoryUnavailable('The directory is not configured (LDAP_URL, LDAP_BIND_DN).');
+        }
+        $limit = max(1, $limit);
+        $client = $this->asService();
+
+        try {
+            $filter = str_replace('{term}', $this->escape($term), (string) config('ldap.people_search_filter'));
+
+            // One page of one more than are shown: whether there are more is known, and the directory does not answer
+            // "size limit exceeded" (which hands over none of them) when many people match.
+            $found = $client->search(
+                Operations::search(Filters::raw($filter), ...$this->attributes(['userprincipalname']))
+                    ->base((string) config('ldap.user_search_base')),
+                Controls::paging($limit + 1)
+            )->toArray();
+        } catch (Exception $e) {
+            throw $this->unavailable('the search for people failed', $e, 'The directory could not be searched.');
+        } finally {
+            $this->close($client);
+        }
+
+        $people = [];
+        foreach ($found as $entry) {
+            $person = $this->person($entry);
+            // (The filter leaves out disabled accounts; a filter set otherwise in .env may not.)
+            if ($person !== null && ! $this->isDisabled($entry)) {
+                $people[] = $person;
+            }
+        }
+        usort($people, fn (array $a, array $b) => strnatcasecmp((string) ($a['name'] ?? $a['username']), (string) ($b['name'] ?? $b['username'])));
+
+        return ['people' => array_slice($people, 0, $limit), 'more' => count($found) > $limit];
+    }
+
+    /**
+     * The account of a directory username as the directory has it, looked up as the service account: null when there is
+     * none (or the username names more than one entry). A disabled account is told as such.
+     *
+     * @return array{username: string, name: ?string, email: ?string, disabled: bool}|null
+     *
+     * @throws DirectoryUnavailable when the directory cannot be asked (or is not set up)
+     */
+    public function lookup(string $username): ?array
+    {
+        if (trim($username) === '') {
+            return null;
+        }
+        if (! $this->isConfigured()) {
+            throw new DirectoryUnavailable('The directory is not configured (LDAP_URL, LDAP_BIND_DN).');
+        }
+
+        $entry = $this->find($username);
+        $person = $entry === null ? null : $this->person($entry);
+
+        return $person === null ? null : $person + ['disabled' => $this->isDisabled($entry)];
+    }
+
+    /**
      * The entry of this username, looked up as the service account; null when there is none (or more than one).
      *
      * @throws DirectoryUnavailable
      */
     private function find(string $username): ?Entry
     {
-        $client = $this->open();
-
-        try {
-            $client->bind((string) config('ldap.bind_dn'), (string) config('ldap.bind_password'));
-        } catch (Exception $e) {
-            $this->close($client);
-
-            throw $this->unavailable('could not bind as the service account', $e, 'The directory could not be reached.');
-        }
+        $client = $this->asService();
 
         $found = [];
         $tooMany = false;
@@ -157,6 +226,46 @@ class LdapAuthenticator
         } finally {
             $this->close($client);
         }
+    }
+
+    /**
+     * A client bound as the service account, the one that looks people up.
+     *
+     * @throws DirectoryUnavailable
+     */
+    private function asService(): LdapClient
+    {
+        $client = $this->open();
+
+        try {
+            $client->bind((string) config('ldap.bind_dn'), (string) config('ldap.bind_password'));
+        } catch (Exception $e) {
+            $this->close($client);
+
+            throw $this->unavailable('could not bind as the service account', $e, 'The directory could not be reached.');
+        }
+
+        return $client;
+    }
+
+    /**
+     * An entry as the form of a user takes it: the username, the name, and the address (the mail attribute, else the
+     * userPrincipalName, which Microsoft signs in with). Null for an entry without a username.
+     *
+     * @return array{username: string, name: ?string, email: ?string}|null
+     */
+    private function person(Entry $entry): ?array
+    {
+        $username = $this->attribute($entry, (string) config('ldap.attributes.username', 'samaccountname'));
+        if ($username === null) {
+            return null;
+        }
+
+        return [
+            'username' => $username,
+            'name' => $this->attribute($entry, (string) config('ldap.attributes.name', 'displayname')),
+            'email' => $this->attribute($entry, (string) config('ldap.attributes.mail', 'mail')) ?? $this->attribute($entry, 'userprincipalname'),
+        ];
     }
 
     /**
@@ -244,12 +353,13 @@ class LdapAuthenticator
         return strtr($value, ['\\' => '\5c', '*' => '\2a', '(' => '\28', ')' => '\29', "\x00" => '\00']);
     }
 
-    /** The attributes that are asked for: those config/ldap.php names, and the one that says an account is disabled. */
-    private function attributes(): array
+    /** The attributes that are asked for: those config/ldap.php names, the one that says an account is disabled, and $more. */
+    private function attributes(array $more = []): array
     {
         return array_values(array_unique(array_map('strtolower', array_merge(
             array_filter((array) config('ldap.attributes'), 'is_string'),
             ['useraccountcontrol'],
+            $more,
         ))));
     }
 

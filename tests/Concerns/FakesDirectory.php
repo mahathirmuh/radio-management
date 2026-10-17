@@ -19,21 +19,67 @@ trait FakesDirectory
      * Active Directory set up, with these accounts. It keeps the one refusal that is not the directory's own (an
      * empty password), so a test cannot pass against something more permissive than what it stands in for.
      *
-     * @param array<string, string> $passwords directory username => password
+     * @param array<string, string> $passwords directory username => password (accounts that can sign in)
      * @param bool $down the directory cannot be reached
-     * @return LdapAuthenticator&object{asked: string[]}
+     * @param array<string, array{name?: ?string, email?: ?string, disabled?: bool}> $people more accounts, as "Find employee"
+     *     and the check of a directory username see them (those of $passwords are there too, with no name or address)
+     * @return LdapAuthenticator&object{asked: string[], searched: string[]}
      */
-    protected function fakeDirectory(array $passwords = [], bool $down = false): LdapAuthenticator
+    protected function fakeDirectory(array $passwords = [], bool $down = false, array $people = []): LdapAuthenticator
     {
         config(['ldap.url' => 'ldaps://dc.example.test', 'ldap.bind_dn' => 'CN=svc-radio,DC=example,DC=test']);
 
-        $directory = new class($passwords, $down) extends LdapAuthenticator
+        $directory = new class($passwords, $down, $people) extends LdapAuthenticator
         {
             /** The usernames the directory was asked about, in order. */
             public array $asked = [];
 
-            public function __construct(private array $passwords, private bool $down)
+            /** What was searched for, in order. */
+            public array $searched = [];
+
+            public function __construct(private array $passwords, private bool $down, private array $people)
             {
+            }
+
+            /** Every account: username => [username, name, email, disabled]. */
+            private function accounts(): array
+            {
+                $all = [];
+                foreach (array_keys($this->passwords) as $name) {
+                    $all[strtolower((string) $name)] = ['username' => (string) $name, 'name' => null, 'email' => null, 'disabled' => false];
+                }
+                foreach ($this->people as $name => $person) {
+                    $all[strtolower((string) $name)] = ['username' => (string) $name, 'name' => $person['name'] ?? null,
+                        'email' => $person['email'] ?? null, 'disabled' => (bool) ($person['disabled'] ?? false)];
+                }
+
+                return $all;
+            }
+
+            public function search(string $term, int $limit = 8): array
+            {
+                $this->searched[] = $term;
+                if ($this->down) {
+                    throw new DirectoryUnavailable('The directory could not be searched.');
+                }
+                // As the filter of config ldap.people_search_filter: in the name, the username or the address; not disabled.
+                $found = array_values(array_filter($this->accounts(), fn (array $one) => ! $one['disabled'] && (
+                    str_contains(mb_strtolower($one['username']), mb_strtolower(trim($term)))
+                    || str_contains(mb_strtolower((string) $one['name']), mb_strtolower(trim($term)))
+                    || str_contains(mb_strtolower((string) $one['email']), mb_strtolower(trim($term))))));
+                $people = array_map(fn (array $one) => ['username' => $one['username'], 'name' => $one['name'], 'email' => $one['email']], $found);
+
+                return ['people' => array_slice($people, 0, $limit), 'more' => count($people) > $limit];
+            }
+
+            public function lookup(string $username): ?array
+            {
+                $this->asked[] = $username;
+                if ($this->down) {
+                    throw new DirectoryUnavailable('The directory could not be reached.');
+                }
+
+                return $this->accounts()[strtolower(trim($username))] ?? null;
             }
 
             public function authenticate(string $username, string $password): ?LdapIdentity

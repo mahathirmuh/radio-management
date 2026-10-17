@@ -8,6 +8,7 @@ use App\Models\Organization\Company;
 use App\Models\UserManagement\Role;
 use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Directory\DirectoryUnavailable;
 use App\Services\Directory\LdapAuthenticator;
 use Modules\UserManagement\Services\EmployeeDirectory;
 use Modules\UserManagement\Services\UserScope;
@@ -89,9 +90,11 @@ class UserRegisteredController extends Controller
                 'roles' => $roles,
                 // The role the form starts with: the one that only reads, where the caller may hand it out.
                 'defaultRoleId' => $roles->firstWhere('name', 'Viewer Radio')?->id,
-                // "Find employee": only where there is a directory to search, and for who may add or change a user.
+                // "Find employee": only where there is a directory to search, and for who may add or change a user. Where it
+                // searches follows the sign-in method that is chosen (see lookupSources()).
                 'directoryAvailable' => app(EmployeeDirectory::class)->isAvailable() && $this->mayChangeUsers($caller),
                 'directoryMinimum' => app(EmployeeDirectory::class)->minimum(),
+                'lookupSources' => $this->lookupSources($caller),
                 // One method is no choice: with Microsoft alone the form does not ask.
                 'signInMethods' => $this->offeredSignInMethods(),
                 'signInMeanings' => User::SIGN_IN_MEANINGS,
@@ -298,7 +301,8 @@ class UserRegisteredController extends Controller
             ?? ($existing ? $this->denyUnlessManageable($request, $existing) : null)
             ?? $this->denySuperAdminGrant($request)
             ?? $this->denyRolesOutOfScope($request)
-            ?? $this->denyDirectoryUsernameTaken($directoryUsername, $existing?->id)) {
+            ?? $this->denyDirectoryUsernameTaken($directoryUsername, $existing?->id)
+            ?? $this->denyUnknownDirectoryAccount($directoryUsername)) {
             return $denied;
         }
 
@@ -427,7 +431,8 @@ class UserRegisteredController extends Controller
                 'errors' => ['You cannot change how a user who holds roles you cannot manage signs in.'],
             ], 403);
         }
-        if ($changesDirectory && ($denied = $this->denyDirectoryUsernameTaken($directoryUsername, (int) $user->id))) {
+        if ($changesDirectory && ($denied = $this->denyDirectoryUsernameTaken($directoryUsername, (int) $user->id)
+            ?? $this->denyUnknownDirectoryAccount($directoryUsername))) {
             return $denied;
         }
 
@@ -621,6 +626,95 @@ class UserRegisteredController extends Controller
             // Nobody found, and nobody could be looked for, are two answers: the form says which (why, is in the log).
             'failed' => $directory->failed(),
         ]);
+    }
+
+    /**
+     * People of Active Directory whose name, username or address holds what was typed: with LDAP chosen, the form of a user
+     * takes the name, the address and the directory username from one of them ("Find employee"). Looked up as the service
+     * account of the directory.
+     */
+    public function directory(Request $request)
+    {
+        // Who is in the directory: only for who may add or change a user.
+        if (! $this->mayChangeUsers($request->user())) {
+            abort(403);
+        }
+
+        $directory = app(LdapAuthenticator::class);
+        $typed = $request->query('q');
+        $typed = is_string($typed) ? trim($typed) : '';
+        $answer = ['available' => $directory->isConfigured(), 'data' => [], 'more' => false, 'failed' => false];
+        if (! $answer['available'] || mb_strlen($typed) < app(EmployeeDirectory::class)->minimum()) {
+            return response()->json($answer);
+        }
+
+        try {
+            $found = $directory->search(mb_substr($typed, 0, 100), max(1, (int) config('ldap.people_search_limit', 8)));
+        } catch (DirectoryUnavailable) {
+            // Nobody found, and nobody could be looked for, are two answers: the form says which (why, is in the log).
+            return response()->json(['failed' => true] + $answer);
+        }
+
+        return response()->json(['data' => $found['people'], 'more' => $found['more']] + $answer);
+    }
+
+    /**
+     * Where "Find employee" searches for each sign-in method, or null where it is not offered: with LDAP, Active Directory
+     * (it has the directory username the account signs in with), else the employee directory of HR; with Microsoft, the
+     * employee directory (it has the work address Microsoft signs people in with).
+     *
+     * @return array<string, ?string> method => "directory", "hr" or null
+     */
+    private function lookupSources(User $caller): array
+    {
+        if (! $this->mayChangeUsers($caller)) {
+            return [User::SIGN_IN_LDAP => null, User::SIGN_IN_MICROSOFT => null];
+        }
+        $hr = app(EmployeeDirectory::class)->isAvailable() ? 'hr' : null;
+
+        return [
+            User::SIGN_IN_LDAP => app(LdapAuthenticator::class)->isConfigured() ? 'directory' : $hr,
+            User::SIGN_IN_MICROSOFT => $hr,
+        ];
+    }
+
+    /**
+     * A directory username is checked against Active Directory before an account is saved with it: one the directory does
+     * not have (a typing mistake, or a username that is not the part of the address before the @) would only show at the
+     * first sign-in. Not where Active Directory is not set up (the form says so).
+     *
+     * @param string|null|false $username
+     */
+    private function denyUnknownDirectoryAccount($username)
+    {
+        $directory = app(LdapAuthenticator::class);
+        if (! is_string($username) || $username === '' || ! $directory->isConfigured()) {
+            return null;
+        }
+
+        try {
+            $account = $directory->lookup($username);
+        } catch (DirectoryUnavailable) {
+            return response()->json([
+                'message' => 'Invalid Input!',
+                'errors' => ['Active Directory cannot be reached right now to check the directory username. Try again shortly.'],
+            ], 503);
+        }
+
+        if ($account === null) {
+            return response()->json([
+                'message' => 'Invalid Input!',
+                'errors' => ["Active Directory has no account \"{$username}\". Check the directory username: it is not always the part of the email before the @."],
+            ], 422);
+        }
+        if ($account['disabled']) {
+            return response()->json([
+                'message' => 'Invalid Input!',
+                'errors' => ["The Active Directory account \"{$username}\" is disabled: it cannot sign in."],
+            ], 422);
+        }
+
+        return null;
     }
 
     /** Whether the caller may add a user or change one (Create or Update on this menu). */

@@ -6,6 +6,7 @@ use App\Services\Directory\DirectoryUnavailable;
 use App\Services\Directory\LdapAuthenticator;
 use Exception;
 use FreeDSx\Ldap\Control\Control;
+use FreeDSx\Ldap\Control\PagingControl;
 use FreeDSx\Ldap\Entry\Entries;
 use FreeDSx\Ldap\Entry\Entry;
 use FreeDSx\Ldap\Exception\BindException;
@@ -160,7 +161,8 @@ class LdapAuthenticatorTest extends TestCase
             {
                 $this->connect();
                 $filter = $request->getFilter();
-                $this->wire->sent[] = [$this->number, 'search', (string) $request->getBaseDn(), $filter->toString(), array_map(fn ($attribute) => $attribute->getName(), $request->getAttributes()), $request->getSizeLimit()];
+                $this->wire->sent[] = [$this->number, 'search', (string) $request->getBaseDn(), $filter->toString(), array_map(fn ($attribute) => $attribute->getName(), $request->getAttributes()), $request->getSizeLimit(),
+                    array_map(fn (Control $control) => $control instanceof PagingControl ? 'paging ' . $control->getSize() : $control->getTypeOid(), $controls)];
                 $this->step('search');
                 if (! $this->bound) {
                     throw new OperationException('In order to perform this operation a successful bind must be completed on the connection.', ResultCode::OPERATIONS_ERROR);
@@ -252,7 +254,7 @@ class LdapAuthenticatorTest extends TestCase
         ], $this->sent());
         // Under the base and with the filter of the settings, for what is read from it, two entries at most.
         $this->assertSame(
-            [1, 'search', 'DC=example,DC=test', '(sAMAccountName=budi.santoso)', ['samaccountname', 'mail', 'displayname', 'useraccountcontrol'], 2],
+            [1, 'search', 'DC=example,DC=test', '(sAMAccountName=budi.santoso)', ['samaccountname', 'mail', 'displayname', 'useraccountcontrol'], 2, []],
             $this->wire->sent[1]
         );
         $this->assertSame([[self::SERVICE, 'Sandi-Layanan-1', 'encrypted'], [self::BUDI, 'Kata-Sandi-AD-1', 'encrypted']], $this->binds());
@@ -352,6 +354,57 @@ class LdapAuthenticatorTest extends TestCase
         $this->wire->sent = [];
         $this->authenticator()->authenticate('budi.santoso', 'salah');
         $this->assertSame('(&(objectClass=user)(sAMAccountName=budi.santoso))', $this->wire->sent[1][3]);
+    }
+
+    public function test_people_are_looked_up_as_the_service_account_for_the_form_of_a_user(): void
+    {
+        config(['ldap.people_search_filter' => '(&(objectClass=user)(|(displayName=*{term}*)(sAMAccountName=*{term}*)))']);
+        $this->wire->people[] = ['name' => 'andi', 'dn' => 'CN=Andi,OU=Users,DC=example,DC=test', 'password' => 'x', 'control' => '512', 'mail' => null, 'display' => null];
+
+        // The stand-in answers a filter of more than one comparison with everybody: a disabled account (citra) is still left out.
+        $found = $this->authenticator()->search('budi', 8);
+        $this->assertSame(['people' => [
+            ['username' => 'andi', 'name' => null, 'email' => null],
+            ['username' => 'Budi.Santoso', 'name' => 'Budi Santoso', 'email' => 'budi.santoso@example.test'],
+        ], 'more' => false], $found);
+
+        // As the service account, on one connection, never with anybody's password; the term in the filter of the settings,
+        // as the letters it is; one page of one more than are shown (the directory then has no limit to exceed).
+        $this->assertSame(['1: bind ' . self::SERVICE, '1: search', '1: unbind'], $this->sent());
+        $this->assertSame([1, 'search', 'DC=example,DC=test', '(&(objectClass=user)(|(displayName=*budi*)(sAMAccountName=*budi*)))',
+            ['samaccountname', 'mail', 'displayname', 'useraccountcontrol', 'userprincipalname'], 0, ['paging 9']], $this->wire->sent[1]);
+        $this->wire->sent = [];
+        $this->authenticator()->search('a*)(cn=*', 8);
+        $this->assertSame('(&(objectClass=user)(|(displayName=*a\2a\29\28cn=\2a*)(sAMAccountName=*a\2a\29\28cn=\2a*)))', $this->wire->sent[1][3]);
+
+        // More than are shown: the first ones, by name, and that there are more.
+        $this->assertSame(['people' => [['username' => 'andi', 'name' => null, 'email' => null]], 'more' => true], $this->authenticator()->search('x', 1));
+        // Nothing typed: nothing asked.
+        $this->wire->sent = [];
+        $this->assertSame(['people' => [], 'more' => false], $this->authenticator()->search('  '));
+        $this->assertSame([], $this->wire->sent);
+
+        // The search fails: the directory, said as such, the reason in the log only.
+        $this->wire->fail['search'] = new OperationException('busy', ResultCode::BUSY);
+        $this->assertUnavailable(fn () => $this->authenticator()->search('budi'), 'The directory could not be searched.');
+        $this->assertStringContainsString('the search for people failed: busy', $this->logged('error')[0]);
+    }
+
+    public function test_a_directory_username_is_looked_up_with_whether_it_is_disabled(): void
+    {
+        $this->assertSame(['username' => 'Budi.Santoso', 'name' => 'Budi Santoso', 'email' => 'budi.santoso@example.test', 'disabled' => false],
+            $this->authenticator()->lookup('budi.santoso'));
+        $this->assertSame(['username' => 'citra', 'name' => 'Citra Lestari', 'email' => null, 'disabled' => true], $this->authenticator()->lookup('citra'));
+        $this->assertNull($this->authenticator()->lookup('tidak.ada'));
+        // As the service account; no password of anybody is tried.
+        $this->assertSame([[self::SERVICE, 'Sandi-Layanan-1', 'encrypted'], [self::SERVICE, 'Sandi-Layanan-1', 'encrypted'], [self::SERVICE, 'Sandi-Layanan-1', 'encrypted']], $this->binds());
+
+        // Nothing to look up; and a directory that is not set up is said to be one.
+        $this->wire->sent = [];
+        $this->assertNull($this->authenticator()->lookup(' '));
+        $this->assertSame([], $this->wire->sent);
+        config(['ldap.url' => null]);
+        $this->assertUnavailable(fn () => $this->authenticator()->lookup('budi.santoso'), 'The directory is not configured (LDAP_URL, LDAP_BIND_DN).');
     }
 
     public function test_a_directory_that_does_not_answer_is_not_a_wrong_password(): void

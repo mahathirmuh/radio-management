@@ -1,8 +1,9 @@
 {{--
     The form of a user, for adding one and for changing one.
 
-    "Find employee" is there only where an employee directory is set up, the sign-in method only where there is
-    more than one to choose from (Active Directory is set up as well as Microsoft): see UserRegisteredController.
+    The sign-in method comes first: it decides where "Find employee" searches (Active Directory for LDAP, the employee
+    directory of HR for Microsoft) and whether a directory username is recorded. "Find employee" is there only where it
+    has somewhere to search, for who may add or change a user: see UserRegisteredController::lookupSources().
 --}}
 <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userModal" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
@@ -15,17 +16,43 @@
                 </div>
                 <form id="form" autocomplete="off">
                     <div class="row g-3">
-                        @if ($directoryAvailable)
-                            {{-- Above the name, because it fills in the name and the address: the address is the
-                                 part that has to be right, and choosing it is surer than typing it. --}}
+                        @if (count($signInMethods) > 1)
+                            {{-- How the account is entered, asked first: it decides where "Find employee" searches and
+                                 whether a directory username is recorded. LDAP: it has a directory username, and the login
+                                 form checks its password against Active Directory. Microsoft: it has none. Always asked
+                                 once the column is there (before its migration there is one method, so no choice). --}}
                             <div class="col-12">
+                                <div class="row">
+                                    <label class="col-md-4 col-form-label required">Sign-in method
+                                    </label>
+                                    <div class="col-md-8">
+                                        @foreach ($signInMethods as $method)
+                                            <label class="form-check">
+                                                <input class="form-check-input" type="radio" name="sign_in_method"
+                                                    value="{{ $method }}">
+                                                <span class="form-check-label">
+                                                    <i class="ti {{ $method === 'LDAP' ? 'ti-server' : 'ti-brand-windows' }} me-1"></i>{{ $method }}
+                                                </span>
+                                                <span class="form-check-description">{{ $signInMeanings[$method] }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if (array_filter($lookupSources))
+                            {{-- Above the name, because it fills in the name and the address (and, with LDAP, the directory
+                                 username): choosing them is surer than typing them. Where it searches follows the method:
+                                 Active Directory for LDAP, the employee directory of HR for Microsoft (see lookupSources()). --}}
+                            <div class="col-12" id="userLookupRow">
                                 <div class="row">
                                     <label for="employeeLookup" class="col-md-4 col-form-label">Find employee
                                     </label>
                                     <div class="col-md-8">
                                         <input type="search" id="employeeLookup" class="form-control"
                                             placeholder="Name or work email.." autocomplete="off">
-                                        <small class="form-hint">
+                                        <small class="form-hint" id="employeeLookupHint">
                                             Optional. Choosing somebody fills in their name and work address, which
                                             is the address Microsoft signs them in with.
                                         </small>
@@ -55,6 +82,49 @@
                                 </div>
                             </div>
                         </div>
+
+                        @if (count($signInMethods) > 1)
+                            <div class="col-12" id="userDirectoryRow">
+                                <div class="row">
+                                    <label for="ldapUsername" class="col-md-4 col-form-label">Directory username
+                                    </label>
+                                    <div class="col-md-8">
+                                        <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
+                                            maxlength="128" autocomplete="off"
+                                            placeholder="Taken from the email if left blank">
+                                        <small class="form-hint">
+                                            The Active Directory account this person signs in with. Choosing somebody in
+                                            Find employee fills it in; left blank it is taken from the part of the email
+                                            before the &commat;. It is checked against the directory when the account is
+                                            saved. No password is stored here; the one they already use is checked against
+                                            the directory each time.
+                                        </small>
+                                        @unless ($ldapConfigured)
+                                            {{-- Said, instead of the choice going away: a setting that went missing
+                                                 should show where it is missed. --}}
+                                            <small class="form-hint text-orange" id="userLdapOffNote">
+                                                Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
+                                                in .env). Until it is, this account cannot sign in with its directory
+                                                password; it can with Microsoft.
+                                            </small>
+                                        @endunless
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- With Microsoft there is no box, not a greyed one: nothing is recorded. --}}
+                            <div class="col-12 d-none" id="userMicrosoftNote">
+                                <div class="row">
+                                    <div class="col-md-8 offset-md-4">
+                                        <div class="alert alert-info mb-0 py-2" role="alert">
+                                            No directory username is recorded for this account. The email above must
+                                            be the address Microsoft knows this person by &mdash; that is how
+                                            Microsoft sign-in finds the account.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="col-12">
                             <div class="row">
@@ -87,70 +157,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        @if (count($signInMethods) > 1)
-                            {{-- How the account is entered. LDAP: it has a directory username, and the login form
-                                 checks its password against Active Directory. Microsoft: it has none. Always asked once
-                                 the column is there (before its migration there is one method, so no choice). --}}
-                            <div class="col-12">
-                                <div class="row">
-                                    <label class="col-md-4 col-form-label required">Sign-in method
-                                    </label>
-                                    <div class="col-md-8">
-                                        @foreach ($signInMethods as $method)
-                                            <label class="form-check">
-                                                <input class="form-check-input" type="radio" name="sign_in_method"
-                                                    value="{{ $method }}">
-                                                <span class="form-check-label">
-                                                    <i class="ti {{ $method === 'LDAP' ? 'ti-server' : 'ti-brand-windows' }} me-1"></i>{{ $method }}
-                                                </span>
-                                                <span class="form-check-description">{{ $signInMeanings[$method] }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12" id="userDirectoryRow">
-                                <div class="row">
-                                    <label for="ldapUsername" class="col-md-4 col-form-label">Directory username
-                                    </label>
-                                    <div class="col-md-8">
-                                        <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
-                                            maxlength="128" autocomplete="off"
-                                            placeholder="Taken from the email if left blank">
-                                        <small class="form-hint">
-                                            The Active Directory account this person signs in with. Left blank it is
-                                            taken from the part of the email before the &commat; &mdash; which is how
-                                            this directory is set up. No password is stored here; the one they already
-                                            use is checked against the directory each time.
-                                        </small>
-                                        @unless ($ldapConfigured)
-                                            {{-- Said, instead of the choice going away: a setting that went missing
-                                                 should show where it is missed. --}}
-                                            <small class="form-hint text-orange" id="userLdapOffNote">
-                                                Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
-                                                in .env). Until it is, this account cannot sign in with its directory
-                                                password; it can with Microsoft.
-                                            </small>
-                                        @endunless
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- With Microsoft there is no box, not a greyed one: nothing is recorded. --}}
-                            <div class="col-12 d-none" id="userMicrosoftNote">
-                                <div class="row">
-                                    <div class="col-md-8 offset-md-4">
-                                        <div class="alert alert-info mb-0 py-2" role="alert">
-                                            No directory username is recorded for this account. The email above must
-                                            be the address Microsoft knows this person by &mdash; that is how
-                                            Microsoft sign-in finds the account.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
                     </div>
 
                     <div class="d-flex justify-content-end align-items-center gap-2 mt-3" id="actionButtons">
@@ -231,6 +237,9 @@
         const urlUserStatus = "{{ route('user-management.user-registered.status', ':id') }}";
         const urlUserPassword = "{{ route('user-management.user-registered.password', ':id') }}";
         const urlUserEmployees = "{{ route('user-management.user-registered.employees') }}";
+        const urlUserDirectory = "{{ route('user-management.user-registered.directory') }}";
+        // Where "Find employee" searches for each sign-in method: "directory" (Active Directory), "hr", or null (not offered).
+        const userLookupSources = @json($lookupSources);
         // The role a new user starts with (the one that only reads), when this form lists it.
         const userDefaultRole = @json($defaultRoleId ? (string) $defaultRoleId : '');
     </script>
@@ -238,25 +247,27 @@
     {{-- sign-in method --}}
     <script>
         // The directory username belongs to LDAP. With Microsoft none is recorded: the box goes, and what was typed in it.
-        // (Without a choice on this page, nothing is done.)
+        // Where "Find employee" searches follows the method. (Without a choice on this page the method is Microsoft.)
         const setSignInMethod = (modal, method) => {
             const choices = modal.find('input[name="sign_in_method"]');
-            if (!choices.length) {
-                return;
-            }
-            if (!choices.filter((i, choice) => choice.value === method).length) {
-                method = choices.first().val();
-            }
-            choices.each((i, choice) => {
-                choice.checked = choice.value === method;
-            });
+            if (choices.length) {
+                if (!choices.filter((i, choice) => choice.value === method).length) {
+                    method = choices.first().val();
+                }
+                choices.each((i, choice) => {
+                    choice.checked = choice.value === method;
+                });
 
-            const directory = method === "LDAP";
-            modal.find("#userDirectoryRow").toggleClass("d-none", !directory);
-            modal.find("#userMicrosoftNote").toggleClass("d-none", directory);
-            if (!directory) {
-                modal.find("#ldapUsername").val("");
+                const directory = method === "LDAP";
+                modal.find("#userDirectoryRow").toggleClass("d-none", !directory);
+                modal.find("#userMicrosoftNote").toggleClass("d-none", directory);
+                if (!directory) {
+                    modal.find("#ldapUsername").val("");
+                }
+            } else {
+                method = "Microsoft";
             }
+            setLookupSource(userLookupSources[method] || null);
         };
 
         $(function() {
@@ -268,8 +279,10 @@
 
     {{-- find employee --}}
     <script>
-        // Empties the search and drops an answer that is still on its way. (Nothing to do on a page without the search.)
+        // Empties the search and drops an answer that is still on its way; and says where the search looks. (Nothing to do
+        // on a page without the search.)
         let resetEmployeeLookup = () => {};
+        let setLookupSource = () => {};
 
         $(function() {
             const lookup = $("#employeeLookup");
@@ -279,6 +292,24 @@
             }
             const minimum = {{ (int) $directoryMinimum }};
             let asked = 0;
+            let source = null;
+            // What the search box says and asks, for each place it can look.
+            const sources = {
+                hr: {
+                    url: urlUserEmployees,
+                    placeholder: "Name or work email..",
+                    hint: "Optional. Choosing somebody fills in their name and work address, which is the address Microsoft signs them in with.",
+                    failed: "The employee directory could not be searched just now (the reason is in the application log). Type the name and the address yourself.",
+                    none: "No match in the employee directory. Type the address yourself if you know it.",
+                },
+                directory: {
+                    url: urlUserDirectory,
+                    placeholder: "Name, username or email..",
+                    hint: "Optional. Searches Active Directory: choosing somebody fills in their name, email and directory username as the directory has them.",
+                    failed: "Active Directory could not be searched just now (the reason is in the application log). Type the name, the address and the directory username yourself.",
+                    none: "No match in Active Directory. Check the spelling, or type the details yourself.",
+                },
+            };
 
             resetEmployeeLookup = () => {
                 asked += 1;
@@ -286,62 +317,86 @@
                 matches.empty();
             };
 
+            // Another place to look starts an empty search: what was found in the other one is no answer here.
+            setLookupSource = (next) => {
+                next = sources[next] ? next : null;
+                const changed = next !== source;
+                source = next;
+                $("#userLookupRow").toggleClass("d-none", source === null);
+                if (source !== null) {
+                    lookup.attr("placeholder", sources[source].placeholder);
+                    $("#employeeLookupHint").text(sources[source].hint);
+                }
+                if (changed) {
+                    resetEmployeeLookup();
+                }
+            };
+
             // Put in as text, never as markup: the names and addresses come from another system.
-            const show = (found, failed) => {
+            const show = (found, failed, more) => {
                 matches.empty();
+                const words = sources[source];
                 if (!found.length) {
                     // Nobody matched, or the directory could not be searched (why, is in the application log): they are
                     // said apart, or a setting that is wrong would look like a directory with nobody in it.
                     $('<div class="mt-2 user-directory-note">')
                         .addClass(failed ? "text-orange" : "text-secondary")
-                        .text(failed ?
-                            "The employee directory could not be searched just now (the reason is in the application log). Type the name and the address yourself." :
-                            "No match in the employee directory. Type the address yourself if you know it.")
+                        .text(failed ? words.failed : words.none)
                         .appendTo(matches);
                     return;
                 }
 
+                const fromDirectory = source === "directory";
                 const list = $('<div class="list-group list-group-flush mt-2 border rounded">');
-                found.forEach((employee) => {
+                found.forEach((person) => {
                     $('<button type="button" class="list-group-item list-group-item-action py-2">')
-                        .append($('<span class="d-block fw-bold">').text(employee.name))
-                        .append($('<span class="d-block text-secondary">').text(employee.email))
-                        // The staff number tells apart two people who are recorded with one address.
-                        .append($('<span class="d-block text-secondary user-directory-id">').text(employee.employee_id))
+                        .append($('<span class="d-block fw-bold">').text(person.name || person.username || ""))
+                        .append($('<span class="d-block text-secondary">').text(person.email || ""))
+                        // Active Directory: the username they sign in with. HR: the staff number, which tells apart two
+                        // people who are recorded with one address.
+                        .append($('<span class="d-block text-secondary user-directory-id">').text(fromDirectory ? person.username : person.employee_id))
                         .on("click", () => {
                             const modal = $("#userModal");
-                            modal.find("#name").val(employee.name);
-                            modal.find("#email").val(employee.email);
+                            modal.find("#name").val(person.name || person.username || "");
+                            modal.find("#email").val(person.email || "");
+                            if (fromDirectory) {
+                                modal.find("#ldapUsername").val(person.username);
+                            }
                             resetEmployeeLookup();
                         })
                         .appendTo(list);
                 });
                 list.appendTo(matches);
+                if (more) {
+                    $('<div class="mt-1 user-directory-note text-secondary">')
+                        .text("More people match than are shown: type more of the name.")
+                        .appendTo(matches);
+                }
             };
 
             const search = () => {
                 const typed = lookup.val().trim();
                 const mine = ++asked;
-                if (typed.length < minimum) {
+                if (source === null || typed.length < minimum) {
                     matches.empty();
                     return;
                 }
                 $.ajax({
-                    url: urlUserEmployees,
+                    url: sources[source].url,
                     type: "GET",
                     dataType: "json",
                     data: {
                         q: typed
                     },
-                    // Only the answer to what was typed last is shown.
+                    // Only the answer to what was typed last (in the place that is chosen now) is shown.
                     success: (response) => {
                         if (mine === asked) {
-                            show(response.data || [], response.failed === true);
+                            show(response.data || [], response.failed === true, response.more === true);
                         }
                     },
                     error: () => {
                         if (mine === asked) {
-                            show([], true);
+                            show([], true, false);
                         }
                     },
                 });
