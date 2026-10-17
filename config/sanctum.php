@@ -33,7 +33,9 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // None: the API (/api/v1) takes a Bearer token only, never the session cookie of the pages. A page open in a
+    // browser does not make the API answer for that person.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -46,7 +48,20 @@ return [
     |
     */
 
+    // Each token ends on a date of its own (page API Tokens: 30 to 365 days).
     'expiration' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token Prefix
+    |--------------------------------------------------------------------------
+    |
+    | Put in front of every new token, so one that turns up in a file, a log
+    | or a chat is recognised as a token of this application.
+    |
+    */
+
+    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', 'mtiradio_'),
 
     /*
     |--------------------------------------------------------------------------

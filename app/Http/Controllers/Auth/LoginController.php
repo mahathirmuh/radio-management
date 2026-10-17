@@ -114,7 +114,8 @@ class LoginController extends Controller
     private function accountFor(string $typed): ?User
     {
         $typed = trim($typed);
-        if ($account = User::where('email', $typed)->first()) {
+        // People only: an API client (page API Tokens) never signs in on the screen, whatever is typed.
+        if ($account = User::people()->where('email', $typed)->first()) {
             return $account;
         }
         if ($typed === '' || ! User::directoryReady()) {
@@ -123,7 +124,7 @@ class LoginController extends Controller
 
         // One directory username belongs to one account (User Management sees to it). Should two answer to it all the
         // same, nobody is signed in on that: it would be the first one found, not the one who typed it.
-        $named = User::whereRaw('LOWER(ldap_username) = ?', [Str::lower($typed)])->limit(2)->get();
+        $named = User::people()->whereRaw('LOWER(ldap_username) = ?', [Str::lower($typed)])->limit(2)->get();
 
         return $named->count() === 1 ? $named->first() : null;
     }
@@ -307,7 +308,7 @@ class LoginController extends Controller
             return redirect()->route('login');
         }
 
-        $user = User::where('email', $email)->first();
+        $user = User::people()->where('email', $email)->first();
 
         if ($user === null) {
             Log::warning($provider . ' SSO refused: no users row', ['email' => $email]);

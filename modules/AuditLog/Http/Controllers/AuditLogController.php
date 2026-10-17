@@ -116,6 +116,8 @@ class AuditLogController extends Controller
             'label' => $entry->entity_label,
             'changes' => $changes,
             'ip' => $entry->ip_address,
+            // Through a token of the API ("API · Power BI (#3)"), or nothing: the pages.
+            'via' => $entry->getAttribute('via'),
         ];
     }
 }

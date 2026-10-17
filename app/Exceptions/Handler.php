@@ -5,7 +5,9 @@ namespace App\Exceptions;
 use App\Helpers\LogApps;
 use App\Models\Log\LogError;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Sentry\Laravel\Integration;
 use Throwable;
 
@@ -44,6 +46,14 @@ class Handler extends ExceptionHandler
 
             // Sentry Error Monitoring *uncomment buat mengaktifkan sentry monitoring
             Integration::captureUnhandledException($e);
+        });
+
+        // The API says "not found" in its own words: Laravel's would name the class of the model ("No query results for
+        // model [Modules\RadioManagement\Models\Radio] 12").
+        $this->renderable(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/v1', 'api/v1/*')) {
+                return response()->json(['message' => 'Not found.'], 404);
+            }
         });
     }
 

@@ -23,11 +23,14 @@ class AuditLog extends Model
     /** Whether the table is there is asked at most once a minute: the code is live before its migration runs. */
     public const READY_CACHE_KEY = 'audit-logs-table';
 
+    /** The same for the column "via" (a later migration). */
+    public const VIA_CACHE_KEY = 'audit-logs-via-column';
+
     protected $table = 'audit_logs';
 
     protected $fillable = [
         'user_id', 'user_email', 'action', 'entity_type', 'entity_id', 'entity_label',
-        'old_values', 'new_values', 'ip_address', 'user_agent',
+        'old_values', 'new_values', 'ip_address', 'user_agent', 'via',
     ];
 
     protected $casts = [
@@ -46,6 +49,12 @@ class AuditLog extends Model
     public static function ready(): bool
     {
         return (bool) Cache::remember(self::READY_CACHE_KEY, 60, fn () => Schema::hasTable('audit_logs'));
+    }
+
+    /** Whether the column "via" exists (how an entry came in: the pages, or a token of the API). */
+    public static function viaReady(): bool
+    {
+        return (bool) Cache::remember(self::VIA_CACHE_KEY, 60, fn () => Schema::hasColumn('audit_logs', 'via'));
     }
 
     /** Users are soft-deleted: the entry keeps the name of who did it after the account is removed. */
@@ -98,6 +107,11 @@ class AuditLog extends Model
             AuditLogger::EDIT_REQUESTED => 'asked to change',
             AuditLogger::EDIT_APPROVED => 'approved the change of',
             AuditLogger::EDIT_REJECTED => 'turned down the change of',
+            AuditLogger::API_CLIENT_CREATED => 'created API client',
+            AuditLogger::API_CLIENT_UPDATED => 'updated API client',
+            AuditLogger::API_CLIENT_DELETED => 'deleted API client',
+            AuditLogger::API_TOKEN_CREATED => 'created API token',
+            AuditLogger::API_TOKEN_REVOKED => 'revoked API token',
             default => (string) $this->action,
         };
     }

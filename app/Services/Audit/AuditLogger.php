@@ -7,6 +7,7 @@ use App\Models\UserManagement\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
 
 /**
@@ -81,6 +82,17 @@ class AuditLogger
 
     public const EDIT_REJECTED = 'document.edit_rejected';
 
+    /** The accounts of applications and the tokens of the API (page API Tokens). Never the token itself. */
+    public const API_CLIENT_CREATED = 'api.client_created';
+
+    public const API_CLIENT_UPDATED = 'api.client_updated';
+
+    public const API_CLIENT_DELETED = 'api.client_deleted';
+
+    public const API_TOKEN_CREATED = 'api.token_created';
+
+    public const API_TOKEN_REVOKED = 'api.token_revoked';
+
     /** The user agent of an entry written by an artisan command. */
     public const CONSOLE = 'console';
 
@@ -139,7 +151,7 @@ class AuditLogger
                 'new_values' => $new ? $this->redact($new) : null,
                 'ip_address' => $this->console() ? null : Request::ip(),
                 'user_agent' => $this->console() ? self::CONSOLE : mb_substr((string) Request::userAgent(), 0, 512),
-            ]);
+            ] + (AuditLog::viaReady() ? ['via' => $this->via($actor)] : []));
         } catch (Throwable $e) {
             // The action itself has been done: an entry that could not be written must not undo it, or answer an error.
             report($e);
@@ -220,6 +232,19 @@ class AuditLogger
         }
 
         return false;
+    }
+
+    /**
+     * How the action came in: through a token of the API ("API · Power BI (#3)"), or the pages (nothing). The token is
+     * named by its name and number, never by itself.
+     */
+    private function via(?User $actor): ?string
+    {
+        $token = $actor?->currentAccessToken();
+
+        return $token instanceof PersonalAccessToken
+            ? mb_substr('API · ' . $token->name . ' (#' . $token->getKey() . ')', 0, 150)
+            : null;
     }
 
     /** An artisan command: there is no visitor, and no address. (The tests run in the console too, with requests.) */

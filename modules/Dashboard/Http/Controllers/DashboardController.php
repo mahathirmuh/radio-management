@@ -10,14 +10,8 @@ use Illuminate\Http\Request;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Modules\RadioManagement\Enums\Condition;
-use Modules\RadioManagement\Enums\Placement;
-use Modules\RadioManagement\Models\Radio;
-use Modules\RadioManagement\Models\RadioCompany;
 use Modules\RadioManagement\Models\RadioHistory;
-use Modules\RadioManagement\Models\RadioType;
-use Modules\RadioManagement\Services\RadioCheckService;
-use Modules\RadioManagement\Services\RadioIdService;
+use Modules\RadioManagement\Services\RadioSummary;
 
 class DashboardController extends Controller
 {
@@ -58,50 +52,10 @@ class DashboardController extends Controller
         }
     }
 
-    /** Figures for the radio dashboard (active radios unless stated otherwise). */
+    /** Figures for the radio dashboard (active radios unless stated otherwise; RadioSummary, which the API shows too). */
     private function radioSummary(): array
     {
-        $countBy = fn (string $column) => Radio::query()->active()
-            ->selectRaw(DB::getQueryGrammar()->wrap($column) . ' as k, COUNT(*) as c')
-            ->groupBy($column)
-            ->pluck('c', 'k')
-            ->map(fn ($count) => (int) $count);
-
-        $placements = $countBy('placement');
-        $conditions = $countBy('condition');
-
-        $companyNames = RadioCompany::pluck('code', 'id');
-        $byCompany = $countBy('company_id')
-            ->mapWithKeys(fn ($count, $id) => [$companyNames[$id] ?? '(kosong)' => $count])
-            ->sortDesc();
-
-        $typeNames = RadioType::pluck('name', 'id');
-        $byType = $countBy('radio_type_id')
-            ->mapWithKeys(fn ($count, $id) => [str_replace('MotoTrbo XiR ', '', $typeNames[$id] ?? '(kosong)') => $count])
-            ->sortDesc();
-
-        $issueCounts = app(RadioCheckService::class)->summary();
-
-        return [
-            'totalActive' => $placements->sum(),
-            'totalArchived' => Radio::query()->archived()->count(),
-            'placements' => collect(Placement::cases())->map(fn (Placement $p) => [
-                'value' => $p->value,
-                'label' => $p->label(),
-                'count' => $placements[$p->value] ?? 0,
-            ]),
-            'conditions' => collect(Condition::cases())->map(fn (Condition $c) => [
-                'value' => $c->value,
-                'label' => $c->label(),
-                'count' => $conditions[$c->value] ?? 0,
-            ]),
-            'byCompany' => $byCompany,
-            'byType' => $byType,
-            'issues' => collect(RadioCheckService::ISSUES)
-                ->map(fn (array $issue, string $code) => $issue + ['code' => $code, 'count' => $issueCounts[$code] ?? 0])
-                ->filter(fn (array $issue) => $issue['count'] > 0)
-                ->values(),
-            'nextIds' => app(RadioIdService::class)->nextFree(6),
+        return app(RadioSummary::class)->figures() + [
             'recentHistory' => RadioHistory::query()->with(['radio', 'user'])
                 ->where('action', '!=', 'Impor')
                 ->orderByDesc('event_date')->orderByDesc('id')

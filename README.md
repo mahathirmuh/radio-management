@@ -18,6 +18,7 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | Persetujuan Edit | Pengajuan perubahan sel workbook, dan persetujuannya; baru setelah disetujui orang lain workbook di SharePoint berubah (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)) |
 | Audit Log | Jejak audit: siapa login (berhasil, gagal, keluar) dan siapa mengubah apa, dengan nilai sebelum → sesudah (lihat [Audit Log](#audit-log)) |
+| API Tokens | Klien API dan token untuk aplikasi lain yang memakai register lewat API `/api/v1`, dokumentasinya di `/docs/api` (lihat [API](#api)) |
 
 Aturan utama:
 
@@ -365,6 +366,57 @@ di trilingual-docon:
   jalan, tidak ada yang dicatat, dan halamannya bilang belum aktif.
 - Log aktivitas bawaan (`activity_logs`: setiap request POST/PUT/DELETE) tetap ada. Sejak 17-10-2026 gambar tanda
   tangan E-Sign tidak lagi ikut tersimpan di sana (field `image` dilewati, seperti password).
+- Perubahan lewat API diberi tanda **via** (`API · <nama token> (#id)`) di kolom User dan di timeline; perubahan dari
+  halaman tidak.
+
+## API
+
+Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
+endpoint, parameter, contoh jawaban, dan tombol "Try it") ada di **`/docs/api`**, dibuat otomatis dari kode (paket
+`dedoc/scramble`), hanya untuk akun yang boleh memegang token. Tahap 1 (17-10-2026): radio, riwayat, master data,
+referensi, dashboard. Import/Export, Audit Log, User & Role, Form Cetak, dan bagian SharePoint menyusul.
+
+**Token** dibuat di **Settings → API Tokens**, dikirim sebagai `Authorization: Bearer <token>`:
+
+- **Klien API** (dibuat Super Admin): akun sebuah aplikasi, misalnya "Power BI", dengan satu role (bukan Super Admin).
+  Tidak bisa login di layar, tidak tampil di User Management. Dinonaktifkan atau dihapus = semua tokennya berhenti.
+- **Token pribadi**: token seseorang untuk dirinya sendiri, bertindak sebagai dia dengan role-nya, berhenti saat
+  akunnya dinonaktifkan. Menu API Tokens awalnya hanya untuk Super Admin; role lain yang diberi menu itu (Create untuk
+  membuat, Delete untuk mencabut) hanya melihat dan mengelola token miliknya sendiri.
+- Tiap token **read only** atau **read & write**, berlaku 30/90/180/365 hari (habis di akhir hari terakhirnya), bisa
+  dicabut kapan saja. Token **hanya ditampilkan sekali** saat dibuat; yang disimpan hanya hash-nya. Token berawalan
+  `mtiradio_` (`SANCTUM_TOKEN_PREFIX`) supaya mudah dikenali bila tercecer. Halaman menunjukkan kapan dan dari IP mana
+  token terakhir dipakai.
+- Membuat, mengubah, mencabut token/klien tercatat di Audit Log (namanya saja, tokennya tidak).
+
+**Hak akses** mengikuti Role & Permission: tiap endpoint milik menu halamannya, GET butuh Read, POST Create, PUT Update,
+DELETE Delete (mengarsipkan, memulihkan, dan menambah riwayat radio = Update, sama seperti tombolnya di halaman).
+Berbeda dari halaman, endpoint yang menunya tidak ada di database **tertutup**. Sesi login browser tidak membuka API:
+hanya token.
+
+**Aturan** sama dengan halaman (service yang sama): Radio ID dan SN unik, Radio ID tanpa F di MDC Code, satu
+penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pemilik token) dan Audit Log.
+
+| Jawaban | Artinya |
+| --- | --- |
+| `401` | tanpa token, token salah/kedaluwarsa/dicabut, atau akunnya nonaktif |
+| `403` | role atau token tidak boleh (pesan menyebut menunya), atau token read only |
+| `404` | data tidak ada |
+| `409` | radio sudah diubah orang lain sejak dibaca (kirim `version` dari jawaban terakhir), atau register sedang sibuk |
+| `422` | ditolak aturan, `errors` per field (pesan dalam bahasa Indonesia, seperti di halaman) |
+| `429` | terlalu banyak request: 60/menit per token (120/menit per alamat sebelum token diperiksa) |
+| `503` | migrasi API belum dijalankan |
+
+- Daftar: `?page=` dan `?per_page=` (maks. 100), dengan `meta` dan `links`. Filter bernilai banyak: `type[]=1&type[]=2`
+  atau `type=1,2`.
+- **CORS** tertutup: halaman web situs lain tidak bisa memanggil API dari browser pengunjungnya, kecuali situs itu
+  ditulis di `CORS_ALLOWED_ORIGINS`. Aplikasi yang memanggil dari server-nya tidak perlu apa-apa.
+- Rute `/api/approval-management/...` bawaan template tetap ada (halaman Approval Management yang disembunyikan memakai
+  namanya), tapi tidak termasuk API ini: tidak menerima token dan tidak didokumentasikan.
+- Butuh empat migrasi: `2026_10_17_120000_create_personal_access_tokens_table`,
+  `2026_10_17_130000_add_api_client_to_users_table`, `2026_10_17_140000_add_via_to_audit_logs_table`,
+  `2026_10_17_150000_add_api_tokens_menu` (menu di bawah Audit Log). Sebelum dijalankan, API menjawab 503 dan halaman
+  API Tokens bilang belum aktif.
 
 ## E-Sign Master
 
@@ -746,6 +798,19 @@ app/Services/Audit/AuditLogger.php  menulis jejak audit (nama aksi, sebelum/sesu
 app/Models/Log/AuditLog.php         satu baris jejak (tabel audit_logs; tidak bisa diubah atau dihapus)
 modules/AuditLog/                   halaman menu Audit Log: AuditLogController (halaman, daftar), Resources/views/index
 database/seeders/AuditLogMenuSeeder.php
+modules/Api/                        API /api/v1 dan halaman API Tokens
+  Routes/api/v1.php                 endpoint, dan menu (hak akses) tiap endpoint
+  Http/Middleware/                  ForceJsonResponse, LimitAddresses, ApiReady, EnsureApiAccount, ApiAccess (Role &
+                                    Permission + token read/write), CanReadApiDocs
+  Http/Controllers/V1/              Me, References, Dashboard, Radio, History, MasterData
+  Http/Resources/, Http/Requests/   bentuk jawaban radio/riwayat; RadioApiRequest (aturan RadioRequest, error per field)
+  Http/Controllers/ApiTokenController.php, Resources/views/tokens/   halaman API Tokens
+  Services/ApiTokens.php            klien API dan token (dibuat, diubah, dicabut, dicatat di Audit Log)
+  Models/ApiToken.php               token Sanctum + read/write, kedaluwarsa, IP terakhir
+modules/RadioManagement/Services/   MasterData, RadioRules, RadioHistoryQuery, RadioSummary, StaleRadio: aturan yang
+                                    dipakai bersama halaman dan API
+config/scramble.php, config/sanctum.php, config/cors.php
+database/seeders/ApiTokensMenuSeeder.php
 ```
 
 ## Catatan SQL Server

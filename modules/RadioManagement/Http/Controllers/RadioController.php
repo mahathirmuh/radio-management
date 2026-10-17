@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Modules\RadioManagement\Enums\Condition;
 use Modules\RadioManagement\Enums\Placement;
@@ -26,6 +25,7 @@ use Modules\RadioManagement\Models\RadioType;
 use Modules\RadioManagement\Services\RadioCheckService;
 use Modules\RadioManagement\Services\RadioFilter;
 use Modules\RadioManagement\Services\RadioIdService;
+use Modules\RadioManagement\Services\RadioRules;
 use Modules\RadioManagement\Services\RadioService;
 
 class RadioController extends Controller
@@ -214,11 +214,8 @@ class RadioController extends Controller
 
     public function archive(Request $request, Radio $radio): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'archive_reason' => ['required', Rule::in(config('radio.archive_reasons'))],
-            'archived_at' => ['required', 'date', 'before_or_equal:today'],
-            'note' => ['nullable', 'string', 'max:1000'],
-        ], [], ['archive_reason' => 'Alasan', 'archived_at' => 'Tanggal', 'note' => 'Catatan']);
+        [$rules, $names] = RadioRules::archive();
+        $validator = Validator::make($request->all(), $rules, [], $names);
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
@@ -247,12 +244,8 @@ class RadioController extends Controller
 
     public function storeHistory(Request $request, Radio $radio): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'action' => ['required', Rule::in(config('radio.history_actions'))],
-            'event_date' => ['required', 'date', 'before_or_equal:today'],
-            'description' => ['required', 'string', 'max:2000'],
-            'document_no' => ['nullable', 'string', 'max:100'],
-        ], [], ['action' => 'Jenis', 'event_date' => 'Tanggal', 'description' => 'Keterangan', 'document_no' => 'No. Dokumen']);
+        [$rules, $names] = RadioRules::history();
+        $validator = Validator::make($request->all(), $rules, [], $names);
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }

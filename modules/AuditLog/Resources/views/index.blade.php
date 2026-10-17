@@ -206,7 +206,8 @@
                 {
                     key: 'user',
                     render: r => `<div>${auditLog.esc(r.user)}</div>` +
-                        (r.email ? `<div class="audit-muted">${auditLog.esc(r.email)}</div>` : '')
+                        (r.email ? `<div class="audit-muted">${auditLog.esc(r.email)}</div>` : '') +
+                        (r.via ? `<div class="mt-1"><span class="badge bg-purple-lt">via ${auditLog.esc(r.via)}</span></div>` : '')
                 },
                 {
                     key: 'action',
@@ -262,6 +263,7 @@
                                     ${esc(row.at)}
                                     <span class="font-monospace ms-2">${esc(row.action)}</span>
                                     ${row.ip ? `<span class="ms-2">from ${esc(row.ip)}</span>` : ''}
+                                    ${row.via ? `<span class="ms-2">via ${esc(row.via)}</span>` : ''}
                                 </div>
                             </div>
                         </div>

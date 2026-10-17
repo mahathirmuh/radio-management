@@ -96,7 +96,7 @@ class ESignController extends Controller
                 'total' => $page->total(),
             ],
             // The accounts that have no signature yet: the ones a new one can be registered for.
-            'candidates' => User::query()->whereNotIn('id', ItSignature::query()->select('user_id'))
+            'candidates' => User::query()->people()->whereNotIn('id', ItSignature::query()->select('user_id'))
                 ->orderBy('name')->limit(500)->get(['id', 'name', 'email'])
                 ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])->values(),
         ]);

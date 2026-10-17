@@ -127,7 +127,8 @@ class UserRegisteredController extends Controller
         // A role limited to some companies only ever sees those companies' users.
         $allowedCompanyIds = $this->allowedCompanyIds($request->user());
 
-        $data = $this->user
+        // People only: the accounts of applications (API clients) are on the page API Tokens.
+        $data = $this->user->people()
             ->with('company', 'roles')
 
             ->when($allowedCompanyIds !== null, function ($query) use ($allowedCompanyIds) {
@@ -215,7 +216,8 @@ class UserRegisteredController extends Controller
 
     public function show(Request $request, $id)
     {
-        $user = $this->user->with('company', 'roles')->find($id);
+        // People only: API clients are managed on the page API Tokens.
+        $user = $this->user->people()->with('company', 'roles')->find($id);
 
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
@@ -275,7 +277,7 @@ class UserRegisteredController extends Controller
 
         // Deleting a user is a soft delete and the row keeps its unique e-mail:
         // adding the same person again brings that row back instead of inserting.
-        $existing = $this->user->withTrashed()->where('email', $request->email)->first();
+        $existing = $this->user->withTrashed()->people()->where('email', $request->email)->first();
 
         $companySelected = filled($request->company_id)
             ? $this->company->where('company_orangehr_code', $request->company_id)->first()
@@ -364,8 +366,8 @@ class UserRegisteredController extends Controller
             ], 422);
         }
 
-        // Cari user berdasarkan ID
-        $user = $this->user->find($id);
+        // Cari user berdasarkan ID (people only: API clients are managed on the page API Tokens)
+        $user = $this->user->people()->find($id);
         if (!$user) {
             return response()->json([
                 'message' => 'User Not Found!',
@@ -478,7 +480,7 @@ class UserRegisteredController extends Controller
     public function destroy(Request $request, $id)
     {
         try {
-            $user = User::find($id);
+            $user = User::people()->find($id);
 
             if (!$user) {
                 return response()->json(['message' => 'User not found.'], 404);
@@ -518,7 +520,7 @@ class UserRegisteredController extends Controller
             return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
         }
 
-        $user = $this->user->find($id);
+        $user = $this->user->people()->find($id);
         if (!$user) {
             return response()->json(['message' => 'User not found.'], 404);
         }
@@ -552,7 +554,7 @@ class UserRegisteredController extends Controller
             return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
         }
 
-        $user = $this->user->with('roles')->find($id);
+        $user = $this->user->people()->with('roles')->find($id);
         if (!$user) {
             return response()->json(['message' => 'User not found.'], 404);
         }

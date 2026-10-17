@@ -86,12 +86,10 @@ class RadioService
         return $this->lock->run(function () use ($radio, $data, $userId, $version) {
             $this->reload($radio);
             if ($version !== null && $version !== $radio->version()) {
-                $this->refuse(
-                    'Data radio ini baru saja diubah'
+                throw StaleRadio::withMessages(['radio' => 'Data radio ini baru saja diubah'
                     . ($radio->updater ? ' oleh ' . $radio->updater->name : '')
                     . ' (' . $radio->updated_at?->format('d-m-Y H:i') . '). '
-                    . 'Tutup form ini, buka lagi, lalu ulangi perubahan Anda.'
-                );
+                    . 'Tutup form ini, buka lagi, lalu ulangi perubahan Anda.']);
             }
             if ($radio->isArchived()) {
                 unset($data['dmr_id']); // archived radios do not hold an ID

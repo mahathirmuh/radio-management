@@ -690,10 +690,11 @@ class SharePointEditTest extends TestCase
         // The page of the approvals: in the section "Dokumen" below the masterlist, the others below it.
         $menu = DB::table('menu')->where('route', EditApprovalsMenuSeeder::ROUTE)->sole();
         $this->assertSame(['Persetujuan Edit', 'Dokumen', null, 9], [$menu->title, $menu->section, $menu->parent_id, (int) $menu->order]);
-        // (Since 2026-10-17 "Audit Log" takes place 11, before the hidden "Approval Management": AuditLogTest.)
+        // (Since 2026-10-17 "Audit Log" and "API Tokens" take places 11 and 12, before the hidden "Approval Management":
+        // AuditLogTest, ApiTokensPageTest.)
         $this->assertSame(
-            ['COF Scan' => 7, 'ICT Masterlist' => 8, 'Persetujuan Edit' => 9, 'User Management' => 10, 'Audit Log' => 11, 'Approval Management' => 12],
-            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Audit Log', 'Approval Management'])
+            ['COF Scan' => 7, 'ICT Masterlist' => 8, 'Persetujuan Edit' => 9, 'User Management' => 10, 'Audit Log' => 11, 'API Tokens' => 12, 'Approval Management' => 13],
+            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Audit Log', 'API Tokens', 'Approval Management'])
                 ->orderBy('order')->pluck('order', 'title')->map(fn ($place) => (int) $place)->all()
         );
         $this->assertSame('/documents/edit-approvals', route(EditApprovalsMenuSeeder::ROUTE, [], false));
@@ -715,7 +716,8 @@ class SharePointEditTest extends TestCase
 
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
-        // The database as it was when this migration was new: without the later "Audit Log".
+        // The database as it was when this migration was new: without the later "API Tokens" and "Audit Log".
+        (require database_path('migrations/2026_10_17_150000_add_api_tokens_menu.php'))->down();
         (require database_path('migrations/2026_10_17_110000_add_audit_log_menu.php'))->down();
         $migration = require database_path('migrations/2026_10_12_110000_add_edit_approvals_menu.php');
         $update = CheckMenuPermission::PERMISSION_IDS['Update'];

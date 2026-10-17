@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * Class User
@@ -45,10 +46,14 @@ use Illuminate\Support\Facades\Schema;
  */
 class User extends Authenticatable
 {
+    use HasApiTokens;
     use HasFactory;
     use SoftDeletes;
 
     protected $table = 'users';
+
+    /** Whether users.api_client is there is asked at most once a minute (the code is live before its migration). */
+    public const API_CLIENT_CACHE_KEY = 'users-api-client-column';
 
     /**
      * How an account gets in, as User Management shows it (signInMethod()). Told from two facts, never stored: whether
@@ -108,6 +113,27 @@ class User extends Authenticatable
     public function isActive(): bool
     {
         return (string) $this->active !== '0';
+    }
+
+    /**
+     * An account of an application ("API client", page API Tokens), not of a person: it only ever works through the
+     * tokens of the API. It never signs in on the screen and is not listed under User Management.
+     */
+    public function isApiClient(): bool
+    {
+        return (bool) ($this->attributes['api_client'] ?? false);
+    }
+
+    /** Whether the column api_client is there (its migration has run). Asked once a minute. */
+    public static function apiClientReady(): bool
+    {
+        return (bool) Cache::remember(self::API_CLIENT_CACHE_KEY, 60, fn () => Schema::hasColumn('users', 'api_client'));
+    }
+
+    /** The accounts of people: without the API clients (all accounts, before the migration that added them). */
+    public function scopePeople($query)
+    {
+        return self::apiClientReady() ? $query->where($this->qualifyColumn('api_client'), false) : $query;
     }
 
     /**
