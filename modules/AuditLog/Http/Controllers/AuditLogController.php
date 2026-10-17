@@ -4,11 +4,9 @@ namespace Modules\AuditLog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Log\AuditLog;
-use App\Models\UserManagement\User;
-use App\Services\Audit\AuditLogger;
+use App\Services\Audit\AuditLogQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\RadioManagement\Services\Like;
 
 /**
  * The audit trail, read only (menu "Audit Log"). There is no action that changes or deletes an entry, by design; the
@@ -58,24 +56,7 @@ class AuditLogController extends Controller
         $search = self::text($request, 'search', 255);
         $action = self::text($request, 'action', 64);
 
-        $entries = AuditLog::query()
-            ->with('user:id,name')
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($where) use ($search) {
-                    // The address the entry was written with, or the name of that account now. A failed sign-in has no
-                    // account: what was typed into the form is in its values.
-                    Like::any($where, ['user_email'], $search);
-                    $where->orWhereIn('user_id', User::withTrashed()->where(fn ($named) => Like::any($named, ['name'], $search))->select('id'))
-                        ->orWhere(function ($failed) use ($search) {
-                            $failed->where('action', AuditLogger::LOGIN_FAILED)->where(fn ($typed) => Like::any($typed, ['new_values'], $search));
-                        });
-                });
-            })
-            ->when($action !== '', fn ($query) => $query->where('action', $action))
-            ->orderByDesc('created_at')
-            // Entries written by one action share their second: without this, rows would repeat across pages, or never show.
-            ->orderByDesc('id')
-            ->paginate($limit);
+        $entries = app(AuditLogQuery::class)->build($search, $action)->paginate($limit);
 
         return response()->json([
             'data' => $entries->getCollection()->map(fn (AuditLog $entry) => $this->row($entry))->values(),

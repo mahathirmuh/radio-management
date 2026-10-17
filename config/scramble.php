@@ -32,14 +32,17 @@ reads and writes; it ends on its expiry date, when it is revoked, and when its a
 
 **Permissions.** Each endpoint belongs to the menu of its page and needs the permission of its method there: GET Read,
 POST Create, PUT Update, DELETE Delete. Archiving and restoring a radio, and adding to its history, are an Update.
+Replacing the register by an import ("fresh") also needs Delete on *Register Radio*. Users, roles and the audit log
+are read only: they are changed on their pages.
 
 **Rules.** The same as on the pages: one Radio ID and one SN per radio, no Radio ID whose MDC code contains F, one save
 at a time. Every change is in *Riwayat Radio* and in the *Audit Log*, with the token that made it.
 
 **Answers.** JSON. Lists come a page at a time (`page`, `per_page` up to 100) with `meta` and `links`. Errors:
 `401` no or a wrong token, `403` not allowed, `404` not found, `409` the radio was changed since you read it (send its
-`version`) or the register is busy, `422` refused (`errors` by field), `429` too many requests (60 a minute per token),
-`503` the API is not switched on yet. Messages of the register are in Indonesian, as on the pages.
+`version`) or the register is busy, `422` refused (`errors` by field), `429` too many requests (60 a minute per token;
+import and export of Excel 10 a minute), `503` the API (or the audit log) is not switched on yet. Messages of the
+register are in Indonesian, as on the pages.
 MD,
     ],
 

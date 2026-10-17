@@ -171,6 +171,11 @@ class ApiTokensPageTest extends TestCase
         $spec = $this->get('/docs/api.json')->assertOk()->json();
         $this->assertArrayHasKey('/radios', $spec['paths']);
         $this->assertArrayHasKey('/radios/{radio}/archive', $spec['paths']);
+        foreach (['/radios/export', '/radios/{radio}/checkout-form', '/import', '/users', '/users/{user}', '/roles', '/roles/{role}', '/audit-log'] as $path) {
+            $this->assertArrayHasKey($path, $spec['paths'], $path);
+        }
+        // The import takes the file of the page's form.
+        $this->assertArrayHasKey('file', $spec['paths']['/import']['post']['requestBody']['content']['multipart/form-data']['schema']['properties'] ?? []);
         $this->assertArrayNotHasKey('/approval-management/flows', $spec['paths']);
         $this->assertSame(['http', 'bearer'], [$spec['components']['securitySchemes']['token']['type'] ?? null, $spec['components']['securitySchemes']['token']['scheme'] ?? null]);
     }

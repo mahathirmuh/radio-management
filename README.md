@@ -373,8 +373,24 @@ di trilingual-docon:
 
 Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
 endpoint, parameter, contoh jawaban, dan tombol "Try it") ada di **`/docs/api`**, dibuat otomatis dari kode (paket
-`dedoc/scramble`), hanya untuk akun yang boleh memegang token. Tahap 1 (17-10-2026): radio, riwayat, master data,
-referensi, dashboard. Import/Export, Audit Log, User & Role, Form Cetak, dan bagian SharePoint menyusul.
+`dedoc/scramble`), hanya untuk akun yang boleh memegang token. Bagian SharePoint (COF Scan, ICT Masterlist, Persetujuan
+Edit) dan E-Sign menyusul (tahap 3).
+
+| Endpoint | Isi | Menu (hak) |
+| --- | --- | --- |
+| `GET me`, `GET references` | token ini milik siapa; daftar pilihan (Posisi, Kondisi, alasan arsip, jenis riwayat, ...) | — |
+| `GET dashboard` | angka dashboard | Dashboard |
+| `GET/POST radios`, `GET/PUT/DELETE radios/{id}` | register radio (filter sama dengan halaman) | Register Radio |
+| `POST radios/{id}/archive`, `.../restore`, `GET/POST .../history` | arsip, pulihkan, riwayat per radio | Register Radio (Update) |
+| `GET radios/free-ids`, `radios/check` | Radio ID bebas; cek Radio ID dan SN | Register Radio |
+| `GET radios/export` | file Excel tombol Export, dengan filter daftar | Register Radio (Read) |
+| `GET radios/{id}/checkout-form` | isi Form Cetak sebagai data (tanpa tanda tangan) | Register Radio (Read) |
+| `GET history` | Riwayat Radio semua radio | Riwayat Radio |
+| `GET/POST import` | laporan impor terakhir; impor file Excel (`fresh=1` juga butuh Delete di Register Radio) | Import Excel |
+| `radio-types`, `companies`, `departments`, `channel-templates` | master data (GET/POST/PUT/DELETE) | menu master masing-masing |
+| `GET users`, `GET users/{id}` | akun User Management (baca saja; jangkauan per perusahaan sama dengan halaman) | User Registered |
+| `GET roles`, `GET roles/{id}` | role dan hak per menu (baca saja; Super Admin hanya terlihat oleh Super Admin) | Role & Permission |
+| `GET audit-log` | jejak audit; filter per action, tanggal, atau satu record (`entity_type=Radio&entity_id=12`) | Audit Log |
 
 **Token** dibuat di **Settings → API Tokens**, dikirim sebagai `Authorization: Bearer <token>`:
 
@@ -404,11 +420,14 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 | `404` | data tidak ada |
 | `409` | radio sudah diubah orang lain sejak dibaca (kirim `version` dari jawaban terakhir), atau register sedang sibuk |
 | `422` | ditolak aturan, `errors` per field (pesan dalam bahasa Indonesia, seperti di halaman) |
-| `429` | terlalu banyak request: 60/menit per token (120/menit per alamat sebelum token diperiksa) |
-| `503` | migrasi API belum dijalankan |
+| `429` | terlalu banyak request: 60/menit per token, import dan export Excel 10/menit (120/menit per alamat sebelum token diperiksa) |
+| `503` | migrasi API (atau Audit Log) belum dijalankan |
 
 - Daftar: `?page=` dan `?per_page=` (maks. 100), dengan `meta` dan `links`. Filter bernilai banyak: `type[]=1&type[]=2`
   atau `type=1,2`.
+- **Import** lewat API: kirim file sebagai multipart (`file`, maks. 20 MB). Sama seperti halaman Import Excel: impor hanya
+  mengisi register yang **kosong**; bila sudah ada radio, ditolak (422) kecuali `fresh=1` (hapus data lama, termasuk
+  riwayatnya), yang juga butuh izin Delete di Register Radio. Satu impor pada satu waktu.
 - **CORS** tertutup: halaman web situs lain tidak bisa memanggil API dari browser pengunjungnya, kecuali situs itu
   ditulis di `CORS_ALLOWED_ORIGINS`. Aplikasi yang memanggil dari server-nya tidak perlu apa-apa.
 - Rute `/api/approval-management/...` bawaan template tetap ada (halaman Approval Management yang disembunyikan memakai
@@ -795,6 +814,7 @@ database/seeders/DocumentMenuSeeder.php (dasar), CofScanMenuSeeder.php, IctMaste
 app/Services/Audit/AuditLogger.php  menulis jejak audit (nama aksi, sebelum/sesudah, [redacted]); dipanggil dari login,
                                     User Management, Role & Permission, RadioService, master data, E-Sign, import,
                                     pengajuan/persetujuan sel
+app/Services/Audit/AuditLogQuery.php  pencarian jejak (halaman Audit Log dan API)
 app/Models/Log/AuditLog.php         satu baris jejak (tabel audit_logs; tidak bisa diubah atau dihapus)
 modules/AuditLog/                   halaman menu Audit Log: AuditLogController (halaman, daftar), Resources/views/index
 database/seeders/AuditLogMenuSeeder.php
@@ -802,13 +822,16 @@ modules/Api/                        API /api/v1 dan halaman API Tokens
   Routes/api/v1.php                 endpoint, dan menu (hak akses) tiap endpoint
   Http/Middleware/                  ForceJsonResponse, LimitAddresses, ApiReady, EnsureApiAccount, ApiAccess (Role &
                                     Permission + token read/write), CanReadApiDocs
-  Http/Controllers/V1/              Me, References, Dashboard, Radio, History, MasterData
-  Http/Resources/, Http/Requests/   bentuk jawaban radio/riwayat; RadioApiRequest (aturan RadioRequest, error per field)
+  Http/Controllers/V1/              Me, References, Dashboard, Radio (+ export, checkout form), History, MasterData,
+                                    Import, User, Role, AuditLog
+  Http/Resources/, Http/Requests/   bentuk jawaban radio/riwayat/user/jejak; RadioApiRequest (aturan RadioRequest, error
+                                    per field), RadioListRequest (filter daftar dan export)
   Http/Controllers/ApiTokenController.php, Resources/views/tokens/   halaman API Tokens
   Services/ApiTokens.php            klien API dan token (dibuat, diubah, dicabut, dicatat di Audit Log)
   Models/ApiToken.php               token Sanctum + read/write, kedaluwarsa, IP terakhir
-modules/RadioManagement/Services/   MasterData, RadioRules, RadioHistoryQuery, RadioSummary, StaleRadio: aturan yang
-                                    dipakai bersama halaman dan API
+modules/RadioManagement/Services/   MasterData, RadioRules, RadioHistoryQuery, RadioSummary, StaleRadio, RadioImports
+                                    (+ ImportProblem), CheckoutForm: aturan yang dipakai bersama halaman dan API
+modules/UserManagement/Services/UserScope.php   jangkauan akun per perusahaan (halaman User Management dan API)
 config/scramble.php, config/sanctum.php, config/cors.php
 database/seeders/ApiTokensMenuSeeder.php
 ```

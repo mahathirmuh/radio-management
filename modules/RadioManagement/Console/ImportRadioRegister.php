@@ -7,8 +7,8 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Modules\RadioManagement\Http\Controllers\RadioImportController;
 use Modules\RadioManagement\Services\RadioImportService;
+use Modules\RadioManagement\Services\RadioImports;
 use RuntimeException;
 
 class ImportRadioRegister extends Command
@@ -55,7 +55,7 @@ class ImportRadioRegister extends Command
 
         $report['at'] = now()->format('d-m-Y H:i');
         $report['by'] = 'artisan radio:import';
-        Cache::forever(RadioImportController::REPORT_CACHE_KEY, $report);
+        Cache::forever(RadioImports::REPORT_CACHE_KEY, $report);
 
         $this->table(['Item', 'Jumlah'], [
             ['Baris dibaca', $report['rows_scanned']],

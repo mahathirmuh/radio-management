@@ -6,19 +6,20 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Arr;
-use Illuminate\Validation\Rule;
 use Modules\Api\Http\Requests\RadioApiRequest;
+use Modules\Api\Http\Requests\RadioListRequest;
 use Modules\Api\Http\Resources\RadioHistoryResource;
 use Modules\Api\Http\Resources\RadioResource;
-use Modules\RadioManagement\Enums\Condition;
-use Modules\RadioManagement\Enums\Placement;
+use Modules\RadioManagement\Exports\RadioExport;
 use Modules\RadioManagement\Models\Radio;
+use Modules\RadioManagement\Services\CheckoutForm;
 use Modules\RadioManagement\Services\RadioCheckService;
 use Modules\RadioManagement\Services\RadioConflicts;
 use Modules\RadioManagement\Services\RadioFilter;
 use Modules\RadioManagement\Services\RadioIdService;
 use Modules\RadioManagement\Services\RadioRules;
 use Modules\RadioManagement\Services\RadioService;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * The register of radios, with the rules of the pages: every change goes through RadioService, so it is checked the
@@ -30,8 +31,6 @@ use Modules\RadioManagement\Services\RadioService;
 class RadioController extends ApiController
 {
     private const RELATIONS = ['radioType', 'ownerCompany', 'company', 'department', 'channelTemplate'];
-
-    private const LIST_FILTERS = ['company', 'owner', 'department', 'type', 'template', 'placement', 'condition'];
 
     public function __construct(
         private RadioService $radios,
@@ -47,44 +46,34 @@ class RadioController extends ApiController
      * The filters of the page "Register Radio". A filter of several values takes a list (`type[]=1&type[]=2`) or
      * comma separated values (`type=1,2`).
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(RadioListRequest $request): AnonymousResourceCollection
     {
-        $this->lists($request, self::LIST_FILTERS);
-        $request->validate([
-            /** SN, user/unit, document number, notes, Radio ID, or MDC code. */
-            'search' => ['nullable', 'string', 'max:100'],
-            /** "active" (default), "archived" or "all". */
-            'scope' => ['nullable', Rule::in(['active', 'archived', 'all'])],
-            /** Company (user's), by id. */
-            'company' => ['nullable', 'array'],
-            'company.*' => ['integer'],
-            /** Owning company (Pemilik Aset), by id. */
-            'owner' => ['nullable', 'array'],
-            'owner.*' => ['integer'],
-            'department' => ['nullable', 'array'],
-            'department.*' => ['integer'],
-            /** Radio type, by id. */
-            'type' => ['nullable', 'array'],
-            'type.*' => ['integer'],
-            /** Channel template, by id. */
-            'template' => ['nullable', 'array'],
-            'template.*' => ['integer'],
-            'owner_group' => ['nullable', Rule::in(['mti', 'non_mti'])],
-            'placement' => ['nullable', 'array'],
-            'placement.*' => [Rule::enum(Placement::class)],
-            'condition' => ['nullable', 'array'],
-            'condition.*' => [Rule::enum(Condition::class)],
-            /** One flag of the column "Cek" (see /references). */
-            'issue' => ['nullable', Rule::in(array_keys(RadioCheckService::ISSUES))],
-            'sort' => ['nullable', Rule::in(RadioFilter::SORTABLE)],
-            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
-            /** 1 to 100, 25 when not given. */
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'page' => ['nullable', 'integer', 'min:1'],
-        ]);
-        $request->merge(['orderBy' => $request->input('sort'), 'orderDir' => $request->input('direction')]);
+        return RadioResource::collection($this->filter->paginate($request->forFilter(), $this->perPage($request)));
+    }
 
-        return RadioResource::collection($this->filter->paginate($request, $this->perPage($request)));
+    /**
+     * Export radios to Excel
+     *
+     * The file of the button "Export" of the page: every radio that matches the filters of the list (no paging), as an
+     * .xlsx file. 10 a minute per token.
+     *
+     * @response \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function export(RadioListRequest $request, RadioCheckService $checks): BinaryFileResponse
+    {
+        return RadioExport::download($this->filter->all($request->forFilter()), $checks, 'register-radio-' . now()->format('Ymd-His') . '.xlsx');
+    }
+
+    /**
+     * The checkout form of a radio
+     *
+     * What the "IT Equipment Checkout Form" (button "Cetak") fills in for the radio, for an application that prints the
+     * form its own way. The keys of `fields` are the boxes of the form; the signature of the person at ICT is not given
+     * out by the API.
+     */
+    public function checkoutForm(Radio $radio, CheckoutForm $form): JsonResponse
+    {
+        return response()->json(['data' => ['radio_id' => $radio->id] + $form->for($radio)]);
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Directory\LdapAuthenticator;
 use Modules\UserManagement\Services\EmployeeDirectory;
+use Modules\UserManagement\Services\UserScope;
 
 use Exception;
 use Illuminate\Http\Request;
@@ -693,33 +694,21 @@ class UserRegisteredController extends Controller
         ], 422) : null;
     }
 
+    /* Whose accounts the caller reaches: UserScope, which the API goes by too. */
+
     private function isSuperAdmin(User $user): bool
     {
-        return $user->roles->contains('id', 1);
+        return app(UserScope::class)->isSuperAdmin($user);
     }
 
-    /** The caller's roles that are limited to some companies (func_role HO / SITE / COMPANY). */
     private function scopedRoles(User $caller)
     {
-        return $this->isSuperAdmin($caller)
-            ? collect()
-            : $caller->roles->filter(fn ($role) => $role->func_role !== 'ALL')->values();
+        return app(UserScope::class)->scopedRoles($caller);
     }
 
-    /**
-     * Company ids the caller may manage, or null when the caller is not limited (Super Admin, or
-     * only roles of type ALL). A caller holding a limited role stays limited whatever other roles
-     * they have: the result must not depend on which role the database happens to return first.
-     */
     private function allowedCompanyIds(User $caller)
     {
-        $scoped = $this->scopedRoles($caller);
-        if ($scoped->isEmpty()) {
-            return null;
-        }
-        $codes = $scoped->flatMap(fn ($role) => (array) ($caller->haveCompanyOrangeHr($role) ?? []))->unique()->values();
-
-        return $this->company::whereIn('company_orangehr_code', $codes)->pluck('id');
+        return app(UserScope::class)->allowedCompanyIds($caller);
     }
 
     /**
@@ -772,17 +761,9 @@ class UserRegisteredController extends Controller
     /** Super Admin accounts are managed by Super Admins only; scoped roles stay inside their companies. */
     private function denyUnlessManageable(Request $request, User $target)
     {
-        $caller = $request->user();
-        if ($this->isSuperAdmin($caller)) {
-            return null;
-        }
-
-        $allowed = $this->allowedCompanyIds($caller);
-        if ($this->isSuperAdmin($target) || ($allowed !== null && !$allowed->contains($target->company_id))) {
-            return response()->json(['message' => 'You are not allowed to manage this user.'], 403);
-        }
-
-        return null;
+        return app(UserScope::class)->mayManage($request->user(), $target)
+            ? null
+            : response()->json(['message' => 'You are not allowed to manage this user.'], 403);
     }
 
     /**

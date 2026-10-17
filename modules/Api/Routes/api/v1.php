@@ -2,12 +2,16 @@
 
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Modules\Api\Http\Controllers\V1\AuditLogController;
 use Modules\Api\Http\Controllers\V1\DashboardController;
 use Modules\Api\Http\Controllers\V1\HistoryController;
+use Modules\Api\Http\Controllers\V1\ImportController;
 use Modules\Api\Http\Controllers\V1\MasterDataController;
 use Modules\Api\Http\Controllers\V1\MeController;
 use Modules\Api\Http\Controllers\V1\RadioController;
 use Modules\Api\Http\Controllers\V1\ReferenceController;
+use Modules\Api\Http\Controllers\V1\RoleController;
+use Modules\Api\Http\Controllers\V1\UserController;
 use Modules\Api\Http\Middleware\ApiAccess;
 use Modules\Api\Http\Middleware\ApiReady;
 use Modules\Api\Http\Middleware\EnsureApiAccount;
@@ -35,6 +39,9 @@ Route::prefix('api/v1')->name('api.v1.')
             Route::post('/', 'store')->name('store')->middleware(ApiAccess::to($radios));
             Route::get('free-ids', 'freeIds')->name('free-ids')->middleware(ApiAccess::to($radios));
             Route::get('check', 'check')->name('check')->middleware(ApiAccess::to($radios));
+            // The button "Export" of the page: Read, and the limit for heavy work.
+            Route::get('export', 'export')->name('export')->middleware([ApiAccess::to($radios), 'throttle:api-v1-heavy']);
+            Route::get('{radio}/checkout-form', 'checkoutForm')->whereNumber('radio')->name('checkout-form')->middleware(ApiAccess::to($radios));
             Route::get('{radio}', 'show')->whereNumber('radio')->name('show')->middleware(ApiAccess::to($radios));
             Route::put('{radio}', 'update')->whereNumber('radio')->name('update')->middleware(ApiAccess::to($radios));
             Route::delete('{radio}', 'destroy')->whereNumber('radio')->name('destroy')->middleware(ApiAccess::to($radios));
@@ -46,6 +53,19 @@ Route::prefix('api/v1')->name('api.v1.')
         });
 
         Route::get('history', [HistoryController::class, 'index'])->name('history')->middleware(ApiAccess::to('radio-management.history'));
+
+        // "Import Excel": the last report (Read), an import (Create; replacing the register also needs Delete on
+        // "Register Radio", checked by the controller as on the page).
+        Route::get('import', [ImportController::class, 'show'])->name('import.show')->middleware(ApiAccess::to('radio-management.import'));
+        Route::post('import', [ImportController::class, 'store'])->name('import.store')->middleware([ApiAccess::to('radio-management.import'), 'throttle:api-v1-heavy']);
+
+        // User Management and Role & Permission, read only.
+        Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware(ApiAccess::to('user-management.user-registered'));
+        Route::get('users/{user}', [UserController::class, 'show'])->whereNumber('user')->name('users.show')->middleware(ApiAccess::to('user-management.user-registered'));
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index')->middleware(ApiAccess::to('user-management.role-permission'));
+        Route::get('roles/{role}', [RoleController::class, 'show'])->whereNumber('role')->name('roles.show')->middleware(ApiAccess::to('user-management.role-permission'));
+
+        Route::get('audit-log', [AuditLogController::class, 'index'])->name('audit-log')->middleware(ApiAccess::to('audit-log'));
 
         // The four master tables, each with the menu of its page ("Tipe Radio", "Perusahaan", ...).
         foreach (['radio-types' => 'radio-type', 'companies' => 'company', 'departments' => 'department', 'channel-templates' => 'channel-template'] as $path => $master) {
