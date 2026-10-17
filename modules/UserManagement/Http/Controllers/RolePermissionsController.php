@@ -271,7 +271,9 @@ class RolePermissionsController extends Controller
         $menus = Menu::query()->whereIn('id', DB::table('menu_role')->where('role_id', $role->id)->select('menu_id'))
             ->orderBy('title')->get(['id', 'title']);
 
-        $facts = ['Name' => $role->name, 'Home page' => $role->home_page];
+        // The home page is kept as the id of a menu: the trail names the menu.
+        $home = filled($role->home_page) ? Menu::query()->whereKey($role->home_page)->value('title') : null;
+        $facts = ['Name' => $role->name, 'Home page' => $home ?? $role->home_page];
         foreach ($menus as $menu) {
             $names = array_keys(array_filter(CheckMenuPermission::PERMISSION_IDS, fn ($id) => in_array($id, $granted[$menu->id] ?? [], true)));
             $facts['Menu ' . $menu->title] = $names === [] ? 'Access only' : implode(', ', $names);

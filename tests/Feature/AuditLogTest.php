@@ -338,7 +338,8 @@ class AuditLogTest extends TestCase
 
         $this->postJson(route('user-management.role-permission.store'), $form)->assertOk();
         $made = $this->only(AuditLogger::ROLE_CREATED);
-        $this->assertSame(['Name' => 'Staf Gudang', 'Home page' => (string) $menu, 'Menu Dashboard' => 'Read'], $made->new_values);
+        // The home page by the name of its menu, not by its number.
+        $this->assertSame(['Name' => 'Staf Gudang', 'Home page' => 'Dashboard', 'Menu Dashboard' => 'Read'], $made->new_values);
         $this->assertSame('Staf Gudang', $made->entity_label);
         $role = (int) $made->entity_id;
 
