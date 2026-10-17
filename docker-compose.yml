@@ -2,7 +2,7 @@
 # MTI Radio Management
 #
 #   docker compose up -d --build
-#   http://localhost:26101           (DOCKER_PORT in .env to change it)
+#   http://localhost:26102           (DOCKER_PORT in .env to change it)
 #
 # Before the first start:
 #   - .env next to this file (see .env.example, and README "Docker").
@@ -34,15 +34,15 @@ services:
     restart: unless-stopped
 
     ports:
-      # 26101 outside, Apache's 80 inside. The ports of the team's apps
-      # are year, month and number of the app: 26 10 1 = 2026, October,
-      # the first app of that month (trilingual-docon is 26091). A reverse
+      # 26102 outside, Apache's 80 inside. The ports of the team's apps
+      # are year, month and number of the app: 26 10 2 = 2026, October,
+      # the second app of that month (trilingual-docon is 26091). A reverse
       # proxy in front forwards to this port. DOCKER_PORT in .env changes
       # it; SERVER_PORT is the port of `php artisan serve` and stays apart.
       #
       # The Microsoft sign-in comes back to MS_SSO_REDIRECT_URI: the
       # address people open must be that one, host and port.
-      - "${DOCKER_PORT:-26101}:80"
+      - "${DOCKER_PORT:-26102}:80"
 
     volumes:
       # Read only: the application never writes its settings, and the
