@@ -786,19 +786,48 @@ class UserManagementTest extends TestCase
         $this->assertFalse(User::where('email', 'eko@merdekabattery.com')->exists());
     }
 
+    public function test_an_ldap_account_is_saved_with_the_name_active_directory_gives_it(): void
+    {
+        $this->actingAs($this->admin());
+        $this->fakeDirectory(people: ['it.support.assistant' => ['name' => 'IT Support Assistant [MTI]', 'email' => 'it.supportasst@merdekabattery.com']]);
+
+        // What Find employee fills in from the directory is what Submit takes (it was refused for its brackets).
+        $found = $this->getJson(route('user-management.user-registered.directory', ['q' => 'support']))->assertOk()->json('data.0');
+        $this->postJson(route('user-management.user-registered.store'), [
+            'name' => $found['name'],
+            'email' => $found['email'],
+            'sign_in_method' => 'LDAP',
+            'ldap_username' => $found['username'],
+            'role_id' => [$this->roleId('Viewer Radio')],
+        ])->assertOk();
+
+        $user = User::where('email', 'it.supportasst@merdekabattery.com')->sole();
+        $this->assertSame('IT Support Assistant [MTI]', $user->name);
+        $this->assertSame('it.support.assistant', $user->ldap_username);
+    }
+
     public function test_a_name_from_the_employee_directory_is_kept_as_it_is_written_there(): void
     {
         $this->actingAs($this->admin());
         $form = fn (string $name, string $email) => ['name' => $name, 'email' => $email, 'role_id' => [$this->roleId('Viewer Radio')]];
 
-        foreach (["Ma'ruf Nur\u{2019}aini" => 'maruf@merdekabattery.com', "\u{5F20}\u{4E09}" => 'zhang.san@merdekabattery.com', 'Siti-N., S.Kom 2' => 'siti@merdekabattery.com'] as $name => $email) {
+        // As the HR directory and Active Directory write names: any script, and (in Active Directory, most names) a company
+        // tag in brackets, once even with a brace for its first bracket.
+        foreach ([
+            "Ma'ruf Nur\u{2019}aini" => 'maruf@merdekabattery.com',
+            "\u{5F20}\u{4E09}" => 'zhang.san@merdekabattery.com',
+            'Siti-N., S.Kom 2' => 'siti@merdekabattery.com',
+            'Budi Santoso [MTI]' => 'budi.santoso@merdekabattery.com',
+            'Citra Lestari {MBM]' => 'citra@merdekabattery.com',
+            'Dewi (Kontraktor)' => 'dewi@merdekabattery.com',
+        ] as $name => $email) {
             $this->postJson(route('user-management.user-registered.store'), $form($name, $email))->assertOk();
             $this->assertSame($name, User::where('email', $email)->value('name'));
         }
         // What is no name is still refused, and said in words that can be acted on.
-        foreach (['Budi;DROP', 'Budi (Kontraktor)', 'Budi "Si" Kecil', 'Budi `id`'] as $wrong) {
+        foreach (['Budi;DROP', 'Budi "Si" Kecil', 'Budi `id`', 'Budi <b>'] as $wrong) {
             $this->postJson(route('user-management.user-registered.store'), $form($wrong, 'salah@merdekabattery.com'))->assertStatus(422)
-                ->assertJsonPath('errors.0', "The name may only have letters, numbers, spaces and . , - '");
+                ->assertJsonPath('errors.0', "The name may only have letters, numbers, spaces, brackets and . , - '");
         }
         $this->assertFalse(User::where('email', 'salah@merdekabattery.com')->exists());
     }

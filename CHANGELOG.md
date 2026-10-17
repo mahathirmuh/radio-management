@@ -8,6 +8,17 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.5.2] - 2026-10-17
+
+### Diperbaiki
+
+- Add User: nama yang memakai tanda kurung, seperti nama tampilan di Active Directory ("Budi Santoso [MTI]"), ditolak
+  saat Submit ("The name may only have letters, ..."). Sejak 1.5.0 Find employee untuk LDAP mengisi nama dari Active
+  Directory, sehingga hampir semua orang yang ditemukan di sana tidak bisa disimpan. Nama sekarang boleh memuat
+  `( ) [ ] { }`; tanda lain seperti `;`, kutip dan `< >` tetap ditolak.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.5.1] - 2026-10-17
 
 ### Dihapus
@@ -132,6 +143,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.5.2]: https://github.com/mahathirmuh/radio-management/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/mahathirmuh/radio-management/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/mahathirmuh/radio-management/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mahathirmuh/radio-management/compare/v1.3.0...v1.4.0

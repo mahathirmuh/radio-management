@@ -25,13 +25,14 @@ class UserRegisteredController extends Controller
 {
     /**
      * A name: letters (of any script: a name may come from the employee directory as it is written there), numbers,
-     * spaces and . , - '
+     * spaces, . , - ' and brackets: most display names in Active Directory end in a company tag ("Budi Santoso [MTI]"),
+     * which Find employee fills in as it is.
      */
-    private const NAME_RULE = "regex:/^[\\pL\\pM0-9\\s\\-\\.,'\x{2019}]+$/u";
+    private const NAME_RULE = "regex:/^[\\pL\\pM0-9\\s\\-\\.,'\x{2019}()\\[\\]{}]+$/u";
 
     /** What the form sends for the sign-in method, and what is said when a name is not one. */
     private const MESSAGES = [
-        'name.regex' => "The name may only have letters, numbers, spaces and . , - '",
+        'name.regex' => "The name may only have letters, numbers, spaces, brackets and . , - '",
         'ldap_username.regex' => 'The directory username may only have letters, numbers and . _ - @',
         'sign_in_method.in' => 'This sign-in method is not available here.',
     ];
