@@ -54,9 +54,12 @@ services:
       # cache shared with a copy on another database mixes up the menus).
       - storage:/var/www/html/storage
 
-      # The certificate of the CA of the domain controller, when
-      # LDAP_TLS_VERIFY is on (LDAP_CA_CERT=/var/www/html/certs/ca.pem):
-      # - ./certs/ca.pem:/var/www/html/certs/ca.pem:ro
+      # Certificates the application reads, read only: the root CA of the
+      # domain controller as certs/ca.pem when LDAP_TLS_VERIFY is on
+      # (LDAP_CA_CERT=/var/www/html/certs/ca.pem). The folder is in the
+      # repository, empty: the certificate is put there on the server and
+      # never committed.
+      - ./certs:/var/www/html/certs:ro
 
     healthcheck:
       # The login page: Apache, PHP and the application answer. (A GET

@@ -38,3 +38,7 @@ yarn-error.log
 /database/seeders/UsersTableSeeder.php
 /database/seeders/RoleUserTableSeeder.php
 /database/seeders/ErrorLogsTableSeeder.php
+
+# Certificates (certs/ca.pem): put on the server, never committed.
+/certs/*
+!/certs/README.md

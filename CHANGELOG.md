@@ -8,6 +8,20 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.6.1] - 2026-10-18
+
+### Diubah
+
+- Docker: folder `certs/` di samping `docker-compose.yml` selalu dipasang ke container (hanya baca), tempat sertifikat
+  root CA domain controller (`certs/ca.pem`) untuk login LDAP yang memeriksa sertifikat. Sebelumnya baris itu harus
+  dibuka sendiri di `docker-compose.yml`, yang bentrok dengan `git pull` berikutnya.
+- README dan `.env.example`: cara menyalakan `LDAP_TLS_VERIFY`: sertifikat root CA, dan `LDAP_URL` dengan nama DNS
+  server AD (bukan IP), karena pemeriksaan mencocokkan nama itu dengan sertifikatnya.
+
+**Deploy:** tanpa migrasi. Untuk menyalakan pemeriksaan sertifikat LDAP di production: salin sertifikat root CA ke
+`certs/ca.pem` di server, lalu di `.env` server isi `LDAP_URL` dengan nama DNS server AD, `LDAP_TLS_VERIFY=true` dan
+`LDAP_CA_CERT=/var/www/html/certs/ca.pem`; `docker compose up -d --build`.
+
 ## [1.6.0] - 2026-10-18
 
 ### Ditambahkan
@@ -180,6 +194,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.6.1]: https://github.com/mahathirmuh/radio-management/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/mahathirmuh/radio-management/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/mahathirmuh/radio-management/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/mahathirmuh/radio-management/compare/v1.5.2...v1.5.3

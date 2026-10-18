@@ -195,8 +195,9 @@ docker compose down                     # hentikan (data storage tetap)
 - **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
 - **Yang tidak masuk image** (`.dockerignore` memakai daftar yang boleh masuk): `.env`, file Excel/Word/PDF, seeder
   berisi akun orang, `tests/`, `vendor/` laptop (dipasang ulang di image), isi `storage/`.
-- Bila `LDAP_TLS_VERIFY=true` dengan CA internal: pasang file sertifikat CA ke container (contoh ada sebagai komentar
-  di `docker-compose.yml`) dan isi `LDAP_CA_CERT` dengan path di dalam container.
+- Bila `LDAP_TLS_VERIFY=true` dengan CA internal: taruh sertifikat root CA sebagai `certs/ca.pem` di samping
+  `docker-compose.yml` (folder `certs/` dipasang ke container, hanya baca; isinya tidak ikut git), isi
+  `LDAP_CA_CERT=/var/www/html/certs/ca.pem`, dan pastikan nama server di `LDAP_URL` bisa di-resolve dari host Docker.
 
 ## Versi
 
@@ -344,7 +345,15 @@ menentukan di mana Find employee mencari.
   ke server sungguhan).
 - `LDAP_TLS_VERIFY` sebaiknya `true`. `false` hanya selama sertifikat domain controller berasal dari CA internal
   yang belum dipercaya server ini: tanpa pemeriksaan, password yang diketik bisa diterima pihak yang menyadap.
-  Untuk menyalakannya, simpan sertifikat CA itu sebagai berkas PEM dan isi `LDAP_CA_CERT` dengan path lengkapnya.
+  Untuk menyalakannya:
+  1. Simpan sertifikat **root CA** internal sebagai berkas PEM. Di komputer domain yang sudah mempercayainya, sertifikat
+     itu ada di Windows (`certmgr.msc`, *Trusted Root Certification Authorities*): ekspor sebagai *Base-64 encoded
+     X.509*.
+  2. Isi `LDAP_CA_CERT` dengan path lengkap berkas itu (di Docker: lihat bagian Docker).
+  3. Tulis `LDAP_URL` dengan **nama DNS** server AD seperti tercantum di sertifikatnya (misalnya
+     `ldaps://dc01.example.local:636`), bukan alamat IP: pemeriksaan mencocokkan nama di alamat dengan nama di
+     sertifikat, dan sertifikat domain controller biasanya tidak mencantumkan IP. Dengan IP dan `LDAP_TLS_VERIFY=true`
+     login LDAP ditolak sebagai direktori yang tidak bisa dihubungi.
 
 Kolomnya ditambahkan migrasi `2026_10_13_100000_add_sign_in_to_users_table` (login terakhir) dan
 `2026_10_13_110000_add_directory_sign_in_to_users_table` (Directory username). Sebelum migrasi dijalankan halaman
