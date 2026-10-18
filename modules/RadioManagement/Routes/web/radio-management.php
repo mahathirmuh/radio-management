@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\RadioManagement\Http\Controllers\ESignController;
 use Modules\RadioManagement\Http\Controllers\MasterDataController;
+use Modules\RadioManagement\Http\Controllers\RadioBulkController;
 use Modules\RadioManagement\Http\Controllers\RadioController;
 use Modules\RadioManagement\Http\Controllers\RadioHistoryController;
 use Modules\RadioManagement\Http\Controllers\RadioImportController;
@@ -18,6 +19,11 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::get('list', 'list')->name('list');
         Route::get('next-id', 'nextId')->name('next-id');
         Route::get('export', 'export')->name('export');
+        // Several radios at once (ticked in the list). The names stay "<menu key>.<action>" (bulk-verify, not bulk.verify)
+        // so the `permission` middleware finds "Register Radio": verifying and archiving are an Update, deleting a Delete.
+        Route::put('bulk/verify', [RadioBulkController::class, 'verify'])->name('bulk-verify');
+        Route::put('bulk/archive', [RadioBulkController::class, 'archive'])->name('bulk-archive');
+        Route::delete('bulk', [RadioBulkController::class, 'destroy'])->name('bulk-destroy');
         Route::get('{radio}', 'show')->name('show')->whereNumber('radio');
         Route::get('{radio}/detail', 'detail')->name('detail')->whereNumber('radio');
         // The IT Equipment Checkout Form of one radio, filled in from the register (shown in the print pop-up).

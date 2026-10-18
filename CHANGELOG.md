@@ -8,6 +8,23 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.7.0] - 2026-10-19
+
+### Ditambahkan
+
+- Register Radio: **pilih banyak**. Kolom centang per radio dan per halaman, pilihan yang tetap saat pindah halaman
+  atau ganti filter, dan **Pilih semua N radio hasil filter**. Bar di atas tabel (tombolnya mengikuti izin role):
+  - **Verifikasi hari ini**: riwayat "Verifikasi" untuk setiap radio, tanggal verifikasinya ikut maju; bisa untuk
+    semua hasil filter (stock opname), paling banyak 1.000 sekaligus;
+  - **Arsipkan**: satu alasan, tanggal dan catatan untuk radio yang dicentang;
+  - **Hapus**: untuk salah input, dengan mengetik jumlahnya sebagai konfirmasi;
+  - **Export terpilih**: Excel berisi radio yang dicentang saja.
+
+  Arsipkan dan Hapus hanya untuk radio yang dicentang satu per satu (paling banyak 100). Radio yang tidak bisa
+  diproses disebutkan beserta alasannya.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.6.1] - 2026-10-18
 
 ### Diubah
@@ -194,6 +211,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.7.0]: https://github.com/mahathirmuh/radio-management/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/mahathirmuh/radio-management/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/mahathirmuh/radio-management/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/mahathirmuh/radio-management/compare/v1.5.3...v1.5.4

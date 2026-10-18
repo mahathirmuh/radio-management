@@ -20,6 +20,9 @@ class RadioFilter
 {
     public const SORTABLE = ['dmr_id', 'serial_number', 'user_name', 'last_programmed_at', 'last_verified_at', 'updated_at'];
 
+    /** At most this many radios are asked for by their ids at once (the radios ticked in the list). */
+    public const MAX_IDS = 1000;
+
     private const RELATIONS = ['radioType', 'ownerCompany', 'company', 'department', 'channelTemplate'];
 
     public function __construct(private RadioCheckService $checks)
@@ -30,6 +33,14 @@ class RadioFilter
     public function query(Request $request): Builder
     {
         $query = Radio::query()->select('radios.id');
+
+        // Radios ticked one by one ("Export terpilih"): those, whatever the other filters say.
+        $ids = self::ids($request);
+        if ($ids !== []) {
+            $query->whereIntegerInRaw('radios.id', array_slice($ids, 0, self::MAX_IDS));
+
+            return $this->ordered($query, $request);
+        }
 
         match ($request->input('scope', 'active')) {
             'archived' => $query->archived(),
@@ -84,6 +95,19 @@ class RadioFilter
             $this->checks->applyIssueFilter($query, $issue);
         }
 
+        return $this->ordered($query, $request);
+    }
+
+    /** @return int[] the radios asked for by their ids ("ids[]"): each once, numbers only. */
+    public static function ids(Request $request): array
+    {
+        $ids = array_filter((array) $request->input('ids', []), fn ($id) => is_numeric($id) && (int) $id > 0);
+
+        return array_values(array_unique(array_map('intval', $ids)));
+    }
+
+    private function ordered(Builder $query, Request $request): Builder
+    {
         $orderBy = in_array($request->input('orderBy'), self::SORTABLE, true) ? $request->input('orderBy') : 'dmr_id';
         $orderDir = $request->input('orderDir') === 'desc' ? 'desc' : 'asc';
 

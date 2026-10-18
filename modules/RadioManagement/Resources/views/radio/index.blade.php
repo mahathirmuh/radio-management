@@ -11,10 +11,29 @@
             max-width: 220px;
             white-space: normal;
         }
+
+        /* The radios ticked (radio.bulk-bar). */
+        .radio-bulk-bar {
+            background: rgba(32, 107, 196, .07);
+            border: 1px solid rgba(32, 107, 196, .25);
+        }
+
+        #radioTable .radio-pick-cell {
+            width: 34px;
+            padding-right: 0;
+        }
     </style>
 @endpush
 
 @include('RadioManagement::partials.scripts')
+
+@php
+    // What the bar of the radios ticked offers: Update (verify, archive) and Delete on "Register Radio" (the server checks again).
+    $bulkMay = [
+        'update' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.radio', 'Update'),
+        'delete' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.radio', 'Delete'),
+    ];
+@endphp
 
 @section('page-title', 'Register Radio')
 
@@ -84,12 +103,16 @@
                             </span>
                         </div>
 
+                        @include('RadioManagement::radio.bulk-bar')
+
                         <div class="col-12">
                             <div class="card overflow-hidden mdka-border-gray-200">
                                 <div class="card-body table-responsive p-0">
                                     <table class="table table-vcenter mdka-border-gray-100 text-nowrap mb-0" id="radioTable">
                                         <thead>
                                             <tr class="mdka-bg-gray-50">
+                                                <th class="py-3 radio-pick-cell"><input type="checkbox" class="form-check-input m-0"
+                                                        id="radioPickPage" aria-label="Pilih semua radio di halaman ini"></th>
                                                 <th class="text-capitalize fs-5 py-3 text-center" width="30">No</th>
                                                 <th class="text-capitalize fs-5 py-3" data-key="dmr_id">Radio ID</th>
                                                 <th class="text-capitalize fs-5 py-3" data-key="serial_number">SN / Tipe</th>
@@ -118,6 +141,7 @@
 
     @include('RadioManagement::radio.modal')
     @include('RadioManagement::radio.archive-modal')
+    @include('RadioManagement::radio.bulk')
     @include('RadioManagement::radio.print-modal')
 @endsection
 
@@ -137,6 +161,8 @@
             scope: 'active',
 
             columns: [
+                // The box that ticks the radio for the bar of radio.bulk.
+                { key: 'pick', className: 'radio-pick-cell', render: r => radioBulk.cell(r) },
                 'index',
                 {
                     key: 'dmr_id',
@@ -251,6 +277,7 @@
 
             load() {
                 $('[data-bs-toggle="tooltip"]').tooltip('hide');
+                radioBulk.loading();
                 radioTable.render({ loading: true });
                 const issue = radioFilter.values.issue;
                 $('#radioIssueChip').toggleClass('d-none', !issue);
@@ -263,10 +290,19 @@
                             radioTable.page = page;
                             return radioTable.load();
                         }
+                        radioTable.last = response;
                         radioTable.render({ data: response.data, meta: response.meta });
                         RadioUi.tooltips('#radioTable');
+                        radioBulk.shown(response.data, response.meta);
                     })
                     .fail(() => radioTable.render({ emptyText: 'Gagal memuat data. Coba lagi.' }));
+            },
+
+            /** The page that is on screen drawn again (its boxes ticked or not), without asking the server. */
+            redraw() {
+                if (!radioTable.last) return;
+                radioTable.render({ data: radioTable.last.data, meta: radioTable.last.meta });
+                RadioUi.tooltips('#radioTable');
             },
 
             export() {

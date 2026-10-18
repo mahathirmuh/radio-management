@@ -13,7 +13,7 @@ import { checker, loadPage, textOf } from './page-sandbox.mjs';
 
 const { node, page, fire } = loadPage(
     process.argv[2],
-    ['function debounce(', 'function renderTableWithFeatures(', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioTable = {'],
+    ['function debounce(', 'function renderTableWithFeatures(', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioBulk = {', 'const radioTable = {'],
     { href: 'http://localhost/radio-management/radio' }
 );
 const { check, done } = checker();

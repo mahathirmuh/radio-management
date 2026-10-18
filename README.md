@@ -9,7 +9,7 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 | Menu | Fungsi |
 | --- | --- |
 | Dashboard | Ringkasan radio aktif, kondisi, hasil cek, per company/tipe, ID bebas berikutnya |
-| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel |
+| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel; **pilih banyak**: verifikasi, arsipkan, hapus, export sekaligus |
 | Detail Radio | Data lengkap, hasil cek, riwayat, data asli Excel |
 | Riwayat Radio | Log serah terima, status, program, verifikasi, arsip (otomatis + manual) |
 | Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel, dan **E-Sign Master** (tanda tangan tim ICT, lihat [E-Sign Master](#e-sign-master)) |
@@ -50,6 +50,21 @@ Aturan utama:
   `php artisan radio:unlock` melepasnya saat itu juga.
 - Master data yang **dinonaktifkan** tidak bisa dipilih lagi untuk radio lain; radio yang sudah
   memakainya tidak berubah. Master data hanya bisa dihapus bila tidak dipakai radio mana pun.
+- **Pilih banyak** (kolom centang di Register Radio): centang radio satu per satu (pilihan tetap saat pindah halaman
+  atau ganti filter), atau centang satu halaman lalu **Pilih semua N radio hasil filter**. Bar di atas tabel menawarkan
+  hanya yang boleh dilakukan role itu:
+  - **Verifikasi hari ini** (Update): riwayat "Verifikasi" untuk setiap radio pada tanggal yang dipilih (catatan
+    opsional; bila kosong "Diverifikasi (stock opname)."), dan tanggal verifikasi radio ikut maju bila lebih baru.
+    Radio yang diarsipkan dilewati. Bisa untuk semua hasil filter, paling banyak 1.000 sekaligus: untuk stock opname,
+    saring per company atau "Tgl verifikasi kosong", pilih semua, lalu verifikasi.
+  - **Arsipkan** (Update): satu alasan, tanggal dan catatan untuk semua radio yang dicentang.
+  - **Hapus** (Delete): hanya untuk data yang salah input. Konfirmasinya dengan mengetik jumlah radionya; riwayatnya
+    tetap tersimpan, tetapi radionya tidak bisa dikembalikan dari aplikasi (radio yang tidak dipakai lagi: arsipkan).
+  - **Export terpilih** (Read): Excel berisi radio yang dicentang saja (atau semua hasil filter).
+
+  Arsipkan dan Hapus hanya untuk radio yang dicentang satu per satu, paling banyak 100 sekaligus. Setiap radio
+  diproses dengan aturan yang sama seperti satu radio (riwayat, Audit Log, satu per satu); radio yang tidak bisa
+  diproses disebutkan beserta alasannya, yang lain tetap jalan.
 - Tombol **Cetak** (ikon printer di kolom Aksi) membuka pop-up berisi **IT Equipment Checkout Form**
   (MTI-HRM-ICT-FRM-001 Rev.000) untuk radio itu, siap dicetak di satu halaman A4. Yang diisi dari
   register: Radio ID (No. ID), tipe (Merk & Type), Serial Number, nama pengguna (Employee Name di
@@ -892,8 +907,9 @@ modules/RadioManagement/
   Models/                   Radio, RadioHistory, RadioType, RadioCompany, RadioDepartment, ChannelTemplate
   Services/                 RadioService (simpan + riwayat), RadioIdService, RadioConflicts (ID/SN bebas?),
                             RegisterLock (satu penyimpanan pada satu waktu), RadioCheckService,
-                            RadioFilter, Like (pencarian teks apa adanya), RadioImportService
-  Http/Controllers/         Radio, MasterData (4 master), RadioHistory, RadioImport
+                            RadioFilter, Like (pencarian teks apa adanya), RadioImportService,
+                            RadioBulk (pilih banyak: verifikasi, arsip, hapus)
+  Http/Controllers/         Radio, RadioBulk (aksi pilih banyak), MasterData (4 master), RadioHistory, RadioImport
   Http/Requests/RadioRequest.php
   Exports/RadioExport.php
   Console/ImportRadioRegister.php   (php artisan radio:import)
