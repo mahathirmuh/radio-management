@@ -90,6 +90,19 @@ class RadioManagementTest extends TestCase
             ->assertJsonPath('data.0.mdc', '14');
     }
 
+    public function test_the_dashboard_has_no_button_to_the_register_in_its_header(): void
+    {
+        Radio::create(['dmr_id' => 20, 'serial_number' => '867TZB5309', 'user_name' => 'Iqbal']);
+        $this->actingAs($this->admin());
+        $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
+
+        // The register is in the sidebar: no button for it next to the title.
+        $this->assertStringContainsString('Dashboard Radio', $page);
+        $this->assertDoesNotMatchRegularExpression('#<a[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*>(?:(?!</a>).)*?Register Radio#s', $page);
+        // The figures still lead to it.
+        $this->assertStringContainsString(route('radio-management.radio.index') . '?scope=archived', $page);
+    }
+
     public function test_create_validates_sn_and_radio_id(): void
     {
         $this->actingAs($this->admin());

@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.5.4] - 2026-10-18
+
+### Dihapus
+
+- Dashboard: tombol **Register Radio** di samping judul. Register Radio sudah ada di sidebar, dan angka-angka di
+  dashboard tetap membuka daftarnya.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.5.3] - 2026-10-17
 
 ### Diperbaiki
@@ -155,6 +164,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.5.4]: https://github.com/mahathirmuh/radio-management/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/mahathirmuh/radio-management/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/mahathirmuh/radio-management/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/mahathirmuh/radio-management/compare/v1.5.0...v1.5.1

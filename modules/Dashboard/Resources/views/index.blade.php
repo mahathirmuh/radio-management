@@ -172,18 +172,10 @@
 @section('page-title', 'Dashboard')
 @section('content')
     <div class="row g-3 viz-root">
-        <div class="col-12 d-flex flex-wrap justify-content-between align-items-end gap-2">
-            <div>
-                <h2 class="mb-0">Dashboard Radio</h2>
-                <div class="text-secondary small">Register radio HT & rig · data per {{ now()->format('d-m-Y H:i') }}</div>
-            </div>
-            <div class="d-flex gap-2">
-                <x-global.btn-detail label="Register Radio" color="blue" size="sm" outline="true" href="{{ $radioUrl }}">
-                    <x-slot:icon>
-                        <i class="ti ti-list-details"></i>
-                    </x-slot:icon>
-                </x-global.btn-detail>
-            </div>
+        {{-- Title only: the register is in the sidebar, and the figures below lead to it. --}}
+        <div class="col-12">
+            <h2 class="mb-0">Dashboard Radio</h2>
+            <div class="text-secondary small">Register radio HT & rig · data per {{ now()->format('d-m-Y H:i') }}</div>
         </div>
 
         @if ($totalActive === 0 && $totalArchived === 0)
