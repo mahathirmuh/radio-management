@@ -31,7 +31,14 @@
 
         #userTable th,
         #userTable td {
-            padding: .8rem 1rem;
+            padding: .8rem .75rem;
+        }
+
+        /* A long name wraps rather than pushing the buttons out of a laptop's screen. */
+        #userTable .user-name-cell {
+            white-space: normal;
+            min-width: 130px;
+            max-width: 200px;
         }
 
         #userTable th:first-child,
@@ -76,8 +83,41 @@
         #userTable tr.user-off .user-muted {
             opacity: .55;
         }
+
+        /* The box of a row (for the bar of the users ticked) and the number of the row: narrow, so the buttons at the
+           right edge stay in view; a long role name wraps rather than widening the table. */
+        #userTable .user-pick-cell {
+            width: 34px;
+            padding-right: .25rem;
+        }
+
+        #userTable .user-no {
+            width: 40px;
+            padding-left: .25rem;
+            padding-right: .5rem;
+            text-align: center;
+        }
+
+        #userTable .user-role {
+            white-space: normal;
+            min-width: 110px;
+            max-width: 170px;
+        }
+
+        .user-bulk-bar {
+            background: rgba(32, 107, 196, .07);
+            border: 1px solid rgba(32, 107, 196, .25);
+        }
     </style>
 @endpush
+
+@php
+    // What the bar of the users ticked offers: Update (activate, deactivate) and Delete on the menu (the server checks again).
+    $userBulkMay = [
+        'update' => \Illuminate\Support\Facades\Blade::check('permission', 'user-management.user-registered', 'Update'),
+        'delete' => \Illuminate\Support\Facades\Blade::check('permission', 'user-management.user-registered', 'Delete'),
+    ];
+@endphp
 
 @section('page-title', 'Users')
 
@@ -121,6 +161,30 @@
                             </button>
                         </div>
 
+                        {{-- The users ticked (script: userBulk), and what may be done to them. --}}
+                        <div class="col-12 d-none" id="userBulkBar">
+                            <div class="user-bulk-bar d-flex flex-wrap align-items-center gap-2 px-3 py-2 rounded-3">
+                                <i class="ti ti-checkbox text-primary fs-3"></i>
+                                <span class="fw-bold" id="userBulkCount"></span>
+                                <a href="#" class="small text-secondary" id="userBulkClear">Clear selection</a>
+                                <span class="ms-md-auto d-flex flex-wrap gap-2">
+                                    @if ($userBulkMay['update'])
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="userBulkActivate">
+                                            <i class="ti ti-user-check me-1"></i> Activate
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="userBulkDeactivate">
+                                            <i class="ti ti-user-off me-1"></i> Deactivate
+                                        </button>
+                                    @endif
+                                    @if ($userBulkMay['delete'])
+                                        <button type="button" class="btn btn-sm btn-outline-danger" id="userBulkDelete">
+                                            <i class="ti ti-trash me-1"></i> Delete
+                                        </button>
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+
                         <div class="col-12">
 
                             <div class="card overflow-hidden mdka-border-gray-200">
@@ -128,6 +192,12 @@
                                     <table class="table table-vcenter mdka-border-gray-100 text-nowrap mb-0" id="userTable">
                                         <thead>
                                             <tr class="mdka-bg-gray-50 ">
+                                                @if ($userBulkMay['update'] || $userBulkMay['delete'])
+                                                    <th scope="col" class="user-pick-cell"><span class="visually-hidden">Select</span><input
+                                                            type="checkbox" class="form-check-input m-0" id="userPickPage"
+                                                            aria-label="Select every user on this page"></th>
+                                                @endif
+                                                <th scope="col" class="text-capitalize fs-5 user-no">No</th>
                                                 <th scope="col" data-key="name" class="text-capitalize fs-5">
                                                     Name
                                                 </th>
@@ -193,6 +263,162 @@
         const userSignInReady = @json($signInReady);
     </script>
 
+    {{-- The users ticked, and the bar that acts on them (before the table: its first column asks for it). --}}
+    <script>
+        const userBulk = {
+            /** Whether the role may do anything to the users ticked: without it there are no boxes. */
+            enabled: @json($userBulkMay['update'] || $userBulkMay['delete']),
+            urls: {
+                status: "{{ route('user-management.user-registered.bulk-status') }}",
+                destroy: "{{ route('user-management.user-registered.bulk-destroy') }}",
+            },
+            max: {{ \Modules\UserManagement\Http\Controllers\UserRegisteredController::BULK_MAX }},
+            /** The users ticked, kept while the page or the filter changes: id => email. */
+            picked: new Map(),
+            /** The rows on screen that may be ticked: [{ id, email }]. */
+            rows: [],
+
+            esc(value) {
+                return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            },
+            noun(count) {
+                return count === 1 ? 'user' : 'users';
+            },
+            /** The box of a row: none to tick on one's own row, or on an account the role does not manage. */
+            cell(item) {
+                const may = !!item.manageable;
+                const on = may && userBulk.picked.has(Number(item.id));
+                const why = item.is_self ? 'Your own account' : 'You are not allowed to manage this user';
+                return `<input type="checkbox" class="form-check-input m-0 user-pick" aria-label="Select ${userBulk.esc(item.email)}" data-id="${Number(item.id)}" data-email="${userBulk.esc(item.email)}"${on ? ' checked' : ''}${may ? '' : ` disabled title="${why}"`}>`;
+            },
+            shown(data) {
+                userBulk.rows = (data || []).filter(item => item.manageable).map(item => ({ id: Number(item.id), email: String(item.email || '') }));
+                userBulk.refresh();
+            },
+            pick(id, email, on) {
+                id = Number(id);
+                if (!id) return;
+                if (on) {
+                    userBulk.picked.set(id, String(email || ''));
+                } else {
+                    userBulk.picked.delete(id);
+                }
+                userBulk.refresh();
+            },
+            pickPage(on) {
+                userBulk.rows.forEach(row => (on ? userBulk.picked.set(row.id, row.email) : userBulk.picked.delete(row.id)));
+                $('#userTable tbody input.user-pick:not(:disabled)').prop('checked', on);
+                userBulk.refresh();
+            },
+            clear() {
+                userBulk.picked.clear();
+                $('#userTable tbody input.user-pick').prop('checked', false);
+                userBulk.refresh();
+            },
+            refresh() {
+                const count = userBulk.picked.size;
+                $('#userBulkBar').toggleClass('d-none', count === 0);
+                $('#userBulkCount').text(`${count} ${userBulk.noun(count)} selected`);
+                const onPage = userBulk.rows.filter(row => userBulk.picked.has(row.id)).length;
+                const whole = userBulk.rows.length > 0 && onPage === userBulk.rows.length;
+                $('#userPickPage').prop('checked', whole).prop('indeterminate', !whole && onPage > 0).prop('disabled', userBulk.rows.length === 0);
+                const fits = count <= userBulk.max;
+                ['#userBulkActivate', '#userBulkDeactivate', '#userBulkDelete'].forEach(button => {
+                    $(button).prop('disabled', !fits).attr('title', fits ? '' : `At most ${userBulk.max} users at a time.`);
+                });
+            },
+            ids() {
+                return [...userBulk.picked.keys()];
+            },
+
+            status(active) {
+                const count = userBulk.picked.size;
+                Swal.fire({
+                    title: `${active ? 'Activate' : 'Deactivate'} ${count} ${userBulk.noun(count)}?`,
+                    text: active ? 'They will be able to sign in again.' :
+                        'They cannot sign in any more, and a session they have open ends. Everything they did is kept.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: active ? 'Activate' : 'Deactivate',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    $.ajax({
+                        url: userBulk.urls.status,
+                        type: 'POST',
+                        dataType: 'json',
+                        data: { _method: 'PUT', ids: userBulk.ids(), active: active ? 1 : 0 },
+                    }).done(userBulk.finished).fail(userBulk.failed);
+                });
+            },
+            /** Deleting takes the accounts off the list: the person types how many, as a last look. */
+            destroy() {
+                const count = userBulk.picked.size;
+                Swal.fire({
+                    title: `Delete ${count} ${userBulk.noun(count)}?`,
+                    html: 'Deleting takes the accounts off this list. Prefer deactivation for someone who has left.<br><br>' +
+                        `Type <b>${count}</b> to delete.`,
+                    icon: 'warning',
+                    input: 'text',
+                    inputAttributes: { autocomplete: 'off', inputmode: 'numeric' },
+                    showCancelButton: true,
+                    confirmButtonColor: '#d63939',
+                    confirmButtonText: '<i class="ti ti-trash"></i> Delete',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                }).then(result => {
+                    if (!result.isConfirmed) return;
+                    if (String(result.value || '').trim() !== String(count)) {
+                        Swal.fire('Not deleted', `What was typed is not ${count}.`, 'info');
+                        return;
+                    }
+                    $.ajax({
+                        url: userBulk.urls.destroy,
+                        type: 'POST',
+                        dataType: 'json',
+                        data: { _method: 'DELETE', ids: userBulk.ids(), confirm: count },
+                    }).done(userBulk.finished).fail(userBulk.failed);
+                });
+            },
+            /** What was done, and to whom not and why (as text); then a fresh list without a choice. */
+            finished(response) {
+                const skipped = Array.isArray(response.skipped) ? response.skipped : [];
+                const items = skipped.slice(0, 10).map(s => `<li>${userBulk.esc(s.user)}: ${userBulk.esc(s.reason)}</li>`).join('');
+                const more = skipped.length > 10 ? `<div class="small">and ${skipped.length - 10} more</div>` : '';
+                Swal.fire({
+                    title: skipped.length ? 'Some were skipped' : 'Done',
+                    html: userBulk.esc(response.message) + (items ? `<ul class="text-start small mt-2 mb-0">${items}</ul>` : '') + more,
+                    icon: skipped.length ? 'warning' : 'success',
+                });
+                userBulk.picked.clear();
+                userBulk.refresh();
+                userRegisteredTable();
+            },
+            failed(xhr) {
+                const r = (xhr && xhr.responseJSON) || {};
+                Swal.fire({ icon: 'error', title: 'Error!', text: [].concat(r.errors || r.message || 'The users could not be changed.').join(' ') });
+            },
+        };
+
+        $(function() {
+            $('#userTable').on('change', 'input.user-pick', function() {
+                userBulk.pick($(this).data('id'), $(this).data('email'), $(this).is(':checked'));
+            });
+            $('#userPickPage').on('change', function() {
+                userBulk.pickPage($(this).is(':checked'));
+            });
+            $('#userBulkClear').on('click', e => {
+                e.preventDefault();
+                userBulk.clear();
+            });
+            $('#userBulkActivate').on('click', () => userBulk.status(true));
+            $('#userBulkDeactivate').on('click', () => userBulk.status(false));
+            $('#userBulkDelete').on('click', () => userBulk.destroy());
+        });
+    </script>
+
     {{-- render Table --}}
     <script>
         let currentPage = 1;
@@ -215,9 +441,15 @@
         };
         const userSignInMeanings = @json($signInMeanings);
 
-        const columns = [{
+        const columns = [
+            // The box that ticks the user for the bar (only when the role may do something to the users ticked).
+            ...(userBulk.enabled ? [{ key: 'pick', className: 'user-pick-cell', render: (item) => userBulk.cell(item) }] : []),
+            // The number of the row, counted across the pages.
+            { key: 'no', className: 'user-no', render: (item, index) => String((currentPage - 1) * limit + index + 1) },
+            {
                 key: 'name',
                 sortable: true,
+                className: 'user-name-cell',
                 render: (item) => `<span class="user-name">${userEsc(item.name)}</span>` +
                     (item.is_self ? ` <span class="badge bg-blue-lt ms-1">You</span>` : '')
             },
@@ -229,6 +461,7 @@
             {
                 key: 'role',
                 sortable: false,
+                className: 'user-role',
                 render: (item) => userEsc(item.role || '-')
             },
             {
@@ -370,6 +603,7 @@
                         currentSortDir: orderDir
                     });
                     userDressTable(response);
+                    userBulk.shown(response.data);
 
                     $('.tooltip').remove();
                     $('#userTable [data-bs-toggle="tooltip"]').tooltip();

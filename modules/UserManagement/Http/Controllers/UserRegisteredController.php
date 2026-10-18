@@ -13,7 +13,9 @@ use App\Services\Directory\LdapAuthenticator;
 use Modules\UserManagement\Services\EmployeeDirectory;
 use Modules\UserManagement\Services\UserScope;
 
+use Closure;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -29,6 +31,9 @@ class UserRegisteredController extends Controller
      * which Find employee fills in as it is.
      */
     private const NAME_RULE = "regex:/^[\\pL\\pM0-9\\s\\-\\.,'\x{2019}()\\[\\]{}]+$/u";
+
+    /** The accounts ticked in the list that one bulk action takes at most. */
+    public const BULK_MAX = 100;
 
     /** What the form sends for the sign-in method, and what is said when a name is not one. */
     private const MESSAGES = [
@@ -180,7 +185,8 @@ class UserRegisteredController extends Controller
             ->paginate($paginated);
 
         $callerId = (int) $request->user()->id;
-        $formatted = $data->getCollection()->map(function ($user) use ($callerId, $signIn) {
+        $scope = app(UserScope::class);
+        $formatted = $data->getCollection()->map(function ($user) use ($callerId, $signIn, $scope, $request) {
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -195,6 +201,8 @@ class UserRegisteredController extends Controller
                 'last_sign_in' => $signIn ? $user->last_login_at?->format('Y-m-d H:i') : null,
                 // The caller's own row: it is marked, and offers the edit only.
                 'is_self' => (int) $user->id === $callerId,
+                // Whether it may be ticked for the bulk actions (deactivate, delete): not one's own, and one the caller manages.
+                'manageable' => (int) $user->id !== $callerId && $scope->mayManage($request->user(), $user),
             ];
         });
 
@@ -488,28 +496,10 @@ class UserRegisteredController extends Controller
     {
         try {
             $user = User::people()->find($id);
-
-            if (!$user) {
-                return response()->json(['message' => 'User not found.'], 404);
+            if ($refused = $this->refusal($request, $user, 'delete')) {
+                return response()->json(['message' => $refused['message']], $refused['status']);
             }
-
-            // Deleting yourself would end your own access, and may leave the application without an admin.
-            if ((int) $user->id === (int) $request->user()->id) {
-                return response()->json(['message' => 'You cannot delete your own account.'], 422);
-            }
-            if ($denied = $this->denyUnlessManageable($request, $user)) {
-                return $denied;
-            }
-
-            $before = $this->auditFacts($user);
-            DB::transaction(function () use ($user) {
-                // Hapus relasi role_user jika ada
-                $user->roles()->detach();
-
-                // Hapus user
-                $user->delete();
-            });
-            app(AuditLogger::class)->log(AuditLogger::USER_DELETED, $user, old: $before, label: $user->email);
+            $this->deleteUser($user);
 
             return response()->json(['message' => 'User deleted successfully!'], 200);
         } catch (Exception $e) {
@@ -528,24 +518,136 @@ class UserRegisteredController extends Controller
         }
 
         $user = $this->user->people()->find($id);
-        if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
+        if ($refused = $this->refusal($request, $user, 'deactivate')) {
+            return response()->json(['message' => $refused['message']], $refused['status']);
         }
-        // As with deleting: it would end your own access, and may leave the application without an admin.
-        if ((int) $user->id === (int) $request->user()->id) {
-            return response()->json(['message' => 'You cannot deactivate your own account.'], 422);
+        $active = $request->boolean('active');
+        $this->setStatus($user, $active);
+
+        return response()->json(['message' => $active ? 'User activated.' : 'User deactivated.'], 200);
+    }
+
+    /**
+     * Activates or deactivates the accounts ticked in the list, each as status() would; the ones refused (one's own, one
+     * not managed, already so) are said with the reason, the others go on.
+     */
+    public function bulkStatus(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'active' => ['required', 'boolean'],
+            'ids' => ['required', 'array', 'min:1', 'max:' . self::BULK_MAX],
+            'ids.*' => ['integer'],
+        ], ['ids.required' => 'No user is selected.', 'ids.max' => 'At most ' . self::BULK_MAX . ' users at a time.']);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
         }
-        if ($denied = $this->denyUnlessManageable($request, $user)) {
-            return $denied;
+        $active = $request->boolean('active');
+
+        return $this->bulk($request, 'deactivate', $active ? 'activated' : 'deactivated', function (User $user) use ($active) {
+            if ($user->isActive() === $active) {
+                return $active ? 'already active' : 'already inactive';
+            }
+            $this->setStatus($user, $active);
+
+            return null;
+        });
+    }
+
+    /** Deletes the accounts ticked in the list, each as destroy() would. The person types how many, as a last look. */
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'ids' => ['required', 'array', 'min:1', 'max:' . self::BULK_MAX],
+            'ids.*' => ['integer'],
+        ], ['ids.required' => 'No user is selected.', 'ids.max' => 'At most ' . self::BULK_MAX . ' users at a time.']);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+        }
+        $count = count(array_unique(array_map('intval', $request->input('ids'))));
+        if ((string) $request->input('confirm') !== (string) $count) {
+            return response()->json(['message' => 'Invalid Input!', 'errors' => ["Type the number of users to delete ({$count}) to go on."]], 422);
         }
 
-        $active = $request->boolean('active');
+        return $this->bulk($request, 'delete', 'deleted', function (User $user) {
+            $this->deleteUser($user);
+
+            return null;
+        });
+    }
+
+    /**
+     * Runs $one for each account ticked (null when it was done, else the reason it was not), after the refusals of the
+     * single actions: not found, one's own, one the caller does not manage.
+     *
+     * @param Closure(User): ?string $one
+     */
+    private function bulk(Request $request, string $what, string $did, Closure $one): JsonResponse
+    {
+        $ids = array_values(array_unique(array_map('intval', $request->input('ids'))));
+        $users = User::people()->with('roles')->whereIn('id', $ids)->get()->keyBy('id');
+        $done = 0;
+        $skipped = [];
+        foreach ($ids as $id) {
+            $user = $users->get($id);
+            $reason = $this->refusal($request, $user, $what)['message'] ?? null;
+            if ($reason === null) {
+                try {
+                    $reason = $one($user);
+                } catch (Exception $e) {
+                    report($e);
+                    $reason = 'could not be saved (details are in the application log)';
+                }
+            }
+            if ($reason === null) {
+                $done++;
+            } else {
+                $skipped[] = ['user' => $user?->email ?? "#{$id}", 'reason' => rtrim($reason, '.')];
+            }
+        }
+
+        $message = $done . ' ' . Str::plural('user', $done) . " {$did}." . ($skipped === [] ? '' : ' ' . count($skipped) . ' skipped.');
+
+        return response()->json(['message' => $message, 'done' => $done, 'skipped' => $skipped]);
+    }
+
+    /**
+     * Why the caller may not deactivate or delete $user, as the single actions answer it; null when they may.
+     *
+     * @return array{status: int, message: string}|null
+     */
+    private function refusal(Request $request, ?User $user, string $what): ?array
+    {
+        if (! $user) {
+            return ['status' => 404, 'message' => 'User not found.'];
+        }
+        // Doing it to yourself would end your own access, and may leave the application without an admin.
+        if ((int) $user->id === (int) $request->user()->id) {
+            return ['status' => 422, 'message' => "You cannot {$what} your own account."];
+        }
+        if (! app(UserScope::class)->mayManage($request->user(), $user)) {
+            return ['status' => 403, 'message' => 'You are not allowed to manage this user.'];
+        }
+
+        return null;
+    }
+
+    private function setStatus(User $user, bool $active): void
+    {
         $before = ['Status' => $user->isActive() ? 'Active' : 'Inactive'];
         // A "remember me" cookie of the account must not bring it back in.
         $user->update(['active' => $active ? '1' : '0'] + ($active ? [] : ['remember_token' => null]));
         app(AuditLogger::class)->logChanges(AuditLogger::USER_STATUS_CHANGED, $user, $before, ['Status' => $active ? 'Active' : 'Inactive'], $user->email);
+    }
 
-        return response()->json(['message' => $active ? 'User activated.' : 'User deactivated.'], 200);
+    private function deleteUser(User $user): void
+    {
+        $before = $this->auditFacts($user);
+        DB::transaction(function () use ($user) {
+            // Its roles go with it.
+            $user->roles()->detach();
+            $user->delete();
+        });
+        app(AuditLogger::class)->log(AuditLogger::USER_DELETED, $user, old: $before, label: $user->email);
     }
 
     /**

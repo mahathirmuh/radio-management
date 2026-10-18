@@ -299,9 +299,16 @@ dibiarkan di database apa adanya dan tidak dipakai.
 
 ### Halaman Users
 
-Daftar user (`/user-management/user-registered`) menampilkan Name, Email, Role,
+Daftar user (`/user-management/user-registered`) menampilkan **No**, Name, Email, Role,
 **Status**, **Sign-In** dan **Last Sign-In**. Tombol per baris: edit, nonaktifkan/aktifkan, atur password, hapus;
 baris akun sendiri hanya punya edit.
+
+**Pilih banyak**: kolom centang per baris dan per halaman (pilihan tetap saat pindah halaman atau ganti filter), lalu
+bar di atas tabel: **Activate** dan **Deactivate** (izin Update) serta **Delete** (izin Delete, konfirmasi dengan
+mengetik jumlahnya). Setiap akun diproses seperti aksi satuannya (Audit Log, sesi akun yang dinonaktifkan berakhir);
+akun sendiri dan akun yang tidak boleh dikelola (misalnya Super Admin bagi yang bukan Super Admin) tidak bisa
+dicentang, dan bila dikirim juga, dilewati dengan alasannya. Paling banyak 100 akun sekaligus. Role yang hanya boleh
+membaca tidak mendapat kolom centang.
 
 **Sign-In** tidak disimpan, tetapi dibaca dari dua hal (`User::signInMethod()`): apakah akun punya Directory
 username (`users.ldap_username`), dan apakah akun pernah login lewat Microsoft (`users.microsoft_linked_at`).

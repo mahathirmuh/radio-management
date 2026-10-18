@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\CheckMenuPermission;
+use App\Models\Log\AuditLog;
 use App\Models\UserManagement\User;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\RunsPageChecks;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -15,6 +18,7 @@ class UserManagementTest extends TestCase
     use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
+    use RunsPageChecks;
 
     protected bool $seed = true;
 
@@ -156,10 +160,11 @@ class UserManagementTest extends TestCase
         $staff = $this->user('staf@merdekabattery.com', $this->roleId('Viewer Radio'));
         $this->actingAs($admin);
 
-        // The page: these columns, in this order (the last one holds the buttons), and a search by name or e-mail.
+        // The page: these columns, in this order (the box that ticks a user for the bulk actions, the number of the row,
+        // and at the end the buttons), and a search by name or e-mail.
         $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
         preg_match_all('#<th scope="col"[^>]*>\s*(?:<span[^>]*>)?([^<]*?)\s*<#', $page, $titles);
-        $this->assertSame(['Name', 'Email', 'Role', 'Status', 'Sign-In', 'Last Sign-In', 'Action'], $titles[1]);
+        $this->assertSame(['Select', 'No', 'Name', 'Email', 'Role', 'Status', 'Sign-In', 'Last Sign-In', 'Action'], $titles[1]);
         $this->assertStringContainsString('placeholder="Name or email"', $page);
         $this->assertStringContainsString('<h2 class="mb-3">Users</h2>', $page);
         foreach (['id="statusSelectFilter"', 'id="userPasswordModal"', 'id="userAddButton"'] as $part) {
@@ -384,6 +389,109 @@ class UserManagementTest extends TestCase
     }
 
     /** A role that may open the page of the users and read it, nothing more. */
+    /** A role with these permissions on the menu of the users ("Read", "Update", ...). */
+    private function userMenuRole(string $name, array $permissions): int
+    {
+        $roleId = DB::table('roles')->insertGetId(['name' => $name, 'home_page' => '1', 'func_role' => 'ALL', 'created_at' => now(), 'updated_at' => now()]);
+        $menu = DB::table('menu')->where('route', 'user-management.user-registered.index')->value('id');
+        DB::table('menu_role')->insert(['menu_id' => $menu, 'role_id' => $roleId, 'created_at' => now(), 'updated_at' => now()]);
+        foreach ($permissions as $permission) {
+            DB::table('menu_role_permission')->insert(['menu_id' => $menu, 'role_id' => $roleId, 'permission_id' => CheckMenuPermission::PERMISSION_IDS[$permission], 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        return $roleId;
+    }
+
+    public function test_the_users_ticked_are_activated_or_deactivated_each_as_one_would_be(): void
+    {
+        $admin = $this->admin();
+        $a = $this->user('ani@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $b = $this->user('bayu@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $b->forceFill(['remember_token' => 'ingat-saya'])->save();
+        $this->actingAs($admin);
+        $status = fn (array $ids, int $active) => $this->putJson(route('user-management.user-registered.bulk-status'), ['ids' => $ids, 'active' => $active]);
+
+        // One's own account and one that is not there are said, the others are done.
+        $status([$a->id, $b->id, $admin->id, 999999], 0)->assertOk()
+            ->assertJsonPath('message', '2 users deactivated. 2 skipped.')->assertJsonPath('done', 2)
+            ->assertJsonPath('skipped', [
+                ['user' => $admin->email, 'reason' => 'You cannot deactivate your own account'],
+                ['user' => '#999999', 'reason' => 'User not found'],
+            ]);
+        $this->assertFalse($a->fresh()->isActive());
+        $this->assertNull($b->fresh()->remember_token);
+        $this->assertTrue($admin->fresh()->isActive());
+        // Each in the audit trail, as one deactivation would be.
+        $this->assertSame(2, AuditLog::query()->where('action', AuditLogger::USER_STATUS_CHANGED)->count());
+
+        // Already so: said. Back again.
+        $status([$a->id], 0)->assertOk()->assertJsonPath('done', 0)->assertJsonPath('skipped.0.reason', 'already inactive');
+        $status([$a->id, $b->id], 1)->assertOk()->assertJsonPath('message', '2 users activated.');
+        $this->assertTrue($a->fresh()->isActive());
+
+        // Nothing ticked, or more than a hundred: refused before anything is done.
+        $status([], 0)->assertStatus(422)->assertJsonPath('errors.0', 'No user is selected.');
+        $status(range(1, 101), 0)->assertStatus(422)->assertJsonPath('errors.0', 'At most 100 users at a time.');
+    }
+
+    public function test_the_users_ticked_are_deleted_with_the_number_typed(): void
+    {
+        $admin = $this->admin();
+        $a = $this->user('ani@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $b = $this->user('bayu@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $this->actingAs($admin);
+        $delete = fn (array $ids, string $confirm) => $this->deleteJson(route('user-management.user-registered.bulk-destroy'), ['ids' => $ids, 'confirm' => $confirm]);
+
+        $delete([$a->id, $b->id], '1')->assertStatus(422)->assertJsonPath('errors.0', 'Type the number of users to delete (2) to go on.');
+        $this->assertSame(2, User::query()->whereIn('id', [$a->id, $b->id])->count());
+
+        $delete([$a->id, $b->id, $admin->id], '3')->assertOk()->assertJsonPath('done', 2)
+            ->assertJsonPath('skipped', [['user' => $admin->email, 'reason' => 'You cannot delete your own account']]);
+        // As one deletion: soft deleted, without its roles, in the audit trail.
+        $this->assertTrue(User::withTrashed()->find($a->id)->trashed());
+        $this->assertSame(0, DB::table('role_user')->where('user_id', $a->id)->count());
+        $this->assertSame(2, AuditLog::query()->where('action', AuditLogger::USER_DELETED)->count());
+        $this->assertNotNull(User::query()->find($admin->id));
+    }
+
+    public function test_the_bulk_actions_follow_the_menu_and_the_users_the_caller_manages(): void
+    {
+        $super = $this->superAdmin();
+        $target = $this->user('target@merdekabattery.com', $this->roleId('Viewer Radio'));
+        $page = fn () => (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
+        $status = fn (array $ids) => $this->putJson(route('user-management.user-registered.bulk-status'), ['ids' => $ids, 'active' => 0]);
+        $delete = fn (array $ids) => $this->deleteJson(route('user-management.user-registered.bulk-destroy'), ['ids' => $ids, 'confirm' => (string) count($ids)]);
+
+        // Read only: no boxes to tick, and refused.
+        $this->actingAs($this->user('baca@merdekabattery.com', $this->readerRole()));
+        $html = $page();
+        $this->assertStringNotContainsString('id="userPickPage"', $html);
+        $this->assertStringContainsString('enabled: false,', $html);
+        $status([$target->id])->assertForbidden();
+        $delete([$target->id])->assertForbidden();
+
+        // Update without Delete: activate and deactivate (not a Super Admin account), not delete.
+        $this->actingAs($this->user('ubah@merdekabattery.com', $this->userMenuRole('Ubah User', ['Read', 'Update'])));
+        $html = $page();
+        $this->assertStringContainsString('id="userPickPage"', $html);
+        $this->assertStringContainsString('id="userBulkDeactivate"', $html);
+        $this->assertStringNotContainsString('id="userBulkDelete"', $html);
+        $status([$target->id, $super->id])->assertOk()->assertJsonPath('done', 1)
+            ->assertJsonPath('skipped', [['user' => $super->email, 'reason' => 'You are not allowed to manage this user']]);
+        $delete([$target->id])->assertForbidden();
+
+        // The list says which rows may be ticked: not one's own, not one the caller does not manage.
+        $rows = collect($this->getJson(route('user-management.user-registered.list'))->assertOk()->json('data'))->keyBy('email');
+        $this->assertFalse($rows['ubah@merdekabattery.com']['manageable']);
+        $this->assertFalse($rows[$super->email]['manageable']);
+        $this->assertTrue($rows['target@merdekabattery.com']['manageable']);
+    }
+
+    public function test_the_script_of_the_bar_of_the_users(): void
+    {
+        $this->checkPageScript(route('user-management.user-registered.index'), 'tests/tools/user-bulk-behaviour.mjs', 8);
+    }
+
     private function readerRole(): int
     {
         $reader = DB::table('roles')->insertGetId(['name' => 'Baca User', 'home_page' => '1', 'func_role' => 'ALL', 'created_at' => now(), 'updated_at' => now()]);
