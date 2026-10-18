@@ -19,6 +19,10 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- The address the tests are written for, whatever the .env of this machine says (it may be a local name over
+             https, behind a proxy of its own). -->
+        <env name="APP_URL" value="http://localhost:8020"/>
+        <env name="TRUSTED_PROXIES" value=""/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
         <!-- Tests wipe their database: point them at a dedicated SQL Server test

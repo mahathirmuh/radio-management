@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\CheckMenuPermission;
 use App\Models\Log\AuditLog;
+use App\Models\Notification\UserNotification;
 use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
 use Database\Seeders\DocumentEditAccessSeeder;
@@ -663,6 +664,71 @@ class SharePointEditTest extends TestCase
         $this->approve($request)->assertOk()->assertJsonPath('status', 'applied');
         $this->assertSame(4, $saves);
         $this->assertSame('Budi S.', $this->written('SRF', 'C2'));
+    }
+
+    // ================================================================ notifications
+
+    public function test_whoever_may_approve_is_told_of_a_request_and_whoever_asked_hears_what_became_of_it(): void
+    {
+        $controller = $this->controller();
+        $super = $this->superAdmin();
+        $this->viewer();
+        $this->actingAs($this->admin());
+        $this->ask([2, 2], 'Budi S.')->assertCreated();
+        $request = EditRequest::sole();
+
+        // Who may approve (Update on "Persetujuan Edit": the Document Controller, Super Admin) is told; not who asked (Admin
+        // Radio, who may only read that page), not who may not open it.
+        $this->assertEqualsCanonicalizing([$controller->id, $super->id],
+            UserNotification::query()->where('kind', UserNotification::EDIT_REQUESTED)->pluck('user_id')->all());
+        $notice = UserNotification::query()->where('user_id', $controller->id)->sole();
+        $this->assertSame('Pengajuan perubahan menunggu persetujuan', $notice->title);
+        $this->assertStringStartsWith('Admin Radio Satu mengajukan SRF C2', $notice->body);
+        $this->assertStringContainsString(': "Budi Santoso" → "Budi S.".', $notice->body);
+        // The link opens the page on that request, waiting.
+        $this->assertSame(route('documents.edit-approvals.index', ['status' => 'pending', 'search' => $request->searchTerms()], false), $notice->url);
+        $this->assertStringEndsWith(' C2', $request->searchTerms());
+
+        // Approved, and written: whoever asked hears it.
+        $this->actingAs($controller);
+        $this->approve($request)->assertOk()->assertJsonPath('status', 'applied');
+        $told = UserNotification::query()->where('user_id', $this->admin()->id)->sole();
+        $this->assertSame([UserNotification::EDIT_DECIDED, 'Perubahan Anda sudah diterapkan'], [$told->kind, $told->title]);
+        $this->assertStringEndsWith(': "Budi S." sudah ditulis ke workbook (disetujui Doc Controller Satu).', $told->body);
+        $this->assertSame(route('documents.edit-approvals.index', ['status' => 'applied', 'search' => $request->searchTerms()], false), $told->url);
+        // The approvers are not told twice, nor of a decision.
+        $this->assertSame(1, UserNotification::query()->where('user_id', $controller->id)->count());
+    }
+
+    public function test_a_failed_or_turned_down_request_is_told_but_not_one_taken_back_by_whoever_asked(): void
+    {
+        $super = $this->superAdmin();
+        $this->actingAs($this->admin());
+        $this->ask([2, 2], 'Budi S.')->assertCreated();
+        $request = EditRequest::sole();
+        $this->actingAs($this->controller());
+
+        // Not written (the file is open in Excel): said, with the reason; it can be approved again later.
+        $this->onSave = fn () => Http::response(['error' => ['code' => 'resourceLocked', 'message' => 'The file is locked.']], 423);
+        $this->approve($request)->assertStatus(502);
+        $failed = UserNotification::query()->where('user_id', $this->admin()->id)->sole();
+        $this->assertSame('Perubahan Anda belum bisa diterapkan', $failed->title);
+        $this->assertStringContainsString('dikunci', $failed->body);
+
+        // Turned down, with a note.
+        $this->patchJson(route('documents.edit-approvals.reject', $request->id), ['note' => 'Nama salah'])->assertOk();
+        $rejected = UserNotification::query()->where('user_id', $this->admin()->id)->latest('id')->first();
+        $this->assertSame('Pengajuan Anda ditolak', $rejected->title);
+        $this->assertStringEndsWith(': ditolak oleh Doc Controller Satu: Nama salah.', $rejected->body);
+
+        // The Document Controller asks: Super Admin is told (nobody approves their own); taken back: nobody is told of it.
+        $this->ask([3, 2], 'Andi W.')->assertCreated();
+        $own = EditRequest::query()->latest('id')->first();
+        $this->assertSame(1, UserNotification::query()->where('user_id', $super->id)->where('body', 'like', 'Doc Controller Satu mengajukan%')->count());
+        $this->assertSame(0, UserNotification::query()->where('user_id', $this->controller()->id)->where('body', 'like', 'Doc Controller Satu mengajukan%')->count());
+        $before = UserNotification::query()->count();
+        $this->patchJson(route('documents.edit-approvals.reject', $own->id))->assertOk();
+        $this->assertSame($before, UserNotification::query()->count());
     }
 
     // ================================================================ the list

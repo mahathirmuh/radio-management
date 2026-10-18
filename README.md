@@ -430,6 +430,32 @@ di trilingual-docon:
 - Perubahan lewat API diberi tanda **via** (`API · <nama token> (#id)`) di kolom User dan di timeline; perubahan dari
   halaman tidak.
 
+## Notifikasi
+
+Lonceng di header menampilkan notifikasi untuk orang yang sedang login (modul `modules/Notifications`, layanan
+`App\Services\Notifications`):
+
+- angka merah = jumlah yang belum dibaca, diperbarui tiap menit selama halaman terbuka (tanpa reload);
+- klik lonceng: 8 notifikasi terbaru; klik satu menandainya dibaca dan membuka halamannya; **Tandai semua dibaca**;
+- **Lihat semua notifikasi** (`/notifications`): daftar lengkap, tab Semua / Belum dibaca.
+
+| Kejadian | Yang menerima | Tautan |
+| --- | --- | --- |
+| Pengajuan perubahan sel ICT Masterlist | yang boleh menyetujui (Update pada menu Persetujuan Edit; Super Admin selalu), bukan pengajunya | Persetujuan Edit, langsung tersaring ke pengajuan itu |
+| Pengajuan diputuskan: Diterapkan, Ditolak (dengan catatannya), Gagal, Konflik | pengajunya (tidak bila ia menarik pengajuannya sendiri) | Persetujuan Edit, atau baris workbook bila halaman itu tidak terbuka baginya |
+| Token API berakhir dalam 7 hari | pemilik token; token API client: Super Admin | API Tokens |
+| Ringkasan mingguan register (isi "Perlu tindakan" di dashboard; hanya bila ada yang perlu ditindak) | yang boleh mengubah Register Radio (Update) | Dashboard |
+
+- Satu notifikasi per orang per hal: per token, dan ringkasan sekali per minggu (minggu ISO, mulai Senin). Dua instalasi
+  pada database yang sama (laptop dan production) tidak membuatnya dobel.
+- Notifikasi dari waktu (token, ringkasan) dibuat saat orangnya membuka aplikasi, paling sering sekali sejam per orang,
+  bukan oleh scheduler: aplikasi ini tidak menjalankan scheduler, dan notifikasi memang hanya terlihat di aplikasi.
+- Yang sudah dibaca dihapus otomatis setelah 90 hari; yang belum dibaca tetap.
+- Hanya di aplikasi, belum lewat email (setelan mail aplikasi masih `log`). Tautannya selalu ke halaman aplikasi ini
+  sendiri. Halaman Persetujuan Edit menerima `?status=` dan `?search=` di alamatnya.
+- Tabelnya `user_notifications` (migrasi `2026_10_18_100000_create_user_notifications_table`). Sebelum migrasi
+  dijalankan lonceng kosong dan tidak ada yang gagal. Tabel bawaan template `notifications` tidak dipakai.
+
 ## API
 
 Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
@@ -902,6 +928,13 @@ app/Services/Audit/AuditLogQuery.php  pencarian jejak (halaman Audit Log dan API
 app/Models/Log/AuditLog.php         satu baris jejak (tabel audit_logs; tidak bisa diubah atau dihapus)
 modules/AuditLog/                   halaman menu Audit Log: AuditLogController (halaman, daftar), Resources/views/index
 database/seeders/AuditLogMenuSeeder.php
+app/Services/Notifications/Notifier.php  menulis notifikasi (sekali per kunci, hanya untuk orang yang aktif, tautan
+                                    hanya ke aplikasi ini); dipanggil dari CellEdits (pengajuan, keputusan)
+app/Services/Notifications/NotificationSweep.php  notifikasi dari waktu: token API yang hampir berakhir, ringkasan
+                                    mingguan register, membersihkan yang sudah dibaca
+app/Models/Notification/UserNotification.php  satu notifikasi (tabel user_notifications)
+modules/Notifications/              lonceng: NotificationController (ringkasan, buka, tandai dibaca, halaman "lihat
+                                    semua"); lonceng di header: resources/views/main/navbar/notifications.blade.php
 modules/Api/                        API /api/v1 dan halaman API Tokens
   Routes/api/v1.php                 endpoint, dan menu (hak akses) tiap endpoint
   Http/Middleware/                  ForceJsonResponse, LimitAddresses, ApiReady, EnsureApiAccount, ApiAccess (Role &

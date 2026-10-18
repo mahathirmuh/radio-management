@@ -8,6 +8,22 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.6.0] - 2026-10-18
+
+### Ditambahkan
+
+- **Notifikasi** di lonceng header: angka yang belum dibaca (diperbarui tiap menit), 8 notifikasi terbaru, tandai
+  dibaca, dan halaman **Lihat semua notifikasi**. Isinya:
+  - pengajuan perubahan sel ICT Masterlist, untuk yang boleh menyetujuinya; hasilnya (diterapkan, ditolak, gagal,
+    konflik) untuk pengajunya;
+  - token API yang berakhir dalam 7 hari, untuk pemiliknya (token API client: untuk Super Admin);
+  - ringkasan mingguan "Perlu tindakan" register, untuk yang boleh mengubah Register Radio.
+- Halaman Persetujuan Edit bisa dibuka langsung tersaring lewat alamatnya (`?status=pending&search=...`): tautan
+  notifikasi memakainya.
+
+**Deploy:** migrasi `2026_10_18_100000_create_user_notifications_table`. Sebelum dijalankan lonceng tetap kosong dan
+tidak ada yang gagal. Tidak ada setting baru.
+
 ## [1.5.4] - 2026-10-18
 
 ### Dihapus
@@ -164,6 +180,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.6.0]: https://github.com/mahathirmuh/radio-management/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/mahathirmuh/radio-management/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/mahathirmuh/radio-management/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/mahathirmuh/radio-management/compare/v1.5.1...v1.5.2

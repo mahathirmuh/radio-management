@@ -437,6 +437,15 @@
             }).on('click', 'button.ea-reject', function() {
                 eaPage.turnDown(Number($(this).attr('data-id')));
             });
+            // A link may say what to show first (a notification does): ?status=pending&search=ICT/BAK/002 F4
+            const asked = new URLSearchParams(window.location.search);
+            if (asked.has('status') && (asked.get('status') === '' || Object.prototype.hasOwnProperty.call(eaPage.labels, asked.get('status')))) {
+                eaPage.status = asked.get('status');
+            }
+            if (asked.get('search')) {
+                eaPage.search = asked.get('search').trim().slice(0, 100);
+                $('#eaSearch').val(eaPage.search);
+            }
             eaPage.load();
         });
     </script>

@@ -2,12 +2,16 @@
 
 namespace Modules\SharePointDocs\Services;
 
+use App\Models\Notification\UserNotification;
 use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Notifications\Notifier;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Modules\SharePointDocs\Models\EditRequest;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use RuntimeException;
@@ -131,6 +135,7 @@ class CellEdits
         ]);
         app(AuditLogger::class)->log(AuditLogger::EDIT_REQUESTED, $made, ['Value' => $made->oldShown()],
             ['Value' => $made->newShown()] + array_filter(['Column' => $made->column_title]), $user, $made->auditLabel());
+        $this->tellApprovers($made, $user);
 
         return $made;
     }
@@ -193,6 +198,7 @@ class CellEdits
             'Result' => EditRequest::LABELS[$request->status] ?? $request->status,
             'Note' => $request->failure ?: null,
         ], fn ($value) => $value !== null), user: $approver, label: $request->auditLabel());
+        $this->tellRequester($request, $approver);
 
         return $request;
     }
@@ -224,8 +230,66 @@ class CellEdits
             'Value' => $request->newShown(),
             'Note' => filled($request->decision_note) ? $request->decision_note : null,
         ], fn ($value) => $value !== null), user: $decider, label: $request->auditLabel());
+        $this->tellRequester($request, $decider);
 
         return $request;
+    }
+
+    /** Tells whoever may approve (Update on "Persetujuan Edit") that a request waits; never the one who made it. */
+    private function tellApprovers(EditRequest $made, User $maker): void
+    {
+        try {
+            $approvers = Notifier::whoMay('documents.edit-approvals.approve', 'Update')->reject(fn (User $user) => (int) $user->id === (int) $maker->id);
+            app(Notifier::class)->send($approvers, UserNotification::EDIT_REQUESTED, 'Pengajuan perubahan menunggu persetujuan',
+                "{$maker->name} mengajukan {$made->placeShown()}: " . self::quoted($made->oldShown()) . ' → ' . self::quoted($made->newShown()) . '.',
+                route('documents.edit-approvals.index', ['status' => EditRequest::PENDING, 'search' => $made->searchTerms()], false));
+        } catch (Throwable $e) {
+            Log::warning('The approvers of a change could not be told.', ['request' => $made->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Tells whoever asked what became of the request: applied, rejected, a conflict, or failed (which can be tried again).
+     * Nothing when they took it back themselves.
+     */
+    private function tellRequester(EditRequest $request, User $decider): void
+    {
+        if ((int) $request->requested_by === (int) $decider->id) {
+            return;
+        }
+        try {
+            $maker = User::query()->find($request->requested_by);
+            $place = $request->placeShown();
+            [$title, $body] = match ($request->status) {
+                EditRequest::APPLIED => ['Perubahan Anda sudah diterapkan',
+                    "{$place}: " . self::quoted($request->newShown()) . " sudah ditulis ke workbook (disetujui {$decider->name})."],
+                EditRequest::REJECTED => ['Pengajuan Anda ditolak',
+                    "{$place}: ditolak oleh {$decider->name}" . (filled($request->decision_note) ? ': ' . $request->decision_note : '') . '.'],
+                EditRequest::CONFLICT => ['Perubahan Anda tidak diterapkan', "{$place}: {$request->failure}"],
+                EditRequest::FAILED => ['Perubahan Anda belum bisa diterapkan', "{$place}: {$request->failure}"],
+                default => [null, null],
+            };
+            if ($maker === null || $title === null) {
+                return;
+            }
+            // The page of the requests when it is open to them; otherwise the row of the workbook they asked about.
+            $url = match (true) {
+                MenuAccess::allows($maker, 'documents.edit-approvals.index', 'Read') => route('documents.edit-approvals.index',
+                    ['status' => $request->status, 'search' => $request->searchTerms()], false),
+                Route::has("documents.{$request->workbook}.index") => route("documents.{$request->workbook}.index",
+                    ['sheet' => $request->sheet, 'line' => $request->line], false),
+                default => null,
+            };
+            app(Notifier::class)->send($maker, UserNotification::EDIT_DECIDED, $title, $body, $url);
+        } catch (Throwable $e) {
+            Log::warning('Whoever asked for a change could not be told.', ['request' => $request->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /** A value in a notification, cut short: "Rp 44444". */
+    private static function quoted(string $value): string
+    {
+        return '"' . Str::limit($value, 60, '…') . '"';
     }
 
     /**

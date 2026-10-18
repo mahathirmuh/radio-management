@@ -78,4 +78,20 @@ class EditRequest extends Model
     {
         return config("sharepoint-docs.workbooks.{$this->workbook}.title", $this->workbook) . ' · ' . $this->sheet . '!' . $this->cell;
     }
+
+    /** The cell it is about, as a notification says it: "Kartu HALO F4 (Limit, ICT/BAK/002)". */
+    public function placeShown(): string
+    {
+        $about = array_values(array_filter([(string) $this->column_title, (string) $this->anchor_value], fn (string $part) => $part !== ''));
+
+        return "{$this->sheet} {$this->cell}" . ($about === [] ? '' : ' (' . implode(', ', $about) . ')');
+    }
+
+    /** What the search of the page "Persetujuan Edit" finds this request by: its document number (or its sheet), and its cell. */
+    public function searchTerms(): string
+    {
+        $where = (string) $this->anchor_value !== '' ? mb_substr((string) $this->anchor_value, 0, 60) : (string) $this->sheet;
+
+        return trim("{$where} {$this->cell}");
+    }
 }
