@@ -6,7 +6,10 @@ use App\Helpers\LogApps;
 use App\Models\Log\LogError;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
+use RealRashid\SweetAlert\Facades\Alert;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Sentry\Laravel\Integration;
 use Throwable;
@@ -53,6 +56,16 @@ class Handler extends ExceptionHandler
         $this->renderable(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/v1', 'api/v1/*')) {
                 return response()->json(['message' => 'Not found.'], 404);
+            }
+        });
+
+        // A form sent from a page left open after its session had ended (the login page too): to the login page, which
+        // says so, rather than Laravel's "Page Expired". A page's script gets the 419 itself (sessionTimer).
+        $this->renderable(function (HttpException $e, Request $request) {
+            if ($e->getStatusCode() === 419 && $e->getPrevious() instanceof TokenMismatchException && ! $request->expectsJson()) {
+                Alert::info('Session expired', 'Your session has ended. Please sign in again.')->persistent(true);
+
+                return redirect()->route('login');
             }
         });
     }

@@ -4,6 +4,7 @@ use App\Http\Controllers\ImportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\SessionController;
 
 
 /*
@@ -25,6 +26,12 @@ Route::get('auth/microsoft/redirect', [LoginController::class, 'redirectToProvid
 Route::get('auth/microsoft/callback', [LoginController::class, 'handleProviderCallbackMicrosoft'])->name('sso-callback-mirosoft');
 // Not routed here: the "Merdeka Apps" gate (LoginController::redirectToApps, needs the mdka database)
 // and the M-Safe employee-id login (nonCompanyEmailLogin, needs users.employee_id). Neither exists in this app.
+
+/** The clock of a signed-in session (EndExpiredSession): what is left of it, and "stay signed in". No menu: everyone signed in has one. */
+Route::middleware('auth')->prefix('session')->name('session.')->controller(SessionController::class)->group(function () {
+    Route::get('status', 'status')->name('status');
+    Route::post('keep-alive', 'keepAlive')->name('keep-alive');
+});
 
 /** Home: the sidebar logo and footer link here. Each user lands on the first page their role may open. */
 Route::get('/', function () {

@@ -76,8 +76,6 @@ class LoginController extends Controller
             return view('auth.login');
         } else {
             try {
-                // $auth = false;
-                $remember = $request->input('remember');
                 //PROCCESS Login
                 $account = $this->accountFor((string) $request->emailusername);
                 $email = $account?->email;
@@ -87,7 +85,8 @@ class LoginController extends Controller
                 if (isset($email)) {
                     // An account set to inactive in User Management is refused the way a wrong password is.
                     $active = fn ($user) => $user->isActive();
-                    if (Auth::guard('web')->attemptWhen(['email' => $email, 'password' => $request->password], $active, $remember)) {
+                    // No "remember me", even when one is asked for: a session ends after its timeouts (EndExpiredSession).
+                    if (Auth::guard('web')->attemptWhen(['email' => $email, 'password' => $request->password], $active, false)) {
                         Auth::user()->recordSignIn('Password');
                         $request->session()->regenerate();
                         return redirect()->route(Auth::user()->homeRoute());
@@ -247,7 +246,9 @@ class LoginController extends Controller
                 . (isset($callback['port']) ? ':' . $callback['port'] : '') . $request->getRequestUri());
         }
 
-        return Socialite::driver('azure')->redirect();
+        // Microsoft always asks which account: on a browser still signed in to Microsoft as someone else, a click does
+        // not quietly sign in as them.
+        return Socialite::driver('azure')->with(['prompt' => 'select_account'])->redirect();
     }
     public function handleProviderCallbackMicrosoft(Request $request)
     {

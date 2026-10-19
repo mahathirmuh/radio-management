@@ -28,6 +28,15 @@ abstract class TestCase extends BaseTestCase
         config(['excel.temporary_files.local_path' => $this->excelTemp]);
     }
 
+    /**
+     * For a test in which hours or days pass in one signed-in session (a cache, a reminder): the timeouts of the session
+     * (SessionTimeoutTest) are not what it is about.
+     */
+    protected function withoutSessionTimeouts(): void
+    {
+        config(['session.idle_timeout' => 1_000_000, 'session.absolute_timeout' => 1_000_000]);
+    }
+
     protected function tearDown(): void
     {
         try {

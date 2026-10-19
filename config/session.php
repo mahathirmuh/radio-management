@@ -37,6 +37,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timeouts Of A Signed-In Session
+    |--------------------------------------------------------------------------
+    |
+    | Kept by App\Services\SessionClock and enforced on the server by
+    | App\Http\Middleware\EndExpiredSession (OWASP Session Management, NIST
+    | SP 800-63B-4 AAL2): a session ends after "idle_timeout" minutes without
+    | activity, and "absolute_timeout" minutes after signing in, whatever is
+    | done. Pages warn two minutes before the first and five before the
+    | second. "lifetime" above stays longer than "idle_timeout", so that the
+    | server can still say why a session ended.
+    |
+    */
+
+    'idle_timeout' => (int) env('SESSION_IDLE_TIMEOUT', 30),
+
+    'absolute_timeout' => (int) env('SESSION_ABSOLUTE_TIMEOUT', 480),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |

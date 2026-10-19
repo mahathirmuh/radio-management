@@ -274,9 +274,33 @@ menulis v1.0.0.
   - akun yang diberi password lewat tombol kunci di User Management.
 - Akun yang dinonaktifkan di User Management ditolak di semua cara login, dan sesi yang masih terbuka berakhir
   pada permintaan berikutnya.
-- Login SSO tidak memakai "remember me": akses berakhir bersama sesi (`SESSION_LIFETIME`).
+- Tidak ada "remember me" di cara login mana pun: akses berakhir bersama sesi, lihat [Sesi](#sesi).
 - Setelah login, user masuk ke halaman awal role-nya (atau menu pertama yang boleh dibukanya).
 - Form e-mail + password dibatasi 10 percobaan per menit.
+
+### Sesi
+
+Sesi login punya dua batas waktu yang dijaga di server (`App\Services\SessionClock`,
+`App\Http\Middleware\EndExpiredSession`), mengikuti OWASP Session Management dan NIST SP 800-63B-4 (AAL2):
+
+| Batas | Default | Setting `.env` |
+| --- | --- | --- |
+| Tidak ada aktivitas | 30 menit | `SESSION_IDLE_TIMEOUT` (menit) |
+| Sejak login, walau terus aktif | 8 jam | `SESSION_ABSOLUTE_TIMEOUT` (menit) |
+
+- Setiap halaman memberi peringatan **2 menit** sebelum batas tidak aktif (**Tetap masuk** / **Keluar**) dan
+  **5 menit** sebelum batas 8 jam (**Login ulang sekarang** / **Nanti**), dengan hitung mundur. Permintaan yang
+  dibuat halaman sendiri (lonceng notifikasi, pengecekan sesi) tidak dihitung sebagai aktivitas.
+- Sesi yang berakhir membawa halaman ke login, yang menyebut alasannya ("You were inactive for 30 minutes", "A
+  session lasts at most 8 hours"); tercatat di [Audit Log](#audit-log) sebagai `auth.session_expired`. Form yang
+  dikirim dari halaman yang sesinya sudah habis juga berakhir di halaman login, bukan di "Page Expired".
+- Tidak ada "remember me", juga bila diminta lewat form; cookie "remember me" dari sebelumnya tidak menghidupkan
+  sesi lagi.
+- Tombol **Microsoft** selalu menampilkan pilihan akun, jadi browser yang masih login Microsoft sebagai orang lain
+  tidak langsung masuk sebagai orang itu. Logout dari aplikasi tidak mengeluarkan dari akun Microsoft di browser itu.
+- `SESSION_LIFETIME` (umur sesi yang disimpan, 120) dibiarkan lebih panjang dari batas tidak aktif, supaya server
+  masih tahu kenapa sesi berakhir. Sesi disimpan sebagai file (`SESSION_DRIVER=file`); jangan pakai `cookie`:
+  pesan di halaman login membuat cookie-nya lebih dari 4 KB dan ditolak browser.
 
 ## Role
 
@@ -434,7 +458,7 @@ di trilingual-docon:
 
 | Action | Dicatat saat |
 | --- | --- |
-| `auth.login`, `auth.login_failed`, `auth.logout` | Login berhasil (Via: Password, LDAP, Microsoft), ditolak (yang diketik, caranya, dan alasannya: Wrong password, Not registered, Account not active, No role, Public e-mail address), dan keluar |
+| `auth.login`, `auth.login_failed`, `auth.logout`, `auth.session_expired` | Login berhasil (Via: Password, LDAP, Microsoft), ditolak (yang diketik, caranya, dan alasannya: Wrong password, Not registered, Account not active, No role, Public e-mail address), keluar, dan dikeluarkan karena sesi berakhir (alasannya: tidak aktif, batas 8 jam) |
 | `user.created`, `user.updated`, `user.status_changed`, `user.password_reset`, `user.deleted` | User Management, dan `php artisan user:register` (tercatat sebagai System) |
 | `role.created`, `role.updated`, `role.deleted` | Role & Permission; akses per menu ditulis "Menu Register Radio: Create, Read" |
 | `radio.created`, `radio.updated`, `radio.archived`, `radio.restored`, `radio.history_added`, `radio.deleted`, `radio.imported` | Register Radio, riwayat manual, Import Excel (satu baris per file) |
@@ -967,6 +991,11 @@ app/Services/Notifications/NotificationSweep.php  notifikasi dari waktu: token A
 app/Models/Notification/UserNotification.php  satu notifikasi (tabel user_notifications)
 modules/Notifications/              lonceng: NotificationController (ringkasan, buka, tandai dibaca, halaman "lihat
                                     semua"); lonceng di header: resources/views/main/navbar/notifications.blade.php
+app/Services/SessionClock.php       dua jam sesi (tidak aktif, sejak login) di dalam sesinya sendiri
+app/Http/Middleware/EndExpiredSession.php  mengakhiri sesi yang lewat batas (halaman ke login, skrip dapat 401);
+                                    app/Listeners/StartSessionClock.php memulai jamnya saat login
+app/Http/Controllers/SessionController.php  sisa waktu sesi dan "tetap masuk" untuk skrip sessionTimer
+                                    (resources/views/main/components/js/js.blade.php)
 modules/Api/                        API /api/v1 dan halaman API Tokens
   Routes/api/v1.php                 endpoint, dan menu (hak akses) tiap endpoint
   Http/Middleware/                  ForceJsonResponse, LimitAddresses, ApiReady, EnsureApiAccount, ApiAccess (Role &

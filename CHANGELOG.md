@@ -8,6 +8,28 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.9.0] - 2026-10-19
+
+### Ditambahkan
+
+- Sesi login punya dua batas waktu yang dijaga server, mengikuti OWASP dan NIST SP 800-63B-4: **30 menit tanpa
+  aktivitas** dan **8 jam sejak login** walau terus aktif (`SESSION_IDLE_TIMEOUT`, `SESSION_ABSOLUTE_TIMEOUT`). Setiap
+  halaman memberi peringatan dengan hitung mundur 2 menit sebelum batas tidak aktif (**Tetap masuk** / **Keluar**) dan
+  5 menit sebelum batas 8 jam (**Login ulang sekarang** / **Nanti**).
+- Sesi yang berakhir membawa halaman ke login, yang menyebut alasannya; tercatat di Audit Log sebagai
+  `auth.session_expired`. Form yang dikirim dari halaman yang sesinya sudah habis juga berakhir di halaman login,
+  bukan di "Page Expired".
+
+### Keamanan
+
+- Login password tidak lagi memberi cookie "remember me" walau diminta lewat form, dan cookie seperti itu dari
+  sebelumnya tidak menghidupkan sesi lagi.
+- Tombol **Microsoft** selalu menampilkan pilihan akun: browser yang masih login Microsoft sebagai orang lain tidak
+  langsung masuk sebagai orang itu.
+
+**Deploy:** tanpa migrasi. Setting baru opsional: `SESSION_IDLE_TIMEOUT` dan `SESSION_ABSOLUTE_TIMEOUT` (menit, default
+30 dan 480); `SESSION_DRIVER` tetap `file`. Sesi yang sedang terbuka mulai dihitung pada permintaan berikutnya.
+
 ## [1.8.4] - 2026-10-19
 
 ### Diubah
@@ -260,6 +282,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.9.0]: https://github.com/mahathirmuh/radio-management/compare/v1.8.4...v1.9.0
 [1.8.4]: https://github.com/mahathirmuh/radio-management/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/mahathirmuh/radio-management/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/mahathirmuh/radio-management/compare/v1.8.1...v1.8.2

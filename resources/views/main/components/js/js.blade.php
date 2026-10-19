@@ -383,4 +383,127 @@
         return date.toISOString().slice(0, 10); // ambil YYYY-MM-DD
     }
 </script>
+
+{{-- The clocks of the session (App\Services\SessionClock, EndExpiredSession): a warning before it ends, and the login
+     page once it has, which says why. The server decides; this script only asks it in time. --}}
+@auth
+    @php
+        $sessionClock = app(\App\Services\SessionClock::class);
+        $sessionMaximum = $sessionClock->absoluteMinutes();
+    @endphp
+    <script>
+        const sessionTimer = {
+            urls: @json(['status' => route('session.status'), 'keepAlive' => route('session.keep-alive'), 'login' => route('login')]),
+            idleMinutes: @json($sessionClock->idleMinutes()),
+            maximum: @json($sessionMaximum % 60 === 0 ? $sessionMaximum / 60 . ' jam' : $sessionMaximum . ' menit'),
+            // How long before each timeout (seconds) the person is warned.
+            warnIdle: 120,
+            warnAbsolute: 300,
+            timer: null,
+            ticking: null,
+            warnedAbsolute: false,
+            ending: false,
+
+            /** "1:05" for 65 seconds. */
+            clock(seconds) {
+                const whole = Math.max(0, Math.round(seconds));
+                return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+            },
+            isEnd(xhr) {
+                return !!xhr && (xhr.status === 401 || xhr.status === 419);
+            },
+            /** Asks the server again in so many seconds. */
+            wait(seconds) {
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.check(), Math.max(1, Math.round(seconds)) * 1000);
+            },
+            /** The server's answer (the seconds left): a warning when one is due, else waiting until it is. */
+            plan(left) {
+                const idle = Math.max(0, Number(left && left.idle_left) || 0);
+                const absolute = Math.max(0, Number(left && left.absolute_left) || 0);
+                if (absolute <= this.warnAbsolute && !this.warnedAbsolute) return this.warn('absolute', idle, absolute);
+                if (idle <= this.warnIdle) return this.warn('idle', idle, absolute);
+                this.wait(Math.min(idle - this.warnIdle, this.warnedAbsolute ? absolute : absolute - this.warnAbsolute));
+            },
+            /** Asking does not count as activity. A refusal because the session is over is seen to by ended(), for every request. */
+            check() {
+                if (this.ending) return;
+                $.ajax({ url: this.urls.status, dataType: 'json', cache: false })
+                    .done(left => this.plan(left))
+                    .fail(xhr => { if (!this.isEnd(xhr)) this.wait(60); });
+            },
+            keepAlive() {
+                $.ajax({ url: this.urls.keepAlive, type: 'POST', dataType: 'json' })
+                    .done(left => this.plan(left))
+                    .fail(xhr => { if (!this.isEnd(xhr)) this.wait(60); });
+            },
+            signOut() {
+                this.ending = true;
+                clearTimeout(this.timer);
+                $('#logout-form').trigger('submit');
+            },
+            /**
+             * The session ends soon (seconds left of each clock): for idleness (the person may stay), or at its maximum
+             * length (they sign in again). The countdown is of what is warned of; the dialog closes when the session
+             * really ends if nothing is done, the earlier of the two.
+             */
+            warn(kind, idle, absolute) {
+                clearTimeout(this.timer);
+                const forIdle = kind === 'idle';
+                if (!forIdle) this.warnedAbsolute = true;
+                const shown = forIdle ? Math.min(idle, absolute) : absolute;
+                const deadline = Date.now() + shown * 1000;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sesi akan berakhir',
+                    html: (forIdle ? `Tidak ada aktivitas selama hampir ${this.idleMinutes} menit.` : `Demi keamanan, satu sesi paling lama ${this.maximum}; simpan pekerjaan Anda.`)
+                        + ` Anda akan keluar otomatis dalam <b class="session-countdown">${this.clock(shown)}</b>.`,
+                    showCancelButton: true,
+                    confirmButtonText: forIdle ? 'Tetap masuk' : 'Login ulang sekarang',
+                    cancelButtonText: forIdle ? 'Keluar' : 'Nanti',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    // Two seconds more: by the time it asks again, the server has ended the session.
+                    timer: (Math.min(idle, absolute) + 2) * 1000,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        this.ticking = setInterval(() => {
+                            const countdown = Swal.getHtmlContainer()?.querySelector('.session-countdown');
+                            if (countdown) countdown.textContent = this.clock((deadline - Date.now()) / 1000);
+                        }, 1000);
+                    },
+                    willClose: () => clearInterval(this.ticking),
+                }).then(result => {
+                    if (result.isConfirmed) return forIdle ? this.keepAlive() : this.signOut();
+                    // "Keluar" signs out; "Nanti" is the person being there, as "Tetap masuk" is.
+                    if (result.dismiss === 'cancel') return forIdle ? this.signOut() : this.keepAlive();
+                    this.check();
+                });
+            },
+            /** A request of the page was refused because the session is over: to the login page. */
+            ended(xhr) {
+                if (!this.isEnd(xhr) || this.ending) return;
+                this.ending = true;
+                clearTimeout(this.timer);
+                // The server ended it, and the login page says why.
+                if (xhr.responseJSON && xhr.responseJSON.session_ended) {
+                    window.location.href = this.urls.login;
+                    return;
+                }
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Sesi berakhir',
+                    text: 'Sesi Anda sudah berakhir. Silakan login lagi.',
+                    confirmButtonText: 'Login',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                }).then(() => { window.location.href = this.urls.login; });
+            },
+        };
+        $(function() {
+            sessionTimer.plan(@json($sessionClock->left(request()->session())));
+            $(document).on('ajaxError', (event, xhr) => sessionTimer.ended(xhr));
+        });
+    </script>
+@endauth
 @stack('javascript')

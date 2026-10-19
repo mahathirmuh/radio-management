@@ -444,6 +444,7 @@ class SharePointDocsTest extends TestCase
 
     public function test_the_address_shown_for_the_folder_never_costs_a_request_and_is_never_a_sharing_link(): void
     {
+        $this->withoutSessionTimeouts();
         $this->actingAs($this->superAdmin());
         $this->travelTo(Carbon::parse('2026-10-07 02:00:00', 'UTC'));
 
@@ -1062,6 +1063,7 @@ class SharePointDocsTest extends TestCase
 
     public function test_a_file_that_cannot_be_fetched_is_explained_in_the_viewer(): void
     {
+        $this->withoutSessionTimeouts();
         $this->actingAs($this->superAdmin());
         $this->travelTo(Carbon::parse('2026-10-07 02:00:00', 'UTC'));
         $id = $this->listing()->assertOk()->json('data.0.id');

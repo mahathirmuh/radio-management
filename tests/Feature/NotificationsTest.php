@@ -252,6 +252,7 @@ class NotificationsTest extends TestCase
 
     public function test_the_bell_makes_the_due_notices_at_most_once_an_hour(): void
     {
+        $this->withoutSessionTimeouts();
         $me = $this->person('Saya Sendiri');
         $this->actingAs($me);
         $this->getJson(route('notifications.summary'))->assertJsonPath('unread', 0);

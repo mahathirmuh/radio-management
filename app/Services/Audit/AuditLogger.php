@@ -29,6 +29,9 @@ class AuditLogger
 
     public const LOGOUT = 'auth.logout';
 
+    /** Signed out by the server: idle too long, or the maximum length of a session reached (EndExpiredSession). */
+    public const SESSION_EXPIRED = 'auth.session_expired';
+
     public const USER_CREATED = 'user.created';
 
     public const USER_UPDATED = 'user.updated';

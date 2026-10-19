@@ -82,6 +82,7 @@ class AuditLog extends Model
             AuditLogger::LOGIN => 'signed in',
             AuditLogger::LOGIN_FAILED => 'failed to sign in',
             AuditLogger::LOGOUT => 'signed out',
+            AuditLogger::SESSION_EXPIRED => 'was signed out: session expired',
             AuditLogger::USER_CREATED => 'created account',
             AuditLogger::USER_UPDATED => 'updated account',
             AuditLogger::USER_STATUS_CHANGED => 'changed the status of',

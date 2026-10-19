@@ -135,6 +135,8 @@ class SsoLoginTest extends TestCase
     {
         config(['services.azure.redirect' => 'http://localhost:8020/auth/microsoft/callback']);
         $provider = Mockery::mock(Provider::class);
+        // Microsoft is asked to let the person choose the account (SessionTimeoutTest checks the address it makes).
+        $provider->shouldReceive('with')->once()->with(['prompt' => 'select_account'])->andReturnSelf();
         $provider->shouldReceive('redirect')->once()->andReturn(redirect()->away('https://login.microsoftonline.com/tenant/oauth2/v2.0/authorize'));
         Socialite::shouldReceive('driver')->with('azure')->andReturn($provider);
 
@@ -147,6 +149,7 @@ class SsoLoginTest extends TestCase
         // Another environment's callback in .env must not turn the local app into a redirector.
         config(['services.azure.redirect' => 'https://radio.example.com/auth/microsoft/callback']);
         $provider = Mockery::mock(Provider::class);
+        $provider->shouldReceive('with')->andReturnSelf();
         $provider->shouldReceive('redirect')->once()->andReturn(redirect()->away('https://login.microsoftonline.com/x'));
         Socialite::shouldReceive('driver')->with('azure')->andReturn($provider);
 
