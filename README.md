@@ -4,6 +4,8 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 `Radio Register 07-08-25.xlsx`. Dibangun di atas **Base-Apps-Merdeka**
 (Laravel 12, tema Tabler, modul di `modules/`, RBAC menu/role/permission).
 
+Dokumen untuk pengguna ada di folder `docs/`: **Panduan Pengguna** ([docs/Panduan-Pengguna-MTI-Radio-Management.pdf](docs/Panduan-Pengguna-MTI-Radio-Management.pdf)), untuk versi yang tertulis di sampulnya.
+
 ## Isi aplikasi
 
 | Menu | Fungsi |
