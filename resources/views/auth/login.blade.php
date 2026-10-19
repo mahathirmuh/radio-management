@@ -7,45 +7,10 @@
                     <div class="card rounded-4 text-black"
                         style="box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.55); border-radius: 20px; overflow: hidden;">
                         <div class="row g-0">
-                            <div class="col-lg-7 d-flex align-items-center">
-                                <div id="carousel-indicators-thumb" class="carousel slide carousel-fade h-100"
-                                    data-bs-ride="carousel">
-                                    <div class="carousel-indicators carousel-indicators-thumb">
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="0" class=" ratio ratio-4x3 active"
-                                            style="background-image: url(./assets/img/branding/mdka-bg.jpg)"></button>
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="1" class=" ratio ratio-4x3"
-                                            style="background-image: url(./assets/img/branding/mdka-bg-2.png)"></button>
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="2" class=" ratio ratio-4x3"
-                                            style="background-image: url(./assets/img/branding/mdka-bg-3.jpg)"></button>
-
-                                    </div>
-                                    <div class="carousel-inner h-100">
-                                        <div class="carousel-item h-100  active">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                        <div class="carousel-item h-100  active">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-1.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                        <div class="carousel-item  h-100  ">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-2.jpg') }}"
-                                                style="object-fit:cover;">
-                                        </div>
-                                        <div class="carousel-item  h-100 ">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-3.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            {{-- An oil painting of a Merdeka Battery Materials processing plant, made from the company's own
+                                 aerial photograph; the page behind it is set in auth.components.style.style. --}}
+                            <div class="col-lg-7 login-picture"
+                                style="background-image: url({{ asset('assets/img/bg-auth/mbma-operations.webp') }})"></div>
                             <div class="col-lg-5 d-flex flex-column justify-content-between">
                                 <div class="p-md-5 mx-md-3 mb-0 d-flex justify-content-between align-items-center">
                                     <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="38px"

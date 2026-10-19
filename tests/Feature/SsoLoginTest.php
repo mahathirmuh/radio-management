@@ -187,6 +187,21 @@ class SsoLoginTest extends TestCase
         $this->get('/login')->assertOk()->assertSee('© Merdeka Group ' . date('Y'))->assertDontSee('Copper Gold Tbk');
     }
 
+    public function test_the_login_pictures_are_of_merdeka_battery_materials_and_every_one_exists(): void
+    {
+        $page = (string) $this->get('/login')->assertOk()->getContent();
+        // The plant beside the form, and the landscape behind the card (in the page's style).
+        $this->assertStringContainsString('assets/img/bg-auth/mbma-operations.webp', $page);
+        $this->assertStringContainsString('assets/img/bg-auth/login-landscape.webp', $page);
+        $this->assertStringNotContainsString('carousel', $page);
+        // No picture of the page is missing (the carousel it replaced pointed its thumbnails at files that were not there).
+        preg_match_all('#/assets/img/[^"\')\s?]+#', $page, $found);
+        $this->assertNotEmpty($found[0]);
+        foreach (array_unique($found[0]) as $picture) {
+            $this->assertFileExists(public_path(ltrim($picture, '/')), "{$picture} is on the login page but not in public/");
+        }
+    }
+
     public function test_no_welcome_popup_greets_a_page_while_real_alerts_still_show(): void
     {
         // The template flashed a "Welcome!" alert on every request, so it popped up on the login page and the others.

@@ -17,7 +17,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-image: url({{ asset('assets/img/branding/mdka-primary-bg.webp') }});
+        background-image: url({{ asset('assets/img/bg-auth/login-landscape.webp') }});
         background-position: center;
         background-size: cover;
         background-repeat: no-repeat;
@@ -55,11 +55,17 @@
         }
     }
 
-    .carousel-item img {
-        width: 1100px;
-        /* Set a fixed width */
-        height: 550px;
-        /* Set a fixed height */
+    /* The picture beside the form: as tall as the form, cropped to fit; a band above the form on a narrow screen. */
+    .login-picture {
+        background-position: center;
+        background-size: cover;
+        min-height: 550px;
+    }
+
+    @media (max-width: 991.98px) {
+        .login-picture {
+            min-height: 200px;
+        }
     }
 </style>
 @stack('style')
