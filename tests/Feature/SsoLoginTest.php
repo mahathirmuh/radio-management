@@ -182,6 +182,16 @@ class SsoLoginTest extends TestCase
             ->assertDontSee('Forgot Password')->assertDontSee('ForgotPassword');
     }
 
+    public function test_no_welcome_popup_greets_a_page_while_real_alerts_still_show(): void
+    {
+        // The template flashed a "Welcome!" alert on every request, so it popped up on the login page and the others.
+        $this->get('/login')->assertOk()->assertDontSee('Welcome!');
+        $viewer = $this->register('viewer@merdekabattery.com', 'Viewer Radio');
+        $this->actingAs($viewer)->get(route('dashboard.index'))->assertOk()->assertDontSee('Welcome!');
+        // An alert that says something is still shown: the one of signing out, on the login page it ends on.
+        $this->followingRedirects()->post(route('logout'))->assertOk()->assertSee('Good Bye!')->assertDontSee('Welcome!');
+    }
+
     public function test_passwords_typed_into_the_login_form_are_not_logged(): void
     {
         $this->post('/login', ['emailusername' => 'nobody@merdekabattery.com', 'password' => 'S3cret-Typed-Password']);

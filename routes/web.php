@@ -3,7 +3,6 @@
 use App\Http\Controllers\ImportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use RealRashid\SweetAlert\Facades\Alert;
 use App\Http\Controllers\Auth\LoginController;
 
 
@@ -19,7 +18,6 @@ use App\Http\Controllers\Auth\LoginController;
 */
 
 //AUTHENTICATION
-Alert::success('Welcome!');
 // Accounts are created by an admin (User Management or `php artisan user:register`), never by
 // the visitor: self-registration and password reset stay off.
 Auth::routes(['register' => false, 'reset' => false, 'confirm' => false]);
