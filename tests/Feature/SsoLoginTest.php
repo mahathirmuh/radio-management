@@ -182,6 +182,11 @@ class SsoLoginTest extends TestCase
             ->assertDontSee('Forgot Password')->assertDontSee('ForgotPassword');
     }
 
+    public function test_the_login_page_is_signed_merdeka_group_as_the_other_pages_are(): void
+    {
+        $this->get('/login')->assertOk()->assertSee('© Merdeka Group ' . date('Y'))->assertDontSee('Copper Gold Tbk');
+    }
+
     public function test_no_welcome_popup_greets_a_page_while_real_alerts_still_show(): void
     {
         // The template flashed a "Welcome!" alert on every request, so it popped up on the login page and the others.

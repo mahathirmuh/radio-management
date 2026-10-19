@@ -119,7 +119,7 @@
                                 </div>
 
                                 <div class="d-flex justify-content-center pb-2">
-                                    <small class="text-muted">© PT Merdeka Copper Gold Tbk {{ date('Y') }}</small>
+                                    <small class="text-muted">© Merdeka Group {{ date('Y') }}</small>
                                 </div>
                             </div>
 

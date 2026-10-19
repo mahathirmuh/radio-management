@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.8.2] - 2026-10-19
+
+### Diubah
+
+- Halaman login: tulisan di bawah form kini **© Merdeka Group**, bukan "© PT Merdeka Copper Gold Tbk", sama dengan
+  footer halaman lain.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.8.1] - 2026-10-19
 
 ### Dihapus
@@ -231,6 +240,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.8.2]: https://github.com/mahathirmuh/radio-management/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/mahathirmuh/radio-management/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/mahathirmuh/radio-management/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/mahathirmuh/radio-management/compare/v1.6.1...v1.7.0
