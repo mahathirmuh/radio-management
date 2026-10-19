@@ -8,6 +8,7 @@ Dokumen ada di folder `docs/`, masing-masing untuk versi yang tertulis di sampul
 
 - **Panduan Pengguna**, untuk pengguna aplikasi: [docs/Panduan-Pengguna-MTI-Radio-Management.pdf](docs/Panduan-Pengguna-MTI-Radio-Management.pdf)
 - **API Documentation**, untuk pengembang aplikasi lain yang memakai API: [docs/API-Documentation-MTI-Radio-Management.pdf](docs/API-Documentation-MTI-Radio-Management.pdf)
+- **Design Document**, untuk tim IT dan pengembang yang merawat aplikasi (arsitektur, modul, model data, integrasi, keamanan, deployment): [docs/Design-Document-MTI-Radio-Management.pdf](docs/Design-Document-MTI-Radio-Management.pdf)
 
 ## Isi aplikasi
 
