@@ -4,7 +4,10 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 `Radio Register 07-08-25.xlsx`. Dibangun di atas **Base-Apps-Merdeka**
 (Laravel 12, tema Tabler, modul di `modules/`, RBAC menu/role/permission).
 
-Dokumen untuk pengguna ada di folder `docs/`: **Panduan Pengguna** ([docs/Panduan-Pengguna-MTI-Radio-Management.pdf](docs/Panduan-Pengguna-MTI-Radio-Management.pdf)), untuk versi yang tertulis di sampulnya.
+Dokumen ada di folder `docs/`, masing-masing untuk versi yang tertulis di sampulnya:
+
+- **Panduan Pengguna**, untuk pengguna aplikasi: [docs/Panduan-Pengguna-MTI-Radio-Management.pdf](docs/Panduan-Pengguna-MTI-Radio-Management.pdf)
+- **API Documentation**, untuk pengembang aplikasi lain yang memakai API: [docs/API-Documentation-MTI-Radio-Management.pdf](docs/API-Documentation-MTI-Radio-Management.pdf)
 
 ## Isi aplikasi
 
@@ -518,6 +521,7 @@ Lonceng di header menampilkan notifikasi untuk orang yang sedang login (modul `m
 Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
 endpoint, parameter, contoh jawaban, dan tombol "Try it") ada di **`/docs/api`**, dibuat otomatis dari kode (paket
 `dedoc/scramble`), hanya untuk akun yang boleh memegang token. Semua halaman aplikasi ada di API (tahap 1–3, 17-10-2026).
+Versi PDF untuk dibagikan ke pengembang: [docs/API-Documentation-MTI-Radio-Management.pdf](docs/API-Documentation-MTI-Radio-Management.pdf).
 
 | Endpoint | Isi | Menu (hak) |
 | --- | --- | --- |
