@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use LogicException;
 
 /**
@@ -129,6 +130,20 @@ class AuditLog extends Model
     public function entityName(): ?string
     {
         return $this->entity_type ? $this->entity_type . ' #' . $this->entity_id : null;
+    }
+
+    /** What the page calls the records of an entity type ("User" => "Account"); a type without a name here in words ("RadioType" => "Radio type"). */
+    public static function entityLabel(string $type): string
+    {
+        return match ($type) {
+            'User' => 'Account',
+            'ApiToken', 'PersonalAccessToken' => 'API token',
+            'ItSignature' => 'E-signature',
+            'EditRequest' => 'Cell edit',
+            'RadioCheckState' => 'Check',
+            'RadioOpnameSession' => 'Stock opname',
+            default => ucfirst(mb_strtolower(Str::headline($type))),
+        };
     }
 
     /**

@@ -1,16 +1,26 @@
 @extends('main.index')
 @push('style')
     <style>
-        /* The filters: the search twice as wide as a list (room is kept for the lists still to come). */
+        /* The filters: the search twice as wide as a list. */
         .audit-filters {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) minmax(0, 1.2fr);
+            grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.2fr);
             gap: 12px;
             align-items: end;
         }
 
         .audit-filters .rm-search {
             width: 100%;
+        }
+
+        /* The calendar of "Custom range…" opens under the field, to its right edge (the field is the last of the row). */
+        .audit-range {
+            position: relative;
+        }
+
+        .audit-range .rm-cal {
+            right: 0;
+            left: auto;
         }
 
         @media (max-width: 767.98px) {
@@ -350,6 +360,31 @@
                     @endif
                 </select>
             </div>
+            <div class="rm-field">
+                <label class="form-label" for="auditEntity">Entity</label>
+                <select id="auditEntity" class="form-select">
+                    <option value="">All entities</option>
+                    @foreach ($entities as $type => $name)
+                        <option value="{{ $type }}" @selected($type === $entity)>{{ $name }}</option>
+                    @endforeach
+                    {{-- An entity named by a link that nothing has been recorded about yet. --}}
+                    @if ($entity !== '' && ! array_key_exists($entity, $entities))
+                        <option value="{{ $entity }}" selected>{{ $entity }}</option>
+                    @endif
+                </select>
+            </div>
+            <div class="rm-field audit-range" id="auditRangeField">
+                <label class="form-label" for="auditRange">Date range</label>
+                <select id="auditRange" class="form-select">
+                    @foreach (['today' => 'Today', 'yesterday' => 'Yesterday', '7d' => 'Last 7 days', '30d' => 'Last 30 days', 'all' => 'All time'] as $value => $name)
+                        <option value="{{ $value }}" @selected($value === $range)>{{ $name }}</option>
+                    @endforeach
+                    {{-- The days chosen on the calendar, named by them (auditRange.show()). --}}
+                    <option value="custom" id="auditRangeCustom" @selected($range === 'custom') @if ($range !== 'custom') hidden disabled @endif></option>
+                    <option value="pick">Custom range…</option>
+                </select>
+                <div class="rm-cal" id="auditCal" role="dialog" aria-label="Custom range" hidden></div>
+            </div>
         </div>
 
         <div class="audit-body" id="auditBody">
@@ -416,6 +451,7 @@
             filters: {
                 search: @json($search),
                 action: @json($action),
+                entity: @json($entity),
             },
             rows: [],
             meta: null,
@@ -566,6 +602,7 @@
                 if (row.entity) meta.push(['Entity', esc(row.entity), false]);
                 if (row.label) meta.push(['Record', esc(row.label), false]);
                 meta.push(['IP', esc(row.ip || '—'), true]);
+                if (row.browser) meta.push(['Browser', esc(row.browser), false]);
                 if (row.via) meta.push(['Via', esc(row.via), false]);
                 $('#auditDetailsMeta').html(meta.map(([term, value, mono]) =>
                     `<dt>${term}</dt><dd${mono ? ' class="font-monospace"' : ''}>${value}</dd>`).join(''));
@@ -674,6 +711,7 @@
                     page: auditLog.page,
                     paginated: auditLog.limit,
                     ...auditLog.filters,
+                    ...auditRange.days(),
                 }).done(response => {
                     auditLog.rows = response.data || [];
                     auditLog.meta = response.meta || null;
@@ -686,12 +724,22 @@
                 });
             },
 
-            /** The address of the page says what is shown, so it can be passed on: ?view=timeline&action=auth.login_failed&q=budi */
+            /**
+             * The address of the page says what is shown, so it can be passed on: ?view=timeline&action=auth.login_failed&q=budi. A
+             * named range stays a name (?range=7d: the last seven days of whenever the link is opened), chosen days are days.
+             */
             remember() {
                 const params = new URLSearchParams();
                 if (auditLog.view !== 'table') params.set('view', auditLog.view);
                 if (auditLog.filters.action) params.set('action', auditLog.filters.action);
+                if (auditLog.filters.entity) params.set('entity', auditLog.filters.entity);
                 if (auditLog.filters.search) params.set('q', auditLog.filters.search);
+                if (auditRange.chosen === 'custom') {
+                    params.set('from', auditRange.from);
+                    params.set('to', auditRange.to);
+                } else if (auditRange.chosen !== 'all') {
+                    params.set('range', auditRange.chosen);
+                }
                 const query = params.toString();
                 history.replaceState(null, '', location.pathname + (query ? '?' + query : ''));
             },
@@ -700,10 +748,205 @@
                 auditLog.filters = {
                     search: String($('#auditSearch').val() || '').trim(),
                     action: String($('#auditAction').val() || ''),
+                    entity: String($('#auditEntity').val() || ''),
                 };
                 auditLog.page = 1;
                 auditLog.remember();
                 auditLog.load();
+            },
+        };
+
+        /**
+         * "Date range": a range the page names (Today, Last 7 days, …), or days chosen on the calendar under the field: a click on
+         * the first day and one on the last (the earlier of the two is the first), then Apply. The browser turns a name into its
+         * days each time the list is asked for.
+         */
+        const auditRange = {
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+            /** How many days before today the first and the last day of a named range are. */
+            back: {
+                today: [0, 0],
+                yesterday: [1, 1],
+                '7d': [6, 0],
+                '30d': [29, 0],
+            },
+            /** What is applied: a name of back, 'custom' (the days from and to) or 'all'. */
+            chosen: @json($range),
+            from: @json($from),
+            to: @json($to),
+            /** While the calendar is open: the days clicked, the month shown, the day under the pointer. */
+            isOpen: false,
+            first: '',
+            last: '',
+            month: null,
+            hover: '',
+
+            today() {
+                return new Date();
+            },
+            /** YYYY-MM-DD of a date. */
+            iso(date) {
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            },
+            parse(text) {
+                const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(text || ''));
+                return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+            },
+            /** "12 Oct 2026". */
+            label(text) {
+                const date = auditRange.parse(text);
+                return date ? `${String(date.getDate()).padStart(2, '0')} ${auditRange.months[date.getMonth()].slice(0, 3)} ${date.getFullYear()}` : '';
+            },
+            /** Days as short as they can be named: "12–19 Oct 2026", "28 Sep – 04 Oct 2026", "28 Dec 2025 – 03 Jan 2026", "19 Oct 2026". */
+            name(from, to) {
+                const [a, b] = [auditRange.parse(from), auditRange.parse(to)];
+                if (!a || !b) return '';
+                if (from === to) return auditRange.label(from);
+                if (a.getFullYear() !== b.getFullYear()) return `${auditRange.label(from)} – ${auditRange.label(to)}`;
+                const day = date => String(date.getDate()).padStart(2, '0');
+                const month = date => auditRange.months[date.getMonth()].slice(0, 3);
+                if (a.getMonth() !== b.getMonth()) return `${day(a)} ${month(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
+
+                return `${day(a)}–${day(b)} ${month(b)} ${b.getFullYear()}`;
+            },
+            /** The days of what is applied, as the list is asked for them ({ from, to }), or nothing: all time. */
+            days() {
+                if (auditRange.chosen === 'custom') return auditRange.from && auditRange.to ? { from: auditRange.from, to: auditRange.to } : {};
+                if (!Object.prototype.hasOwnProperty.call(auditRange.back, auditRange.chosen)) return {};
+                const [first, last] = auditRange.back[auditRange.chosen];
+                const today = auditRange.today();
+                const day = before => auditRange.iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - before));
+
+                return { from: day(first), to: day(last) };
+            },
+
+            /** The select was changed: a name (or the days chosen before) is applied at once, "Custom range…" opens the calendar. */
+            change(value) {
+                if (value === 'pick') return auditRange.open();
+                if (auditRange.isOpen) auditRange.close();
+                auditRange.chosen = value === 'custom' && auditRange.from && auditRange.to ? 'custom' :
+                    (Object.prototype.hasOwnProperty.call(auditRange.back, value) ? value : 'all');
+                auditLog.apply();
+            },
+
+            /** The days chosen on the calendar stay in the select, named by them, to be chosen again; the select says what is applied. */
+            show() {
+                const named = auditRange.name(auditRange.from, auditRange.to);
+                $('#auditRangeCustom').text(named).prop('hidden', !named).prop('disabled', !named);
+                $('#auditRange').val(auditRange.chosen);
+            },
+
+            open() {
+                const custom = auditRange.chosen === 'custom';
+                auditRange.first = custom ? auditRange.from : '';
+                auditRange.last = custom ? auditRange.to : '';
+                auditRange.hover = '';
+                const shown = auditRange.parse(auditRange.last) || auditRange.today();
+                auditRange.month = new Date(shown.getFullYear(), shown.getMonth(), 1);
+                auditRange.isOpen = true;
+                auditRange.draw();
+                $('#auditCal').removeAttr('hidden');
+                // A press anywhere else gives it up.
+                $(document).on('mousedown.auditCal', event => {
+                    const field = document.getElementById('auditRangeField');
+                    if (field && field.contains && !field.contains(event.target)) auditRange.cancel();
+                });
+                // Into the calendar: the last day chosen, or today (both in the month shown).
+                $(`#auditCal [data-date="${auditRange.last || auditRange.iso(auditRange.today())}"]`).trigger('focus');
+            },
+
+            close() {
+                auditRange.isOpen = false;
+                $('#auditCal').attr('hidden', 'hidden');
+                $(document).off('mousedown.auditCal');
+            },
+
+            /** Nothing changes: the select says again what is applied. */
+            cancel() {
+                auditRange.close();
+                auditRange.show();
+                $('#auditRange').trigger('focus');
+            },
+
+            apply() {
+                if (!auditRange.first || !auditRange.last) return;
+                [auditRange.from, auditRange.to, auditRange.chosen] = [auditRange.first, auditRange.last, 'custom'];
+                auditRange.close();
+                auditRange.show();
+                $('#auditRange').trigger('focus');
+                auditLog.apply();
+            },
+
+            /** A day clicked: the first, else the last. */
+            pick(iso) {
+                if (!auditRange.first || auditRange.last) {
+                    [auditRange.first, auditRange.last] = [iso, ''];
+                } else if (iso < auditRange.first) {
+                    [auditRange.first, auditRange.last] = [iso, auditRange.first];
+                } else {
+                    auditRange.last = iso;
+                }
+                auditRange.hover = '';
+                auditRange.draw();
+                $(`#auditCal [data-date="${iso}"]`).trigger('focus');
+            },
+
+            /** The pointer over a day while only the first is chosen: the range it would make is shown. */
+            point(iso) {
+                if (iso === auditRange.hover || !auditRange.first || auditRange.last) return;
+                auditRange.hover = iso;
+                auditRange.draw();
+            },
+
+            step(months) {
+                auditRange.month = new Date(auditRange.month.getFullYear(), auditRange.month.getMonth() + months, 1);
+                auditRange.draw();
+            },
+
+            /** The month: the band between the two days (or the first and the day under the pointer), no day after today. */
+            draw() {
+                const today = auditRange.iso(auditRange.today());
+                const month = auditRange.month;
+                const lead = (month.getDay() + 6) % 7;
+                const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+                const [first, last, hover] = [auditRange.first, auditRange.last, auditRange.hover];
+                let [a, b] = [first, last];
+                if (first && !last && hover) [a, b] = hover < first ? [hover, first] : [first, hover];
+                const cells = [];
+                for (let i = 0; i < 42; i++) {
+                    const day = i - lead + 1;
+                    if (day < 1 || day > count) {
+                        cells.push('<span class="rm-cal-cell"></span>');
+                        continue;
+                    }
+                    const iso = auditRange.iso(new Date(month.getFullYear(), month.getMonth(), day));
+                    const band = a && b && a !== b ? (iso > a && iso < b ? ' is-band' : (iso === a ? ' is-start' : (iso === b ? ' is-end' : ''))) : '';
+                    const on = iso === first || iso === last;
+                    const classes = ['rm-cal-day', on ? 'is-on' : '', !on && first && !last && iso === hover ? 'is-preview' : '', !on && iso === today ? 'is-today' : '']
+                        .filter(Boolean).join(' ');
+                    cells.push(`<span class="rm-cal-cell${band}"><button type="button" class="${classes}" data-date="${iso}" ` +
+                        `aria-label="${day} ${auditRange.months[month.getMonth()]} ${month.getFullYear()}"${on ? ' aria-pressed="true"' : ''}` +
+                        `${iso > today ? ' disabled' : ''}>${day}</button></span>`);
+                }
+                const now = auditRange.today();
+                const latest = month.getFullYear() * 12 + month.getMonth() >= now.getFullYear() * 12 + now.getMonth();
+                const summary = first && last ? (first === last ? auditRange.label(first) : `${auditRange.label(first)} – ${auditRange.label(last)}`) :
+                    (first ? `${auditRange.label(first)} – select an end date` : 'Select a start date');
+                // The day that has the focus keeps it in the month drawn again.
+                const focused = document.activeElement && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-date') : null;
+                $('#auditCal').html(
+                    '<div class="rm-cal-head">' +
+                    '<button type="button" class="rm-cal-nav" data-nav="-1" aria-label="Previous month"><i class="ti ti-chevron-left"></i></button>' +
+                    `<div class="rm-cal-title">${auditRange.months[month.getMonth()]} ${month.getFullYear()}</div>` +
+                    `<button type="button" class="rm-cal-nav" data-nav="1" aria-label="Next month"${latest ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>` +
+                    '</div>' +
+                    `<div class="rm-cal-week">${auditRange.weekdays.map(name => `<span>${name}</span>`).join('')}</div>` +
+                    `<div class="rm-cal-grid">${cells.join('')}</div>` +
+                    `<div class="rm-cal-sum"><span class="rm-cal-sum-text">${auditLog.esc(summary)}</span>` +
+                    '<button type="button" class="btn-rm secondary sm" data-cal="cancel">Cancel</button>' +
+                    `<button type="button" class="btn-rm primary sm" data-cal="apply"${first && last ? '' : ' disabled'}>Apply</button></div>`);
+                if (focused) $(`#auditCal [data-date="${focused}"]`).trigger('focus');
             },
         };
 
@@ -712,6 +955,32 @@
                 if (e.key === 'Enter') auditLog.apply();
             });
             $('#auditAction').on('change', () => auditLog.apply());
+            $('#auditEntity').on('change', () => auditLog.apply());
+            $('#auditRange').on('change', () => auditRange.change(String($('#auditRange').val() || '')));
+            $('#auditCal').on('click', '[data-nav]', function() {
+                auditRange.step(Number($(this).attr('data-nav')));
+            });
+            $('#auditCal').on('click', '[data-date]', function() {
+                auditRange.pick(String($(this).attr('data-date')));
+            });
+            $('#auditCal').on('mouseover', '[data-date]', function() {
+                auditRange.point(String($(this).attr('data-date')));
+            });
+            $('#auditCal').on('click', '[data-cal]', function() {
+                if ($(this).attr('data-cal') === 'apply') {
+                    auditRange.apply();
+                } else {
+                    auditRange.cancel();
+                }
+            });
+            // Esc gives the calendar up (and only that: a dialog round it, there is none, keeps it).
+            $('#auditRangeField').on('keydown', e => {
+                if (e.key !== 'Escape' || !auditRange.isOpen) return;
+                e.preventDefault();
+                e.stopPropagation();
+                auditRange.cancel();
+            });
+            auditRange.show();
             $('[data-audit-view]').on('click', function() {
                 auditLog.view = $(this).data('audit-view') === 'timeline' ? 'timeline' : 'table';
                 auditLog.remember();

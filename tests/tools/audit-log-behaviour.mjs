@@ -42,7 +42,7 @@ check('the page asks for the first page with the filters of its address, and sho
     const p = open();
     assert.equal(p.requests.length, 1);
     assert.match(p.requests[0].url, /\/audit-log\/list$/);
-    assert.deepEqual(p.sent(), { page: 1, paginated: 25, search: p.page('auditLog').filters.search, action: p.page('auditLog').filters.action });
+    assert.deepEqual(p.sent(), { page: 1, paginated: 25, search: p.page('auditLog').filters.search, action: p.page('auditLog').filters.action, entity: p.page('auditLog').filters.entity });
     assert.match(body(p), /Loading\.\.\./);
     assert.equal(p.node('#auditPagination').hidden, true);
     // Nothing is open yet.
@@ -214,6 +214,145 @@ check('everything that comes from the trail is shown as text, in the table, Log 
     }
     // (Written as text.)
     assert.equal(p.node('#auditDetailsSub').text, `x"><b> · ${hostile}`);
+});
+
+// ---------------------------------------------------------------- the kind of record and the days
+// The pages's "today" is set: the days of a named range are counted back from it.
+const onDay = (p, day = new Date(2026, 9, 19)) => {
+    p.page('auditRange').today = () => new Date(day.getTime());
+
+    return p;
+};
+const choose = (p, selector, value) => {
+    p.node(selector).value = value;
+    p.fire(selector, 'change', {});
+};
+const cal = p => p.node('#auditCal').html;
+const click = (p, event, attrs, argument = {}) => {
+    Object.assign(p.node('(object)').attrs, attrs);
+    p.fire('#auditCal', event, argument);
+};
+
+check('a kind of record and a named range are sent with the list, as days; the address keeps the name', () => {
+    const p = onDay(loaded());
+    choose(p, '#auditEntity', 'Radio');
+    assert.equal(p.sent().entity, 'Radio');
+    assert.equal(p.addresses().at(-1), '/audit-log?entity=Radio');
+
+    choose(p, '#auditRange', '7d');
+    assert.deepEqual([p.sent().from, p.sent().to, p.sent().page], ['2026-10-13', '2026-10-19', 1]);
+    assert.equal(p.addresses().at(-1), '/audit-log?entity=Radio&range=7d');
+    for (const [name, from, to] of [['today', '2026-10-19', '2026-10-19'], ['yesterday', '2026-10-18', '2026-10-18'], ['30d', '2026-09-20', '2026-10-19']]) {
+        choose(p, '#auditRange', name);
+        assert.deepEqual([p.sent().from, p.sent().to], [from, to], name);
+    }
+    // Across the turn of a month and of a year.
+    onDay(p, new Date(2026, 0, 3));
+    choose(p, '#auditRange', '7d');
+    assert.deepEqual([p.sent().from, p.sent().to], ['2025-12-28', '2026-01-03']);
+
+    // All time, or anything else: no days.
+    for (const value of ['all', 'nonsense', 'custom']) {
+        choose(p, '#auditRange', value);
+        assert.equal('from' in p.sent() || 'to' in p.sent(), false, value);
+    }
+    assert.equal(p.addresses().at(-1), '/audit-log?entity=Radio');
+});
+
+check('"Custom range…" opens the calendar: two clicks choose the days, Apply sends them; Cancel and Esc change nothing', () => {
+    const p = onDay(loaded());
+    const before = p.requests.length;
+    choose(p, '#auditRange', 'pick');
+    assert.equal(p.requests.length, before, 'nothing is asked for before Apply');
+    assert.equal(p.page('auditRange').isOpen, true);
+    assertWellFormed(cal(p), 'the calendar');
+    assert.match(cal(p), /<div class="rm-cal-title">October 2026<\/div>/);
+    // Monday first: the first of October 2026 is a Thursday, after three empty cells.
+    assert.match(cal(p), /<div class="rm-cal-grid">(<span class="rm-cal-cell"><\/span>){3}<span class="rm-cal-cell"><button type="button" class="rm-cal-day" data-date="2026-10-01" aria-label="1 October 2026">1<\/button><\/span>/);
+    // Today is marked, a day after it cannot be chosen, nor a month after this one.
+    assert.match(cal(p), /class="rm-cal-day is-today" data-date="2026-10-19" aria-label="19 October 2026">19</);
+    assert.match(cal(p), /data-date="2026-10-20" aria-label="20 October 2026" disabled>20</);
+    assert.match(cal(p), /data-nav="1" aria-label="Next month" disabled>/);
+    assert.match(cal(p), /<span class="rm-cal-sum-text">Select a start date<\/span><button type="button" class="btn-rm secondary sm" data-cal="cancel">Cancel<\/button><button type="button" class="btn-rm primary sm" data-cal="apply" disabled>Apply<\/button>/);
+    assert.ok(p.node('#auditCal [data-date="2026-10-19"]').triggered.includes('focus'), 'the focus goes into the calendar');
+    assert.ok(p.node('(document)').handlers['mousedown.auditCal'], 'a press elsewhere is listened for');
+
+    // The first day; the pointer over another shows the range it would make.
+    click(p, 'click [data-date]', { 'data-date': '2026-10-12' });
+    assert.match(cal(p), /<span class="rm-cal-cell"><button type="button" class="rm-cal-day is-on" data-date="2026-10-12" aria-label="12 October 2026" aria-pressed="true">12<\/button><\/span>/);
+    assert.match(cal(p), /<span class="rm-cal-sum-text">12 Oct 2026 – select an end date<\/span>/);
+    assert.match(cal(p), /data-cal="apply" disabled>/);
+    click(p, 'mouseover [data-date]', { 'data-date': '2026-10-15' });
+    assert.match(cal(p), /<span class="rm-cal-cell is-start"><button type="button" class="rm-cal-day is-on" data-date="2026-10-12"/);
+    assert.match(cal(p), /<span class="rm-cal-cell is-band"><button type="button" class="rm-cal-day" data-date="2026-10-13"/);
+    assert.match(cal(p), /<span class="rm-cal-cell is-band"><button type="button" class="rm-cal-day" data-date="2026-10-14"/);
+    assert.match(cal(p), /<span class="rm-cal-cell is-end"><button type="button" class="rm-cal-day is-preview" data-date="2026-10-15"/);
+
+    // An earlier day: the first of the two. Then a month back and forth.
+    click(p, 'click [data-date]', { 'data-date': '2026-10-08' });
+    assert.deepEqual([p.page('auditRange').first, p.page('auditRange').last], ['2026-10-08', '2026-10-12']);
+    assert.match(cal(p), /<span class="rm-cal-sum-text">08 Oct 2026 – 12 Oct 2026<\/span>/);
+    assert.match(cal(p), /data-cal="apply">Apply<\/button>/);
+    assert.doesNotMatch(cal(p), /is-preview/);
+    click(p, 'click [data-nav]', { 'data-nav': '-1' });
+    assert.match(cal(p), /<div class="rm-cal-title">September 2026<\/div>/);
+    assert.match(cal(p), /data-nav="1" aria-label="Next month"><i/);
+    click(p, 'click [data-nav]', { 'data-nav': '1' });
+
+    // Apply: the days are sent, the select names them, the address has them.
+    click(p, 'click [data-cal]', { 'data-cal': 'apply' });
+    assert.equal(p.page('auditRange').isOpen, false);
+    assert.equal(p.node('#auditCal').attrs.hidden, 'hidden');
+    assert.equal(p.node('(document)').handlers['mousedown.auditCal'], undefined);
+    assert.deepEqual([p.sent().from, p.sent().to, p.sent().page], ['2026-10-08', '2026-10-12', 1]);
+    assert.equal(p.addresses().at(-1), '/audit-log?from=2026-10-08&to=2026-10-12');
+    assert.equal(p.node('#auditRangeCustom').text, '08–12 Oct 2026');
+    assert.equal(p.node('#auditRangeCustom').wrote, 'text');
+    assert.deepEqual([p.node('#auditRangeCustom').props.hidden, p.node('#auditRangeCustom').props.disabled], [false, false]);
+    assert.equal(p.node('#auditRange').value, 'custom');
+    assert.ok(p.node('#auditRange').triggered.includes('focus'));
+
+    // Opened again: the days applied are there. Cancel changes nothing; nor does Esc.
+    const sent = p.requests.length;
+    choose(p, '#auditRange', 'pick');
+    assert.match(cal(p), /class="rm-cal-day is-on" data-date="2026-10-08"[\s\S]*class="rm-cal-day is-on" data-date="2026-10-12"/);
+    click(p, 'click [data-date]', { 'data-date': '2026-10-01' });
+    click(p, 'click [data-cal]', { 'data-cal': 'cancel' });
+    assert.equal(p.requests.length, sent);
+    assert.equal(p.node('#auditRange').value, 'custom');
+    assert.deepEqual([p.page('auditRange').from, p.page('auditRange').to], ['2026-10-08', '2026-10-12']);
+    choose(p, '#auditRange', 'pick');
+    let stopped = false;
+    p.fire('#auditRangeField', 'keydown', { key: 'Escape', preventDefault() {}, stopPropagation() { stopped = true; } });
+    assert.equal(p.page('auditRange').isOpen, false);
+    assert.equal(stopped, true);
+    assert.equal(p.requests.length, sent);
+    p.fire('#auditRangeField', 'keydown', { key: 'Escape', preventDefault() {}, stopPropagation() { throw new Error('nothing is open'); } });
+
+    // Another range chosen while it is open closes it; the days chosen stay in the select, to be chosen again.
+    choose(p, '#auditRange', 'pick');
+    choose(p, '#auditRange', 'today');
+    assert.equal(p.page('auditRange').isOpen, false);
+    assert.equal(p.sent().from, '2026-10-19');
+    choose(p, '#auditRange', 'custom');
+    assert.deepEqual([p.sent().from, p.sent().to], ['2026-10-08', '2026-10-12']);
+
+    // How days are named.
+    const name = (a, b) => p.page('auditRange').name(a, b);
+    assert.equal(name('2026-09-28', '2026-10-04'), '28 Sep – 04 Oct 2026');
+    assert.equal(name('2025-12-28', '2026-01-03'), '28 Dec 2025 – 03 Jan 2026');
+    assert.equal(name('2026-10-19', '2026-10-19'), '19 Oct 2026');
+    assert.equal(name('', '2026-10-19'), '');
+});
+
+check('the details say which browser the entry came from, as text', () => {
+    const p = loaded([entry(1, { browser: 'Chrome 141 on Windows' }), entry(2, { browser: '<b>x</b>' })]);
+    press(p, '#auditTable', 'click tbody tr[data-index]', 0);
+    const html = p.node('#auditDetailsMeta').html;
+    assert.deepEqual([...html.matchAll(/<dt>([^<]*)<\/dt>/g)].map(match => match[1]), ['Time', 'User', 'Action', 'Entity', 'Record', 'IP', 'Browser']);
+    assert.match(html, /<dt>Browser<\/dt><dd>Chrome 141 on Windows<\/dd>/);
+    press(p, '#auditTable', 'click tbody tr[data-index]', 1);
+    assert.match(p.node('#auditDetailsMeta').html, /<dt>Browser<\/dt><dd>&lt;b&gt;x&lt;\/b&gt;<\/dd>/);
 });
 
 // ---------------------------------------------------------------- the script and the page fit together

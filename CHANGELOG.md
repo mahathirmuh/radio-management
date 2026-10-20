@@ -76,6 +76,18 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - impor Excel yang menghapus data lama ditolak selama masih ada tiket servis terbuka;
     - endpoint baru di `radio-management/service`: `list`, `radios`, `export`, `{ticket}`, `POST /`,
       `PUT {ticket}/status`, `PUT {ticket}/note`.
+  - **COF Scan** (bila sheet ICT Masterlist boleh dibuka): tiga sel di atas daftar (Sinkron terakhir, Tertaut ke baris,
+    Tidak tertaut), peringatan "N file tidak cocok dengan baris di ICT Masterlist" dengan tombol **Tinjau**, dan filter
+    Semua / Tertaut / Tidak tertaut dengan jumlahnya. Hitungannya untuk seluruh folder, apa pun yang dicari. Endpoint
+    `documents/cof-scan/list` menerima `status` (`linked`, `unmatched`) dan menjawab `register.linked`,
+    `register.unmatched`, `folder.synced` dan `folder.status`.
+  - **Audit log**:
+    - filter **Entity** (jenis catatan yang ada di audit, dengan namanya: Account, Radio, Radio type, …) dan **Date range**:
+      Today, Yesterday, Last 7 days, Last 30 days, All time, atau **Custom range…** dengan kalender rentang (klik hari
+      pertama dan terakhir, lalu Apply);
+    - alamat halaman menyimpan pilihannya (`?entity=Radio&range=7d`, atau `?from=…&to=…`);
+    - Event details menampilkan **Browser** ("Chrome 141 on Windows"), dibaca dari user agent yang sudah tersimpan;
+    - `audit-log/list` menerima `entity`, `from` dan `to`.
 
 ### Diubah
 

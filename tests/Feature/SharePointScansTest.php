@@ -1420,7 +1420,7 @@ class SharePointScansTest extends TestCase
         $this->assertNull($data[6]['note']);
         $this->assertSame(['status' => 'linked', 'line' => 10, 'more' => 0, 'url' => '/documents/ict-masterlist?sheet=COF&line=10'], $data[7]['masterlist']);
 
-        $response->assertJsonPath('register', ['title' => 'ICT Masterlist', 'sheet' => 'COF', 'fetched_at' => '07-10-2026 10:15', 'stale' => false]);
+        $response->assertJsonPath('register', ['title' => 'ICT Masterlist', 'sheet' => 'COF', 'fetched_at' => '07-10-2026 10:15', 'stale' => false, 'linked' => 4, 'unmatched' => 3]);
 
         // The way to the row is a link that the page can follow, and what it asks for is that row.
         $this->get($data[1]['masterlist']['url'])->assertOk();
@@ -1573,6 +1573,81 @@ class SharePointScansTest extends TestCase
             ['Lama', 'ICTCOF1 - Budi Santoso.pdf', 'ICTCOF4 - Eka Lestari.pdf', 'ICTCOF7 - Gita  Lestari.pdf', 'ICTCOF10 - Joko.pdf', 'ICTCOF2 - Andi  Wijaya.pdf', 'ICTCOF8 - Hadi.pdf', 'ICTCOF9 - Tanpa Baris.pdf'],
             $by('desc')
         );
+    }
+
+    public function test_the_files_are_counted_by_how_they_stand_against_the_sheet_and_one_status_can_be_shown(): void
+    {
+        $this->actingAs($this->superAdmin());
+        $this->travelTo(Carbon::parse(self::NOW, 'UTC'));
+
+        // Four files have their own row; three have none, or a row with their number and another name (K12). Counted over the
+        // whole folder (the folder in it is no file); while every file is asked for, nothing is kept back.
+        $all = $this->listing()->assertOk()
+            ->assertJsonPath('register.linked', 4)
+            ->assertJsonPath('register.unmatched', 3)
+            ->assertJsonPath('folder.files', 7)
+            ->assertJsonPath('folder.synced', ['time' => '10:15', 'day' => 'Hari ini'])
+            ->assertJsonMissingPath('folder.status');
+        $this->assertCount(8, $all->json('data'));
+
+        // One status: its files only (no folder), newest first as always; the counts stay those of the whole folder.
+        $linked = $this->listing(['status' => 'linked'])->assertOk()
+            ->assertJsonPath('folder.status', 'linked')
+            ->assertJsonPath('meta.total', 4)
+            ->assertJsonPath('register.linked', 4)
+            ->assertJsonPath('register.unmatched', 3);
+        $this->assertSame(['ICTCOF1 - Budi Santoso.pdf', 'ICTCOF4 - Eka Lestari.pdf', 'ICTCOF7 - Gita  Lestari.pdf', 'ICTCOF10 - Joko.pdf'], $this->namesOf($linked));
+        $this->assertSame(['ICTCOF2 - Andi  Wijaya.pdf', 'ICTCOF8 - Hadi.pdf', 'ICTCOF9 - Tanpa Baris.pdf'], $this->namesOf($this->listing(['status' => 'unmatched'])->assertOk()));
+
+        // With a search, a document number, a sort.
+        $searched = $this->listing(['status' => 'unmatched', 'search' => 'hadi'])->assertOk()->assertJsonPath('register.unmatched', 3);
+        $this->assertSame(['ICTCOF8 - Hadi.pdf'], $this->namesOf($searched));
+        $this->assertSame([], $this->namesOf($this->listing(['status' => 'linked', 'code' => 'ICTCOF9'])->assertOk()->assertJsonPath('folder.code', 'ICTCOF9')));
+        $this->assertSame(['ICTCOF9 - Tanpa Baris.pdf', 'ICTCOF2 - Andi  Wijaya.pdf', 'ICTCOF8 - Hadi.pdf'], $this->namesOf($this->listing(['status' => 'unmatched', 'sort' => 'masterlist'])->assertOk()));
+
+        // Any other status is none.
+        foreach (['', 'differs', 'unlinked', 'LINKED', 'constructor'] as $other) {
+            $this->listing(['status' => $other])->assertOk()->assertJsonPath('meta.total', 8)->assertJsonMissingPath('folder.status');
+        }
+        // A folder below is counted by itself.
+        $this->listing(['path' => 'Lama'])->assertOk()->assertJsonPath('register.linked', 1)->assertJsonPath('register.unmatched', 0);
+    }
+
+    public function test_without_a_sheet_to_count_against_nothing_is_counted_and_no_status_is_kept(): void
+    {
+        $this->actingAs($this->superAdmin());
+
+        // The workbook cannot be had: the files as they are, all of them.
+        $this->microsoft['download'] = fn () => Http::response('bukan workbook', 200);
+        $this->listing(['status' => 'linked'])->assertOk()
+            ->assertJsonPath('meta.total', 8)
+            ->assertJsonPath('register.title', 'ICT Masterlist')
+            ->assertJsonMissingPath('register.linked')
+            ->assertJsonMissingPath('register.unmatched')
+            ->assertJsonMissingPath('folder.status');
+
+        // A reader who may not open the workbook: neither.
+        $viewer = $this->makeUser('viewer.radio@test.local', 'Viewer Radio');
+        $this->grant('Viewer Radio', CofScanMenuSeeder::ROUTE);
+        $this->actingAs($viewer->fresh());
+        $this->listing(['status' => 'unmatched'])->assertOk()->assertJsonPath('meta.total', 8)->assertJsonMissingPath('register')->assertJsonMissingPath('folder.status');
+        $this->get(route('documents.cof-scan.index'))->assertOk()->assertDontSee('id="docsSummary"', false)->assertDontSee('id="docsStatus"', false);
+    }
+
+    public function test_the_time_of_the_list_is_said_as_today_or_yesterday(): void
+    {
+        $this->withoutSessionTimeouts();
+        $this->actingAs($this->superAdmin());
+        $this->travelTo(Carbon::parse(self::NOW, 'UTC'));
+        $this->listing()->assertOk()->assertJsonPath('folder.synced', ['time' => '10:15', 'day' => 'Hari ini']);
+
+        // The next morning Microsoft cannot be reached: the list that was kept is shown, with the day it was read.
+        $this->microsoft['children'] = fn () => Http::response('', 503);
+        $this->travel(23)->hours();
+        $this->listing()->assertOk()
+            ->assertJsonPath('folder.stale', true)
+            ->assertJsonPath('folder.fetched_at', '07-10-2026 10:15')
+            ->assertJsonPath('folder.synced', ['time' => '10:15', 'day' => 'Kemarin']);
     }
 
     public function test_a_folder_below_is_told_by_the_names_of_the_links_wherever_they_point(): void

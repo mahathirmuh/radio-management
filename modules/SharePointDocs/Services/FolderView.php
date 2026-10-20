@@ -18,6 +18,9 @@ final class FolderView
 {
     public const SORTS = ['modified', 'name', 'label', 'extension', 'size', 'masterlist'];
 
+    /** How a file can stand against the sheet that lists the files, to keep only those files: its own row, or no row or a row with another name. */
+    public const STATUSES = ['linked', 'unmatched'];
+
     public function __construct(private readonly SharePointFolder $folders, private readonly ScanLinks $scans)
     {
     }
@@ -53,11 +56,13 @@ final class FolderView
      * an item of the listing (id, name, folder, size, modified, modified_by, url) with its name split (code, label, extension)
      * and, when the sheet that lists the files could be set against them, `register`: what that sheet says of it.
      *
-     * @param array{refresh?: bool, search?: string, code?: string, sort?: string, descending?: ?bool, per_page?: int, page?: int} $options
+     * @param array{refresh?: bool, search?: string, code?: string, status?: string, sort?: string, descending?: ?bool, per_page?: int, page?: int} $options
      * @return array{
      *     rows: array<int, array>, total: int, page: int, per_page: int, last_page: int, offset: int, sort: string, descending: bool,
-     *     code: string, fetched_at: int, truncated: bool, stale: bool, files: int, folders: int, size: int|float, register: ?array
-     * } register: null when nothing is offered beside the files (see ScanLinks::forFolder())
+     *     code: string, status: string, fetched_at: int, truncated: bool, stale: bool, files: int, folders: int, size: int|float,
+     *     register: ?array, counts: ?array{linked: int, unmatched: int}
+     * } register: null when nothing is offered beside the files (see ScanLinks::forFolder()); counts and status: only when the sheet
+     *   could be set against the files
      *
      * @throws GraphException the folder could not be read
      */
@@ -88,6 +93,13 @@ final class FolderView
         } else {
             $code = '';
         }
+        // How the files stand against the sheet, counted over the whole folder whatever is searched for; a status asked for keeps the
+        // files that stand so (a folder stands nowhere). Neither without a sheet that could be set against the files.
+        $counts = isset($register['files']) ? self::counts($everything) : null;
+        $status = $counts !== null && in_array($options['status'] ?? null, self::STATUSES, true) ? $options['status'] : '';
+        if ($status !== '') {
+            $rows = array_values(array_filter($rows, fn (array $row) => self::stands($row) === $status));
+        }
 
         $sort = in_array($options['sort'] ?? null, self::SORTS, true) ? $options['sort'] : 'modified';
         // Newest first, as the SharePoint view is opened.
@@ -110,6 +122,7 @@ final class FolderView
             'sort' => $sort,
             'descending' => $descending,
             'code' => $code,
+            'status' => $status,
             'fetched_at' => (int) $listing['fetched_at'],
             'truncated' => (bool) $listing['truncated'],
             'stale' => (bool) $listing['stale'],
@@ -118,6 +131,7 @@ final class FolderView
             'folders' => count($everything) - count($files),
             'size' => array_sum(array_column($files, 'size')),
             'register' => $register,
+            'counts' => $counts,
         ];
     }
 
@@ -225,6 +239,34 @@ final class FolderView
         });
 
         return $rows;
+    }
+
+    /** The status of STATUSES a file stands in against the sheet that lists the files; null for a folder, or a file it says nothing of. */
+    private static function stands(array $row): ?string
+    {
+        return match ($row['register']['status'] ?? null) {
+            ScanRegister::LINKED => 'linked',
+            ScanRegister::DIFFERS, ScanRegister::UNLINKED => 'unmatched',
+            default => null,
+        };
+    }
+
+    /**
+     * How many files of the folder stand in each status.
+     *
+     * @return array{linked: int, unmatched: int}
+     */
+    private static function counts(array $rows): array
+    {
+        $counts = array_fill_keys(self::STATUSES, 0);
+        foreach ($rows as $row) {
+            $stands = self::stands($row);
+            if ($stands !== null) {
+                $counts[$stands]++;
+            }
+        }
+
+        return $counts;
     }
 
     /** How a file stands against the sheet that lists the files: 0 no row, 1 a row with another name, 2 its own row, 3 not told. */

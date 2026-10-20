@@ -54,7 +54,7 @@ class FolderController extends Controller
     /**
      * The files and folders of one folder (searched, sorted, one page of them). When a sheet of a workbook lists these files
      * (config "scans") and the reader may open that workbook, every file also says which row of the sheet is its own, and
-     * what that row's note says.
+     * what that row's note says; how many files have their own row and how many do not, and "status" keeps one of the two.
      */
     public function list(Request $request, string $folder): JsonResponse
     {
@@ -70,6 +70,7 @@ class FolderController extends Controller
                 'refresh' => $request->boolean('refresh'),
                 'search' => self::text($request, 'search'),
                 'code' => self::text($request, 'code'),
+                'status' => self::text($request, 'status'),
                 'sort' => $request->query('sort'),
                 'descending' => match ($request->query('dir')) {
                     'asc' => false,
@@ -103,14 +104,16 @@ class FolderController extends Controller
                 'path' => $path,
                 'web_url' => $this->folders->webUrl($folder, $path),
                 'fetched_at' => self::time($shown['fetched_at']),
+                'synced' => self::synced($shown['fetched_at']),
                 // Of the whole folder, whatever is searched for.
                 'files' => $shown['files'],
                 'folders' => $shown['folders'],
                 'size' => self::size($shown['size']),
                 'truncated' => $shown['truncated'],
                 'stale' => $shown['stale'],
-            ] + ($shown['code'] === '' ? [] : ['code' => $shown['code']]),
-        ] + ($shown['register'] === null ? [] : ['register' => self::register($shown['register'])]));
+            ] + ($shown['code'] === '' ? [] : ['code' => $shown['code']])
+                + ($shown['status'] === '' ? [] : ['status' => $shown['status']]),
+        ] + ($shown['register'] === null ? [] : ['register' => self::register($shown['register']) + ($shown['counts'] ?? [])]));
     }
 
     /**
@@ -253,6 +256,26 @@ class FolderController extends Controller
     private static function time(int $timestamp): string
     {
         return Carbon::createFromTimestamp($timestamp, config('app.timezone'))->format('d-m-Y H:i');
+    }
+
+    /**
+     * When the list was read, as the page's "Sinkron terakhir" says it: the hour, and the day in words or as a date.
+     *
+     * @return array{time: string, day: string}
+     */
+    private static function synced(int $timestamp): array
+    {
+        $at = Carbon::createFromTimestamp($timestamp, config('app.timezone'));
+        $today = Carbon::now(config('app.timezone'));
+
+        return [
+            'time' => $at->format('H:i'),
+            'day' => match (true) {
+                $at->isSameDay($today) => 'Hari ini',
+                $at->isSameDay($today->copy()->subDay()) => 'Kemarin',
+                default => $at->format('d-m-Y'),
+            },
+        ];
     }
 
     private static function size(int|float $bytes): string

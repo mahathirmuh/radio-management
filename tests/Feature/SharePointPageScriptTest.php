@@ -39,7 +39,7 @@ class SharePointPageScriptTest extends TestCase
 
     public function test_the_script_of_the_folder_page_behaves_as_described(): void
     {
-        $this->checkPageScript(route('documents.cof-scan.index'), 'tests/tools/sharepoint-page-behaviour.mjs', 25);
+        $this->checkPageScript(route('documents.cof-scan.index'), 'tests/tools/sharepoint-page-behaviour.mjs', 27);
     }
 
     public function test_the_script_of_the_workbook_page_behaves_as_described(): void

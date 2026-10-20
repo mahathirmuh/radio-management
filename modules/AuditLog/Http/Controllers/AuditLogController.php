@@ -5,6 +5,8 @@ namespace Modules\AuditLog\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Log\AuditLog;
 use App\Services\Audit\AuditLogQuery;
+use App\Services\Audit\UserAgent;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,9 +21,15 @@ class AuditLogController extends Controller
 
     public const VIEWS = ['table', 'timeline'];
 
+    /** The ranges of days the page names (the browser turns them into the days of "from" and "to"); "all" is no range. */
+    public const RANGES = ['today', 'yesterday', '7d', '30d'];
+
     public function index(Request $request)
     {
         $ready = AuditLog::ready();
+        // A link may name a range (?range=7d), or its days (?from=2026-10-12&to=2026-10-19).
+        [$from, $to] = self::days($request);
+        $range = $from && $to ? 'custom' : (in_array($request->query('range'), self::RANGES, true) ? $request->query('range') : 'all');
 
         return view('AuditLog::index', [
             'pageTitle' => 'Audit Log',
@@ -31,11 +39,54 @@ class AuditLogController extends Controller
             ],
             'ready' => $ready,
             'actions' => $ready ? AuditLog::query()->distinct()->orderBy('action')->pluck('action') : collect(),
+            'entities' => $ready ? self::entities() : [],
             // A link may open the page on the other view, an action or a person (?view=timeline&action=auth.login_failed).
             'view' => in_array($request->query('view'), self::VIEWS, true) ? $request->query('view') : 'table',
             'action' => self::text($request, 'action', 64),
+            'entity' => self::text($request, 'entity', 64),
             'search' => self::text($request, 'q', 255),
+            'range' => $range,
+            'from' => $range === 'custom' ? $from->format('Y-m-d') : '',
+            'to' => $range === 'custom' ? $to->format('Y-m-d') : '',
         ]);
+    }
+
+    /**
+     * The kinds of record the trail has entries about, by the names the page gives them, in the order of those names.
+     *
+     * @return array<string, string> entity type => name
+     */
+    private static function entities(): array
+    {
+        return AuditLog::query()->whereNotNull('entity_type')->distinct()->pluck('entity_type')
+            ->mapWithKeys(fn (string $type) => [$type => AuditLog::entityLabel($type)])
+            ->sort()
+            ->all();
+    }
+
+    /**
+     * The first and the last day of the entries asked for ("from", "to": YYYY-MM-DD, days of the application's time zone), either of
+     * them null; given the wrong way round, they are turned. Anything that is no day is none.
+     *
+     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
+     */
+    private static function days(Request $request): array
+    {
+        [$from, $to] = [self::day($request, 'from'), self::day($request, 'to')];
+
+        return $from && $to && $from->gt($to) ? [$to, $from] : [$from, $to];
+    }
+
+    private static function day(Request $request, string $key): ?CarbonImmutable
+    {
+        $value = $request->input($key);
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+        $day = CarbonImmutable::createFromFormat('!Y-m-d', $value, config('app.timezone'));
+
+        // (A day that does not exist, 2026-02-31, would be read as another one.)
+        return $day instanceof CarbonImmutable && $day->format('Y-m-d') === $value ? $day : null;
     }
 
     /** A parameter as one line of text: anything else (a list, ?q[]=...) counts as nothing. */
@@ -55,8 +106,10 @@ class AuditLogController extends Controller
         $limit = min(max((int) $request->input('paginated', 25), 1), 100);
         $search = self::text($request, 'search', 255);
         $action = self::text($request, 'action', 64);
+        $entity = self::text($request, 'entity', 64);
+        [$from, $to] = self::days($request);
 
-        $entries = app(AuditLogQuery::class)->build($search, $action)->paginate($limit);
+        $entries = app(AuditLogQuery::class)->build($search, $action, $from, $to, $entity === '' ? null : $entity)->paginate($limit);
 
         return response()->json([
             'data' => $entries->getCollection()->map(fn (AuditLog $entry) => $this->row($entry))->values(),
@@ -97,6 +150,8 @@ class AuditLogController extends Controller
             'label' => $entry->entity_label,
             'changes' => $changes,
             'ip' => $entry->ip_address,
+            // "Chrome 141 on Windows", from the User-Agent that was kept.
+            'browser' => UserAgent::describe($entry->user_agent),
             // Through a token of the API ("API · Power BI (#3)"), or nothing: the pages.
             'via' => $entry->getAttribute('via'),
         ];

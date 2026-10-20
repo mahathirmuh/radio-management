@@ -671,11 +671,11 @@ Prinsip:
 - [x] Tes: izin, konflik 412 dan 423, API client ditolak.
 
 ### 6.7 Tambahan dari K3 dan K12 yang diambil
-- [ ] Audit log:
+- [x] Audit log:
   - filter Entity dan Date range dengan kalender rentang; `list()` meneruskan `from`, `to` dan `entityType`;
   - baris Browser di Event details.
-- [ ] COF scan: hitungan Linked/Unmatched dan filter status di endpoint list; sel statistik, banner, segmented.
-- [ ] Butir K12 lain yang diambil pemilik.
+- [x] COF scan: hitungan Linked/Unmatched dan filter status di endpoint list; sel statistik, banner, segmented.
+- [x] Butir K12 lain yang diambil pemilik: tidak ada. Jawaban K12 membuang semua butir lainnya.
 
 ### 6.8 Menu dan urutan
 - [ ] Seeder menu baru mengikuti pola `ESignMenuSeeder`, dipanggil migration dan `DatabaseSeeder`.
@@ -916,3 +916,28 @@ Prinsip:
   - diperiksa di browser (preview, halaman dengan pengaturan Microsoft palsu dan baris rekaan): pensil baris, dialog di
     1440 dan 1366, kolom baca-saja (rumus, menunggu, File scan).
   - suite penuh: 518 lulus.
+- 2026-10-20, 6.7 selesai:
+  - COF Scan: `FolderView::page()` menerima `status` (`linked`, `unmatched`; selain itu diabaikan) dan menghitung file per
+    status untuk seluruh folder (`counts`), hanya bila sheet bisa dicocokkan dengan file. `FolderController::list()`
+    meneruskannya dan menjawab `register.linked/unmatched`, `folder.status` dan `folder.synced` (jam, dan "Hari ini",
+    "Kemarin" atau tanggal);
+  - halaman COF Scan: tiga sel statistik, banner peringatan dengan **Tinjau** (memilih Tidak tertaut), segmented
+    Semua / Tertaut / Tidak tertaut dengan jumlahnya. Reset dan pindah folder kembali ke Semua. Tanpa sheet, semuanya
+    tersembunyi. Kolom cari di toolbar menyusut (200 sampai 360px), jadi toolbar tetap satu baris di 1366;
+  - Audit log: `AuditLogController::list()` meneruskan `from`, `to` (hari, tertukar dibalik, yang bukan hari diabaikan)
+    dan `entity` ke `AuditLogQuery::build()`. Halaman menawarkan jenis catatan yang ada (`AuditLog::entityLabel()`) dan
+    Date range: preset dihitung jadi hari di browser, Custom range memakai kalender rentang dengan pita, pratinjau saat
+    pointer di atas hari, Cancel, Apply dan Esc. Alamat halaman menyimpan `entity`, `range` atau `from`/`to`;
+  - baris Browser di Event details: `App\Services\Audit\UserAgent::describe()` (browser + versi + sistem; program API
+    dengan namanya; console menjadi "Command line");
+  - tes: 3 tes baru di `SharePointScansTest`, 2 di `AuditLogTest`, `tests/Unit/UserAgentTest.php`, 2 cek baru di
+    `sharepoint-page-behaviour.mjs`, 3 di `audit-log-behaviour.mjs`;
+  - beda dari desain:
+    - teks COF Scan berbahasa Indonesia, seperti halamannya;
+    - Date range bawaannya All time (desain: Last 30 days), supaya tautan ke Audit log tetap menampilkan entri lama;
+    - pilihan User dan Export CSV tetap tidak ada (K12); tombol Upload scan tidak ada (K12);
+  - API tidak berubah: `api/v1` sudah punya filter tanggal dan entity, dan tidak mendapat `status` COF Scan;
+  - diperiksa di browser (preview, data rekaan; COF Scan dengan pengaturan Microsoft palsu): sel, banner, Tinjau,
+    toolbar di 1366, 1440, 1920 dan 390; kalender rentang di 390, 1366, 1440 dan 1920 (tidak keluar layar), baris
+    Browser;
+  - suite penuh: 542 lulus.

@@ -233,6 +233,80 @@ class AuditLogTest extends TestCase
         $this->assertSame(3, $list(['search' => ['budi'], 'action' => ['x'], 'paginated' => ['2']])->json('meta.total'));
     }
 
+    public function test_the_list_is_cut_to_a_kind_of_record_and_to_days_and_the_page_offers_them(): void
+    {
+        $admin = $this->superAdmin();
+        $this->actingAs($admin);
+        $logger = app(AuditLogger::class);
+        $at = function (?AuditLog $entry, string $time): int {
+            DB::table('audit_logs')->where('id', $entry->id)->update(['created_at' => $time]);
+
+            return $entry->id;
+        };
+        // An account, a radio, a type of radio (the last moment of a day and the first of the next), and a sign-in about no record.
+        $account = $at($logger->log(AuditLogger::USER_UPDATED, $admin, ['Name' => 'A'], ['Name' => 'B']), '2026-10-05 10:00:00');
+        $radio = $at($logger->log(AuditLogger::RADIO_UPDATED, (new Radio())->forceFill(['id' => 7]), ['Status' => 'A'], ['Status' => 'B']), '2026-10-12 23:59:59');
+        $type = $at($logger->log(AuditLogger::MASTER_UPDATED, (new RadioType())->forceFill(['id' => 3]), ['Name' => 'A'], ['Name' => 'B']), '2026-10-13 00:00:00');
+        $signIn = $at($logger->log(AuditLogger::LOGIN), '2026-10-19 08:00:00');
+        $ids = fn (array $query = []) => array_column($this->getJson(route('audit-log.list', $query))->assertOk()->json('data'), 'id');
+
+        // A kind of record, as it is stored.
+        $this->assertSame([$radio], $ids(['entity' => 'Radio']));
+        $this->assertSame([$account], $ids(['entity' => 'User']));
+        $this->assertSame([], $ids(['entity' => 'Nothing']));
+        // Whole days: the first from its first moment, the last up to its last.
+        $this->assertSame([$radio], $ids(['from' => '2026-10-12', 'to' => '2026-10-12']));
+        $this->assertSame([$type, $radio], $ids(['from' => '2026-10-12', 'to' => '2026-10-13']));
+        $this->assertSame([$type, $radio], $ids(['from' => '2026-10-13', 'to' => '2026-10-12']), 'the wrong way round is turned');
+        $this->assertSame([$signIn, $type], $ids(['from' => '2026-10-13']));
+        $this->assertSame([$account], $ids(['to' => '2026-10-05']));
+        $this->assertSame([$type], $ids(['entity' => 'RadioType', 'from' => '2026-10-01', 'to' => '2026-10-31']));
+        // What is no day is none.
+        foreach (['2026-02-31', '20261012', 'x', '12-10-2026'] as $none) {
+            $this->assertCount(4, $ids(['from' => $none]), $none);
+        }
+        $this->assertCount(4, $ids(['from' => ['2026-10-12'], 'entity' => ['Radio']]));
+
+        // The page offers the kinds of record there are, by their names, in the order of those names.
+        $page = (string) $this->get(route('audit-log.index'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<option value="">All entities</option>\s*<option value="User"\s*>Account</option>\s*<option value="Radio"\s*>Radio</option>\s*<option value="RadioType"\s*>Radio type</option>#', $page);
+        $this->assertStringContainsString('<option value="all" selected>All time</option>', $page);
+        $this->assertMatchesRegularExpression('#<option value="custom" id="auditRangeCustom"\s+hidden disabled\s*></option>#', $page);
+        $this->assertStringContainsString('chosen: "all"', $page);
+
+        // It opens on what its address says: a kind of record, a named range...
+        $named = (string) $this->get(route('audit-log.index', ['entity' => 'Radio', 'range' => '7d']))->assertOk()->getContent();
+        $this->assertStringContainsString('<option value="Radio" selected>Radio</option>', $named);
+        $this->assertStringContainsString('<option value="7d" selected>Last 7 days</option>', $named);
+        $this->assertStringContainsString('entity: "Radio"', $named);
+        $this->assertStringContainsString('chosen: "7d"', $named);
+        // ...or days (the wrong way round turned); anything else is all time, and a kind nothing was recorded about is offered.
+        $days = (string) $this->get(route('audit-log.index', ['from' => '2026-10-19', 'to' => '2026-10-12', 'range' => '7d']))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<option value="custom" id="auditRangeCustom" selected\s*></option>#', $days);
+        $this->assertStringContainsString('chosen: "custom"', $days);
+        $this->assertStringContainsString('from: "2026-10-12"', $days);
+        $this->assertStringContainsString('to: "2026-10-19"', $days);
+        $other = (string) $this->get(route('audit-log.index', ['range' => 'forever', 'from' => '2026-10-12', 'entity' => 'Gadget']))->assertOk()->getContent();
+        $this->assertStringContainsString('chosen: "all"', $other);
+        $this->assertStringContainsString('<option value="Gadget" selected>Gadget</option>', $other);
+        $this->get(route('audit-log.index', ['range' => ['7d'], 'from' => ['x'], 'entity' => ['y']]))->assertOk();
+    }
+
+    public function test_an_entry_says_which_browser_it_came_from(): void
+    {
+        $admin = $this->superAdmin();
+        $this->actingAs($admin);
+        $entry = app(AuditLogger::class)->log(AuditLogger::LOGIN);
+        $list = fn () => $this->getJson(route('audit-log.list'))->assertOk();
+
+        DB::table('audit_logs')->where('id', $entry->id)->update(['user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36']);
+        $list()->assertJsonPath('data.0.browser', 'Chrome 141 on Windows');
+        DB::table('audit_logs')->where('id', $entry->id)->update(['user_agent' => AuditLogger::CONSOLE]);
+        $list()->assertJsonPath('data.0.browser', 'Command line');
+        DB::table('audit_logs')->where('id', $entry->id)->update(['user_agent' => null]);
+        $list()->assertJsonPath('data.0.browser', null);
+    }
+
     // ================================================================ signing in and out
 
     public function test_signing_in_and_out_is_recorded_and_no_password_is(): void
@@ -523,6 +597,6 @@ class AuditLogTest extends TestCase
 
     public function test_the_script_of_the_page_behaves_as_described(): void
     {
-        $this->checkPageScript(route('audit-log.index'), 'tests/tools/audit-log-behaviour.mjs', 9);
+        $this->checkPageScript(route('audit-log.index'), 'tests/tools/audit-log-behaviour.mjs', 12);
     }
 }

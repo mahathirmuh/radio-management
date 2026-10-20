@@ -95,12 +95,51 @@
                     (lihat README, bagian "Dokumen SharePoint").
                 </div>
             @else
+                @if ($register)
+                    {{-- How the files stand against the sheet that lists them (K12): filled from the answer of the list by
+                         spDocs.summary(), hidden while the sheet cannot be set against the files. --}}
+                    <div class="rm-docs-summary" id="docsSummary">
+                        <div class="rm-docs-stats">
+                            <div class="rm-docs-stat">
+                                <div class="rm-docs-stat-label">Sinkron terakhir</div>
+                                <div class="rm-docs-stat-value" id="docsSynced">-</div>
+                                <div class="rm-docs-stat-hint" id="docsSyncedHint">&nbsp;</div>
+                            </div>
+                            <div class="rm-docs-stat">
+                                <div class="rm-docs-stat-label">Tertaut ke baris</div>
+                                <div class="rm-docs-stat-value is-linked" id="docsLinked">-</div>
+                                <div class="rm-docs-stat-hint">Dicocokkan lewat {{ $split ? $split['code'] : 'nomor dokumen' }}</div>
+                            </div>
+                            <div class="rm-docs-stat">
+                                <div class="rm-docs-stat-label">Tidak tertaut</div>
+                                <div class="rm-docs-stat-value is-unmatched" id="docsUnmatched">-</div>
+                                <div class="rm-docs-stat-hint">Tidak ada baris, atau nama beda</div>
+                            </div>
+                        </div>
+                        <div class="rm-alert warning is-bar d-none" id="docsUnmatchedBar">
+                            <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                            <span class="flex-fill"><b id="docsUnmatchedText"></b> Barisnya tidak ada, atau link-nya menyebut file lain.
+                                Perbaiki link-nya di Excel.</span>
+                            <button type="button" class="btn-rm secondary sm" id="docsReview">Tinjau</button>
+                        </div>
+                    </div>
+                @endif
                 <div class="rm-toolbar rm-toolbar-tight">
                     <label class="rm-search rm-search-360" for="docsSearch">
                         <i class="ti ti-search" aria-hidden="true"></i>
                         <input type="search" id="docsSearch" autocomplete="off" maxlength="100" aria-label="Cari"
                             placeholder="{{ $split ? $split['code'] . ' atau ' . mb_strtolower($split['label']) . '…' : 'Nama file…' }}">
                     </label>
+                    @if ($register)
+                        <div class="rm-seg" role="radiogroup" aria-label="Status di Masterlist" id="docsStatus">
+                            <input type="radio" class="btn-check" name="docsStatus" id="docsStatusAll" value="" checked>
+                            <label for="docsStatusAll">Semua <span class="rm-tab-count" id="docsCountAll">-</span></label>
+                            <input type="radio" class="btn-check" name="docsStatus" id="docsStatusLinked" value="linked">
+                            <label for="docsStatusLinked">Tertaut <span class="rm-tab-count" id="docsCountLinked">-</span></label>
+                            <input type="radio" class="btn-check" name="docsStatus" id="docsStatusUnmatched" value="unmatched">
+                            <label for="docsStatusUnmatched">Tidak tertaut <span class="rm-tab-count" id="docsCountUnmatched">-</span></label>
+                        </div>
+                    @endif
                     <button type="button" class="btn-rm secondary" onclick="spDocs.reset()" data-bs-toggle="tooltip"
                         data-bs-title="Reset pencarian, pilihan nomor, dan urutan"><i class="ti ti-restore" aria-hidden="true"></i> Reset</button>
                     <button type="button" class="btn-rm secondary" id="docsReload" onclick="spDocs.load(true)">
@@ -351,6 +390,9 @@
                 path: '',
                 /** The document number that a link from the page of the workbook asked for (only the files with it are shown); '' : all. */
                 code: '',
+                /** The files of one status against the sheet that are shown ('linked', 'unmatched'); '' : all. Its radio by status. */
+                status: '',
+                statuses: { '': '#docsStatusAll', linked: '#docsStatusLinked', unmatched: '#docsStatusUnmatched' },
                 request: 0,
                 columns: [],
                 /** The rows on screen, in table order: what "Lihat" opens and steps through. */
@@ -457,18 +499,19 @@
                         dir: spDocs.dir,
                         path: spDocs.path,
                         ...(spDocs.code !== '' ? { code: spDocs.code } : {}),
+                        ...(spDocs.status !== '' ? { status: spDocs.status } : {}),
                         ...(refresh ? { refresh: 1 } : {}),
                     }).done(response => {
                         if (request !== spDocs.request) return;
                         spDocs.page = response.meta.current_page;
-                        // The document number that the answer is limited to (the server says what it applied).
+                        // The document number and the status that the answer is limited to (the server says what it applied).
                         spDocs.code = typeof response.folder.code === 'string' ? response.folder.code : '';
+                        spDocs.status = typeof response.folder.status === 'string' ? response.folder.status : '';
                         spDocs.codeBar();
                         spDocs.render({
                             data: response.data,
                             meta: response.meta,
-                            emptyText: spDocs.code !== '' ? `Tidak ada file dengan nomor ${spUi.esc(spDocs.code)}${spDocs.search ? ' yang cocok dengan pencarian' : ''}.` :
-                                (spDocs.search ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Folder ini kosong.'),
+                            emptyText: spDocs.empty(),
                         });
                         spDocs.describe(response.folder, response.register);
                     }).fail(xhr => {
@@ -476,6 +519,7 @@
                         spDocs.render({ emptyText: 'Daftar tidak bisa dimuat.' });
                         $('#docsPage .pagination-container').hide();
                         $('#docsInfo').text('');
+                        spDocs.summary(null, null);
                         spDocs.notice([{ kind: 'danger', text: spDocs.failure(xhr) }]);
                     }).always(() => {
                         if (request === spDocs.request) $('#docsReload').prop('disabled', false);
@@ -490,6 +534,52 @@
                     $('#docsCodeBar').toggleClass('d-none', spDocs.code === '');
                     $('#docsCodeText').text(spDocs.code === '' ? '' : `Hanya file dengan nomor ${spDocs.code}.`);
                     if (had && spDocs.code === '') $('#docsSearch').trigger('focus');
+                },
+
+                /** What the table says when it shows nothing, in the words of what was asked for. */
+                empty() {
+                    const among = spDocs.code !== '' || spDocs.search ? ' di antara yang dicari' : '';
+                    if (spDocs.status === 'linked') return `Tidak ada file yang tertaut ke baris${among}.`;
+                    if (spDocs.status === 'unmatched') return `Tidak ada file yang tidak tertaut${among}.`;
+                    if (spDocs.code !== '') return `Tidak ada file dengan nomor ${spUi.esc(spDocs.code)}${spDocs.search ? ' yang cocok dengan pencarian' : ''}.`;
+
+                    return spDocs.search ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Folder ini kosong.';
+                },
+
+                /**
+                 * The three cells over the list, the warning about the files without their own row and the counts of the filter (K12):
+                 * only when the sheet could be set against the files of the folder.
+                 */
+                summary(folder, register) {
+                    const counted = !!folder && !!register && Number.isInteger(register.linked) && Number.isInteger(register.unmatched);
+                    $('#docsSummary').toggleClass('d-none', !counted);
+                    $('#docsStatus').toggleClass('d-none', !counted);
+                    if (!counted) return;
+                    const files = Number(folder.files) || 0;
+                    const synced = folder.synced || {};
+                    $('#docsSynced').text(synced.time || '-');
+                    $('#docsSyncedHint').text(`${synced.day || folder.fetched_at} · ${files} file di folder`);
+                    $('#docsLinked').text(register.linked);
+                    $('#docsUnmatched').text(register.unmatched);
+                    $('#docsCountAll').text(files);
+                    $('#docsCountLinked').text(register.linked);
+                    $('#docsCountUnmatched').text(register.unmatched);
+                    $('#docsUnmatchedBar').toggleClass('d-none', register.unmatched === 0);
+                    $('#docsUnmatchedText').text(`${register.unmatched} file tidak cocok dengan baris di ${register.title}.`);
+                    spDocs.mark();
+                },
+
+                /** Ticks the radio of the status that is shown. */
+                mark() {
+                    $(spDocs.statuses[spDocs.status] || spDocs.statuses['']).prop('checked', true);
+                },
+
+                /** Shows the files of one status ('' : all): from the radios, and from "Tinjau" in the warning. */
+                filter(status) {
+                    spDocs.status = Object.prototype.hasOwnProperty.call(spDocs.statuses, status) ? status : '';
+                    spDocs.mark();
+                    spDocs.page = 1;
+                    spDocs.load();
                 },
 
                 failure(xhr) {
@@ -533,6 +623,7 @@
                     }
                     spDocs.notice(notices);
                     spDocs.target(folder.web_url);
+                    spDocs.summary(folder, register);
                 },
 
                 notice(notices) {
@@ -571,6 +662,8 @@
                     spDocs.page = 1;
                     spDocs.search = '';
                     spDocs.code = '';
+                    spDocs.status = '';
+                    spDocs.mark();
                     spDocs.codeBar();
                     $('#docsSearch').val('');
                     spDocs.crumbs();
@@ -589,6 +682,8 @@
                     spDocs.sort = 'modified';
                     spDocs.dir = 'desc';
                     spDocs.code = '';
+                    spDocs.status = '';
+                    spDocs.mark();
                     spDocs.codeBar();
                     spDocs.apply();
                 },
@@ -717,6 +812,10 @@
                 $('#docsTable').on('click', 'button.docs-view', function() {
                     spViewer.open(Number($(this).attr('data-index')));
                 });
+                $('#docsStatus').on('change', 'input[name="docsStatus"]', function() {
+                    spDocs.filter(String($(this).val()));
+                });
+                $('#docsReview').on('click', () => spDocs.filter('unmatched'));
                 // A link from the page of the workbook ("?code=ICTCOF123" shows the files with that number, "?search=" searches the names) opens the folder so.
                 const query = new URLSearchParams(location.search);
                 // Cut by characters, not by the halves of one: a character outside the basic plane cut in two cannot be put into an address.

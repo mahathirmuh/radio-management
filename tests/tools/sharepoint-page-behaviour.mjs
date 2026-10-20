@@ -660,6 +660,104 @@ check('a link from the page of the workbook asks for the files of one document n
     assert.equal(odd.node('#docsCodeText').text, '');
 });
 
+// ---------------------------------------------------------------- how the files stand against the sheet (K12)
+const counted = (linked = 4, unmatched = 3) => ({ title: 'ICT Masterlist', sheet: 'COF', fetched_at: '01-01-2026 00:05', stale: false, linked, unmatched });
+const synced = { ...folder, files: 7, synced: { time: '10:15', day: 'Hari ini' } };
+
+check('the cells over the list count the files against the sheet; the warning shows only while some have no row', () => {
+    // Before the first answer the cells wait with a dash, and the warning is hidden.
+    assert.match(html, /<div class="rm-docs-summary" id="docsSummary">/);
+    assert.match(html, /<div class="rm-docs-stat-value" id="docsSynced">-<\/div>/);
+    assert.match(html, /<div class="rm-docs-stat-hint">Dicocokkan lewat No\. COF<\/div>/);
+    assert.match(html, /<div class="rm-alert warning is-bar d-none" id="docsUnmatchedBar">/);
+    assert.match(html, /<div class="rm-seg" role="radiogroup" aria-label="Status di Masterlist" id="docsStatus">\s*<input type="radio" class="btn-check" name="docsStatus" id="docsStatusAll" value="" checked>/);
+
+    spDocs.load();
+    answer(requests.at(-1), { data: three(), meta: meta(3), folder: synced, register: counted() });
+    assert.equal(node('#docsSummary').classes.has('d-none'), false);
+    assert.equal(node('#docsStatus').classes.has('d-none'), false);
+    assert.equal(node('#docsSynced').text, '10:15');
+    assert.equal(node('#docsSyncedHint').text, 'Hari ini · 7 file di folder');
+    assert.deepEqual([node('#docsLinked').text, node('#docsUnmatched').text], ['4', '3']);
+    assert.deepEqual([node('#docsCountAll').text, node('#docsCountLinked').text, node('#docsCountUnmatched').text], ['7', '4', '3']);
+    assert.equal(node('#docsUnmatchedBar').classes.has('d-none'), false);
+    assert.equal(node('#docsUnmatchedText').text, '3 file tidak cocok dengan baris di ICT Masterlist.');
+    assert.equal(node('#docsUnmatchedText').wrote, 'text');
+
+    // Every file has its own row: no warning.
+    spDocs.describe(synced, counted(7, 0));
+    assert.equal(node('#docsUnmatchedBar').classes.has('d-none'), true);
+
+    // The sheet could not be read, or the list could not be had: nothing is counted, and there is nothing to filter by.
+    spDocs.describe(synced, { title: 'ICT Masterlist', unavailable: 'Kolom Masterlist dan Catatan belum bisa ditampilkan.' });
+    assert.equal(node('#docsSummary').classes.has('d-none'), true);
+    assert.equal(node('#docsStatus').classes.has('d-none'), true);
+    spDocs.describe(synced, counted());
+    assert.equal(node('#docsSummary').classes.has('d-none'), false);
+    spDocs.load();
+    refuse(requests.at(-1), { status: 503, responseJSON: { message: 'SharePoint sedang tidak bisa dihubungi.' } });
+    assert.equal(node('#docsSummary').classes.has('d-none'), true);
+    assert.equal(node('#docsStatus').classes.has('d-none'), true);
+
+    // An answer without the time in words: the time it was read, as the list gives it.
+    spDocs.describe({ ...folder, synced: null }, counted());
+    assert.equal(node('#docsSynced').text, '-');
+    assert.equal(node('#docsSyncedHint').text, '01-01-2026 00:00 · 3 file di folder');
+});
+
+check('a status keeps its files: from the radios and from "Tinjau"; the table says why it is empty; reset and a folder start with all', () => {
+    spDocs.load();
+    answer(requests.at(-1), { data: three(), meta: { ...meta(60), current_page: 3 }, folder: synced, register: counted() });
+
+    // From page 3, a radio: the first page of that status.
+    node('(object)').value = 'unmatched';
+    fire('#docsStatus', 'change input[name="docsStatus"]');
+    assert.equal(sent().status, 'unmatched');
+    assert.equal(sent().page, 1);
+    assert.equal(node('#docsStatusUnmatched').props.checked, true);
+    answer(requests.at(-1), { data: [file('ICTCOF2', listed('differs', 3))], meta: meta(1), folder: { ...synced, status: 'unmatched' }, register: counted() });
+    assert.equal(spDocs.status, 'unmatched');
+
+    // A search, another page and "Muat ulang" keep it; none left says so in the words of the status.
+    node('#docsSearch').value = 'hadi';
+    fire('#docsSearch', 'keydown', { key: 'Enter' });
+    assert.deepEqual([sent().status, sent().search], ['unmatched', 'hadi']);
+    answer(requests.at(-1), { data: [], meta: meta(0), folder: { ...synced, status: 'unmatched' }, register: counted() });
+    assert.match(table(), /Tidak ada file yang tidak tertaut di antara yang dicari\./);
+    spDocs.load(true);
+    assert.deepEqual([sent().status, sent().refresh], ['unmatched', 1]);
+    answer(requests.at(-1), { data: [], meta: meta(0), folder: { ...synced, status: 'unmatched' }, register: counted() });
+
+    spDocs.reset();
+    assert.equal('status' in sent(), false);
+    assert.equal(node('#docsStatusAll').props.checked, true);
+    node('(object)').value = 'linked';
+    fire('#docsStatus', 'change input[name="docsStatus"]');
+    answer(requests.at(-1), { data: [], meta: meta(0), folder: { ...synced, status: 'linked' }, register: counted() });
+    assert.match(table(), /Tidak ada file yang tertaut ke baris\./);
+
+    // An answer that did not apply it (the sheet could not be read this time): all the files, and the radios say so.
+    spDocs.filter('linked');
+    answer(requests.at(-1), { data: three(), meta: meta(3), folder: synced, register: { title: 'ICT Masterlist', unavailable: 'x' } });
+    assert.equal(spDocs.status, '');
+    assert.equal(node('#docsStatusAll').props.checked, true);
+
+    // "Tinjau" in the warning: the files without their own row.
+    fire('#docsReview', 'click');
+    assert.equal(sent().status, 'unmatched');
+    assert.equal(node('#docsStatusUnmatched').props.checked, true);
+    answer(requests.at(-1), { data: [file('ICTCOF2', listed('differs', 3))], meta: meta(1), folder: { ...synced, status: 'unmatched' }, register: counted() });
+
+    // A folder below starts with all its files; so does an unknown status.
+    spDocs.open('2025');
+    assert.equal('status' in sent(), false);
+    assert.equal(node('#docsStatusAll').props.checked, true);
+    spDocs.filter('constructor');
+    assert.equal('status' in sent(), false);
+    spDocs.open('');
+    answer(requests.at(-1), { data: three(), meta: meta(3), folder: synced, register: counted() });
+});
+
 // ---------------------------------------------------------------- the script and the page fit together
 check('every element the script reaches for by id is in the page', () => {
     const used = ids();

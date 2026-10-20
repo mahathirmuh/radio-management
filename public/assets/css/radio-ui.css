@@ -3082,6 +3082,12 @@ th.is-sorted .rm-sort {
     cursor: default;
 }
 
+.rm-cal-day:focus-visible,
+.rm-cal-nav:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 1px;
+}
+
 .rm-cal-foot {
     display: flex;
     justify-content: space-between;
@@ -3106,6 +3112,42 @@ th.is-sorted .rm-sort {
 
 .rm-cal-foot a:hover {
     text-decoration: underline;
+}
+
+/* A range of days on the calendar (Audit log): a band between the two days chosen (or the first and the day under the
+   pointer), the summary and its buttons under it. */
+.rm-cal-cell.is-band {
+    background: var(--rm-brand-50);
+}
+
+.rm-cal-cell.is-start {
+    background: linear-gradient(to right, transparent 50%, var(--rm-brand-50) 50%);
+}
+
+.rm-cal-cell.is-end {
+    background: linear-gradient(to left, transparent 50%, var(--rm-brand-50) 50%);
+}
+
+.rm-cal-day.is-preview {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
+}
+
+.rm-cal-sum {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+}
+
+.rm-cal-sum-text {
+    flex: 1;
+    min-width: 0;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
 }
 
 /* A row of filters above a table (Riwayat Radio). */
@@ -4308,6 +4350,103 @@ a:focus-visible > .rm-kpi {
     font-family: var(--rm-mono);
     font-size: 12px;
     font-weight: 500;
+}
+
+/* The first place of the card hidden (COF Scan without a sheet to count against): what follows it is the first, without the
+   space above. */
+.rm-docs .rm-card > .d-none:first-child + * {
+    margin-top: 0;
+}
+
+/* COF Scan: the search gives way first when the row of controls is full (the filter by the Masterlist is in it too): at
+   least 200 wide, up to 360 where there is room. (In a row that wraps, a control moves down before it shrinks.) */
+.rm-docs .rm-toolbar .rm-search.rm-search-360 {
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: 360px;
+}
+
+/* COF Scan: how the files stand against the sheet that lists them (three cells, the warning under them). */
+.rm-docs-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rm-docs-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: var(--rm-ring);
+}
+
+.rm-docs-stat {
+    padding: 16px 20px;
+}
+
+.rm-docs-stat + .rm-docs-stat {
+    box-shadow: inset 1px 0 0 var(--rm-gray-200);
+}
+
+.rm-docs-stat-label {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-docs-stat-value {
+    color: var(--rm-gray-900);
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+.rm-docs-stat-value.is-linked {
+    color: var(--rm-success-600);
+}
+
+.rm-docs-stat-value.is-unmatched {
+    color: var(--rm-orange-600);
+}
+
+.rm-docs-stat-hint {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+@media (max-width: 575.98px) {
+    .rm-docs-stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rm-docs-stat + .rm-docs-stat {
+        box-shadow: inset 0 1px 0 var(--rm-gray-200);
+    }
+}
+
+/* A warning as one line, its button at the end (COF Scan). */
+.rm-alert.is-bar {
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+}
+
+.rm-alert.is-bar > .ti {
+    margin-top: 0;
+}
+
+/* A count in a segmented control, as in the tabs: blue on the one that is chosen. */
+.rm-seg > label .rm-tab-count {
+    margin-left: 6px;
+}
+
+.rm-seg > input:checked + label .rm-tab-count {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
 }
 
 .rm-search.rm-search-360 {

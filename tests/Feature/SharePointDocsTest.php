@@ -201,6 +201,8 @@ class SharePointDocsTest extends TestCase
                 'path' => '',
                 'web_url' => self::ADDRESS,
                 'fetched_at' => '07-10-2026 10:15',
+                // For the cell "Sinkron terakhir": the hour, and the day in words.
+                'synced' => ['time' => '10:15', 'day' => 'Hari ini'],
                 'files' => 3,
                 'folders' => 0,
                 'size' => '2,0 MB',
