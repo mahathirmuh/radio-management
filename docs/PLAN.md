@@ -7,8 +7,9 @@ lima kemampuan baru yang butuh backend (fase 6).
 - **Spesifikasi:** `docs/design_handoff_radio_management/README.md` dan `design_files/*.dc.html` (folder lokal, lihat K9).
   Ukuran, warna dan state diambil dari atribut `style="…"`. Tag `<dc-import>`, `<sc-for>`, `<sc-if>` dan `{{ }}` hanya
   kerangka prototipe: komponen, perulangan, kondisi, variabel.
-- **Status:** langkah 2 berjalan. Semua rekomendasi K1–K13 dan asumsi A1–A15 disetujui pemilik pada 2026-10-20
-  ("oke, eksekusi sekarang"). Lihat "Progres".
+- **Status:** fase 1–6 selesai (2026-10-20). Semua rekomendasi K1–K13 dan asumsi A1–A15 disetujui pemilik pada
+  2026-10-20 ("oke, eksekusi sekarang"). Migration fase 6 baru dijalankan di LocalDB (tes dan preview): menunggu
+  diperiksa pemilik sebelum dijalankan di database lain. Lihat "Progres".
 
 ## Cara melanjutkan di sesi baru
 
@@ -678,9 +679,12 @@ Prinsip:
 - [x] Butir K12 lain yang diambil pemilik: tidak ada. Jawaban K12 membuang semua butir lainnya.
 
 ### 6.8 Menu dan urutan
-- [ ] Seeder menu baru mengikuti pola `ESignMenuSeeder`, dipanggil migration dan `DatabaseSeeder`.
-- [ ] Ubah urutan di `RadioMenuSeeder` dalam commit yang sama, lalu hapus cache `rbac_menu_route_key_map`.
-- [ ] Bagian `[Unreleased]` di CHANGELOG: baris Deploy dengan daftar migration dan langkah cache.
+- [x] Seeder menu baru mengikuti pola `ESignMenuSeeder`, dipanggil migration dan `DatabaseSeeder`. Dikerjakan di
+  6.3–6.5: `AttentionMenuSeeder`, `ServiceMenuSeeder` dan `OpnameMenuSeeder` (dasar bersama `RadioSectionMenuSeeder`),
+  migration `add_*_menu` (`down()` menutup lagi tempatnya), dipanggil `DatabaseSeeder` di kedua jalurnya.
+- [x] Ubah urutan di `RadioMenuSeeder` dalam commit yang sama, lalu hapus cache `rbac_menu_route_key_map`. Dikerjakan di
+  6.3–6.5: `RadioMenuSeeder` mengenal halaman seksi itu; seeder dan migration menu menghapus cache peta menu.
+- [x] Bagian `[Unreleased]` di CHANGELOG: baris Deploy dengan daftar migration dan langkah cache.
 
 ## Progres
 
@@ -941,3 +945,14 @@ Prinsip:
     toolbar di 1366, 1440, 1920 dan 390; kalender rentang di 390, 1366, 1440 dan 1920 (tidak keluar layar), baris
     Browser;
   - suite penuh: 542 lulus.
+- 2026-10-20, 6.8 selesai:
+  - seeder dan urutan menu sudah dikerjakan bersama halamannya di 6.3–6.5; baris Deploy CHANGELOG berisi ketujuh migration
+    dan langkah cache;
+  - tes baru `RadioSectionMenuTest`: pada database yang sudah dipakai, ketiga migration menu (urutan jalannya: Servis,
+    Perhatian, Opname) menghasilkan sidebar yang sama persis dengan instalasi baru (Register Radio, Perlu Perhatian,
+    Servis & Perbaikan, Stock Opname, Riwayat Radio), izinnya sama dengan Register Radio, cache peta menu dihapus,
+    seeding ulang tidak mengubah apa pun, dan `down()` mengembalikan sidebar semula;
+  - perbaikan yang terungkap oleh tes itu (masalah lama): `RadioMenuSeeder` yang dijalankan ulang (`db:seed` di
+    database yang sudah dipakai) menaruh Approval Management di nomor Audit Log. Sekarang urutannya User Management,
+    Audit Log, API Tokens, lalu Approval Management (CHANGELOG, bagian Diperbaiki);
+  - suite penuh: 543 lulus.

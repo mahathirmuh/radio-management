@@ -208,6 +208,9 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
   latar gelapnya.
 - Halaman login tidak lagi memuat gambar yang tidak ada: thumbnail carousel lama, dan ikon `manifest.json` peninggalan
   template. Tautan manifest dihapus dari halaman login; file-nya masih ada di `public/`.
+- `php artisan db:seed` di database yang sudah dipakai (atau `--class=RadioMenuSeeder`) menaruh Approval Management di
+  nomor urut yang sama dengan Audit Log, sehingga urutan keduanya di sidebar tidak tentu. Sekarang Audit Log dan API
+  Tokens tetap di bawah User Management, Approval Management sesudahnya.
 
 **Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru. Fase 6 membawa migrasi: `php artisan migrate`, sekali
 per database. Migrasinya:
