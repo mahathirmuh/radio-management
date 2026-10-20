@@ -61,6 +61,9 @@ class AuditLogger
 
     public const RADIO_HISTORY_ADDED = 'radio.history_added';
 
+    /** A radio handed over to someone (the dialog "Serah terima"): the receiver's signature is never part of it. */
+    public const RADIO_HANDED_OVER = 'radio.handed_over';
+
     public const RADIO_IMPORTED = 'radio.imported';
 
     /** Tipe Radio, Perusahaan, Department, Template Channel: the entry names which. */

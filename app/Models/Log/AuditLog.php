@@ -97,6 +97,7 @@ class AuditLog extends Model
             AuditLogger::RADIO_RESTORED => 'restored radio',
             AuditLogger::RADIO_DELETED => 'deleted radio',
             AuditLogger::RADIO_HISTORY_ADDED => 'added a history entry to radio',
+            AuditLogger::RADIO_HANDED_OVER => 'handed over radio',
             AuditLogger::RADIO_IMPORTED => 'imported radios from Excel',
             AuditLogger::MASTER_CREATED => 'added',
             AuditLogger::MASTER_UPDATED => 'updated',

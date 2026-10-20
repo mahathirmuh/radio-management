@@ -28,6 +28,15 @@ return [
         'Lainnya',
     ],
 
+    // What may be handed over with a radio (the dialog "Serah terima"), as the history line names it.
+    'handover_accessories' => [
+        'Baterai',
+        'Charger',
+        'Antena',
+        'Belt clip',
+        'Earpiece',
+    ],
+
     'history_actions' => [
         'Serah Terima',
         'Service',

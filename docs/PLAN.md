@@ -588,19 +588,19 @@ Prinsip:
   - checker JS untuk modal.
 
 ### 6.2 Serah terima dengan tanda tangan
-- [ ] Dialog 900px berisi:
+- [x] Dialog 900px berisi:
   - ringkasan radio;
   - penerima (dari direktori karyawan);
   - nomor dokumen (K13c), PO, aksesori, kondisi, lokasi sesudahnya;
   - pad tanda tangan 180px.
 
   Konfirmasi terkunci sampai pad berisi tinta.
-- [ ] Simpan dan cetak:
+- [x] Simpan dan cetak:
   - `RadioService::handover()` mencatat riwayat "Serah Terima" dengan `document_no` dan audit `radio.handed_over`;
   - PUT `radio-management.radio.handover` (Update);
   - lalu form checkout terbuka dengan tanda tangan (K13b).
-- [ ] Tombol Serah terima di Detail dengan `@permission`.
-- [ ] Tes:
+- [x] Tombol Serah terima di Detail dengan `@permission`.
+- [x] Tes:
   - Viewer mendapat 403;
   - tanda tangan kosong atau bukan PNG ditolak;
   - tanda tangan tidak masuk audit;
@@ -811,3 +811,14 @@ Prinsip:
   - di form: tombol "Pilih ID" membuka panel 440 (`rm-idp`), dan baris status di bawah field (`#radioIdStatus`) dengan
     tombol "Pakai N". Panel lama "ID bebas" dan peringatan F lama diganti;
   - tes: `RadioIdPickerTest` (5, termasuk checker `radio-id-picker-behaviour.mjs`, 5 cek). Suite penuh: 480 lulus.
+- 2026-10-20, 6.2 selesai:
+  - `RadioService::handover()` dan `RadioController::handover()`. Tanda tangan diperiksa dengan `SignatureImage::clean()`
+    lalu dibuang;
+  - `GET radio-management.radio.employees`: direktori karyawan, hanya untuk yang boleh Update Register Radio;
+  - audit `radio.handed_over` ("Handed over" di Audit log); `config('radio.handover_accessories')`;
+  - dialog `radio/handover-modal.blade.php` (pad canvas sendiri, titik disimpan sebagai bagian lebar/tinggi);
+  - `radioPrint.open(url, label, { signature, after })` menyisipkan tanda tangan lewat `window.checkoutSign()` yang baru di
+    form checkout, lalu memuat ulang detail saat pop-up ditutup;
+  - tes: `RadioHandoverTest` (4, termasuk checker `radio-handover-behaviour.mjs`, 5 cek);
+  - diperiksa di browser: dialog, tanda tangan, form terbuka dengan nama penerima dan tanda tangannya;
+  - suite penuh: 484 lulus.

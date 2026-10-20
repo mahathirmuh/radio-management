@@ -55,11 +55,17 @@
             opener: null,
             /** The picture of the signature as it was when the form was last printed (null: none), so that closing does not ask about what is on paper. */
             printed: null,
+            /** A signature to put into the form once it has loaded (a handover: drawn in its dialog, kept nowhere), or null. */
+            signing: null,
+            /** What to do when the pop-up has closed, or null. */
+            after: null,
 
-            open(url, label) {
+            open(url, label, { signature = null, after = null } = {}) {
                 radioPrint.url = url;
                 radioPrint.opener = document.activeElement;
                 radioPrint.printed = null;
+                radioPrint.signing = typeof signature === 'string' && signature.startsWith('data:image/png;base64,') ? signature : null;
+                radioPrint.after = typeof after === 'function' ? after : null;
                 $('#radioPrintLabel').text(label || '');
                 $('#radioPrintNotice').addClass('d-none').text('');
                 $('#radioPrintButton').prop('disabled', true);
@@ -93,6 +99,15 @@
                     ok = false;
                 }
                 $('#radioPrintButton').prop('disabled', !ok);
+                if (ok && radioPrint.signing) {
+                    // The receiver's signature from the handover goes into the box RESPONSIBLE USER of the form.
+                    try {
+                        frame.contentWindow.checkoutSign(radioPrint.signing);
+                    } catch (error) {
+                        // An older form without the hook: the person signs on the form itself.
+                    }
+                    radioPrint.signing = null;
+                }
                 if (ok) return;
                 $('#radioPrintFrame').remove();
                 $('#radioPrintNotice').removeClass('d-none').text(
@@ -144,10 +159,14 @@
 
             closed() {
                 radioPrint.url = null;
+                radioPrint.signing = null;
                 $('#radioPrintFrame').remove();
                 const opener = radioPrint.opener;
                 radioPrint.opener = null;
                 if (opener && document.contains(opener) && typeof opener.focus === 'function') opener.focus();
+                const after = radioPrint.after;
+                radioPrint.after = null;
+                if (after) after();
             },
         };
 

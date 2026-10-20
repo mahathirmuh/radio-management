@@ -19,6 +19,8 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::get('list', 'list')->name('list');
         Route::get('next-id', 'nextId')->name('next-id');
         Route::get('id-check', 'idCheck')->name('id-check');
+        // The receiver of a handover, from the employee directory (for who may hand a radio over).
+        Route::get('employees', 'employees')->name('employees');
         Route::get('export', 'export')->name('export');
         // Several radios at once (ticked in the list). The names stay "<menu key>.<action>" (bulk-verify, not bulk.verify)
         // so the `permission` middleware finds "Register Radio": verifying and archiving are an Update, deleting a Delete.
@@ -33,6 +35,8 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::put('{radio}', 'update')->name('update')->whereNumber('radio');
         Route::put('{radio}/archive', 'archive')->name('archive')->whereNumber('radio');
         Route::put('{radio}/restore', 'restore')->name('restore')->whereNumber('radio');
+        // A handover changes the radio (Update); the receiver's signature only goes onto the printed form.
+        Route::put('{radio}/handover', 'handover')->name('handover')->whereNumber('radio');
         // PUT, not POST: a history line changes an existing radio (Update permission).
         Route::put('{radio}/history', 'storeHistory')->name('add-history')->whereNumber('radio');
         Route::delete('{radio}', 'destroy')->name('destroy')->whereNumber('radio');

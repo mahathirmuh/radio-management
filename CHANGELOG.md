@@ -20,6 +20,15 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     menyebut alasannya (MDC Code mengandung F, dipakai radio lain, atau dicadangkan radio tanpa ID) beserta pemegangnya,
     dan menawarkan ID pengganti ("Pakai 768"). Panelnya menampilkan ID di sekitarnya (bebas / dipakai / ada F) dan
     ID bebas berikutnya. Endpoint baru: `GET radio-management/radio/id-check`.
+  - **Serah terima** di detail radio (dengan izin Update):
+    - dialog 900px: penerima (dicari di direktori karyawan atau diketik), No. BA (wajib), No. PO, aksesori, kondisi,
+      lokasi sesudahnya, department/company penerima, dan pad tanda tangan penerima. Tombol konfirmasi baru aktif
+      setelah ada tanda tangan;
+    - radio menjadi milik penerima, dengan satu baris riwayat "Serah Terima" (BA sebagai nomor dokumen) dan audit
+      `radio.handed_over`;
+    - tanda tangan hanya untuk cetak: form checkout terbuka dengan tanda tangan itu di kotak Responsible User, dan tidak
+      disimpan di mana pun (juga tidak di audit);
+    - endpoint baru: `PUT radio-management/radio/{radio}/handover` dan `GET radio-management/radio/employees`.
 
 ### Diubah
 

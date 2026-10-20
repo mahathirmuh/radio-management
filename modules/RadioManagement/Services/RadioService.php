@@ -7,6 +7,7 @@ use BackedEnum;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
+use Modules\RadioManagement\Enums\Placement;
 use Modules\RadioManagement\Models\ChannelTemplate;
 use Modules\RadioManagement\Models\Radio;
 use Modules\RadioManagement\Models\RadioCompany;
@@ -218,6 +219,58 @@ class RadioService
                 'Keterangan' => $data['description'] ?? null,
                 'No. Dokumen' => $data['document_no'] ?? null,
             ], fn ($value) => filled($value)));
+
+            return $entry;
+        });
+    }
+
+    /**
+     * Hand a radio over to someone (the dialog "Serah terima" of its detail). The radio is theirs from now on: their name,
+     * and the department and company when they are given; where it is and in what condition; and the BA (with the PO) of
+     * the handover is its document number. One line "Serah Terima" in its history, with the BA, and one in the audit
+     * trail. The receiver's signature is not kept anywhere: it goes onto the printed form only (the controller checks it).
+     *
+     * @param array{receiver: string, employee_id?: ?string, ba: string, po?: ?string, accessories?: ?array<int, string>,
+     *     condition?: ?string, placement?: ?string, department_id?: ?int, company_id?: ?int} $data
+     */
+    public function handover(Radio $radio, array $data, ?int $userId): RadioHistory
+    {
+        return $this->lock->run(function () use ($radio, $data, $userId) {
+            $this->reload($radio);
+            if ($radio->isArchived()) {
+                $this->refuse('Radio yang diarsipkan tidak bisa diserahterimakan. Pulihkan dulu.');
+            }
+
+            $document = implode(' / ', array_filter([trim((string) ($data['po'] ?? '')), trim((string) $data['ba'])], 'filled'));
+            $radio->fill(array_filter([
+                'user_name' => trim((string) $data['receiver']),
+                'department_id' => $data['department_id'] ?? null,
+                'company_id' => $data['company_id'] ?? null,
+                'placement' => $data['placement'] ?? Placement::DiUser->value,
+                'condition' => $data['condition'] ?? null,
+                'document_no' => $document,
+            ], fn ($value) => $value !== null && $value !== ''));
+            $changes = $this->pendingChanges($radio);
+            $radio->updated_by = $userId;
+            $radio->save();
+
+            $accessories = array_values(array_filter((array) ($data['accessories'] ?? []), 'filled'));
+            $employee = trim((string) ($data['employee_id'] ?? ''));
+            $description = 'Diserahkan ke ' . trim((string) $data['receiver']) . ($employee !== '' ? " ({$employee})" : '') . '.'
+                . ($accessories ? ' Aksesori: ' . implode(', ', $accessories) . '.' : ' Tanpa aksesori.');
+            $entry = $this->log($radio, 'Serah Terima', $description, $userId, [
+                'document_no' => $document,
+                'changes' => $changes ?: null,
+            ]);
+            $this->audit(AuditLogger::RADIO_HANDED_OVER, $radio, new: array_filter([
+                'Penerima' => trim((string) $data['receiver']),
+                'No. karyawan' => $employee,
+                'No. BA' => trim((string) $data['ba']),
+                'No. PO' => trim((string) ($data['po'] ?? '')),
+                'Aksesori' => implode(', ', $accessories),
+                'Kondisi' => $radio->condition?->label(),
+                'Posisi' => $radio->placement?->label(),
+            ], 'filled'));
 
             return $entry;
         });

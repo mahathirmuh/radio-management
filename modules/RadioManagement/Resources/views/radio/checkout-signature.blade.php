@@ -337,5 +337,9 @@
         window.addEventListener('resize', () => {
             if (!overlay.hidden) size();
         });
+        // A signature drawn elsewhere (the dialog "Serah terima" of the radio's detail): a PNG only, put in as if drawn here.
+        window.checkoutSign = url => {
+            if (typeof url === 'string' && url.startsWith('data:image/png;base64,')) place(url);
+        };
     })();
 </script>

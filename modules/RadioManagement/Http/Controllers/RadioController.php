@@ -27,6 +27,11 @@ use Modules\RadioManagement\Services\RadioFilter;
 use Modules\RadioManagement\Services\RadioIdService;
 use Modules\RadioManagement\Services\RadioRules;
 use Modules\RadioManagement\Services\RadioService;
+use Modules\RadioManagement\Services\SignatureImage;
+use Modules\SharePointDocs\Services\MenuAccess;
+use Modules\UserManagement\Services\EmployeeDirectory;
+use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 class RadioController extends Controller
 {
@@ -107,6 +112,75 @@ class RadioController extends Controller
         return response()->json(['data' => $this->ids->check($id, $request->integer('except') ?: null)]);
     }
 
+    /**
+     * Hand the radio over (the dialog "Serah terima" of its detail). The receiver's signature is checked (a PNG with ink),
+     * then let go: it is printed on the checkout form only and kept nowhere (K13b).
+     */
+    public function handover(Request $request, Radio $radio): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'receiver' => ['required', 'string', 'max:120'],
+            'employee_id' => ['nullable', 'string', 'max:40'],
+            'ba' => ['required', 'string', 'max:60'],
+            'po' => ['nullable', 'string', 'max:60'],
+            'accessories' => ['nullable', 'array'],
+            'accessories.*' => ['string', Rule::in(config('radio.handover_accessories'))],
+            'condition' => ['nullable', Rule::in(array_column(Condition::cases(), 'value'))],
+            'placement' => ['nullable', Rule::in(array_column(Placement::cases(), 'value'))],
+            'department_id' => ['nullable', 'integer', Rule::exists('radio_departments', 'id')],
+            'company_id' => ['nullable', 'integer', Rule::exists('radio_companies', 'id')],
+            'signature' => ['required', 'string'],
+        ], [
+            'signature.required' => 'Penerima belum tanda tangan.',
+        ], [
+            'receiver' => 'Penerima',
+            'employee_id' => 'No. karyawan',
+            'ba' => 'No. BA',
+            'po' => 'No. PO',
+            'accessories' => 'Aksesori',
+            'condition' => 'Kondisi',
+            'placement' => 'Lokasi',
+            'department_id' => 'Department',
+            'company_id' => 'Company',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Input tidak valid', 'errors' => $validator->errors()->all()], 422);
+        }
+        try {
+            SignatureImage::clean((string) $request->input('signature'));
+        } catch (InvalidArgumentException $refused) {
+            return response()->json(['message' => 'Input tidak valid', 'errors' => [$refused->getMessage()]], 422);
+        }
+
+        return $this->saving(function () use ($validator, $radio, $request) {
+            $this->radios->handover($radio, Arr::except($validator->validated(), ['signature']), $request->user()?->id);
+
+            return response()->json([
+                'message' => 'Radio ' . $radio->display_name . ' diserahkan ke ' . trim((string) $request->input('receiver')) . '.',
+                'checkout_form' => route('radio-management.radio.checkout-form', $radio),
+            ]);
+        });
+    }
+
+    /**
+     * People of the employee directory (HR) whose name or work address holds what was typed: the receiver of a handover.
+     * Only for who may hand a radio over (the names and addresses of everyone employed).
+     */
+    public function employees(Request $request): JsonResponse
+    {
+        if (! MenuAccess::allows($request->user(), 'radio-management.radio.handover', 'Update')) {
+            abort(403);
+        }
+        $directory = app(EmployeeDirectory::class);
+        $typed = $request->query('q');
+
+        return response()->json([
+            'available' => $directory->isAvailable(),
+            'data' => is_string($typed) ? $directory->search($typed) : [],
+            'failed' => $directory->failed(),
+        ]);
+    }
+
     public function export(Request $request)
     {
         return RadioExport::download(
@@ -158,6 +232,9 @@ class RadioController extends Controller
             'issues' => $this->checks->issuesFor($radio),
             'historyActions' => config('radio.history_actions'),
             'archiveReasons' => config('radio.archive_reasons'),
+            'handoverAccessories' => config('radio.handover_accessories'),
+            // Who processes a handover: the signature of whoever is signed in, from E-Sign Master (the checkout form puts it in).
+            'processedBy' => ($signature = ItSignature::of(request()->user())) === null ? null : ['name' => $signature->display_name, 'image' => $signature->image],
         ] + $this->formOptions());
     }
 

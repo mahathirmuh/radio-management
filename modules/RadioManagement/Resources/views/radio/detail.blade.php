@@ -88,6 +88,11 @@
                         <i class="ti ti-printer" aria-hidden="true"></i> Cetak form
                     </button>
                 @endunless
+                @if ($may['update'] && ! $radio->isArchived())
+                    <button type="button" class="btn-rm secondary" id="radioHandoverButton" onclick="radioHandover.open()">
+                        <i class="ti ti-user-check" aria-hidden="true"></i> Serah terima
+                    </button>
+                @endif
                 @if ($may['update'])
                     <button type="button" class="btn-rm secondary" onclick="radioHistory.open()">
                         <i class="ti ti-plus" aria-hidden="true"></i> Tambah riwayat
@@ -314,6 +319,9 @@
     @include('RadioManagement::radio.modal')
     @include('RadioManagement::radio.archive-modal')
     @include('RadioManagement::radio.print-modal')
+    @if ($may['update'] && ! $radio->isArchived())
+        @include('RadioManagement::radio.handover-modal')
+    @endif
 
     {{-- Tambah riwayat --}}
     <div class="modal fade rm-modal" data-bs-backdrop="static" id="radioHistoryModal" aria-hidden="true"
