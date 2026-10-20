@@ -13,7 +13,7 @@ import { checker, loadPage, textOf } from './page-sandbox.mjs';
 
 const { node, page, fire } = loadPage(
     process.argv[2],
-    ['function debounce(', 'function renderTableWithFeatures(', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioBulk = {', 'const radioTable = {'],
+    ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioBulk = {', 'const radioTable = {'],
     { href: 'http://localhost/radio-management/radio' }
 );
 const { check, done } = checker();
@@ -28,7 +28,7 @@ const buttons = html => [...html.matchAll(/<(a|button)\b([^>]*)>/g)].map(([, tag
     tag,
     attrs: Object.fromEntries([...attributes.matchAll(/([\w-]+)="([^"]*)"/g)].map(([, name, value]) => [name, textOf(value)])),
 }));
-const actions = extra => radioTable.columns.find(column => column.key === 'actions').render(row(extra));
+const actions = extra => radioTable.columns.actions.render(row(extra));
 
 /** What jQuery's .data() makes of an attribute: "5" is the number 5, "true" is true, "null" is null, {...} and [...] are parsed; other text stays text. */
 const coerce = value => {
@@ -100,8 +100,42 @@ check('the other buttons of the row open what they always opened', () => {
     // (the id is a number by the time it gets there, as jQuery reads it from the attribute)
     assert.deepEqual(clicks(edit), [['form', 'edit', 5]]);
     assert.deepEqual(clicks(archive), [['archive', 5, 'ID 11 · 867TEST0001']]);
-    const [, , , restore] = buttons(actions({ archived: true }));
-    assert.deepEqual(clicks(restore), [['restore', 5, 'ID 11 · 867TEST0001']]);
+    // An archived radio is only looked at or brought back (no form to print, nothing to edit).
+    const archived = buttons(actions({ archived: true }));
+    assert.deepEqual(archived.map(button => button.attrs['data-bs-title']), ['Detail & Riwayat', 'Pulihkan']);
+    assert.deepEqual(clicks(archived[1]), [['restore', 5, 'ID 11 · 867TEST0001']]);
+});
+
+check('a role that may not change radios sees only the buttons to look and to print', () => {
+    const may = page('radioMay');
+    const was = { ...may };
+    Object.assign(may, { create: false, update: false, delete: false });
+    try {
+        assert.deepEqual(buttons(actions()).map(button => button.attrs['data-bs-title']), ['Detail & Riwayat', 'Cetak form (IT Equipment Checkout Form)']);
+        assert.deepEqual(buttons(actions({ archived: true })).map(button => button.attrs['data-bs-title']), ['Detail & Riwayat']);
+    } finally {
+        Object.assign(may, was);
+    }
+});
+
+check('a row carries the address of its radio, which a click on the row opens', () => {
+    const full = row({ placement: { label: 'Di User', color: 'blue' }, condition: { label: 'Layak', color: 'green' }, issues: [] });
+    radioTable.render({ data: [full], meta: null });
+    assert.match(node('#radioTable tbody').html, /^<tr data-href="http:\/\/localhost\/radio-management\/radio\/5\/detail"><td class="rm-pick">/);
+    // An address that would break out of the attribute is written as text.
+    radioTable.render({ data: [{ ...full, detail_url: '"><script>x</script>' }], meta: null });
+    assert.match(node('#radioTable tbody').html, /^<tr data-href="&quot;&gt;&lt;script&gt;x&lt;\/script&gt;">/);
+});
+
+check('each scope has its own header, and the box that ticks the page is in both', () => {
+    radioTable.head('archived');
+    const archivedHead = node('#radioTable thead').html;
+    assert.match(archivedHead, /id="radioPickPage"/);
+    assert.match(archivedHead, /<th>Diarsipkan<\/th><th>Alasan<\/th>/);
+    radioTable.head('active');
+    assert.match(node('#radioTable thead').html, /<th data-key="last_verified_at">Verifikasi<\/th><th>Cek<\/th>/);
+    assert.equal(radioTable.columnsOf('archived').length, 8);
+    assert.equal(radioTable.columnsOf('active').length, 13);
 });
 
 done();

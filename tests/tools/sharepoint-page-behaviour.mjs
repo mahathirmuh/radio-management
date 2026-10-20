@@ -138,8 +138,8 @@ check('a click on a column header sorts by it, a second click the other way', ()
     }
 
     // The title is put into its cell by the global helper, as text, in the element it wraps it in.
-    assert.match(node('#docsTable th[data-key="extension"]').html, /<span class="flex-grow-1 text-wrap "><\/span>/);
-    assert.equal(node('#docsTable th[data-key="extension"] span.flex-grow-1').text, 'Tipe');
+    assert.match(node('#docsTable th[data-key="extension"]').html, /<span class="rm-sort-label "><\/span><span class="rm-sort" aria-hidden="true"><i class="ti ti-chevron-up"><\/i><\/span>/);
+    assert.equal(node('#docsTable th[data-key="extension"] span.rm-sort-label').text, 'Tipe');
 
     onPage(3);
     fire('#docsTable th[data-key="extension"]', 'click'); // the "Tipe" header
@@ -155,13 +155,13 @@ check('a click on a column header sorts by it, a second click the other way', ()
 
 check('page links and the page size ask for that page; reset and "Muat ulang" for the first', () => {
     // The links are what the helper wrote: the page of a link is the one in its markup.
-    assert.match(node(' .pagination-container').html, /<a data-page="3" class="btn-pagination /);
+    assert.match(node(' .pagination-container').html, /<button type="button" class="rm-pager-page btn-pagination" data-page="3">3<\/button>/);
     node('(object)').data.page = 3;
     fire(' .pagination-container .btn-pagination, .btn-previous, .btn-next', 'click');
     assert.deepEqual([sent().page, sent().paginated, sent().sort], [3, 25, 'modified']);
     answer(requests.at(-1), { data: three(), meta: { ...meta(60), current_page: 3 }, folder });
-    node('(object)').value = '50';
-    fire(' .pagination-container .pagination-limit', 'change');
+    node('(object)').data.limit = 50;
+    fire(' .pagination-container .pagination-limit', 'click');
     assert.deepEqual([sent().page, sent().paginated], [1, 50]);
     answer(requests.at(-1), { data: three(), meta: meta(60), folder });
 

@@ -1,50 +1,64 @@
 {{-- Archive (take out of service) / restore. Used by the register list and the detail page. --}}
-<div class="modal fade" data-bs-backdrop="static" id="radioArchiveModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            <div class="modal-body p-0">
-                <h3 class="modal-title mb-1">Arsipkan Radio</h3>
-                <p class="radio-muted mb-3" id="radioArchiveLabel"></p>
-                <div class="row g-2">
-                    <div class="col-md-7">
-                        <label for="archive_reason" class="form-label required">Alasan</label>
-                        <select id="archive_reason" class="form-select">
-                            @foreach ($archiveReasons as $reason)
-                                <option value="{{ $reason }}">{{ $reason }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-5">
-                        <label for="archived_at" class="form-label required">Tanggal</label>
-                        <input type="date" id="archived_at" class="form-control">
-                    </div>
-                    <div class="col-12">
-                        <label for="archive_note" class="form-label">Catatan</label>
-                        <textarea id="archive_note" class="form-control" rows="2" maxlength="1000"
-                            placeholder="Mis. dikirim ke site Konawe, BA kehilangan no. ..."></textarea>
-                    </div>
-                    <div class="col-12">
-                        <div class="alert alert-warning py-2 mb-0 small">
-                            Radio yang diarsipkan keluar dari daftar aktif dan Radio ID-nya dilepas sehingga bisa dipakai
-                            radio lain.
-                        </div>
-                    </div>
-                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                        <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true"
-                            data-bs-dismiss="modal">
-                            <x-slot:icon>
-                                <i class="ti ti-x"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
-                        <x-global.btn-detail label="Arsipkan" color="orange" size="sm" id="radioArchiveButton"
-                            onclick="radioArchive.submit()">
-                            <x-slot:icon>
-                                <i class="ti ti-archive"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
+@php
+    // What each reason of config('radio.archive_reasons') means, under its name.
+    $archiveHints = [
+        'Pindah Site' => 'Radio kini masuk register site lain',
+        'Afkir' => 'Akhir masa pakai',
+        'Hilang (BA selesai)' => 'Radio hilang, BA sudah ditandatangani',
+        'Lainnya' => 'Jelaskan di catatan',
+    ];
+@endphp
+<div class="modal fade rm-modal" data-bs-backdrop="static" id="radioArchiveModal" aria-hidden="true"
+    aria-labelledby="radioArchiveTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="rm-dialog-head">
+                <span class="rm-dialog-icon tone-orange"><i class="ti ti-archive" aria-hidden="true"></i></span>
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title" id="radioArchiveTitle">Arsipkan radio?</h3>
+                    <p class="rm-dialog-sub"><span id="radioArchiveLabel"></span>. Radio keluar dari register aktif,
+                        riwayatnya tetap tersimpan.</p>
+                </div>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <div class="rm-dialog-body">
+                <div class="rm-field">
+                    <span class="form-label required">Alasan</span>
+                    <div class="rm-choices" role="radiogroup" aria-label="Alasan">
+                        @foreach ($archiveReasons as $i => $reason)
+                            <label class="rm-choice">
+                                <input type="radio" name="archive_reason" value="{{ $reason }}"
+                                    id="archiveReason{{ $i }}" @checked($i === 0)>
+                                <span>
+                                    <span class="rm-choice-label">{{ $reason }}</span>
+                                    @if (isset($archiveHints[$reason]))
+                                        <span class="rm-choice-hint">{{ $archiveHints[$reason] }}</span>
+                                    @endif
+                                </span>
+                            </label>
+                        @endforeach
                     </div>
                 </div>
+                <div class="rm-field">
+                    <label for="archived_at" class="form-label required">Tanggal</label>
+                    <input type="date" id="archived_at" class="form-control">
+                </div>
+                <div class="rm-field">
+                    <label for="archive_note" class="form-label">Catatan</label>
+                    <textarea id="archive_note" class="form-control" rows="3" maxlength="1000"
+                        placeholder="Mis. dikirim ke site Konawe, BA no. ..."></textarea>
+                </div>
+                <div class="rm-note">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <span>Radio ID-nya dilepas dan bisa dipakai radio baru. Riwayatnya tetap ada di arsip.</span>
+                </div>
+            </div>
+            <div class="rm-dialog-foot">
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-rm primary" id="radioArchiveButton" onclick="radioArchive.submit()">
+                    Arsipkan radio
+                </button>
             </div>
         </div>
     </div>
@@ -63,7 +77,7 @@
             open(id, label) {
                 radioArchive.id = id;
                 $('#radioArchiveLabel').text(label || '');
-                $('#archive_reason').prop('selectedIndex', 0);
+                $('#archiveReason0').prop('checked', true);
                 $('#archived_at').val(RadioUi.today()).attr('max', RadioUi.today());
                 $('#archive_note').val('');
                 $('#radioArchiveModal').modal('show');
@@ -76,26 +90,25 @@
                     dataType: 'json',
                     data: {
                         _method: 'PUT',
-                        archive_reason: $('#archive_reason').val(),
+                        archive_reason: $('input[name="archive_reason"]:checked').val(),
                         archived_at: $('#archived_at').val(),
                         note: $('#archive_note').val(),
                     },
                 })?.done(response => {
                     $('#radioArchiveModal').modal('hide');
-                    Swal.fire('Berhasil', response.message, 'success');
+                    rmFeedback.toast(response.message || 'Radio diarsipkan.');
                     radioArchive.onDone(response);
                 }).fail(RadioUi.fail);
             },
 
             restore(id, label) {
-                Swal.fire({
+                rmDialog.confirm({
+                    tone: 'green',
+                    icon: 'archive-off',
                     title: 'Pulihkan radio dari arsip?',
-                    text: label || '',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ti ti-check"></i> Pulihkan',
-                    cancelButtonText: '<i class="ti ti-x"></i> Batal',
-                    reverseButtons: true,
+                    text: `${label || ''}. Radio kembali ke register aktif dengan Radio ID lamanya bila masih bebas.`,
+                    confirmText: 'Pulihkan radio',
+                    confirmKind: 'success',
                 }).then(result => {
                     if (!result.isConfirmed) return;
                     $.ajax({
@@ -106,7 +119,7 @@
                     }).done(response => {
                         const note = response.dmr_id ? `Radio ID ${response.dmr_id} dipakai kembali.` :
                             'Radio ID lama tidak tersedia, isi Radio ID baru lewat Edit.';
-                        Swal.fire('Berhasil', `${response.message} ${note}`, 'success');
+                        rmFeedback.toast(`${response.message} ${note}`);
                         radioArchive.onDone(response);
                     }).fail(RadioUi.fail);
                 });

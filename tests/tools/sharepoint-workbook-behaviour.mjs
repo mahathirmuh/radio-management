@@ -68,8 +68,8 @@ check('tabs, titles and rows are drawn, and the facts of the workbook are writte
     assert.match(tabs(), /class="nav-link wb-tab " data-sheet="1">COF <span class="badge bg-secondary-lt ms-1">60<\/span>/);
     assert.deepEqual(titles(), ['Baris', 'No', 'Nama', 'Tanggal']);
     // The title is put into its cell by the global helper, as text, in the element it wraps it in.
-    assert.match(node('#wbTable th[data-key="c0"]').html, /<span class="flex-grow-1 text-wrap "><\/span>/);
-    assert.equal(node('#wbTable th[data-key="c0"] span.flex-grow-1').text, 'No');
+    assert.match(node('#wbTable th[data-key="c0"]').html, /<span class="rm-sort-label "><\/span><span class="rm-sort" aria-hidden="true"><i class="ti ti-chevron-up"><\/i><\/span>/);
+    assert.equal(node('#wbTable th[data-key="c0"] span.rm-sort-label').text, 'No');
     // Links to sheets, the current one marked as such: the page does not promise the keyboard model of ARIA tabs.
     assert.match(tabs(), /<a href="#" class="nav-link wb-tab active" aria-current="true" data-sheet="0">SRF/);
     assert.match(tabs(), /<a href="#" class="nav-link wb-tab " data-sheet="1">COF/);
@@ -177,12 +177,15 @@ check('a click on a title sorts by that column, a second click the other way', (
     fire('#wbTable th[data-key="c1"]', 'click');
     assert.deepEqual([sent().tab, sent().sort, sent().dir, sent().page], [1, 'c1', 'asc', 1]);
     answer(requests.at(-1), reply(1, { sheet: { sort: 'c1', dir: 'asc' } }));
-    assert.match(node('#wbTable th[data-key="c1"]').html, /icon-tabler-chevron-up/);
-    assert.doesNotMatch(node('#wbTable th[data-key="c0"]').html, /icon-tabler-chevron/);
+    // The column sorted by is marked, its arrow pointing the way of the order; the others keep a grey arrow up.
+    assert.match(node('#wbTable th[data-key="c1"]').html, /ti-chevron-up/);
+    assert.equal(node('#wbTable th[data-key="c1"]').classes.has('is-sorted'), true);
+    assert.equal(node('#wbTable th[data-key="c0"]').classes.has('is-sorted'), false);
+    assert.match(node('#wbTable th[data-key="c0"]').html, /ti-chevron-up/);
     fire('#wbTable th[data-key="c1"]', 'click');
     assert.deepEqual([sent().sort, sent().dir], ['c1', 'desc']);
     answer(requests.at(-1), reply(1, { sheet: { sort: 'c1', dir: 'desc' } }));
-    assert.match(node('#wbTable th[data-key="c1"]').html, /icon-tabler-chevron-down/);
+    assert.match(node('#wbTable th[data-key="c1"]').html, /ti-chevron-down/);
     fire('#wbTable th[data-key="row"]', 'click'); // "Baris": back to the order of the workbook, first row first
     assert.deepEqual([sent().sort, sent().dir], ['row', 'asc']);
     answer(requests.at(-1), reply(1, { sheet: { sort: 'row', dir: 'asc' } }));
@@ -258,14 +261,14 @@ check('Enter searches at once and the pause then asks nothing; only the latest a
 check('page links and the page size ask for that page; reset and "Muat ulang" for the first', () => {
     answer(requests.at(-1), reply(1, { total: 60 }));
     // The links are what the helper wrote: the page of a link is the one in its markup.
-    assert.match(node(' .pagination-container').html, /<a data-page="3" class="btn-pagination /);
+    assert.match(node(' .pagination-container').html, /<button type="button" class="rm-pager-page btn-pagination" data-page="3">3<\/button>/);
     node('(object)').data.page = 3;
     fire(' .pagination-container .btn-pagination, .btn-previous, .btn-next', 'click');
     assert.deepEqual([sent().page, sent().paginated, sent().tab, sent().search], [3, 25, 1, 'andi wijaya']);
     answer(requests.at(-1), { ...reply(1), meta: { ...meta(60), current_page: 3 } });
     assert.equal(wbBook.page, 3);
-    node('(object)').value = '50';
-    fire(' .pagination-container .pagination-limit', 'change');
+    node('(object)').data.limit = 50;
+    fire(' .pagination-container .pagination-limit', 'click');
     assert.deepEqual([sent().page, sent().paginated], [1, 50]);
     answer(requests.at(-1), reply(1, { total: 60 }));
 

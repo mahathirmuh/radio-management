@@ -2,27 +2,27 @@
 @once
     @push('style')
         <style>
+            /* The look of the badges is the design's .rm-badge (radio-ui.css). */
             .radio-badge {
-                font-size: 0.65rem;
-                font-weight: 600;
                 white-space: nowrap;
             }
 
             .radio-issue {
-                font-size: 0.6rem;
-                font-weight: 600;
                 white-space: nowrap;
                 cursor: help;
             }
 
             .radio-mono {
-                font-family: var(--tblr-font-monospace);
-                font-size: 0.7rem;
+                font-family: var(--rm-mono);
             }
 
             .radio-muted {
-                color: var(--tblr-secondary);
-                font-size: 0.65rem;
+                color: var(--rm-gray-500);
+                font-size: 12px;
+            }
+
+            .radio-none {
+                color: var(--rm-gray-400);
             }
 
             .radio-section-title {
@@ -56,24 +56,38 @@
                 },
                 dash(value) {
                     return value === null || value === undefined || value === '' ?
-                        '<span class="radio-muted">-</span>' : RadioUi.esc(value);
+                        '<span class="radio-none">—</span>' : RadioUi.esc(value);
+                },
+                /** The badge colour of the design for a colour the server names (Tabler's names). */
+                tone(color) {
+                    const tones = { secondary: 'gray', muted: 'gray', azure: 'blue', cyan: 'blue', indigo: 'purple', teal: 'green', lime: 'green', pink: 'red', danger: 'red', success: 'green', warning: 'yellow', info: 'blue', primary: 'blue' };
+                    const tone = tones[color] || color;
+                    return ['blue', 'green', 'yellow', 'orange', 'red', 'purple', 'gray'].includes(tone) ? tone : 'gray';
                 },
                 badge(label, color) {
-                    return `<span class="badge bg-${RadioUi.esc(color)}-lt radio-badge">${RadioUi.esc(label)}</span>`;
+                    return `<span class="rm-badge ${RadioUi.tone(color)} radio-badge">${RadioUi.esc(label)}</span>`;
+                },
+                /** The colour of the reason an archived radio went: lost red, written off orange, moved blue. */
+                reasonColor(reason) {
+                    const text = String(reason || '').toLowerCase();
+                    if (text.includes('hilang')) return 'red';
+                    if (text.includes('afkir') || text.includes('rusak')) return 'orange';
+                    if (text.includes('pindah')) return 'blue';
+                    return 'gray';
                 },
                 issues(list, max = 2) {
                     if (!list || !list.length) {
-                        return '<span class="text-green" data-bs-toggle="tooltip" data-bs-title="Tidak ada masalah"><i class="ti ti-circle-check"></i></span>';
+                        return '<span class="rm-ok" data-bs-toggle="tooltip" data-bs-title="Tidak ada masalah" aria-label="Tidak ada masalah"><i class="ti ti-circle-check"></i></span>';
                     }
                     const shown = list.slice(0, max).map(issue => {
                         const hint = issue.hint ? `${issue.label}: ${issue.hint}` : issue.label;
-                        return `<span class="badge bg-${RadioUi.esc(issue.color)}-lt radio-issue me-1" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(hint)}">${RadioUi.esc(issue.label)}</span>`;
+                        return `<span class="rm-badge ${RadioUi.tone(issue.color)} radio-issue" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(hint)}">${RadioUi.esc(issue.label)}</span>`;
                     }).join('');
                     const rest = list.slice(max);
                     const more = rest.length ?
-                        `<span class="badge bg-secondary-lt radio-issue" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(rest.map(i => i.label).join(', '))}">+${rest.length}</span>` :
+                        `<span class="rm-badge gray radio-issue" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(rest.map(i => i.label).join(', '))}">+${rest.length}</span>` :
                         '';
-                    return shown + more;
+                    return `<span class="rm-badges">${shown}${more}</span>`;
                 },
                 /** Accepts both { errors: [..] } and Laravel's { errors: { field: [..] } }. */
                 errors(xhr) {
@@ -94,8 +108,8 @@
                 send(button, options) {
                     const $button = $(button);
                     if ($button.prop('disabled')) return null;
-                    $button.prop('disabled', true);
-                    return $.ajax(options).always(() => $button.prop('disabled', false));
+                    $button.prop('disabled', true).addClass('is-busy');
+                    return $.ajax(options).always(() => $button.prop('disabled', false).removeClass('is-busy'));
                 },
                 /**
                  * After an archive / delete the current page may no longer exist ("Showing 0 - 0

@@ -1,172 +1,188 @@
-{{-- Add / edit radio. Used by the register list and the detail page. --}}
-<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="radioModal" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-fullscreen-lg-down modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            {{-- overflow-x: the row gutters reach past the unpadded body, which a scrollable modal
-                 would otherwise answer with a horizontal scrollbar. --}}
-            <div class="modal-body p-0" style="overflow-x: hidden">
-                <h3 class="modal-title mb-2">Tambah Radio</h3>
-
-                <div class="alert alert-danger py-2 d-none" id="radioReviewBox">
-                    <div class="fw-bold mb-1"><i class="ti ti-alert-triangle me-1"></i>Perlu dicek (hasil impor Excel)</div>
-                    <div class="radio-pre small" id="radioReviewNotes"></div>
-                    <label class="form-check mt-2 mb-0">
-                        <input class="form-check-input" type="checkbox" id="radioReviewDone" />
-                        <span class="form-check-label">Sudah dicek dan dibereskan, hapus tanda "Perlu dicek"</span>
-                    </label>
+{{-- Add / edit radio. Used by the register list and the detail page. A dialog of the design layer, 760 wide; it stays
+     open on a click outside it, since what was typed would be lost (K11 in docs/PLAN.md). --}}
+<div class="modal fade rm-modal wide" data-bs-backdrop="static" data-bs-keyboard="false" id="radioModal" aria-hidden="true"
+    aria-labelledby="radioModalTitle">
+    <div class="modal-dialog modal-fullscreen-lg-down">
+        <div class="modal-content">
+            <div class="rm-dialog-head is-ruled">
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title modal-title" id="radioModalTitle">Tambah radio</h3>
+                    <p class="rm-dialog-sub">Kolom bertanda * wajib diisi. Radio ID dan SN dicek duplikatnya saat disimpan.</p>
+                </div>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <div class="rm-dialog-body is-form">
+                <div class="rm-alert danger d-none" id="radioReviewBox">
+                    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                    <div>
+                        <b>Perlu dicek (hasil impor Excel)</b>
+                        <div class="radio-pre" id="radioReviewNotes"></div>
+                        <label class="form-check mt-2 mb-0">
+                            <input class="form-check-input" type="checkbox" id="radioReviewDone" />
+                            <span class="form-check-label">Sudah dicek dan dibereskan, hapus tanda "Perlu dicek"</span>
+                        </label>
+                    </div>
                 </div>
 
-                <form id="radioForm" autocomplete="off">
-                    <div class="row g-3">
-                        <div class="col-lg-6">
-                            <div class="radio-section-title">Identitas Unit</div>
-                            <div class="row g-2">
-                                <div class="col-md-7">
-                                    <label for="dmr_id" class="form-label">Radio ID
-                                        <span class="radio-muted ms-1" id="radioMdcPreview"></span>
-                                    </label>
-                                    <div class="input-group">
-                                        <input type="number" min="1" id="dmr_id" name="dmr_id" class="form-control"
-                                            placeholder="Kosongkan bila belum diprogram">
-                                        <button class="btn btn-outline-blue dropdown-toggle px-2" type="button"
-                                            data-bs-toggle="dropdown" id="radioNextIdButton"
-                                            style="font-size: .7rem">ID bebas</button>
-                                        <div class="dropdown-menu dropdown-menu-end" id="radioNextIdMenu">
-                                            <span class="dropdown-item-text radio-muted">Memuat…</span>
-                                        </div>
+                <form id="radioForm" autocomplete="off" class="d-flex flex-column gap-4">
+                    <section>
+                        <div class="rm-dialog-section-title">Identitas unit</div>
+                        <div class="row g-3">
+                            <div class="col-md-6 rm-field">
+                                <label for="dmr_id" class="form-label">Radio ID</label>
+                                <div class="input-group rm-input-group">
+                                    <input type="number" min="1" id="dmr_id" name="dmr_id" class="form-control"
+                                        placeholder="Kosongkan bila belum diprogram">
+                                    <span class="input-group-text rm-suffix radio-mono" id="radioMdcPreview"></span>
+                                    <button class="btn-rm secondary rm-input-btn" type="button" data-bs-toggle="dropdown"
+                                        id="radioNextIdButton" aria-expanded="false">ID bebas <i class="ti ti-chevron-down"
+                                            aria-hidden="true"></i></button>
+                                    <div class="dropdown-menu dropdown-menu-end rm-menu rm-id-menu" id="radioNextIdMenu">
+                                        <span class="dropdown-item-text radio-muted">Memuat…</span>
                                     </div>
-                                    {{-- An ID whose MDC Code (hexadecimal) contains F cannot be used: say so and offer replacements. --}}
-                                    <div class="form-hint text-danger d-none" id="radioHexWarning">
+                                </div>
+                                {{-- An ID whose MDC Code (hexadecimal) contains F cannot be used: say so and offer replacements. --}}
+                                <div class="rm-alert danger mt-2 d-none" id="radioHexWarning">
+                                    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                                    <div>
                                         <span id="radioHexWarningText"></span>
-                                        <span class="d-block mt-1" id="radioHexSuggestions"></span>
+                                        <span class="d-flex flex-wrap gap-2 mt-2" id="radioHexSuggestions"></span>
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <label for="serial_number" class="form-label required">SN</label>
-                                    <input type="text" id="serial_number" name="serial_number"
-                                        class="form-control text-uppercase" maxlength="50" placeholder="867TZB5309">
-                                </div>
-                                <div class="col-md-7">
-                                    <label for="radio_type_id" class="form-label required">Tipe Radio</label>
-                                    <select id="radio_type_id" name="radio_type_id" class="form-select">
-                                        <option></option>
-                                        @foreach ($types as $type)
-                                            <option value="{{ $type->id }}" data-category="{{ $type->category_label }}"
-                                                data-power="{{ $type->power }}" @if (!$type->is_active) data-inactive @endif>
-                                                {{ $type->name }}{{ $type->is_active ? '' : ' (nonaktif)' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <div class="form-hint" id="radioTypeHint"></div>
-                                </div>
-                                <div class="col-md-5">
-                                    <label for="owner_company_id" class="form-label">Pemilik Aset</label>
-                                    <select id="owner_company_id" name="owner_company_id" class="form-select">
-                                        <option></option>
-                                        @foreach ($companies as $company)
-                                            <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
                             </div>
-
-                            <div class="radio-section-title mt-3">Pengguna</div>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <label for="user_name" class="form-label">Nama User / Unit</label>
-                                    <input type="text" id="user_name" name="user_name" class="form-control"
-                                        maxlength="150" placeholder="Nama karyawan, atau unit seperti LV 51 / POS LABOTA">
-                                </div>
-                                <div class="col-md-7">
-                                    <label for="department_id" class="form-label">Department</label>
-                                    <select id="department_id" name="department_id" class="form-select">
-                                        <option></option>
-                                        @foreach ($departments as $department)
-                                            <option value="{{ $department->id }}" @if (!$department->is_active) data-inactive @endif>{{ $department->name }}{{ $department->is_active ? '' : ' (nonaktif)' }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-5">
-                                    <label for="company_id" class="form-label">Company</label>
-                                    <select id="company_id" name="company_id" class="form-select">
-                                        <option></option>
-                                        @foreach ($companies as $company)
-                                            <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="serial_number" class="form-label required">Serial number (SN)</label>
+                                <input type="text" id="serial_number" name="serial_number"
+                                    class="form-control text-uppercase radio-mono" maxlength="50" placeholder="867TZB5309">
+                                <div class="rm-hint">Format: 3 angka, 3 huruf, lalu 4 huruf atau angka</div>
+                            </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="radio_type_id" class="form-label required">Tipe radio</label>
+                                <select id="radio_type_id" name="radio_type_id" class="form-select">
+                                    <option></option>
+                                    @foreach ($types as $type)
+                                        <option value="{{ $type->id }}" data-category="{{ $type->category_label }}"
+                                            data-power="{{ $type->power }}" @if (!$type->is_active) data-inactive @endif>
+                                            {{ $type->name }}{{ $type->is_active ? '' : ' (nonaktif)' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 rm-field">
+                                <span class="form-label">Kategori · daya</span>
+                                <div class="rm-readonly" id="radioTypeHint"></div>
+                                <div class="rm-hint">Dari tipe radio</div>
+                            </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="owner_company_id" class="form-label">Pemilik Aset</label>
+                                <select id="owner_company_id" name="owner_company_id" class="form-select">
+                                    <option></option>
+                                    @foreach ($companies as $company)
+                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
+                    </section>
 
-                        <div class="col-lg-6">
-                            <div class="radio-section-title">Program & Status</div>
-                            <div class="row g-2">
-                                <div class="col-md-7">
-                                    <label for="channel_template_id" class="form-label">Template Channel</label>
-                                    <select id="channel_template_id" name="channel_template_id" class="form-select">
-                                        <option></option>
-                                        @foreach ($templates as $template)
-                                            <option value="{{ $template->id }}" @if (!$template->is_active) data-inactive @endif>{{ $template->name }}{{ $template->is_active ? '' : ' (nonaktif)' }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-5">
-                                    <label for="last_programmed_at" class="form-label">Tgl Program Terakhir</label>
-                                    <input type="date" id="last_programmed_at" name="last_programmed_at" class="form-control">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="placement" class="form-label required">Posisi</label>
-                                    <select id="placement" name="placement" class="form-select">
-                                        @foreach ($placements as $placement)
-                                            <option value="{{ $placement['value'] }}">{{ $placement['label'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="condition" class="form-label required">Kondisi</label>
-                                    <select id="condition" name="condition" class="form-select">
-                                        @foreach ($conditions as $condition)
-                                            <option value="{{ $condition['value'] }}">{{ $condition['label'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="last_verified_at" class="form-label">Tgl Verifikasi</label>
-                                    <input type="date" id="last_verified_at" name="last_verified_at" class="form-control">
-                                </div>
+                    <section>
+                        <div class="rm-dialog-section-title">Pengguna</div>
+                        <div class="row g-3">
+                            <div class="col-md-6 rm-field">
+                                <label for="user_name" class="form-label">Nama User / Unit</label>
+                                <input type="text" id="user_name" name="user_name" class="form-control"
+                                    maxlength="150" placeholder="Nama karyawan, atau unit seperti LV 51 / POS LABOTA">
                             </div>
-
-                            <div class="radio-section-title mt-3">Lain-lain</div>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <label for="document_no" class="form-label">No. Dokumen (PO / BA)</label>
-                                    <input type="text" id="document_no" name="document_no" class="form-control"
-                                        maxlength="100" placeholder="PO 14938 / BA2300012">
-                                </div>
-                                <div class="col-12">
-                                    <label for="notes" class="form-label">Keterangan</label>
-                                    <textarea id="notes" name="notes" class="form-control" rows="4" maxlength="5000"></textarea>
-                                </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="department_id" class="form-label">Department</label>
+                                <select id="department_id" name="department_id" class="form-select">
+                                    <option></option>
+                                    @foreach ($departments as $department)
+                                        <option value="{{ $department->id }}" @if (!$department->is_active) data-inactive @endif>{{ $department->name }}{{ $department->is_active ? '' : ' (nonaktif)' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="company_id" class="form-label">Company</label>
+                                <select id="company_id" name="company_id" class="form-select">
+                                    <option></option>
+                                    @foreach ($companies as $company)
+                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 rm-field">
+                                <label for="document_no" class="form-label">No. Dokumen (PO / BA)</label>
+                                <input type="text" id="document_no" name="document_no" class="form-control radio-mono"
+                                    maxlength="100" placeholder="PO 14938 / BA2300012">
                             </div>
                         </div>
+                    </section>
 
-                        <div class="col-12 d-flex justify-content-end gap-2">
-                            <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true"
-                                data-bs-dismiss="modal">
-                                <x-slot:icon>
-                                    <i class="ti ti-x"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                            <x-global.btn-detail label="Simpan" color="blue" size="sm" id="radioSaveButton"
-                                onclick="radioForm.submit()">
-                                <x-slot:icon>
-                                    <i class="ti ti-device-floppy"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
+                    <section>
+                        <div class="rm-dialog-section-title">Status</div>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-7 rm-field">
+                                <span class="form-label required" id="placementLabel">Posisi</span>
+                                <div class="rm-seg rm-seg-full" role="radiogroup" aria-labelledby="placementLabel">
+                                    @foreach ($placements as $i => $placement)
+                                        <input type="radio" class="btn-check" name="placement_pick" id="placementPick{{ $i }}"
+                                            value="{{ $placement['value'] }}">
+                                        <label for="placementPick{{ $i }}">{{ $placement['label'] }}</label>
+                                    @endforeach
+                                </div>
+                                {{-- The value sent (the segmented control above writes it). --}}
+                                <select id="placement" name="placement" class="d-none" tabindex="-1" aria-hidden="true">
+                                    @foreach ($placements as $placement)
+                                        <option value="{{ $placement['value'] }}">{{ $placement['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-5 rm-field">
+                                <label for="condition" class="form-label required">Kondisi</label>
+                                <select id="condition" name="condition" class="form-select">
+                                    @foreach ($conditions as $condition)
+                                        <option value="{{ $condition['value'] }}">{{ $condition['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
-                    </div>
+                    </section>
+
+                    <section>
+                        <div class="rm-dialog-section-title">Program dan verifikasi</div>
+                        <div class="row g-3">
+                            <div class="col-md-4 rm-field">
+                                <label for="channel_template_id" class="form-label">Template channel</label>
+                                <select id="channel_template_id" name="channel_template_id" class="form-select">
+                                    <option></option>
+                                    @foreach ($templates as $template)
+                                        <option value="{{ $template->id }}" @if (!$template->is_active) data-inactive @endif>{{ $template->name }}{{ $template->is_active ? '' : ' (nonaktif)' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4 rm-field">
+                                <label for="last_programmed_at" class="form-label">Program terakhir</label>
+                                <input type="date" id="last_programmed_at" name="last_programmed_at" class="form-control">
+                            </div>
+                            <div class="col-md-4 rm-field">
+                                <label for="last_verified_at" class="form-label">Verifikasi terakhir</label>
+                                <input type="date" id="last_verified_at" name="last_verified_at" class="form-control">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="rm-field">
+                        <label for="notes" class="form-label">Keterangan</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="3" maxlength="5000"></textarea>
+                    </section>
                 </form>
+            </div>
+            <div class="rm-dialog-foot is-gray">
+                <span class="rm-dialog-note" id="radioFormNote"></span>
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-rm primary" id="radioSaveButton" onclick="radioForm.submit()">Simpan radio</button>
             </div>
         </div>
     </div>
@@ -214,13 +230,24 @@
                 $('#dmr_id').on('input', radioForm.previewId);
                 $('#radio_type_id').on('change', radioForm.previewType);
                 $('#radioNextIdButton').on('show.bs.dropdown', radioForm.loadNextIds);
+                // The segmented control of "Posisi" writes the value that is sent.
+                $('input[name="placement_pick"]').on('change', function() {
+                    $('#placement').val($(this).val());
+                });
+            },
+
+            /** The segmented control shows the value of "Posisi". */
+            showPlacement() {
+                $(`input[name="placement_pick"][value="${$('#placement').val()}"]`).prop('checked', true);
             },
 
             open(mode, id = null) {
                 radioForm.id = mode === 'edit' ? id : null;
                 radioForm.loaded = {};
                 const modal = $('#radioModal');
-                modal.find('.modal-title').text(mode === 'edit' ? 'Edit Radio' : 'Tambah Radio');
+                modal.find('.modal-title').text(mode === 'edit' ? 'Edit radio' : 'Tambah radio');
+                $('#radioSaveButton').text(mode === 'edit' ? 'Simpan perubahan' : 'Simpan radio');
+                $('#radioFormNote').text('');
                 $('#radioForm')[0].reset();
                 radioForm.selects.forEach(name => $('#' + name).val(null).trigger('change'));
                 $('#radioReviewBox').addClass('d-none');
@@ -233,6 +260,7 @@
                 if (mode !== 'edit') {
                     $('#placement').val('di_user');
                     $('#condition').val('layak');
+                    radioForm.showPlacement();
                     radioForm.previewId();
                     radioForm.previewType();
                     modal.modal('show');
@@ -254,6 +282,8 @@
                             $('#radioReviewNotes').text(data.review_notes || '');
                             $('#radioReviewBox').removeClass('d-none');
                         }
+                        if (data.updated_at) $('#radioFormNote').text(`Terakhir diubah ${data.updated_at}`);
+                        radioForm.showPlacement();
                         radioForm.previewId();
                         radioForm.previewType();
                         modal.modal('show');
@@ -283,7 +313,7 @@
                 $.getJSON(radioForm.urls.nextId, { except: radioForm.id, after: id }).done(({ data }) => {
                     if (String($('#dmr_id').val()) !== String(id) || !data.length) return; // typed on meanwhile
                     const box = $('#radioHexSuggestions').html('<span class="radio-muted">ID bebas terdekat:</span> ' + data.map(item =>
-                        `<a href="#" class="badge bg-blue-lt radio-badge ms-1" data-id="${item.id}">${item.id} · MDC ${RadioUi.esc(item.mdc)}</a>`
+                        `<a href="#" class="rm-idchip" data-id="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono">MDC ${RadioUi.esc(item.mdc)}</span></a>`
                     ).join(''));
                     box.find('a').on('click', function(e) {
                         e.preventDefault();
@@ -303,7 +333,7 @@
                 $.getJSON(radioForm.urls.nextId, { except: radioForm.id })
                     .done(({ data }) => {
                         menu.html(data.map(item =>
-                            `<a class="dropdown-item" href="#" data-id="${item.id}">${item.id} <span class="radio-muted ms-2">MDC ${RadioUi.esc(item.mdc)}</span></a>`
+                            `<a class="dropdown-item rm-menu-item" href="#" data-id="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono radio-muted ms-auto">MDC ${RadioUi.esc(item.mdc)}</span></a>`
                         ).join('') + '<div class="dropdown-divider"></div><span class="dropdown-item-text radio-muted">ID yang MDC Code-nya mengandung huruf F dilewati</span>');
                         menu.find('a').on('click', function(e) {
                             e.preventDefault();
@@ -344,26 +374,17 @@
                     payload.version = radioForm.loaded.version ?? '';
                 }
 
-                Swal.fire({
-                    title: 'Simpan data radio?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ti ti-check"></i> Simpan',
-                    cancelButtonText: '<i class="ti ti-x"></i> Batal',
-                    reverseButtons: true,
-                }).then(result => {
-                    if (!result.isConfirmed) return;
-                    RadioUi.send('#radioSaveButton', {
-                        url: editing ? radioForm.urls.update.replace(':id', radioForm.id) : radioForm.urls.store,
-                        type: 'POST',
-                        data: payload,
-                        dataType: 'json',
-                    })?.done(response => {
-                        $('#radioModal').modal('hide');
-                        Swal.fire('Berhasil', response.message, 'success');
-                        radioForm.onSaved(response);
-                    }).fail(RadioUi.fail);
-                });
+                // Saved at once (the button is busy meanwhile), and said in a toast.
+                RadioUi.send('#radioSaveButton', {
+                    url: editing ? radioForm.urls.update.replace(':id', radioForm.id) : radioForm.urls.store,
+                    type: 'POST',
+                    data: payload,
+                    dataType: 'json',
+                })?.done(response => {
+                    $('#radioModal').modal('hide');
+                    rmFeedback.toast(response.message || 'Data radio disimpan.');
+                    radioForm.onSaved(response);
+                }).fail(RadioUi.fail);
             },
         };
 

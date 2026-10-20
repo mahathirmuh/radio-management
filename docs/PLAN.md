@@ -342,18 +342,18 @@ Prototipe: `Register`, `Detail`, `RadioForm`, `IdPicker` (sisi tampilan), `Dialo
 `History`, `RangeCal`, `CheckoutForm`, plus bagian bersama (`DataTable`, `Tb`, `Btn`, `Fld`, `Sel`, `Bd`, `Cd`).
 
 Bagian bersama (`resources/views/main/components/js/js.blade.php` dan CSS):
-- [ ] Blok judul `.rm-title` + `.rm-sub` di atas kartu, menggantikan `<h2 class="mb-3">`. Kartu `.rm-card` dengan
+- [x] Blok judul `.rm-title` + `.rm-sub` di atas kartu, menggantikan `<h2 class="mb-3">`. Kartu `.rm-card` dengan
   toolbar (aksi di ujung kanan) dan `.rm-box` untuk tabel.
-- [ ] `renderTable` dan `renderTableWithFeatures`:
+- [x] `renderTable` dan `renderTableWithFeatures`:
   - header 12/16, 600, gray-500 di atas gray-50;
   - sel `11px 12px`, teks 13px;
   - hover, `is-selected` (brand-50), teks kosong.
-- [ ] `renderPagination`:
+- [x] `renderPagination`:
   - "Showing a–b of N" (sesuai bahasa halaman);
   - baris per halaman 10/25/50/100;
   - tombol 28px radius 6;
   - `onPageChange` dan `onLimitChange` tetap.
-- [ ] Helper:
+- [x] Helper:
   - toast (sesuai K7): bawah tengah, `#0f172a`, putih 14px, radius 10, ikon centang;
   - tombol sibuk (spinner 16px);
   - kulit SweetAlert: 520px, radius 12, ikon 44px;
@@ -363,16 +363,16 @@ Bagian bersama (`resources/views/main/components/js/js.blade.php` dan CSS):
 
 Register Radio (`modules/RadioManagement/Resources/views/radio/index.blade.php` dan partial `filter`, `bulk-bar`, `bulk`,
 `modal`, `archive-modal`, `print-modal`, `partials/scripts`):
-- [ ] Judul, plus subjudul hidup ("N dari T radio aktif").
-- [ ] Toolbar:
+- [x] Judul, plus subjudul hidup ("N dari T radio aktif").
+- [x] Toolbar:
   - cari 320px dengan ikon, langsung saat mengetik (debounce);
   - Filter (chevron) dan Reset;
   - segmented Aktif / Arsip / Semua;
   - Export Excel dan Tambah radio (`@permission`).
-- [ ] Kartu filter di dalam content card: grid 4 kolom, select2 34px, Clear dan Apply. Chip "Applied" untuk setiap
+- [x] Kartu filter di dalam content card: grid 4 kolom, select2 34px, Clear dan Apply. Chip "Applied" untuk setiap
   filter aktif.
-- [ ] Restyle bulk bar: brand-50, cincin brand-200, tombol 28px. Aksi dan id tetap.
-- [ ] Kolom tabel:
+- [x] Restyle bulk bar: brand-50, cincin brand-200, tombol 28px. Aksi dan id tetap.
+- [x] Kolom tabel:
   - kotak centang; Radio ID (+ MDC mono); SN / tipe; User / departemen; Perusahaan;
   - badge Owner: MTI biru, Non MTI oranye;
   - Template;
@@ -380,11 +380,11 @@ Register Radio (`modules/RadioManagement/Resources/views/radio/index.blade.php` 
   - badge Kondisi: hijau, kuning, merah, abu;
   - Diverifikasi; Cek (badge, atau centang hijau);
   - aksi ikon 28px berbingkai: Lihat, Cetak, Edit, Arsip/Restore.
-- [ ] Baris dan scope:
+- [x] Baris dan scope:
   - klik baris membuka detail (`detail_url`); kotak centang tidak ikut membuka;
   - kolom scope Arsip: ID/MDC lama, user terakhir, tanggal arsip, alasan, aksi Restore;
   - Viewer tidak melihat tombol ubah (A6).
-- [ ] Dialog 520px radius 12:
+- [x] Dialog 520px radius 12:
   - form tambah/edit 760px: 4 seksi, Lokasi berupa segmented, badge Owner, footer gray-50, Simpan sibuk lalu toast. "ID
     bebas" yang sudah ada tampil dengan gaya picker (ok / mengandung F / dipakai, lewat `next-id`);
   - arsip: kartu alasan, tanggal, catatan;
@@ -393,20 +393,20 @@ Register Radio (`modules/RadioManagement/Resources/views/radio/index.blade.php` 
   - hapus: ketik Radio ID untuk konfirmasi.
 
 Riwayat Radio (`modules/RadioManagement/Resources/views/history/index.blade.php`):
-- [ ] Judul dan kartu.
-- [ ] Baris filter: cari, Tipe multi-select dengan pil jumlah, Dari/Sampai dengan kalender tanggal tunggal, Tampilkan,
+- [x] Judul dan kartu.
+- [x] Baris filter: cari, Tipe multi-select dengan pil jumlah, Dari/Sampai dengan kalender tanggal tunggal, Tampilkan,
   Reset.
-- [ ] Tabel: Tanggal, Radio (tautan + SN · user), badge Tipe berwarna, Keterangan, No. dokumen (mono), Oleh.
+- [x] Tabel: Tanggal, Radio (tautan + SN · user), badge Tipe berwarna, Keterangan, No. dokumen (mono), Oleh.
 
 Detail radio (`modules/RadioManagement/Resources/views/radio/detail.blade.php`):
-- [ ] Breadcrumb dan banner Viewer.
-- [ ] Kartu kepala:
+- [x] Breadcrumb dan banner Viewer.
+- [x] Kartu kepala:
   - ubin 64px, ID 30/40, MDC mono, badge lokasi dan kondisi;
   - tombol Cetak form, Tambah riwayat, Arsip/Restore, Hapus (cincin merah), Edit, semuanya dengan `@permission`. Serah
     terima menyusul di fase 6.
-- [ ] Kartu Cek (callout peringatan), tiga kartu info (Identitas unit, User, Program & verifikasi), timeline riwayat
+- [x] Kartu Cek (callout peringatan), tiga kartu info (Identitas unit, User, Program & verifikasi), timeline riwayat
   dengan tabel lama → baru, kartu Catatan, dan Data Excel asli.
-- [ ] Pop-up cetak (K5): hanya kepala dan tombol Tutup/Cetak; backdrop statis dan iframe tetap.
+- [x] Pop-up cetak (K5): hanya kepala dan tombol Tutup/Cetak; backdrop statis dan iframe tetap.
 
 Tes yang terdampak:
 - `RadioManagementTest`, `RadioRegisterRulesTest`, `RadioCheckoutFormTest`, `RadioBulkTest`;
@@ -697,3 +697,24 @@ Prinsip:
   - Diperiksa di browser (preview, data rekaan): 1366, 1440, 1920, rail dan 390.
   - Suite penuh: 466 lulus.
   - Alat bantu preview ada di scratchpad sesi; untuk sesi baru, buat ulang dari langkah di "Aturan kerja".
+- 2026-10-20, fase 2 selesai:
+  - Helper bersama di `js.blade.php`:
+    - `renderTable` (opsi `rowAttrs`), `renderPagination` (desain baru, opsi `labels` per bahasa halaman),
+      `initSorting` (panah di setiap kolom yang bisa diurutkan);
+    - `rmFeedback.toast` / `rmFeedback.busy`, `rmDialog.confirm`;
+    - `rmPickers.multi` (Sel) dan `rmPickers.date` (RangeCal, satu tanggal; mode rentang menyusul di fase 6 untuk Audit
+      log).
+  - Kelas CSS baru: `rm-modal`, `rm-dialog-*`, `rm-choice`, `rm-alert`, `rm-swal` (dialog SweetAlert gaya desain),
+    `rm-cardbox`, `rm-hero`, `rm-timeline`, `rm-panel`, `rm-chip`, `rm-bulk`, `rm-act`, `rm-sticky-end`.
+  - Keputusan kecil, sesuai desain atau data yang ada:
+    - form radio menyimpan tanpa dialog "Simpan data radio?", lalu menampilkan toast;
+    - "Owner" tidak ditampilkan di form, karena browser tidak tahu perusahaan mana yang MTI;
+    - pilihan "Show" di Riwayat tidak dibuat, karena footer sudah punya Baris per halaman;
+    - arsip massal tetap memakai select alasan; Tambah riwayat tetap memakai select jenis (jenisnya lebih banyak dari 4
+      di desain);
+    - dialog hapus memakai teks repo (soft delete, riwayat tetap ada) ditambah mengetik Radio ID.
+  - Tes:
+    - baru: `RadioPagesDesignTest` (4) dan `tests/tools/design-helpers-behaviour.mjs` (8 cek, dijalankan dari
+      `ShellTest`);
+    - diperbarui: checker radio-index dan radio-bulk, checker SharePoint (pager dan panah urut baru),
+      `RadioManagementTest`, `RadioCheckoutFormTest`.

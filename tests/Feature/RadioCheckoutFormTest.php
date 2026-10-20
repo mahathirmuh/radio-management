@@ -220,7 +220,7 @@ class RadioCheckoutFormTest extends TestCase
             $this->assertStringContainsString($text, $page);
         }
         // What is typed and signed in the form is lost when the pop-up closes: it does not close by a click beside it or by Esc.
-        $this->assertStringContainsString('<div class="modal fade" id="radioPrintModal" tabindex="-1" aria-hidden="true" aria-labelledby="radioPrintTitle" data-bs-backdrop="static" data-bs-keyboard="false">', $flat);
+        $this->assertStringContainsString('<div class="modal fade rm-print" id="radioPrintModal" tabindex="-1" aria-hidden="true" aria-labelledby="radioPrintTitle" data-bs-backdrop="static" data-bs-keyboard="false">', $flat);
         // The frame is made for every form (a frame whose address changes fills the Back button's history).
         $this->assertStringNotContainsString('<iframe', $page);
     }

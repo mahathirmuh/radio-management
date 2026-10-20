@@ -250,9 +250,10 @@ class RadioManagementTest extends TestCase
 
         // The page has the column, after Company, and the filter; the detail says it too.
         $page = (string) $this->get(route('radio-management.radio.index'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('#>Company</th>\s*<th class="[^"]*">Owner</th>\s*<th class="[^"]*">Template</th>#', $page);
+        // (The header is drawn by the page's script: one title per column of the scope, Owner after Company.)
+        $this->assertMatchesRegularExpression("#\['Company'\], \['Owner'\], \['Template'\]#", $page);
         $this->assertMatchesRegularExpression('#<select id="filterOwnerGroup"[^>]*>\s*<option value="">Semua</option>\s*<option value="mti">MTI</option>\s*<option value="non_mti">Non MTI</option>#', $page);
-        $this->assertSame(substr_count($page, '<th class="text-capitalize fs-5 py-3'), 12, 'twelve titles for twelve columns');
+        $this->assertStringContainsString("['pick', 'index', 'dmr_id', 'serial_number', 'user_name', 'company', 'owner_group', 'template', 'placement', 'condition', 'last_verified_at', 'issues', 'actions']", $page, 'thirteen columns, the box and the number first');
         $this->get(route('radio-management.radio.detail', Radio::where('dmr_id', 21)->value('id')))->assertOk()->assertSeeInOrder(['Pemilik Aset', 'Owner', 'Non MTI']);
 
         // The code that is MTI is a setting, and it is compared without regard to case and blanks.

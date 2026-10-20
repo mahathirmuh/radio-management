@@ -11,7 +11,7 @@ import { checker, loadPage } from './page-sandbox.mjs';
 
 const { node, page, fire, requests, dialogs, resolve, answer } = loadPage(
     process.argv[2],
-    ['function debounce(', 'function renderTableWithFeatures(', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioBulk = {', 'const radioTable = {'],
+    ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const RadioUi = {', 'const radioFilter = {', 'const radioForm = {', 'const radioArchive = {', 'const radioPrint = {', 'const radioBulk = {', 'const radioTable = {'],
     { href: 'http://localhost/radio-management/radio' }
 );
 const { check, done } = checker();
@@ -42,7 +42,7 @@ const tick = (r, on = true) => {
     Object.assign(node('(object)'), { data: { id: r.id, label: radioBulk.label(r) }, props: { checked: on } });
     fire('#radioTable', 'change input.radio-pick');
 };
-const cell = r => radioTable.columns.find(column => column.key === 'pick').render(r);
+const cell = r => radioTable.columns.pick.render(r);
 const lastTo = url => requests.filter(request => request.url === url).at(-1);
 const shown = selector => !node(selector).classes.has('d-none');
 const noDefault = { preventDefault() {} };

@@ -57,7 +57,8 @@ class ShellTest extends TestCase
         $this->assertMatchesRegularExpression('#<li class="rm-nav-item rm-nav-group is-open has-active" id="rm-navgroup-\d+">\s*<button type="button" class="rm-nav-link" data-rm-group="\d+"\s+data-rm-first="' . preg_quote(route('radio-management.radio-type.index'), '#') . '" data-rm-tip="Master Data Radio"\s+aria-expanded="true"#', $page);
         // The other group is closed, and nothing else is the current page.
         $this->assertMatchesRegularExpression('#<li class="rm-nav-item rm-nav-group " id="rm-navgroup-\d+">\s*<button[^>]*data-rm-tip="User Management"\s+aria-expanded="false"#', $page);
-        $this->assertSame(1, substr_count($page, 'aria-current="page"'));
+        $sidebar = (string) strstr((string) strstr($page, '<aside'), '</aside>', true);
+        $this->assertSame(1, substr_count($sidebar, 'aria-current="page"'));
         // Each entry has its name for the rail, and an icon.
         $this->assertMatchesRegularExpression('#href="' . preg_quote(route('radio-management.history.index'), '#') . '" data-rm-tip="Riwayat Radio"\s*>\s*<span class="rm-nav-icon"><i class="ti ti-history"></i></span>#', $page);
     }
@@ -126,5 +127,10 @@ class ShellTest extends TestCase
     public function test_the_sidebar_script_switches_the_rail_folds_groups_and_names_icons(): void
     {
         $this->checkPageScript(route('radio-management.radio-type.index'), 'tests/tools/sidebar-behaviour.mjs', 10);
+    }
+
+    public function test_the_shared_helpers_draw_the_foot_of_a_table_toasts_dialogs_and_dates(): void
+    {
+        $this->checkPageScript(route('dashboard.index'), 'tests/tools/design-helpers-behaviour.mjs', 8);
     }
 }

@@ -4,58 +4,62 @@
 @php
     $bulkNote = \Modules\RadioManagement\Http\Controllers\RadioBulkController::DEFAULT_NOTE;
 @endphp
-<div class="modal fade" data-bs-backdrop="static" id="radioBulkVerifyModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            <div class="modal-body p-0">
-                <h3 class="modal-title mb-1">Verifikasi Radio</h3>
-                <p class="radio-muted mb-3" id="radioBulkVerifyLabel"></p>
-                <div class="row g-2">
-                    <div class="col-md-5">
-                        <label for="bulk_verified_at" class="form-label required">Tanggal</label>
-                        <input type="date" id="bulk_verified_at" class="form-control">
-                    </div>
-                    <div class="col-12">
-                        <label for="bulk_verify_note" class="form-label">Catatan</label>
-                        <textarea id="bulk_verify_note" class="form-control" rows="2" maxlength="2000"
-                            placeholder="Mis. stock opname site Weda Bay"></textarea>
-                        <div class="form-hint">Bila kosong: "{{ $bulkNote }}"</div>
-                    </div>
-                    <div class="col-12">
-                        <div class="alert alert-info py-2 mb-0 small">
-                            Setiap radio mendapat riwayat <b>Verifikasi</b> pada tanggal ini, dan tanggal verifikasinya
-                            ikut maju bila tanggal ini lebih baru. Radio yang diarsipkan dilewati.
-                        </div>
-                    </div>
-                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                        <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true" data-bs-dismiss="modal">
-                            <x-slot:icon>
-                                <i class="ti ti-x"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
-                        <x-global.btn-detail label="Verifikasi" color="green" size="sm" id="radioBulkVerifyButton"
-                            onclick="radioBulk.submitVerify()">
-                            <x-slot:icon>
-                                <i class="ti ti-checklist"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
-                    </div>
+<div class="modal fade rm-modal" data-bs-backdrop="static" id="radioBulkVerifyModal" aria-hidden="true"
+    aria-labelledby="radioBulkVerifyTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="rm-dialog-head">
+                <span class="rm-dialog-icon tone-green"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title" id="radioBulkVerifyTitle">Verifikasi radio</h3>
+                    <p class="rm-dialog-sub" id="radioBulkVerifyLabel"></p>
                 </div>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <div class="rm-dialog-body">
+                <div class="rm-field">
+                    <label for="bulk_verified_at" class="form-label required">Tanggal verifikasi</label>
+                    <input type="date" id="bulk_verified_at" class="form-control">
+                </div>
+                <div class="rm-field">
+                    <label for="bulk_verify_note" class="form-label">Catatan</label>
+                    <textarea id="bulk_verify_note" class="form-control" rows="3" maxlength="2000"
+                        placeholder="Mis. stock opname site Weda Bay"></textarea>
+                    <div class="rm-hint">Bila kosong: "{{ $bulkNote }}"</div>
+                </div>
+                <div class="rm-alert">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <span>Setiap radio mendapat riwayat <b>Verifikasi</b> pada tanggal ini, dan tanggal verifikasinya
+                        ikut maju bila tanggal ini lebih baru. Radio yang diarsipkan dilewati.</span>
+                </div>
+            </div>
+            <div class="rm-dialog-foot">
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-rm success" id="radioBulkVerifyButton" onclick="radioBulk.submitVerify()">
+                    Verifikasi
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" data-bs-backdrop="static" id="radioBulkArchiveModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content p-3">
-            <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            <div class="modal-body p-0">
-                <h3 class="modal-title mb-1">Arsipkan Radio</h3>
-                <p class="radio-muted mb-3" id="radioBulkArchiveLabel"></p>
-                <div class="row g-2">
-                    <div class="col-md-7">
+<div class="modal fade rm-modal" data-bs-backdrop="static" id="radioBulkArchiveModal" aria-hidden="true"
+    aria-labelledby="radioBulkArchiveTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="rm-dialog-head">
+                <span class="rm-dialog-icon tone-orange"><i class="ti ti-archive" aria-hidden="true"></i></span>
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title" id="radioBulkArchiveTitle">Arsipkan radio</h3>
+                    <p class="rm-dialog-sub" id="radioBulkArchiveLabel"></p>
+                </div>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <div class="rm-dialog-body">
+                <div class="row g-3">
+                    <div class="col-md-7 rm-field">
                         <label for="bulk_archive_reason" class="form-label required">Alasan</label>
                         <select id="bulk_archive_reason" class="form-select">
                             @foreach ($archiveReasons as $reason)
@@ -63,35 +67,27 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-5 rm-field">
                         <label for="bulk_archived_at" class="form-label required">Tanggal</label>
                         <input type="date" id="bulk_archived_at" class="form-control">
                     </div>
-                    <div class="col-12">
-                        <label for="bulk_archive_note" class="form-label">Catatan</label>
-                        <textarea id="bulk_archive_note" class="form-control" rows="2" maxlength="1000"
-                            placeholder="Mis. dikirim ke site Konawe, BA no. ..."></textarea>
-                    </div>
-                    <div class="col-12">
-                        <div class="alert alert-warning py-2 mb-0 small">
-                            Alasan, tanggal dan catatan yang sama untuk semua radio yang dipilih. Radio yang diarsipkan
-                            keluar dari daftar aktif dan Radio ID-nya dilepas.
-                        </div>
-                    </div>
-                    <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                        <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true" data-bs-dismiss="modal">
-                            <x-slot:icon>
-                                <i class="ti ti-x"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
-                        <x-global.btn-detail label="Arsipkan" color="orange" size="sm" id="radioBulkArchiveButton"
-                            onclick="radioBulk.submitArchive()">
-                            <x-slot:icon>
-                                <i class="ti ti-archive"></i>
-                            </x-slot:icon>
-                        </x-global.btn-detail>
-                    </div>
                 </div>
+                <div class="rm-field">
+                    <label for="bulk_archive_note" class="form-label">Catatan</label>
+                    <textarea id="bulk_archive_note" class="form-control" rows="3" maxlength="1000"
+                        placeholder="Mis. dikirim ke site Konawe, BA no. ..."></textarea>
+                </div>
+                <div class="rm-alert warning">
+                    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                    <span>Alasan, tanggal dan catatan yang sama untuk semua radio yang dipilih. Radio yang diarsipkan
+                        keluar dari daftar aktif dan Radio ID-nya dilepas.</span>
+                </div>
+            </div>
+            <div class="rm-dialog-foot">
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn-rm primary" id="radioBulkArchiveButton" onclick="radioBulk.submitArchive()">
+                    Arsipkan
+                </button>
             </div>
         </div>
     </div>
@@ -208,6 +204,7 @@
             },
 
             verify() {
+                $('#radioBulkVerifyTitle').text(`Verifikasi ${radioBulk.count()} radio?`);
                 $('#radioBulkVerifyLabel').text(radioBulk.chosenText());
                 $('#bulk_verified_at').val(RadioUi.today()).attr('max', RadioUi.today());
                 $('#bulk_verify_note').val('');
@@ -231,6 +228,7 @@
             },
 
             archive() {
+                $('#radioBulkArchiveTitle').text(`Arsipkan ${radioBulk.count()} radio?`);
                 $('#radioBulkArchiveLabel').text(radioBulk.chosenText());
                 $('#bulk_archive_reason').prop('selectedIndex', 0);
                 $('#bulk_archived_at').val(RadioUi.today()).attr('max', RadioUi.today());
@@ -258,20 +256,18 @@
             /** Deleting is for radios entered by mistake: the person types how many, as a last look. */
             destroy() {
                 const count = radioBulk.count();
-                Swal.fire({
+                // Red: there is no way back from the page.
+                rmDialog.confirm({
+                    tone: 'red',
+                    icon: 'trash',
                     title: `Hapus ${count} radio?`,
                     html: 'Hapus hanya untuk data yang salah input; riwayatnya tetap tersimpan, tetapi radionya tidak bisa ' +
                         'dikembalikan dari aplikasi. Radio yang sudah tidak dipakai sebaiknya <b>diarsipkan</b>.<br><br>' +
                         `Ketik <b>${count}</b> untuk menghapus.`,
-                    icon: 'warning',
                     input: 'text',
                     inputAttributes: { autocomplete: 'off', inputmode: 'numeric' },
-                    showCancelButton: true,
-                    // Red: there is no way back from the page.
-                    confirmButtonColor: '#d63939',
-                    confirmButtonText: '<i class="ti ti-trash"></i> Hapus',
-                    cancelButtonText: '<i class="ti ti-x"></i> Batal',
-                    reverseButtons: true,
+                    confirmText: 'Hapus',
+                    confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;
                     if (String(result.value || '').trim() !== String(count)) {
@@ -284,6 +280,13 @@
                         dataType: 'json',
                         data: { _method: 'DELETE', ...radioBulk.payload(), confirm: count },
                     }).done(radioBulk.finished).fail(RadioUi.fail);
+                });
+            },
+
+            /** The box in the header ticks the whole page; it is drawn again with the header (radioTable.head). */
+            bindPage() {
+                $('#radioPickPage').off('change').on('change', function() {
+                    radioBulk.pickPage($(this).is(':checked'));
                 });
             },
 
@@ -314,9 +317,7 @@
             $('#radioTable').on('change', 'input.radio-pick', function() {
                 radioBulk.pick($(this).data('id'), $(this).data('label'), $(this).is(':checked'));
             });
-            $('#radioPickPage').on('change', function() {
-                radioBulk.pickPage($(this).is(':checked'));
-            });
+            radioBulk.bindPage();
             $('#radioBulkAll').on('click', e => {
                 e.preventDefault();
                 radioBulk.chooseAll();

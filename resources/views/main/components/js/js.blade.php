@@ -15,8 +15,8 @@
         $("#loader").fadeOut("slow");
     });
     $(document).ready(function() {
-        // Remove background color from table th
-        $('.table thead th').css('background-color', 'transparent');
+        // Remove background color from table th (not from the tables of the design layer, whose header is grey).
+        $('.table:not(.rm-table) thead th').css('background-color', 'transparent');
     });
 </script>
 
@@ -125,6 +125,8 @@
         currentSortKey = null,
         currentSortDir = 'asc',
         paginationContainer = ' .pagination-container',
+        paginationLabels = {},
+        rowAttrs = null,
     }) {
         renderTable({
             container,
@@ -134,6 +136,7 @@
             limit,
             emptyText,
             loading,
+            rowAttrs,
         });
 
         if (!loading && meta) {
@@ -143,6 +146,7 @@
                 container: paginationContainer,
                 onPageChange,
                 onLimitChange,
+                labels: paginationLabels,
             });
         }
 
@@ -168,6 +172,7 @@
      * @param {number} [options.limit=10] Number of items per page (for index column)
      * @param {string} [options.emptyText='No data found'] Message when no data
      * @param {boolean} [options.loading=false] If true, shows loading state
+     * @param {Function} [options.rowAttrs] (item, index) => attributes of the row's <tr>, already escaped (data-href, class)
      */
     function renderTable({
         container,
@@ -177,17 +182,18 @@
         limit = 10,
         emptyText = 'No data found',
         loading = false,
+        rowAttrs = null,
     }) {
         const tbody = $(`${container} tbody`);
 
 
         if (loading) {
-            tbody.html(`<tr><td colspan="${columns.length}" class="text-center">Loading...</td></tr>`);
+            tbody.html(`<tr><td colspan="${columns.length}" class="text-center rm-empty">Loading...</td></tr>`);
             return;
         }
 
         if (!data || data.length == 0) {
-            tbody.html(`<tr><td colspan="${columns.length}" class="text-center">${emptyText}</td></tr>`);
+            tbody.html(`<tr><td colspan="${columns.length}" class="text-center rm-empty">${emptyText}</td></tr>`);
             return;
         }
 
@@ -195,7 +201,8 @@
         let html = '';
 
         data.forEach((item, index) => {
-            html += '<tr>';
+            const attrs = typeof rowAttrs === 'function' ? rowAttrs(item, index) : '';
+            html += attrs ? `<tr ${attrs}>` : '<tr>';
             columns.forEach((col) => {
                 if (col === 'index') {
                     html += `<td class="text-center">${startNumber + index}</td>`;
@@ -221,6 +228,8 @@
      * @param {Function} [options.onPageChange] Callback receiving new page number
      * @param {Function} [options.onLimitChange] Callback receiving new limit value
      * @param {number} [options.limit=10] Current limit (to highlight selected option)
+     * @param {Object} [options.labels] The words of the footer in the language of the page: showing, of, rows (the size menu),
+     *     noun (what is counted, e.g. "radio"), previous, next
      */
     function renderPagination({
         meta,
@@ -228,56 +237,41 @@
         onPageChange = () => {},
         onLimitChange = () => {},
         limit = 10,
+        labels = {},
     }) {
         const el = $(container);
         if (!meta || meta.total === 0) {
             return el.hide();
         }
 
-        let html = `
-        <div class="d-flex justify-content-between align-items-center">
-            <div class=" d-flex flex-row justify-content-start align-items-center g-3 gap-3">
-    `;
+        const words = { showing: 'Showing', of: 'of', rows: 'Rows per page', noun: '', previous: 'Previous page', next: 'Next page', ...labels };
+        const current = Number(meta.current_page) || 1;
+        const last = Number(meta.last_page) || 1;
+        // The first and the last page, and the ones next to this one; "…" where pages are left out.
+        const shown = [...new Set([1, last, current - 1, current, current + 1])].filter(n => n >= 1 && n <= last).sort((a, b) => a - b);
+        const pages = shown.map((n, i) => (i && n - shown[i - 1] > 1 ? '<span class="rm-pager-dots">…</span>' : '') +
+            (n === current ?
+                `<button type="button" class="rm-pager-page btn-pagination is-on" data-page="${n}" aria-current="page">${n}</button>` :
+                `<button type="button" class="rm-pager-page btn-pagination" data-page="${n}">${n}</button>`)).join('');
+        const sizes = [10, 25, 50, 100].map(n => `<a href="#" class="dropdown-item rm-size-item pagination-limit${n == limit ? ' is-on' : ''}" data-limit="${n}">${n}</a>`).join('');
 
-        const prevDisabled = meta.current_page <= 1 ? 'pe-none disabled' : 'cursor-pointer';
-        html +=
-            `<a class="btn-previous text-decoration-none ${prevDisabled}" data-page="${meta.current_page - 1}">←</a>`;
-        html +=
-            `<a data-page="1" class="btn-pagination cursor-pointer text-decoration-none ${meta.current_page === 1 ? 'mdka-btn-blue-500 text-white' : ''}">1</a>`;
-
-        if (meta.current_page > 4) html += `<span class="">...</span>`;
-
-        if (meta.last_page > 2) {
-            const start = Math.max(meta.current_page - 2, 2);
-            const end = Math.min(meta.current_page + 2, meta.last_page - 1);
-            for (let i = start; i <= end; i++) {
-                html +=
-                    `<a data-page="${i}" class="btn-pagination cursor-pointer text-decoration-none ${meta.current_page === i ? 'mdka-btn-blue-500 text-white' : ''}">${i}</a>`;
-            }
-        }
-
-        if (meta.current_page < meta.last_page - 3) html += `<span class="">...</span>`;
-
-        if (meta.last_page > 1) {
-            html +=
-                `<a data-page="${meta.last_page}" class="btn-pagination cursor-pointer text-decoration-none ${meta.current_page === meta.last_page ? 'mdka-btn-blue-500 text-white' : ''}">${meta.last_page}</a>`;
-        }
-
-        const nextDisabled = meta.current_page >= meta.last_page ? 'pe-none disabled' : 'cursor-pointer';
-        html += `<a class="btn-next ${nextDisabled}" data-page="${meta.current_page + 1}">→</a>`;
-
-        html += `</div>
-                    <div class=" d-flex flex-row justify-content-end align-items-center gap-2">
-                        <div class="mb-0 text-nowrap">Showing ${meta.from || 0} - ${meta.to || 0} of ${meta.total}</div>
-                        <div class="mb-0 text-nowrap">Show :</div>
-                        <select class="form-select pagination-limit">
-                            <option value="10" ${limit == 10 ? 'selected' : ''}>10</option>
-                            <option value="25" ${limit == 25 ? 'selected' : ''}>25</option>
-                            <option value="50" ${limit == 50 ? 'selected' : ''}>50</option>
-                            <option value="100" ${limit == 100 ? 'selected' : ''}>100</option>
-                        </select>
-                    </div>
-                </div>`;
+        const html = `
+            <div class="rm-foot">
+                <span class="rm-foot-text">${words.showing} ${meta.from || 0}–${meta.to || 0} ${words.of} ${meta.total}${words.noun ? ' ' + words.noun : ''}</span>
+                <div class="rm-end">
+                    <span class="rm-size">${words.rows}
+                        <span class="dropdown">
+                            <button type="button" class="rm-size-btn" data-bs-toggle="dropdown" aria-expanded="false">${Number(limit)}<i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                            <span class="dropdown-menu dropdown-menu-end rm-menu rm-size-menu">${sizes}</span>
+                        </span>
+                    </span>
+                    <span class="rm-pager">
+                        <button type="button" class="rm-pager-arrow btn-previous" data-page="${current - 1}" aria-label="${words.previous}"${current <= 1 ? ' disabled' : ''}><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+                        ${pages}
+                        <button type="button" class="rm-pager-arrow btn-next" data-page="${current + 1}" aria-label="${words.next}"${current >= last ? ' disabled' : ''}><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+                    </span>
+                </div>
+            </div>`;
 
         el.html(html).show();
 
@@ -287,8 +281,9 @@
             if (page) onPageChange(page);
         });
 
-        el.find('.pagination-limit').off('change').on('change', function() {
-            onLimitChange(parseInt($(this).val(), 10));
+        el.find('.pagination-limit').off('click').on('click', function(event) {
+            event?.preventDefault?.();
+            onLimitChange(parseInt($(this).data('limit'), 10));
         });
     }
 
@@ -300,44 +295,23 @@
         onSortChange = () => {},
     }) {
         const table = $(container);
-        const upIcon = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-up">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M6 15l6 -6l6 6" />
-            </svg>`;
-        const downIcon = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-down">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M6 9l6 6l6 -6" />
-            </svg>`;
 
         columns.forEach(col => {
             if (typeof col === 'object' && col.key && col.sortable) {
                 const th = table.find(`th[data-key="${col.key}"]`);
                 if (!th.length) return;
 
-                // Determine icon based on current sort state
-                let iconHtml = '';
-                if (currentSortKey === col.key) {
-                    iconHtml = currentSortDir === 'asc' ? upIcon : downIcon;
-                }
-
-                // Wrap header text and icon in flex container. The text goes back in as text,
-                // not as markup: a header may come from data (the column titles of a workbook).
+                // Every sortable header shows its arrow: grey, or blue and pointing the way of the order on the column
+                // the list is sorted by. The text goes back in as text, not as markup: a header may come from data
+                // (the column titles of a workbook).
+                const on = currentSortKey === col.key;
                 const headerText = th.text().trim();
-                th.html(`
-                <div class="d-flex align-items-center w-100 cursor-pointer">
-                    <span class="flex-grow-1 text-wrap ${col.headerClassName}"></span>
-                    <span class="sort-icon small">${iconHtml}</span>
-                </div>
-            `);
-                th.find('span.flex-grow-1').text(headerText);
+                th.html(`<span class="rm-sort-label ${col.headerClassName || ''}"></span><span class="rm-sort" aria-hidden="true"><i class="ti ti-chevron-${on && currentSortDir === 'desc' ? 'down' : 'up'}"></i></span>`);
+                th.find('span.rm-sort-label').text(headerText);
 
                 th.addClass('sortable')
+                    .toggleClass('is-sorted', on)
+                    .attr('aria-sort', on ? (currentSortDir === 'desc' ? 'descending' : 'ascending') : 'none')
                     .off('click')
                     .on('click', () => {
                         const newDir = (currentSortKey === col.key && currentSortDir === 'asc') ? 'desc' :
@@ -382,6 +356,232 @@
         const date = new Date(dateTimeString);
         return date.toISOString().slice(0, 10); // ambil YYYY-MM-DD
     }
+</script>
+
+{{-- The design layer's feedback (radio-ui.css): a short message at the foot of the window after something was done, and a
+     button that shows it is busy while its request runs. --}}
+<script>
+    const rmFeedback = {
+        /** The message goes in as text, never as markup. tone: success | error. */
+        toast(text, tone = 'success') {
+            const error = tone === 'error';
+            return Swal.fire({
+                toast: true,
+                position: 'bottom',
+                timer: 2600,
+                showConfirmButton: false,
+                icon: error ? 'error' : 'success',
+                iconHtml: `<i class="ti ti-${error ? 'alert-circle' : 'circle-check'}"></i>`,
+                titleText: String(text ?? ''),
+                customClass: { container: 'rm-toast-wrap', popup: `rm-toast rm-toast-${error ? 'error' : 'success'}`, icon: 'rm-toast-icon', title: 'rm-toast-title' },
+            });
+        },
+        /** A spinner in the button, and no second click until the answer is back. */
+        busy(button, on) {
+            $(button).toggleClass('is-busy', !!on).prop('disabled', !!on).attr('aria-busy', on ? 'true' : 'false');
+        },
+    };
+
+    // A question before something is done, in the design's dialog: the icon in a round tile beside the title, the
+    // buttons at the foot. tone: blue | green | orange | red | yellow; confirmKind: primary | success | destructive.
+    // "text" goes in as text; "html" only when the caller has escaped what it puts in.
+    const rmDialog = {
+        confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = 'OK', cancelText = 'Batal',
+            confirmKind = 'primary', input = undefined, inputAttributes = undefined, preConfirm = undefined } = {}) {
+            return Swal.fire({
+                title,
+                ...(html === null ? { text } : { html }),
+                icon: 'question',
+                iconHtml: `<i class="ti ti-${icon}"></i>`,
+                input,
+                inputAttributes,
+                preConfirm,
+                showCancelButton: true,
+                reverseButtons: true,
+                focusCancel: confirmKind === 'destructive',
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                buttonsStyling: false,
+                customClass: { popup: 'rm-swal', icon: `rm-swal-icon tone-${tone}`, confirmButton: `btn-rm ${confirmKind}`, cancelButton: 'btn-rm secondary' },
+            });
+        },
+    };
+</script>
+
+{{-- The design layer's pickers (radio-ui.css): a multiple <select> drawn as a menu of boxes to tick (Sel), and a date
+     field with its calendar (RangeCal, one date). The native fields stay in the page and keep the value, so a page reads
+     them as before; what they show is drawn next to them. --}}
+<script>
+    const rmPickers = {
+        months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+        weekdays: ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'],
+
+        /** YYYY-MM-DD of a date (local time). */
+        iso(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        },
+        /** The date of YYYY-MM-DD, or null. */
+        parse(text) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(text || ''));
+            return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+        },
+        /** "01 Okt 2026". */
+        label(text) {
+            const date = rmPickers.parse(text);
+            return date ? `${String(date.getDate()).padStart(2, '0')} ${rmPickers.shortMonths[date.getMonth()]} ${date.getFullYear()}` : '';
+        },
+
+        /**
+         * A <select multiple> as a button with what is chosen (and how many) and a menu of boxes to tick, with "Pilih semua"
+         * and "Kosongkan". The <select> is hidden and keeps the value; ticking triggers its "change".
+         */
+        multi(select, { all = 'Semua', pickAll = 'Pilih semua', clear = 'Kosongkan' } = {}) {
+            const field = $(select);
+            if (!field.length || field.data('rmPicker')) return;
+            field.data('rmPicker', true).addClass('d-none').attr({ tabindex: '-1', 'aria-hidden': 'true' });
+            const id = field.attr('id');
+            const wrap = $('<div class="dropdown rm-sel-wrap"></div>');
+            const button = $('<button type="button" class="rm-sel" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"><span class="rm-sel-text"></span><span class="rm-sel-count d-none"></span><i class="ti ti-chevron-down" aria-hidden="true"></i></button>');
+            const menu = $('<div class="dropdown-menu rm-menu rm-sel-menu"><div class="rm-sel-head"><a href="#" data-pick="all"></a><a href="#" data-pick="none"></a></div></div>');
+            menu.find('[data-pick="all"]').text(pickAll);
+            menu.find('[data-pick="none"]').text(clear);
+            if (id) {
+                button.attr('id', `${id}Button`);
+                $(`label[for="${id}"]`).attr('for', `${id}Button`);
+            }
+            field.find('option').each(function() {
+                const option = $('<label class="rm-sel-option"><input type="checkbox"><span></span></label>');
+                option.find('input').val(this.value);
+                option.find('span').text(this.textContent.trim());
+                menu.append(option);
+            });
+            const show = () => {
+                const chosen = field.find('option:selected').map(function() { return this.textContent.trim(); }).get();
+                button.find('.rm-sel-text').text(chosen.length ? chosen.join(', ') : all).toggleClass('is-empty', !chosen.length);
+                button.find('.rm-sel-count').text(chosen.length).toggleClass('d-none', chosen.length < 2);
+                const values = (field.val() || []).map(String);
+                menu.find('input').each(function() { this.checked = values.includes(this.value); });
+            };
+            menu.on('change', 'input', () => {
+                field.val(menu.find('input:checked').map(function() { return this.value; }).get()).trigger('change');
+            });
+            menu.on('click', '[data-pick]', function(event) {
+                event.preventDefault();
+                field.val($(this).data('pick') === 'all' ? field.find('option').map(function() { return this.value; }).get() : []).trigger('change');
+            });
+            field.on('change', show);
+            wrap.append(button, menu);
+            field.after(wrap);
+            show();
+        },
+
+        /**
+         * A date field: the hidden input keeps YYYY-MM-DD; the button shows "01 Okt 2026" and opens the calendar under it
+         * (Monday first). min() and max() give the first and last day that may be picked (YYYY-MM-DD or null).
+         */
+        date(input, { empty = 'Semua tanggal', min = () => null, max = () => rmPickers.iso(new Date()) } = {}) {
+            const field = $(input);
+            if (!field.length || field.data('rmPicker')) return;
+            field.data('rmPicker', true);
+            const id = field.attr('id');
+            const wrap = $('<div class="rm-date-wrap"></div>');
+            const button = $('<button type="button" class="rm-date" aria-haspopup="dialog" aria-expanded="false"><span class="rm-date-text"></span><i class="ti ti-calendar" aria-hidden="true"></i></button>');
+            if (id) {
+                button.attr('id', `${id}Button`);
+                $(`label[for="${id}"]`).attr('for', `${id}Button`);
+            }
+            const panel = $('<div class="rm-cal" role="dialog" hidden></div>');
+            let month = null;
+
+            const show = () => {
+                const value = field.val();
+                button.find('.rm-date-text').text(value ? rmPickers.label(value) : empty).toggleClass('is-empty', !value);
+            };
+            const close = () => {
+                panel.attr('hidden', 'hidden');
+                button.attr('aria-expanded', 'false').removeClass('is-open');
+                $(document).off('.rmDate' + id);
+            };
+            const pick = value => {
+                field.val(value).trigger('change');
+                close();
+                button.trigger('focus');
+            };
+            const draw = () => {
+                const today = rmPickers.iso(new Date());
+                const first = rmPickers.parse(min());
+                const last = rmPickers.parse(max());
+                const start = new Date(month.getFullYear(), month.getMonth(), 1);
+                const lead = (start.getDay() + 6) % 7;
+                const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+                const out = (date) => (first && date < first) || (last && date > last);
+                const cells = [];
+                for (let i = 0; i < 42; i++) {
+                    const day = i - lead + 1;
+                    if (day < 1 || day > days) {
+                        cells.push('<span class="rm-cal-cell"></span>');
+                        continue;
+                    }
+                    const date = new Date(month.getFullYear(), month.getMonth(), day);
+                    const iso = rmPickers.iso(date);
+                    const classes = ['rm-cal-day', iso === today ? 'is-today' : '', iso === field.val() ? 'is-on' : ''].join(' ').trim();
+                    cells.push(`<span class="rm-cal-cell"><button type="button" class="${classes}" data-date="${iso}"${out(date) ? ' disabled' : ''}>${day}</button></span>`);
+                }
+                const before = new Date(month.getFullYear(), month.getMonth(), 0);
+                const after = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+                const todayOk = !out(rmPickers.parse(today));
+                panel.html(`
+                    <div class="rm-cal-head">
+                        <button type="button" class="rm-cal-nav" data-nav="-1" aria-label="Bulan sebelumnya"${first && before < first ? ' disabled' : ''}><i class="ti ti-chevron-left"></i></button>
+                        <div class="rm-cal-title">${rmPickers.months[month.getMonth()]} ${month.getFullYear()}</div>
+                        <button type="button" class="rm-cal-nav" data-nav="1" aria-label="Bulan berikutnya"${last && after > last ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>
+                    </div>
+                    <div class="rm-cal-week">${rmPickers.weekdays.map(name => `<span>${name}</span>`).join('')}</div>
+                    <div class="rm-cal-grid">${cells.join('')}</div>
+                    <div class="rm-cal-foot">
+                        <a href="#" data-act="clear">Kosongkan</a>
+                        ${todayOk ? '<a href="#" data-act="today">Hari ini</a>' : ''}
+                    </div>`);
+            };
+            const open = () => {
+                month = rmPickers.parse(field.val()) || rmPickers.parse(max()) || new Date();
+                month = new Date(month.getFullYear(), month.getMonth(), 1);
+                draw();
+                panel.removeAttr('hidden');
+                button.attr('aria-expanded', 'true').addClass('is-open');
+                // A click elsewhere, or Esc, closes it without a change.
+                setTimeout(() => {
+                    $(document).on('mousedown.rmDate' + id, event => {
+                        if (!wrap[0].contains(event.target)) close();
+                    });
+                    $(document).on('keydown.rmDate' + id, event => {
+                        if (event.key === 'Escape') {
+                            close();
+                            button.trigger('focus');
+                        }
+                    });
+                }, 0);
+            };
+
+            button.on('click', () => (panel.attr('hidden') === undefined ? close() : open()));
+            panel.on('click', '[data-nav]', function() {
+                month = new Date(month.getFullYear(), month.getMonth() + Number($(this).data('nav')), 1);
+                draw();
+            });
+            panel.on('click', '[data-date]', function() {
+                pick($(this).data('date'));
+            });
+            panel.on('click', '[data-act]', function(event) {
+                event.preventDefault();
+                pick($(this).data('act') === 'today' ? rmPickers.iso(new Date()) : '');
+            });
+            field.on('change', show);
+            wrap.append(button, panel);
+            field.after(wrap);
+            show();
+        },
+    };
 </script>
 
 {{-- The clocks of the session (App\Services\SessionClock, EndExpiredSession): a warning before it ends, and the login

@@ -27,8 +27,31 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
   - warna utama biru `#2563eb`, latar halaman `#f8fafc`, footer selalu di dasar jendela;
   - halaman login memakai font Inter (sebelumnya menautkan file font yang tidak ada); tautan Google Fonts yang tidak
     terpakai dibuang.
+- Fase 2, Register Radio, Detail dan Riwayat Radio:
+  - pola halaman baru: judul dan subjudul di atas satu kartu. Kartu berisi toolbar, filter, chip **Diterapkan** untuk
+    setiap filter yang aktif, bulk bar, dan tabel bergaris dengan footer **Menampilkan… / Baris per halaman** dan nomor
+    halaman. Footer ini dipakai semua halaman daftar;
+  - Register:
+    - pencarian langsung saat mengetik;
+    - lingkup Aktif / Arsip / Semua berupa segmented, dan scope Arsip punya kolom sendiri (user terakhir, tanggal arsip,
+      alasan);
+    - klik baris membuka detail radio;
+    - tombol aksi baris tetap terlihat walau tabel digulir ke samping;
+  - tombol yang tidak boleh dipakai sebuah role tidak lagi ditampilkan: Viewer tidak melihat Tambah, Edit, Arsipkan dan
+    Hapus. Server tetap memeriksa;
+  - dialog baru:
+    - arsip dengan pilihan alasan berupa kartu;
+    - pulihkan, verifikasi massal, dan arsip massal;
+    - hapus, yang kini meminta Radio ID diketik;
+    - form tambah/edit radio 760px, dengan Posisi berupa segmented dan ID bebas berupa chip;
+  - setelah menyimpan, mengarsipkan atau memulihkan radio, hasilnya muncul sebagai toast di bawah layar; hasil aksi
+    massal tetap berupa popup;
+  - detail radio: breadcrumb, kartu kepala dengan tombol **Cetak form**, kartu Hasil cek, tiga kartu info, timeline
+    riwayat dengan perubahan lama → baru, dan Data asli Excel;
+  - Riwayat Radio: baris filter dengan pilihan jenis (centang banyak, dengan jumlahnya) dan kalender untuk tanggal.
+    Daftarnya langsung mengikuti filter.
 
-**Deploy:** fase 1 tanpa migrasi dan tanpa setting baru.
+**Deploy:** fase 1 dan 2 tanpa migrasi dan tanpa setting baru.
 
 ## [1.9.0] - 2026-10-19
 

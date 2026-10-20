@@ -19,31 +19,28 @@
 @endpush
 
 {{-- Static: what is typed (and signed) in the form is lost when the pop-up closes, so a click beside it or the Esc key must not close it. --}}
-<div class="modal fade" id="radioPrintModal" tabindex="-1" aria-hidden="true" aria-labelledby="radioPrintTitle"
+<div class="modal fade rm-print" id="radioPrintModal" tabindex="-1" aria-hidden="true" aria-labelledby="radioPrintTitle"
     data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header py-2">
-                <div>
-                    <h3 class="modal-title" id="radioPrintTitle">Cetak IT Equipment Checkout Form</h3>
-                    <div class="radio-muted" id="radioPrintLabel"></div>
+            <div class="rm-print-head">
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title" id="radioPrintTitle">Cetak IT Equipment Checkout Form</h3>
+                    <div class="rm-print-label" id="radioPrintLabel"></div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                        class="ti ti-x"></i></button>
             </div>
             <div class="alert alert-danger rounded-0 border-0 mb-0 py-2 small d-none" id="radioPrintNotice" role="alert"></div>
             {{-- The frame with the form is made here for every form (see radioPrint.show). --}}
             <div class="modal-body p-0 radio-print-body" id="radioPrintBody"></div>
-            <div class="modal-footer py-2">
-                <x-global.btn-detail label="Tutup" color="secondary" size="sm" outline="true" data-bs-dismiss="modal">
-                    <x-slot:icon>
-                        <i class="ti ti-x"></i>
-                    </x-slot:icon>
-                </x-global.btn-detail>
-                <x-global.btn-detail label="Cetak" color="blue" size="sm" id="radioPrintButton" onclick="radioPrint.print()">
-                    <x-slot:icon>
-                        <i class="ti ti-printer"></i>
-                    </x-slot:icon>
-                </x-global.btn-detail>
+            <div class="rm-print-foot">
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x" aria-hidden="true"></i> Tutup
+                </button>
+                <button type="button" class="btn-rm primary" id="radioPrintButton" onclick="radioPrint.print()">
+                    <i class="ti ti-printer" aria-hidden="true"></i> Cetak
+                </button>
             </div>
         </div>
     </div>
