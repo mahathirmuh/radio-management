@@ -80,109 +80,88 @@
 @endpush
 
 @section('content')
-    <div class="row g-2" id="docsPage">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-2">
-                    @if (! $configured)
-                        <div class="alert alert-warning mb-0" id="docsNotConfigured">
-                            <b>{{ $title }} belum bisa ditampilkan.</b>
-                            Alamat folder SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code>
-                            (lihat README, bagian "Dokumen SharePoint").
-                        </div>
-                    @else
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-5">
-                                <label for="docsSearch" class="form-label">Cari</label>
-                                <input type="text" id="docsSearch" class="form-control" autocomplete="off" maxlength="100"
-                                    placeholder="{{ $split ? $split['code'] . ' atau ' . mb_strtolower($split['label']) . '…' : 'Nama file…' }}">
-                            </div>
-                            <div class="col-md-7 d-flex gap-2 flex-wrap">
-                                <x-global.btn-detail label="" color="red" size="sm" outline="true" onclick="spDocs.reset()"
-                                    data-bs-toggle="tooltip" data-bs-title="Reset pencarian, pilihan nomor, dan urutan">
-                                    <x-slot:icon>
-                                        <i class="ti ti-restore"></i>
-                                    </x-slot:icon>
-                                </x-global.btn-detail>
-                                <x-global.btn-detail label="Muat ulang" color="blue" size="sm" id="docsReload"
-                                    onclick="spDocs.load(true)">
-                                    <x-slot:icon>
-                                        <i class="ti ti-refresh"></i>
-                                    </x-slot:icon>
-                                </x-global.btn-detail>
-                                {{-- Hidden while the folder being looked at has no known address in SharePoint. --}}
-                                <span class="ms-md-auto {{ $sharePointUrl ? '' : 'd-none' }}" id="docsOpenWrap">
-                                    {{-- Bound (:href), not echoed: the component escapes it, and twice would break the "&" of the link. --}}
-                                    <x-global.btn-detail label="Buka di SharePoint" color="blue" size="sm" outline="true"
-                                        id="docsOpen" :href="$sharePointUrl ?? '#'" target="_blank"
-                                        rel="noopener noreferrer">
-                                        <x-slot:icon>
-                                            <i class="ti ti-external-link"></i>
-                                        </x-slot:icon>
-                                    </x-global.btn-detail>
-                                </span>
-                            </div>
+    <div class="rm-docs" id="docsPage">
+        <div class="rm-head">
+            <div>
+                <h1 class="rm-title">{{ $title }}</h1>
+                <p class="rm-sub">{{ $subtitle ? $subtitle . '. ' : '' }}Dibaca dari SharePoint, diperbarui tiap {{ $cacheMinutes }} menit.</p>
+            </div>
+        </div>
+        <div class="rm-card">
+            @if (! $configured)
+                <div class="alert alert-warning mb-0" id="docsNotConfigured">
+                    <b>{{ $title }} belum bisa ditampilkan.</b>
+                    Alamat folder SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code>
+                    (lihat README, bagian "Dokumen SharePoint").
+                </div>
+            @else
+                <div class="rm-toolbar rm-toolbar-tight">
+                    <label class="rm-search rm-search-360" for="docsSearch">
+                        <i class="ti ti-search" aria-hidden="true"></i>
+                        <input type="search" id="docsSearch" autocomplete="off" maxlength="100" aria-label="Cari"
+                            placeholder="{{ $split ? $split['code'] . ' atau ' . mb_strtolower($split['label']) . '…' : 'Nama file…' }}">
+                    </label>
+                    <button type="button" class="btn-rm secondary" onclick="spDocs.reset()" data-bs-toggle="tooltip"
+                        data-bs-title="Reset pencarian, pilihan nomor, dan urutan"><i class="ti ti-restore" aria-hidden="true"></i> Reset</button>
+                    <button type="button" class="btn-rm secondary" id="docsReload" onclick="spDocs.load(true)">
+                        <i class="ti ti-refresh" aria-hidden="true"></i> Muat ulang
+                    </button>
+                    {{-- Hidden while the folder being looked at has no known address in SharePoint. --}}
+                    <span class="ms-auto {{ $sharePointUrl ? '' : 'd-none' }}" id="docsOpenWrap">
+                        <a class="btn-rm secondary" id="docsOpen" href="{{ $sharePointUrl ?? '#' }}" target="_blank"
+                            rel="noopener noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i> Buka di SharePoint</a>
+                    </span>
+                </div>
 
-                            <div class="col-12">
-                                <div class="docs-muted">
-                                    @if ($subtitle)
-                                        {{ $subtitle }}.
-                                    @endif
-                                    Daftar dibaca dari SharePoint dan diperbarui tiap {{ $cacheMinutes }} menit. Tombol
-                                    <i class="ti ti-eye"></i> menampilkan file di sini; klik namanya untuk membukanya di SharePoint
-                                    dengan akun Microsoft Anda.
-                                    @if ($register)
-                                        Kolom Masterlist dan Catatan dari sheet {{ $register['sheet'] }} di {{ $register['title'] }}:
-                                        baris yang menyebut file itu, dan catatannya.
-                                    @endif
-                                </div>
-                                <div class="small mt-1 d-none" id="docsCrumbs"></div>
-                                <div class="docs-muted" id="docsInfo"></div>
-                                <div id="docsNotice"></div>
-                                {{-- Said when a link from the page of the workbook asked for the files of one document number only. (The live
-                                     region is always there, so that what appears in it is read out; a region that appears with its text may not be.) --}}
-                                <div role="status">
-                                    <div class="alert alert-info py-2 small mt-2 mb-0 text-break d-none" id="docsCodeBar">
-                                        <span id="docsCodeText"></span>
-                                        <a href="#" id="docsCodeClear" class="ms-1">Tampilkan semua file</a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-2">
-                                <div class="card overflow-hidden mdka-border-gray-200">
-                                    <div class="card-body table-responsive p-0">
-                                        <table class="table table-vcenter mdka-border-gray-100 mb-0{{ $register ? ' docs-register' : '' }}" id="docsTable">
-                                            <thead>
-                                                <tr class="mdka-bg-gray-50">
-                                                    <th class="text-capitalize fs-5 py-3 text-center" width="30">No</th>
-                                                    @if ($split)
-                                                        <th class="text-capitalize fs-5 py-3" data-key="name" width="130">{{ $split['code'] }}</th>
-                                                        <th class="text-capitalize fs-5 py-3" data-key="label">{{ $split['label'] }}</th>
-                                                    @else
-                                                        <th class="text-capitalize fs-5 py-3" data-key="name">Nama</th>
-                                                    @endif
-                                                    @if ($register)
-                                                        <th class="text-capitalize fs-5 py-3" data-key="masterlist" width="150">Masterlist</th>
-                                                        <th class="text-capitalize fs-5 py-3" width="200">Catatan</th>
-                                                    @endif
-                                                    <th class="text-capitalize fs-5 py-3" data-key="extension" width="80">Tipe</th>
-                                                    <th class="text-capitalize fs-5 py-3" data-key="modified" width="150">Diubah</th>
-                                                    <th class="text-capitalize fs-5 py-3">Oleh</th>
-                                                    <th class="text-capitalize fs-5 py-3" data-key="size" width="100">Ukuran</th>
-                                                    <th class="text-capitalize fs-5 py-3 text-center" width="60">Lihat</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="pagination-container mt-2"></div>
-                            </div>
-                        </div>
+                <div class="rm-docs-help">
+                    Tombol <i class="ti ti-eye"></i> menampilkan file di sini; klik namanya untuk membukanya di SharePoint dengan
+                    akun Microsoft Anda.
+                    @if ($register)
+                        Kolom Masterlist dan Catatan dari sheet {{ $register['sheet'] }} di {{ $register['title'] }}: baris yang
+                        menyebut file itu, dan catatannya.
                     @endif
                 </div>
-            </div>
+                <div class="small d-none" id="docsCrumbs"></div>
+                <div class="docs-muted" id="docsInfo"></div>
+                <div id="docsNotice"></div>
+                {{-- Said when a link from the page of the workbook asked for the files of one document number only. (The live
+                     region is always there, so that what appears in it is read out; a region that appears with its text may not be.) --}}
+                <div role="status">
+                    <div class="alert alert-info py-2 small mt-2 mb-0 text-break d-none" id="docsCodeBar">
+                        <span id="docsCodeText"></span>
+                        <a href="#" id="docsCodeClear" class="ms-1">Tampilkan semua file</a>
+                    </div>
+                </div>
+
+                <div class="rm-box">
+                    <div class="table-responsive">
+                        <table class="rm-table{{ $register ? ' docs-register' : '' }}" id="docsTable">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" width="44">No</th>
+                                    @if ($split)
+                                        <th data-key="name" width="130">{{ $split['code'] }}</th>
+                                        <th data-key="label">{{ $split['label'] }}</th>
+                                    @else
+                                        <th data-key="name">Nama</th>
+                                    @endif
+                                    @if ($register)
+                                        <th data-key="masterlist" width="190">Masterlist</th>
+                                        <th width="200">Catatan</th>
+                                    @endif
+                                    <th data-key="extension" width="80">Tipe</th>
+                                    <th data-key="modified" width="150">Diubah</th>
+                                    <th>Oleh</th>
+                                    <th data-key="size" width="100">Ukuran</th>
+                                    <th class="text-center" width="60">Lihat</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-container"></div>
+                </div>
+            @endif
         </div>
     </div>
 

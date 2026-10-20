@@ -89,6 +89,14 @@ check('a question in the design dialog: the tone, the icon, text as text, the ki
     page.page('rmDialog').confirm({ title: 'Lanjut?', html: '<b>ya</b>' });
     assert.equal(page.dialogs.at(-1).options.html, '<b>ya</b>');
     assert.equal(page.dialogs.at(-1).options.text, undefined);
+    assert.equal(page.dialogs.at(-1).options.showLoaderOnConfirm, undefined);
+    // A dialog that sends a request waits for its answer.
+    page.page('rmDialog').confirm({ title: 'Tolak?', input: 'textarea', inputLabel: 'Alasan', loader: true });
+    const waiting = page.dialogs.at(-1).options;
+    assert.equal(waiting.showLoaderOnConfirm, true);
+    assert.equal(typeof waiting.allowOutsideClick, 'function');
+    assert.equal(waiting.input, 'textarea');
+    assert.equal(waiting.inputLabel, 'Alasan');
 });
 
 check('dates of the pickers: YYYY-MM-DD, read back, and shown as "01 Okt 2026"', () => {

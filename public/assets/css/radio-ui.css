@@ -889,12 +889,17 @@
 /* Line tabs (Master data, Edit approvals, Notifications). */
 .rm-tabs {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    column-gap: 20px;
     box-shadow: inset 0 -1px 0 var(--rm-gray-200);
 }
 
 .rm-tabs > * {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 10px 4px;
+    white-space: nowrap;
     border: 0;
     background: transparent;
     color: var(--rm-gray-500);
@@ -1498,6 +1503,17 @@
     margin-bottom: 0;
 }
 
+/* A switch or a box to tick in a form of the layer: its text in the size of the form (the global 0.65rem is for the
+   old pages). */
+.rm-field .form-check-label,
+.rm-modal .form-check-label,
+.rm-card .form-check-label {
+    padding-top: 0;
+    color: var(--rm-gray-700);
+    font-size: 14px;
+    line-height: 20px;
+}
+
 .rm-field .select2-container--bootstrap-5.select2-container--focus .select2-selection,
 .rm-field .select2-container--bootstrap-5.select2-container--open .select2-selection {
     box-shadow: inset 0 0 0 2px var(--rm-brand-600);
@@ -1823,8 +1839,36 @@
 }
 
 .rm-swal .swal2-input,
+.rm-swal .swal2-textarea,
+.rm-swal .swal2-input-label,
 .rm-swal .swal2-validation-message {
     grid-column: 1 / -1;
+}
+
+.rm-swal .swal2-input-label {
+    justify-content: flex-start;
+    margin: 0 24px 6px;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.rm-swal .swal2-textarea {
+    height: auto;
+    min-height: 84px;
+    margin: 0 24px 20px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.rm-swal .swal2-textarea:focus {
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
 }
 
 .rm-swal .swal2-input {
@@ -2651,6 +2695,611 @@ th.is-sorted .rm-sort {
     width: 100%;
 }
 
+/* A stat tile (x-global.summary-card): an icon in a tinted square, the name, the number. */
+.rm-kpi {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--rm-gray-900);
+    transition: background-color .12s ease-out, border-color .12s ease-out;
+}
+
+a:hover > .rm-kpi,
+a:focus-visible > .rm-kpi {
+    border-color: var(--rm-gray-300);
+    background: var(--rm-gray-50);
+}
+
+.rm-kpi-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-600);
+}
+
+.rm-kpi-icon .ti {
+    font-size: 22px !important;
+}
+
+.rm-kpi-icon.tone-blue {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-600);
+}
+
+.rm-kpi-icon.tone-green {
+    background: var(--rm-success-100);
+    color: var(--rm-success-600);
+}
+
+.rm-kpi-icon.tone-orange {
+    background: var(--rm-orange-100);
+    color: var(--rm-orange-600);
+}
+
+.rm-kpi-icon.tone-red {
+    background: var(--rm-error-100);
+    color: var(--rm-error-600);
+}
+
+.rm-kpi-icon.tone-yellow {
+    background: var(--rm-warning-100);
+    color: var(--rm-warning-600);
+}
+
+.rm-kpi-icon.tone-purple {
+    background: var(--rm-purple-100);
+    color: var(--rm-purple-600);
+}
+
+.rm-kpi-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.rm-kpi-label {
+    overflow: hidden;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-kpi-value {
+    color: var(--rm-gray-900);
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Import Excel: the form and the last result side by side. */
+.rm-import-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: 16px;
+}
+
+@media (max-width: 991.98px) {
+    .rm-import-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rm-import-rules {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-import-rules li + li {
+    margin-top: 4px;
+}
+
+/* A file field: the button, and the name of the file chosen. */
+.rm-file {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+    cursor: pointer;
+}
+
+.rm-file-btn {
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--rm-gray-100);
+    box-shadow: inset -1px 0 0 var(--rm-gray-300);
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.rm-file:hover .rm-file-btn {
+    background: var(--rm-gray-200);
+}
+
+.rm-file:focus-within {
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+.rm-file-name {
+    min-width: 0;
+    padding: 0 12px;
+    overflow: hidden;
+    color: var(--rm-gray-400);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-file-name.is-set {
+    color: var(--rm-gray-900);
+    font-family: var(--rm-mono);
+    font-size: 13px;
+}
+
+/* A box to tick with its text. */
+.rm-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    color: var(--rm-gray-700);
+    font-size: 14px;
+    line-height: 20px;
+    cursor: pointer;
+}
+
+.rm-check.is-danger {
+    color: var(--rm-error-700);
+}
+
+.rm-check input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--rm-brand-600);
+}
+
+.rm-import-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 575.98px) {
+    .rm-import-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.rm-import-stat {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: var(--rm-ring);
+}
+
+.rm-import-stat-label {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-import-stat-value {
+    color: var(--rm-gray-900);
+    font-size: 26px;
+    line-height: 34px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.rm-import-stat.tone-blue .rm-import-stat-value {
+    color: var(--rm-brand-600);
+}
+
+.rm-import-stat.tone-green .rm-import-stat-value {
+    color: var(--rm-success-600);
+}
+
+.rm-import-stat.tone-red .rm-import-stat-value {
+    color: var(--rm-error-600);
+}
+
+/* E-Sign Master as cards (Grid): who, the signature on white, when it was changed. */
+.rm-esign-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 1199.98px) {
+    .rm-esign-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .rm-esign-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rm-esign-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--rm-ring);
+}
+
+.rm-esign-card.is-off .rm-esign-sheet img {
+    opacity: .45;
+}
+
+.rm-esign-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rm-avatar-ini {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rm-esign-who {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-esign-name {
+    overflow: hidden;
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-esign-sheet {
+    display: grid;
+    place-items: center;
+    height: 112px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-esign-sheet img {
+    max-width: 90%;
+    max-height: 96px;
+    object-fit: contain;
+}
+
+.rm-esign-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.rm-esign-add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 220px;
+    padding: 16px;
+    border: 2px dashed var(--rm-gray-300);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rm-gray-500);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color .12s ease-out, border-color .12s ease-out, color .12s ease-out;
+}
+
+.rm-esign-add .ti {
+    font-size: 24px;
+}
+
+.rm-esign-add:hover {
+    border-color: var(--rm-brand-300);
+    background: var(--rm-brand-50);
+    color: var(--rm-brand-700);
+}
+
+.btn-rm.secondary.rm-text-danger,
+.btn-rm.secondary.rm-text-danger:hover {
+    color: var(--rm-error-600);
+}
+
+.rm-icon-btn.rm-icon-btn-lg {
+    width: 36px;
+    height: 36px;
+}
+
+/* The dashboard: six stat tiles, then the blocks in pairs (5fr / 7fr, then halves). */
+.rm-kpis {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 1399.98px) {
+    .rm-kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .rm-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.rm-kpi-link {
+    display: block;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.rm-kpi-link:hover {
+    color: inherit;
+}
+
+.rm-dash-split {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: 16px;
+}
+
+.rm-dash-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+}
+
+@media (max-width: 991.98px) {
+    .rm-dash-split,
+    .rm-dash-pair {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* A free Radio ID on the dashboard: "1053 · MDC 41D". */
+.rm-dash-id {
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--rm-brand-50);
+    color: var(--rm-brand-700);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rm-dash-id span {
+    color: var(--rm-gray-500);
+    font-weight: 400;
+}
+
+/* "Perlu tindakan": a row per check, its number, a link to the radios. */
+.rm-attn-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+    font-size: 13px;
+}
+
+.rm-attn-row:first-child {
+    box-shadow: none;
+}
+
+.rm-attn-count {
+    width: 56px;
+    color: var(--rm-gray-900);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.rm-attn-link {
+    width: 64px;
+    color: var(--rm-brand-600);
+    font-weight: 500;
+    text-align: right;
+    text-decoration: none;
+}
+
+.rm-attn-link:hover {
+    text-decoration: underline;
+}
+
+/* A box whose table runs to its edges (the dashboard's recent activity). */
+.rm-cardbox-flush .rm-table > thead > tr > th:first-child,
+.rm-cardbox-flush .rm-table > tbody > tr > td:first-child {
+    padding-left: 16px;
+}
+
+.rm-cardbox-flush .rm-table > thead > tr > th:last-child,
+.rm-cardbox-flush .rm-table > tbody > tr > td:last-child {
+    padding-right: 16px;
+}
+
+.rm-cardbox-flush .rm-table > thead > tr > th {
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.rm-table td.rm-dash-text {
+    min-width: 220px;
+    white-space: normal;
+}
+
+/* A page with nothing in it yet. */
+.rm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 16px;
+    text-align: center;
+}
+
+.rm-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+    border-radius: 999px;
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-600);
+    font-size: 20px;
+}
+
+.rm-empty-title {
+    color: var(--rm-gray-900);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+}
+
+.rm-empty-text {
+    max-width: 420px;
+    margin-bottom: 8px;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+}
+
+/* Tabs in the first row of a card, the page's main button at the right end of it. */
+.rm-tabs-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-tabs-row .rm-tabs {
+    flex: 1;
+    min-width: 0;
+    box-shadow: none;
+}
+
+.rm-tabs-row > .btn-rm {
+    margin: 4px 0 8px auto;
+}
+
+.rm-tabs > :hover {
+    color: var(--rm-gray-700);
+}
+
+.rm-tabs > .is-on:hover {
+    color: var(--rm-brand-700);
+}
+
+.rm-tabs > :focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: -2px;
+}
+
+/* How many a tab holds: a pill, blue on the tab that is open. */
+.rm-tab-count {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-600);
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 600;
+    transition: background-color .15s ease-out, color .15s ease-out;
+}
+
+.rm-tabs > .is-on .rm-tab-count {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
+}
+
+/* Master data: the list, and the card of the form beside it (340 wide). */
+.rm-master-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 16px;
+}
+
+.rm-master-grid.is-readonly {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.rm-master-grid > * {
+    min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+    .rm-master-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rm-master-grid .rm-search {
+    width: 320px;
+}
+
+#masterTable td.master-text {
+    min-width: 200px;
+    max-width: 420px;
+    white-space: normal;
+}
+
 .rm-badge.outline {
     background: transparent;
     box-shadow: inset 0 0 0 1px var(--rm-gray-300);
@@ -3077,6 +3726,289 @@ th.is-sorted .rm-sort {
     margin: 0;
     color: var(--rm-gray-900);
     overflow-wrap: anywhere;
+}
+
+/* Tabler's light badges and alerts that pages still write get the design's look everywhere: a faded badge (radius 4,
+   12/16 500) and a box with a ring of its colour. */
+.badge[class*="bg-"][class*="-lt"] {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+    vertical-align: baseline;
+}
+
+.badge.bg-blue-lt,
+.badge.bg-azure-lt,
+.badge.bg-primary-lt,
+.badge.bg-cyan-lt,
+.badge.bg-indigo-lt {
+    background: var(--rm-brand-100) !important;
+    color: var(--rm-brand-600) !important;
+}
+
+.badge.bg-green-lt,
+.badge.bg-teal-lt,
+.badge.bg-lime-lt,
+.badge.bg-success-lt {
+    background: var(--rm-success-100) !important;
+    color: var(--rm-success-500) !important;
+}
+
+.badge.bg-yellow-lt,
+.badge.bg-warning-lt {
+    background: var(--rm-warning-100) !important;
+    color: var(--rm-warning-600) !important;
+}
+
+.badge.bg-orange-lt {
+    background: var(--rm-orange-100) !important;
+    color: var(--rm-orange-600) !important;
+}
+
+.badge.bg-red-lt,
+.badge.bg-danger-lt,
+.badge.bg-pink-lt {
+    background: var(--rm-error-100) !important;
+    color: var(--rm-error-600) !important;
+}
+
+.badge.bg-purple-lt {
+    background: var(--rm-violet-100) !important;
+    color: var(--rm-violet-600) !important;
+}
+
+.badge.bg-secondary-lt,
+.badge.bg-muted-lt,
+.badge.bg-dark-lt {
+    background: var(--rm-gray-200) !important;
+    color: var(--rm-gray-700) !important;
+}
+
+.alert.alert-info,
+.alert.alert-warning,
+.alert.alert-danger,
+.alert.alert-success {
+    border: 0;
+    border-radius: 8px;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.alert.alert-info {
+    background: var(--rm-brand-50);
+    box-shadow: inset 0 0 0 1px var(--rm-brand-200);
+    color: var(--rm-brand-800);
+}
+
+.alert.alert-warning {
+    background: var(--rm-warning-50);
+    box-shadow: inset 0 0 0 1px var(--rm-warning-200);
+}
+
+.alert.alert-danger {
+    background: var(--rm-error-50);
+    box-shadow: inset 0 0 0 1px var(--rm-error-200);
+    color: var(--rm-error-700);
+}
+
+.alert.alert-success {
+    background: var(--rm-success-50);
+    box-shadow: inset 0 0 0 1px var(--rm-success-100);
+    color: var(--rm-success-700);
+}
+
+.alert.alert-info::before,
+.alert.alert-warning::before,
+.alert.alert-danger::before,
+.alert.alert-success::before {
+    display: none;
+}
+
+/* The SharePoint pages (COF Scan, ICT Masterlist, Persetujuan Edit): their scripts still write Tabler buttons; they get
+   the look of the layer's icon and small buttons. */
+.rm-docs-help {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* Their card holds places that are often empty (a notice, a bar that says which rows are shown): those take no room. The
+   live region around such a bar stays (what appears in it is read out); the bar brings its own margin. */
+.rm-docs .rm-card {
+    gap: 0;
+}
+
+.rm-docs .rm-card > * + * {
+    margin-top: 12px;
+}
+
+.rm-docs .rm-card > :empty {
+    display: none;
+}
+
+.rm-docs .rm-card > [role="status"] {
+    margin-top: 0;
+}
+
+.rm-docs .rm-card > .rm-box,
+.rm-docs .rm-card > .rm-wb-sheets {
+    margin-top: 16px;
+}
+
+.rm-docs .docs-muted,
+.rm-docs .wb-muted,
+.rm-docs .ea-muted,
+#docsViewer .docs-muted {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+}
+
+.rm-docs .docs-code {
+    font-family: var(--rm-mono);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.rm-search.rm-search-360 {
+    width: 360px;
+}
+
+.rm-search.rm-search-wide {
+    width: 420px;
+}
+
+.nav.rm-wb-tabs {
+    flex-wrap: wrap;
+    column-gap: 20px;
+    margin-top: 0;
+    border: 0;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.nav.rm-wb-tabs::after,
+.nav.rm-wb-tabs .nav-item .nav-link.active::after {
+    display: none;
+}
+
+.nav.rm-wb-tabs .nav-item .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 10px 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--rm-gray-500);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.nav.rm-wb-tabs .nav-item .nav-link:hover {
+    color: var(--rm-gray-700);
+}
+
+.nav.rm-wb-tabs .nav-item .nav-link.active {
+    color: var(--rm-brand-700);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--rm-brand-600);
+}
+
+.nav.rm-wb-tabs .nav-item .nav-link:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: -2px;
+}
+
+/* The count of a sheet; green while a search finds rows in it. */
+.nav.rm-wb-tabs .nav-link .badge {
+    margin: 0 !important;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--rm-gray-100) !important;
+    color: var(--rm-gray-600) !important;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 600;
+}
+
+.nav.rm-wb-tabs .nav-link .badge.bg-green-lt {
+    background: var(--rm-success-100) !important;
+    color: var(--rm-success-700) !important;
+}
+
+.nav.rm-wb-tabs .nav-link.active .badge {
+    background: var(--rm-brand-100) !important;
+    color: var(--rm-brand-700) !important;
+}
+
+.rm-docs .btn.btn-sm.btn-icon,
+#docsViewer .btn.btn-sm.btn-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-500);
+}
+
+.rm-docs .btn.btn-sm.btn-icon:hover,
+#docsViewer .btn.btn-sm.btn-icon:hover {
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-700);
+}
+
+.rm-docs .btn.btn-sm:not(.btn-icon),
+#docsViewer .btn.btn-sm:not(.btn-icon) {
+    height: 28px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+}
+
+.rm-docs .btn.btn-sm[class*="btn-outline-"],
+#docsViewer .btn.btn-sm[class*="btn-outline-"] {
+    background: #fff;
+    box-shadow: var(--rm-ring);
+    color: var(--rm-gray-700);
+}
+
+.rm-docs .btn.btn-sm[class*="btn-outline-"]:hover,
+#docsViewer .btn.btn-sm[class*="btn-outline-"]:hover {
+    background: var(--rm-gray-50);
+}
+
+#docsViewer .modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: var(--rm-shadow-xl), var(--rm-ring);
+}
+
+#docsViewer .modal-header {
+    padding: 10px 20px;
+    border: 0;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+#docsViewer .modal-title {
+    color: var(--rm-gray-900);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
 }
 
 /* Bootstrap's dialogs get the scrim of the design. */

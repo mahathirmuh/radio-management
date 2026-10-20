@@ -10,10 +10,10 @@
         .esign-preview {
             display: inline-block;
             width: 150px;
-            height: 56px;
-            border: 1px solid var(--tblr-border-color);
-            border-radius: 4px;
+            height: 48px;
+            border-radius: 6px;
             background: #fff;
+            box-shadow: inset 0 0 0 1px var(--rm-gray-200);
         }
 
         .esign-preview img {
@@ -26,88 +26,104 @@
             display: block;
             width: 100%;
             height: 480px;
-            border: 1px solid var(--tblr-border-color);
-            border-radius: 4px;
+            border: 0;
+            border-radius: 8px;
             background: #fff;
+            box-shadow: inset 0 0 0 1px var(--rm-gray-200);
         }
     </style>
 @endpush
 
+@php
+    // What the role may do on "E-Sign Master" (the server checks again).
+    $esignMay = [
+        'create' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.e-sign', 'Create'),
+        'update' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.e-sign', 'Update'),
+        'delete' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.e-sign', 'Delete'),
+    ];
+@endphp
+
 @section('content')
-    <div class="row g-2">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-2">
-                    <div class="row g-2">
-                        <div class="col-12 d-flex justify-content-between gap-2">
-                            <div class="d-flex gap-2">
-                                <input type="text" id="esignSearch" class="form-control form-control-lg pb-1 rounded-3"
-                                    autocomplete="off" maxlength="100" placeholder="Cari nama atau e-mail…" />
-                                <x-global.btn-detail label="" color="blue" size="sm" outline="true" id="esignSearchButton"
-                                    data-bs-toggle="tooltip" data-bs-title="Cari">
-                                    <x-slot:icon>
-                                        <i class="ti ti-search"></i>
-                                    </x-slot:icon>
-                                </x-global.btn-detail>
-                            </div>
-                            <x-global.btn-detail label="Daftarkan tanda tangan" color="blue" size="sm" id="esignAdd"
-                                onclick="esignForm.open()">
-                                <x-slot:icon>
-                                    <i class="ti ti-plus"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                        </div>
+    <div class="rm-head">
+        <div>
+            <h1 class="rm-title">E-Sign Master</h1>
+            <p class="rm-sub">Tanda tangan tim ICT untuk kotak PROCESSED BY di IT Equipment Checkout Form.</p>
+        </div>
+    </div>
 
-                        <div class="col-12">
-                            <div class="radio-muted">
-                                Tanda tangan tim ICT untuk kotak <b>PROCESSED BY</b> di IT Equipment Checkout Form (tombol Cetak di Register
-                                Radio). Di form, yang muncul adalah tanda tangan <b>akun yang sedang membuka form itu</b>: tidak ada yang bisa
-                                menempelkan tanda tangan orang lain. Setiap pemakaian dicatat (tombol riwayat). Gambar disimpan terenkripsi.
-                            </div>
-                            <div id="esignNotice"></div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="card overflow-hidden mdka-border-gray-200">
-                                <div class="card-body table-responsive p-0">
-                                    <table class="table table-vcenter mdka-border-gray-100 mb-0" id="esignTable">
-                                        <thead>
-                                            <tr class="mdka-bg-gray-50">
-                                                <th class="text-capitalize fs-5 py-3 text-center" width="30">No</th>
-                                                <th class="text-capitalize fs-5 py-3">Akun</th>
-                                                <th class="text-capitalize fs-5 py-3">Nama tercetak</th>
-                                                <th class="text-capitalize fs-5 py-3">Tanda tangan</th>
-                                                <th class="text-capitalize fs-5 py-3 text-center">Status</th>
-                                                <th class="text-capitalize fs-5 py-3">Dipakai</th>
-                                                <th class="text-capitalize fs-5 py-3 text-center">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="pagination-container mt-2"></div>
-                        </div>
-                    </div>
-                </div>
+    <div class="rm-card">
+        <div class="rm-toolbar rm-toolbar-tight">
+            <label class="rm-search" for="esignSearch">
+                <i class="ti ti-search" aria-hidden="true"></i>
+                <input type="search" id="esignSearch" autocomplete="off" maxlength="100" placeholder="Cari nama atau e-mail…"
+                    aria-label="Cari nama atau e-mail" />
+            </label>
+            <button type="button" class="rm-icon-btn is-ringed rm-icon-btn-lg" id="esignSearchButton" data-bs-toggle="tooltip"
+                data-bs-title="Cari" aria-label="Cari"><i class="ti ti-search"></i></button>
+            <div class="rm-seg ms-auto" role="radiogroup" aria-label="Tampilan">
+                <input type="radio" class="btn-check" name="esignView" id="esignViewGrid" value="grid" checked>
+                <label for="esignViewGrid"><i class="ti ti-layout-grid" aria-hidden="true"></i> Grid</label>
+                <input type="radio" class="btn-check" name="esignView" id="esignViewList" value="list">
+                <label for="esignViewList"><i class="ti ti-list" aria-hidden="true"></i> List</label>
             </div>
+            @if ($esignMay['create'])
+                <button type="button" class="btn-rm primary" id="esignAdd" onclick="esignForm.open()">
+                    <i class="ti ti-plus" aria-hidden="true"></i> Daftarkan tanda tangan
+                </button>
+            @endif
+        </div>
+
+        <div class="rm-banner">
+            <i class="ti ti-lock" aria-hidden="true"></i>
+            <span>Di form, yang muncul adalah tanda tangan <b>akun yang sedang membuka form itu</b>: tidak ada yang bisa
+                menempelkan tanda tangan orang lain. Setiap pemakaian dicatat (tombol riwayat). Gambar disimpan terenkripsi.</span>
+        </div>
+        <div id="esignNotice"></div>
+
+        <div class="rm-esign-grid" id="esignGrid" aria-live="polite"></div>
+
+        <div class="rm-box d-none" id="esignListBox">
+            <div class="table-responsive">
+                <table class="rm-table" id="esignTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="30">No</th>
+                            <th>Akun</th>
+                            <th>Nama tercetak</th>
+                            <th>Tanda tangan</th>
+                            <th class="text-center">Status</th>
+                            <th>Dipakai</th>
+                            <th class="text-end"><span class="visually-hidden">Aksi</span></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="pagination-container"></div>
         </div>
     </div>
 
     {{-- Registers a signature, or changes one. Static: what was signed is lost when the dialog closes. --}}
-    <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="esignModal" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content p-3">
-                <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                <div class="modal-body p-0">
-                    <h3 class="modal-title mb-3" id="esignTitle">Daftarkan tanda tangan</h3>
-                    <div class="row g-2">
-                        <div class="col-md-6">
+    <div class="modal fade rm-modal wide" data-bs-backdrop="static" data-bs-keyboard="false" id="esignModal" aria-hidden="true"
+        aria-labelledby="esignTitle">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="rm-dialog-head is-ruled">
+                    <div class="rm-dialog-titles">
+                        <h3 class="rm-dialog-title modal-title" id="esignTitle">Daftarkan tanda tangan</h3>
+                        <p class="rm-dialog-sub">Tanda tangan ini hanya muncul di form yang dibuka dengan akun pemiliknya.</p>
+                    </div>
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                            class="ti ti-x"></i></button>
+                </div>
+                <div class="rm-dialog-body is-form">
+                    <div class="row g-3">
+                        <div class="col-md-6 rm-field">
                             <label for="esign_user" class="form-label required">Akun pemilik</label>
                             <select id="esign_user" class="form-select"></select>
-                            <div class="form-hint" id="esignUserHint">Tanda tangan ini hanya muncul di form yang dibuka dengan akun ini.</div>
+                            <div class="rm-hint" id="esignUserHint">Tanda tangan ini hanya muncul di form yang dibuka dengan akun ini.</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 rm-field">
                             <label for="esign_name" class="form-label">Nama tercetak di bawah tanda tangan</label>
                             <input type="text" id="esign_name" class="form-control" maxlength="150" autocomplete="off"
                                 placeholder="Kosongkan untuk memakai nama akun">
@@ -118,43 +134,41 @@
                                 <span class="form-check-label">Aktif (nonaktif: tidak muncul di form, kotaknya ditandatangani di kertas)</span>
                             </label>
                         </div>
-                        <div class="col-12 d-none" id="esignCurrentWrap">
-                            <div class="form-label mb-1">Tanda tangan sekarang</div>
+                        <div class="col-12 rm-field d-none" id="esignCurrentWrap">
+                            <span class="form-label">Tanda tangan sekarang</span>
                             <span class="esign-preview" id="esignCurrent"></span>
                         </div>
-                        <div class="col-12">
-                            <div class="form-label mb-1" id="esignPadLabel">Tanda tangan</div>
+                        <div class="col-12 rm-field">
+                            <span class="form-label" id="esignPadLabel">Tanda tangan</span>
                             <div id="esignPadHost"></div>
                         </div>
                         <div class="col-12" role="alert">
-                            <div class="alert alert-danger py-2 small mb-0 d-none" id="esignError"></div>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                            <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true" data-bs-dismiss="modal">
-                                <x-slot:icon>
-                                    <i class="ti ti-x"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                            <x-global.btn-detail label="Simpan" color="blue" size="sm" id="esignSave" onclick="esignForm.submit()">
-                                <x-slot:icon>
-                                    <i class="ti ti-device-floppy"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
+                            <div class="rm-alert danger d-none" id="esignError"></div>
                         </div>
                     </div>
+                </div>
+                <div class="rm-dialog-foot">
+                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-rm primary" id="esignSave" onclick="esignForm.submit()">Simpan</button>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Where a signature was put on a form. --}}
-    <div class="modal fade" id="esignUsesModal" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content p-3">
-                <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                <div class="modal-body p-0">
-                    <h3 class="modal-title mb-1">Riwayat pemakaian</h3>
-                    <p class="radio-muted mb-2" id="esignUsesLabel"></p>
+    <div class="modal fade rm-modal" id="esignUsesModal" aria-hidden="true" aria-labelledby="esignUsesTitle">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="rm-dialog-head">
+                    <span class="rm-dialog-icon"><i class="ti ti-history" aria-hidden="true"></i></span>
+                    <div class="rm-dialog-titles">
+                        <h3 class="rm-dialog-title" id="esignUsesTitle">Riwayat pemakaian</h3>
+                        <p class="rm-dialog-sub" id="esignUsesLabel"></p>
+                    </div>
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                            class="ti ti-x"></i></button>
+                </div>
+                <div class="rm-dialog-body">
                     <div id="esignUsesList"></div>
                 </div>
             </div>
@@ -164,6 +178,7 @@
 
 @push('javascript')
     <script>
+        const esignMay = @json($esignMay);
         const esignUrls = {
             list: "{{ route('radio-management.e-sign.list') }}",
             pad: "{{ route('radio-management.e-sign.pad') }}",
@@ -219,11 +234,12 @@
                 },
                 {
                     key: 'actions',
-                    className: 'text-center text-nowrap',
-                    render: row => `
-                        <button type="button" class="btn btn-sm px-2 py-1 rounded-2 mdka-btn-orange-500 text-white border-0" data-action="edit" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Edit"><i class="ti ti-edit"></i></button>
-                        <button type="button" class="btn btn-sm px-2 py-1 rounded-2 btn-outline-blue" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Riwayat pemakaian"><i class="ti ti-history"></i></button>
-                        <button type="button" class="btn btn-sm px-2 py-1 rounded-2 btn-outline-red" data-action="delete" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Hapus"><i class="ti ti-trash"></i></button>`
+                    className: 'text-end text-nowrap',
+                    render: row => `<div class="rm-acts">
+                        ${esignMay.update ? `<button type="button" class="rm-act" data-action="edit" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Edit" aria-label="Edit"><i class="ti ti-edit"></i></button>` : ''}
+                        <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Riwayat pemakaian" aria-label="Riwayat pemakaian"><i class="ti ti-history"></i></button>
+                        ${esignMay.delete ? `<button type="button" class="rm-act is-danger" data-action="delete" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Hapus" aria-label="Hapus"><i class="ti ti-trash"></i></button>` : ''}
+                    </div>`
                 },
             ],
 
@@ -270,12 +286,74 @@
                     esignTable.candidates = Array.isArray(response.candidates) ? response.candidates : [];
                     $('#esignNotice').html('');
                     esignTable.render({ data: response.data, meta: response.meta });
+                    esignGrid.render(response.data);
                     RadioUi.tooltips('#esignTable');
                 }).fail(xhr => {
                     if (request !== esignTable.request) return;
                     esignTable.render({ emptyText: 'Gagal memuat data.' });
-                    $('#esignNotice').html(`<div class="alert alert-danger py-2 small mt-2 mb-0">${RadioUi.errors(xhr).join('<br>')}</div>`);
+                    esignGrid.render([]);
+                    $('#esignNotice').html(`<div class="rm-alert danger"><i class="ti ti-alert-triangle"></i><span>${RadioUi.errors(xhr).join('<br>')}</span></div>`);
                 });
+            },
+        };
+
+        /** The signatures as cards (the design's Grid): the same rows as the list, and a tile to register one more. */
+        const esignGrid = {
+            initials(name) {
+                return String(name || '?').trim().split(/\s+/).slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('') || '?';
+            },
+            card(row) {
+                const name = row.display_name || row.account || '';
+                const active = row.active && !row.account_gone;
+                return `<div class="rm-esign-card${active ? '' : ' is-off'}">
+                    <div class="rm-esign-head">
+                        <span class="rm-avatar-ini">${RadioUi.esc(esignGrid.initials(name))}</span>
+                        <div class="rm-esign-who">
+                            <div class="rm-esign-name">${RadioUi.dash(name)}</div>
+                            <div class="rm-line2">${RadioUi.esc(row.email || '')}</div>
+                        </div>
+                        ${active ? RadioUi.badge('Aktif', 'green') : RadioUi.badge('Nonaktif', 'secondary')}
+                    </div>
+                    <div class="rm-esign-sheet">${esignUi.isPicture(row.image) ? `<img src="${row.image}" alt="${RadioUi.esc('Tanda tangan ' + name)}">` : '<span class="radio-muted">Tidak ada gambar</span>'}</div>
+                    <div class="rm-esign-foot">
+                        <span class="rm-line2">Diperbarui ${RadioUi.esc(row.updated_at || '-')} · ${Number(row.uses) || 0} kali dipakai</span>
+                        <span class="rm-acts">
+                            <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Riwayat pemakaian" aria-label="Riwayat pemakaian"><i class="ti ti-history"></i></button>
+                            ${esignMay.update ? `<button type="button" class="btn-rm sm secondary" data-action="edit" data-id="${Number(row.id)}">Ganti</button>` : ''}
+                            ${esignMay.delete ? `<button type="button" class="btn-rm sm secondary rm-text-danger" data-action="delete" data-id="${Number(row.id)}">Hapus</button>` : ''}
+                        </span>
+                    </div>
+                </div>`;
+            },
+            render(rows) {
+                const cards = (rows || []).map(esignGrid.card).join('');
+                const add = esignMay.create ? `<button type="button" class="rm-esign-add" onclick="esignForm.open()"><i class="ti ti-plus"></i><span>Daftarkan tanda tangan</span></button>` : '';
+                $('#esignGrid').html(cards + add || '<div class="radio-muted">Belum ada tanda tangan yang didaftarkan</div>');
+                RadioUi.tooltips('#esignGrid');
+            },
+        };
+
+        const esignView = {
+            key: 'esignView',
+            /** Grid or List; the choice is kept in the browser. */
+            set(view, keep = true) {
+                const list = view === 'list';
+                $('#esignGrid').toggleClass('d-none', list);
+                $('#esignListBox').toggleClass('d-none', !list);
+                $(list ? '#esignViewList' : '#esignViewGrid').prop('checked', true);
+                if (!keep) return;
+                try {
+                    window.localStorage.setItem(esignView.key, list ? 'list' : 'grid');
+                } catch (e) {
+                    // No storage: the choice lasts for this page.
+                }
+            },
+            read() {
+                try {
+                    return window.localStorage.getItem(esignView.key) === 'list' ? 'list' : 'grid';
+                } catch (e) {
+                    return 'grid';
+                }
             },
         };
 
@@ -362,7 +440,7 @@
                     data,
                 })?.done(response => {
                     $('#esignModal').modal('hide');
-                    Swal.fire('Berhasil', RadioUi.esc(response.message), 'success');
+                    rmFeedback.toast(response.message);
                     esignTable.load();
                 }).fail(xhr => esignForm.error(esignForm.messages(xhr).join(' ')));
             },
@@ -378,14 +456,13 @@
             },
 
             remove(row) {
-                Swal.fire({
+                rmDialog.confirm({
+                    tone: 'red',
+                    icon: 'trash',
                     title: 'Hapus tanda tangan ini?',
                     html: `${RadioUi.esc(row.display_name)}<br><span class="text-muted small">Tanda tangan tidak lagi muncul di form. Riwayat pemakaiannya tetap tersimpan.</span>`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ti ti-trash"></i> Hapus',
-                    cancelButtonText: '<i class="ti ti-x"></i> Batal',
-                    reverseButtons: true,
+                    confirmText: 'Hapus',
+                    confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;
                     $.ajax({
@@ -394,7 +471,7 @@
                         dataType: 'json',
                         data: { _method: 'DELETE' },
                     }).done(response => {
-                        Swal.fire('Terhapus', RadioUi.esc(response.message), 'success');
+                        rmFeedback.toast(response.message);
                         esignTable.load();
                     }).fail(RadioUi.fail);
                 });
@@ -408,11 +485,11 @@
                     const lines = response.data.map(use =>
                         `<tr><td class="text-nowrap">${RadioUi.esc(use.at)}</td><td>${RadioUi.dash(use.radio)}</td><td>${RadioUi.dash(use.user)}</td></tr>`).join('');
                     $('#esignUsesList').html(response.data.length ?
-                        `<table class="table table-sm mb-1"><thead><tr><th>Waktu</th><th>Form radio</th><th>Dibuka oleh</th></tr></thead><tbody>${lines}</tbody></table>` +
+                        `<div class="rm-box mb-2"><table class="rm-table compact"><thead><tr><th>Waktu</th><th>Form radio</th><th>Dibuka oleh</th></tr></thead><tbody>${lines}</tbody></table></div>` +
                         `<div class="radio-muted">${Number(response.total) || 0} kali dipakai${Number(response.total) > response.data.length ? ', ditampilkan ' + response.data.length + ' terakhir' : ''}.</div>` :
                         '<div class="radio-muted">Belum pernah dipakai di form.</div>');
                 }).fail(xhr => {
-                    $('#esignUsesList').html(`<div class="alert alert-danger py-2 small mb-0">${RadioUi.errors(xhr).join('<br>')}</div>`);
+                    $('#esignUsesList').html(`<div class="rm-alert danger"><i class="ti ti-alert-triangle"></i><span>${RadioUi.errors(xhr).join('<br>')}</span></div>`);
                 });
             },
         };
@@ -427,7 +504,8 @@
             $('#esignSearch').on('keydown', e => {
                 if (e.key === 'Enter') $('#esignSearchButton').trigger('click');
             });
-            $('#esignTable').on('click', 'button[data-action]', function() {
+            // The buttons of a row of the list and of a card of the grid do the same.
+            const act = function() {
                 const row = esignTable.rows[Number($(this).attr('data-id'))];
                 $(this).tooltip('hide');
                 if (!row) return;
@@ -435,6 +513,12 @@
                 if (action === 'delete') esignForm.remove(row);
                 else if (action === 'uses') esignForm.uses(row);
                 else esignForm.open(row);
+            };
+            $('#esignTable').on('click', 'button[data-action]', act);
+            $('#esignGrid').on('click', 'button[data-action]', act);
+            esignView.set(esignView.read(), false);
+            $('input[name="esignView"]').on('change', function() {
+                esignView.set($(this).val());
             });
             // The pad goes with the dialog: a signature that was drawn and not saved is not kept anywhere.
             $('#esignModal').on('hidden.bs.modal', () => $('#esignPadFrame').remove());

@@ -416,50 +416,51 @@ Tes yang terdampak:
 ## Fase 3: Dashboard, Master data, E-sign, Import, COF scan, ICT masterlist, Edit approvals
 
 Dashboard (`modules/Dashboard/Resources/views/index.blade.php`, `components/global/summary-card.blade.php`):
-- [ ] Judul dan subjudul, lalu satu content card.
-- [ ] 6 KPI (restyle `summary-card`): border 1px, padding 16, ubin ikon 44px c-100/c-600, label 13px, angka 28/36 600.
+- [x] Judul dan subjudul, lalu satu content card.
+- [x] 6 KPI (restyle `summary-card`): border 1px, padding 16, ubin ikon 44px c-100/c-600, label 13px, angka 28/36 600.
   Tautan KPI tetap.
-- [ ] Baris 5fr/7fr:
+- [x] Baris 5fr/7fr:
   - kiri: bar Kondisi bertumpuk (20px, celah 2px), legenda berupa tautan `?condition=`, lalu chip "ID bebas berikutnya";
   - kanan: tabel Perlu perhatian (badge, jumlah, tautan `?issue=`).
-- [ ] Bar per perusahaan dan per tipe: label 96px, bar 14px brand-600.
-- [ ] Tabel Aktivitas terbaru, dengan header dan warna aksi dari `historyColors`. Tautan "Buka inbox" baru muncul di
+- [x] Bar per perusahaan dan per tipe: label 96px, bar 14px brand-600.
+- [x] Tabel Aktivitas terbaru, dengan header dan warna aksi dari `historyColors`. Tautan "Buka inbox" baru muncul di
   fase 6.
 
 Master data (`modules/RadioManagement/Resources/views/master/index.blade.php`, empat rute):
-- [ ] Judul per tab. Tab garis berupa tautan (A14), tombol Tambah di kanan.
-- [ ] Tabel: nama tebal + baris kedua, badge, jumlah, aksi 28px.
-- [ ] Kartu form 340px menggantikan `#masterModal`, memakai `masterForm` dan id `field_*`. `@permission` untuk tambah,
+- [x] Judul per tab. Tab garis berupa tautan (A14), tombol Tambah di kanan.
+- [x] Tabel: nama tebal + baris kedua, badge, jumlah, aksi 28px.
+- [x] Kartu form 340px menggantikan `#masterModal`, memakai `masterForm` dan id `field_*`. `@permission` untuk tambah,
   ubah dan hapus.
 
 E-sign (`modules/RadioManagement/Resources/views/e-sign/index.blade.php`):
-- [ ] Segmented Grid/List; Grid jadi default dan diingat.
-- [ ] Kartu: avatar inisial, nama, akun, pratinjau 112px, Diperbarui, Ganti/Hapus; ditambah ubin tambah bergaris putus.
-- [ ] List: `#esignTable` di-restyle. Banner aturan memakai aturan repo. Halaman pad tidak diubah.
+- [x] Segmented Grid/List; Grid jadi default dan diingat.
+- [x] Kartu: avatar inisial, nama, akun, pratinjau 112px, Diperbarui, Ganti/Hapus; ditambah ubin tambah bergaris putus.
+- [x] List: `#esignTable` di-restyle. Banner aturan memakai aturan repo. Halaman pad tidak diubah.
 
 Import (`modules/RadioManagement/Resources/views/import/index.blade.php`):
-- [ ] Dua kartu 5fr/7fr; kontrol file dan kotak centang khusus.
-- [ ] Hasil: 4 ubin (radius 12, angka 26/34), kotak baris yang dilewati, tabel compact.
-- [ ] Dialog konfirmasi 440px, merah bila menghapus data. `#importFresh` tetap di dalam `@permission` Delete.
+- [x] Dua kartu 5fr/7fr; kontrol file dan kotak centang khusus.
+- [x] Hasil: 4 ubin (radius 12, angka 26/34), kotak baris yang dilewati, tabel compact.
+- [x] Dialog konfirmasi 440px, merah bila menghapus data. `#importFresh` tetap di dalam `@permission` Delete.
 
 COF scan (`modules/SharePointDocs/Resources/views/index.blade.php`):
-- [ ] Judul dan kartu. Toolbar: cari 360px, Reset, Muat ulang (sibuk), Buka di SharePoint.
-- [ ] Tabel: No, No. COF (mono), Nama, badge Masterlist (hijau/oranye/merah), Catatan, Tipe, Diubah, Oleh, Ukuran,
+- [x] Judul dan kartu. Toolbar: cari 360px, Reset, Muat ulang (sibuk), Buka di SharePoint.
+- [x] Tabel: No, No. COF (mono), Nama, badge Masterlist (hijau/oranye/merah), Catatan, Tipe, Diubah, Oleh, Ukuran,
   Lihat. Header bisa diurutkan.
-- [ ] Restyle modal penampil. Id `#docs*` tetap. Bagian K12 menyusul di fase 6.
+- [x] Restyle modal penampil. Id `#docs*` tetap. Bagian K12 menyusul di fase 6.
 
 ICT masterlist (`modules/SharePointDocs/Resources/views/workbook.blade.php`):
-- [ ] Banner info sesuai role, kepala file (nama, diubah, jumlah baris).
-- [ ] Toolbar: cari 420px, Reset, Muat ulang, Buka di Excel.
-- [ ] Lima kartu (yang dipilih: brand-50 + cincin 2px), tab garis dengan jumlah, tabel yang bisa diurutkan (Baris).
-- [ ] Restyle dialog permintaan per sel. Id `#wb*` tetap.
+- [x] Banner info sesuai role, kepala file (nama, diubah, jumlah baris).
+- [x] Toolbar: cari 420px, Reset, Muat ulang, Buka di Excel.
+- [x] Lima kartu (yang dipilih: brand-50 + cincin 2px), tab garis dengan jumlah, tabel yang bisa diurutkan (Baris).
+- [x] Restyle dialog permintaan per sel. Id `#wb*` tetap.
 
 Edit approvals (`modules/SharePointDocs/Resources/views/edit-approvals.blade.php`):
-- [ ] Tab garis Menunggu / Disetujui / Ditolak, ditambah Konflik / Gagal yang hanya tampil bila jumlahnya > 0. Hitungan
+- [x] Tab garis Menunggu / Disetujui / Ditolak, ditambah Konflik / Gagal yang hanya tampil bila jumlahnya > 0. Hitungan
   dari `counts`.
-- [ ] Kartu permintaan yang bisa dibuka/tutup: avatar 36, siapa, di mana · kapan, badge, chevron.
-- [ ] Diff Kolom / Sekarang / Usulan (160px / 1fr / 1fr): sekarang di error-50 dicoret, usulan di success-50.
-- [ ] Setujui/Tolak dengan kulit SweetAlert. Pencarian tetap ada (tautan notifikasi memakai `?search=`).
+- [x] ~~Kartu permintaan yang bisa dibuka/tutup: avatar 36, siapa, di mana · kapan, badge, chevron.~~ Diganti baris
+  tabel (siapa, kapan, sel, nilai lama/baru, badge, tombol); lihat Progres fase 3.
+- [x] Diff Kolom / Sekarang / Usulan (160px / 1fr / 1fr): sekarang di error-50 dicoret, usulan di success-50.
+- [x] Setujui/Tolak dengan kulit SweetAlert. Pencarian tetap ada (tautan notifikasi memakai `?search=`).
 
 Tes yang terdampak:
 - `RadioManagementTest` (dashboard, import), `RadioRegisterRulesTest` (`importFresh`);
@@ -718,3 +719,31 @@ Prinsip:
       `ShellTest`);
     - diperbarui: checker radio-index dan radio-bulk, checker SharePoint (pager dan panah urut baru),
       `RadioManagementTest`, `RadioCheckoutFormTest`.
+- 2026-10-20, fase 3 selesai:
+  - Dashboard: `summary-card` kini ubin KPI desain (`rm-kpi`; prop lamanya tetap). Kiri kartu Kondisi lalu chip ID bebas,
+    kanan daftar Perlu tindakan; bar per perusahaan dan per tipe; Aktivitas terbaru.
+  - Master data: tab garis berupa tautan, form di kartu 340px (bukan modal lagi), pencarian langsung, toast.
+  - E-Sign: Grid/List (diingat di `localStorage` `esignView`), kartu dengan inisial dan pratinjau, dialog `rm-modal`.
+  - Import: dua kartu, kontrol file dan centang khusus, konfirmasi lewat `rmDialog` (oranye bila menghapus data), ubin
+    hasil.
+  - COF Scan, ICT Masterlist, Persetujuan Edit:
+    - kerangka baru (`.rm-docs`); id dan kelas yang dikunci checker tetap;
+    - markup yang masih ditulis skrip (badge `bg-*-lt`, `alert-*`, tombol `btn-sm`, `nav-tabs`, kartu `wb-card`)
+      diberi kulit di `radio-ui.css`, jadi skrip ICT Masterlist dan COF hampir tidak berubah;
+    - badge dan alert Tabler `-lt` di halaman lain ikut memakai warna desain.
+  - `rmDialog.confirm` mendapat opsi `loader` (dialog menunggu jawaban request, tidak bisa ditutup) dan `inputLabel`.
+  - Penyimpangan dari desain, untuk laporan akhir:
+    - Persetujuan Edit tetap berupa tabel (tab status, nilai lama merah dicoret / baru hijau, pencarian), bukan kartu
+      permintaan yang bisa dibuka/tutup. Alasannya: tabel memuat lebih banyak pengajuan per layar, dan semua kolomnya
+      sudah ada. Dialog Setujui/Tolak menampilkan diff Sekarang / Menjadi seperti desain. Tab "Semua" tetap ada
+      (tambahan dari halaman lama).
+    - Warna status mengikuti desain: Menunggu kuning, Ditolak merah (sebelumnya biru dan abu-abu).
+  - Diperiksa di browser:
+    - Dashboard, Master data, Import, E-Sign, Persetujuan Edit (dengan dialognya) pada 1366 dan 1440;
+    - COF Scan dan ICT Masterlist dengan data tiruan yang dijawab oleh browser sendiri. Halamannya dirender dengan setting
+      Microsoft palsu yang hanya ada di proses render itu, dan semua HTTP keluar ditolak, jadi tidak ada request ke
+      Microsoft.
+  - Tes:
+    - diperbarui: checker e-sign, sharepoint-page, sharepoint-workbook, sharepoint-approvals, design-helpers, dan
+      `SharePointScansTest`;
+    - suite penuh: 471 lulus (2 warning lama di `WorkbookReaderTest`).

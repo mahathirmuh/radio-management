@@ -1689,7 +1689,7 @@ class SharePointScansTest extends TestCase
             ->assertSee('Kolom Masterlist dan Catatan dari sheet COF di ICT Masterlist', false)
             ->assertSee('id="docsCodeBar"', false)
             // The name is given room beside the two columns (see the style of the page): only where they are.
-            ->assertSee('mb-0 docs-register" id="docsTable"', false);
+            ->assertSee('rm-table docs-register" id="docsTable"', false);
         $this->get(route('documents.ict-masterlist.index'))->assertOk()
             ->assertSee('id="wbCardsWrap"', false)
             ->assertSee('id="wbLineBar"', false)

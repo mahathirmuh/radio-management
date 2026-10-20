@@ -384,18 +384,22 @@
 
     // A question before something is done, in the design's dialog: the icon in a round tile beside the title, the
     // buttons at the foot. tone: blue | green | orange | red | yellow; confirmKind: primary | success | destructive.
-    // "text" goes in as text; "html" only when the caller has escaped what it puts in.
+    // "text" goes in as text; "html" only when the caller has escaped what it puts in. loader: preConfirm sends a
+    // request, and the dialog waits for its answer (it cannot be closed meanwhile).
     const rmDialog = {
         confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = 'OK', cancelText = 'Batal',
-            confirmKind = 'primary', input = undefined, inputAttributes = undefined, preConfirm = undefined } = {}) {
+            confirmKind = 'primary', input = undefined, inputLabel = undefined, inputAttributes = undefined, preConfirm = undefined,
+            loader = false } = {}) {
             return Swal.fire({
                 title,
                 ...(html === null ? { text } : { html }),
                 icon: 'question',
                 iconHtml: `<i class="ti ti-${icon}"></i>`,
                 input,
+                inputLabel,
                 inputAttributes,
                 preConfirm,
+                ...(loader ? { showLoaderOnConfirm: true, allowOutsideClick: () => !Swal.isLoading(), allowEscapeKey: () => !Swal.isLoading() } : {}),
                 showCancelButton: true,
                 reverseButtons: true,
                 focusCancel: confirmKind === 'destructive',

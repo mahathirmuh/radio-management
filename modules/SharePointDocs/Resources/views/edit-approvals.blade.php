@@ -4,11 +4,6 @@
 
 @push('style')
     <style>
-        .ea-muted {
-            color: var(--tblr-secondary);
-            font-size: 0.7rem;
-        }
-
         #eaTable td {
             vertical-align: top;
         }
@@ -20,114 +15,123 @@
             word-break: break-word;
         }
 
-        #eaTable .ea-old {
-            color: var(--tblr-secondary);
-            text-decoration: line-through;
+        /* What the cell holds and what it becomes, in the colours of a change (in the table and in the question). */
+        #eaTable .ea-old,
+        #eaTable .ea-new {
+            display: inline-block;
+            max-width: 100%;
+            padding: 1px 6px;
+            border-radius: 4px;
         }
 
         #eaTable .ea-new {
-            font-weight: 600;
+            margin-top: 4px;
         }
 
-        #eaTable .ea-empty {
+        .ea-old {
+            background: var(--rm-error-50);
+            color: var(--rm-error-700);
+            text-decoration: line-through;
+        }
+
+        .ea-new {
+            background: var(--rm-success-50);
+            color: var(--rm-success-700);
+            font-weight: 500;
+        }
+
+        .ea-old.ea-empty,
+        .ea-new.ea-empty {
             font-style: italic;
+            text-decoration: none;
         }
 
-        #eaCards .ea-card {
-            cursor: pointer;
-            text-align: left;
-            border: 1px solid var(--tblr-border-color);
+        /* The question before deciding: where the cell is, and its value now and after, side by side. */
+        .ea-question {
+            color: var(--rm-gray-700);
+            font-size: 13px;
+            line-height: 20px;
         }
 
-        #eaCards .ea-card:hover,
-        #eaCards .ea-card.active {
-            border-color: var(--tblr-primary);
+        .ea-diff {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin: 10px 0;
+            border: 1px solid var(--rm-gray-200);
+            border-radius: 8px;
+            overflow: hidden;
+            line-height: 18px;
         }
 
-        #eaCards .ea-card.active {
-            box-shadow: 0 0 0 1px var(--tblr-primary);
+        .ea-diff > span {
+            padding: 9px 12px;
+            overflow-wrap: anywhere;
         }
 
-        #eaCards .ea-card:focus-visible {
-            outline: 2px solid var(--tblr-primary);
-            outline-offset: 2px;
-        }
-
-        #eaCards .ea-card-label {
-            font-size: 0.7rem;
-            color: var(--tblr-secondary);
-        }
-
-        #eaCards .ea-card-count {
-            font-size: 1.15rem;
+        .ea-diff > .ea-diff-head {
+            padding: 8px 12px;
+            background: var(--rm-gray-50);
+            color: var(--rm-gray-500);
+            font-size: 12px;
             font-weight: 600;
-            line-height: 1.2;
+        }
+
+        .ea-question .ea-by {
+            color: var(--rm-gray-500);
+            font-size: 12px;
         }
     </style>
 @endpush
 
 @section('content')
-    <div class="row g-2" id="eaPage">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-2">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-5">
-                            <label for="eaSearch" class="form-label">Cari</label>
-                            <input type="text" id="eaSearch" class="form-control" autocomplete="off" maxlength="100"
-                                placeholder="Sel, kolom, nomor dokumen, nilai, nama pengaju, …">
-                        </div>
-                        <div class="col-md-7 d-flex gap-2 flex-wrap">
-                            <x-global.btn-detail label="" color="red" size="sm" outline="true" onclick="eaPage.reset()"
-                                data-bs-toggle="tooltip" data-bs-title="Reset pencarian dan status">
-                                <x-slot:icon>
-                                    <i class="ti ti-restore"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                            <x-global.btn-detail label="Muat ulang" color="blue" size="sm" id="eaReload"
-                                onclick="eaPage.load()">
-                                <x-slot:icon>
-                                    <i class="ti ti-refresh"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                        </div>
+    <div class="rm-docs" id="eaPage">
+        <div class="rm-head">
+            <div>
+                <h1 class="rm-title">Persetujuan Edit</h1>
+                <p class="rm-sub">Pengajuan perubahan sel ICT Masterlist, yang menunggu disetujui oleh orang lain.</p>
+            </div>
+        </div>
+        <div class="rm-card">
+            <div class="rm-tabs" id="eaTabs" role="group" aria-label="Status pengajuan"></div>
 
-                        <div class="col-12">
-                            <div class="ea-muted">
-                                Perubahan sel workbook SharePoint yang diajukan dari halaman ICT Masterlist. Isi workbook
-                                <b>baru berubah setelah disetujui</b> di sini oleh orang lain, bukan oleh pengajunya. Saat disetujui,
-                                aplikasi membaca workbook yang sekarang dan menulis hanya jika sel dan barisnya masih seperti saat
-                                diajukan; kalau sudah berubah, statusnya <b>Konflik</b> dan tidak ada yang ditulis.
-                            </div>
-                            <div id="eaNotice"></div>
-                        </div>
+            <div class="rm-toolbar">
+                <label class="rm-search rm-search-wide" for="eaSearch">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                    <input type="search" id="eaSearch" autocomplete="off" maxlength="100" aria-label="Cari pengajuan"
+                        placeholder="Sel, kolom, nomor dokumen, nilai, nama pengaju, …">
+                </label>
+                <button type="button" class="btn-rm secondary" onclick="eaPage.reset()" data-bs-toggle="tooltip"
+                    data-bs-title="Reset pencarian dan status"><i class="ti ti-restore" aria-hidden="true"></i> Reset</button>
+                <button type="button" class="btn-rm secondary" id="eaReload" onclick="eaPage.load()">
+                    <i class="ti ti-refresh" aria-hidden="true"></i> Muat ulang
+                </button>
+            </div>
 
-                        <div class="col-12 mt-2">
-                            <div class="row g-2" id="eaCards" role="group" aria-label="Status pengajuan"></div>
-                        </div>
+            <div class="rm-docs-help">
+                Perubahan sel workbook SharePoint yang diajukan dari halaman ICT Masterlist. Isi workbook <b>baru berubah setelah
+                disetujui</b> di sini oleh orang lain, bukan oleh pengajunya. Saat disetujui, aplikasi membaca workbook yang
+                sekarang dan menulis hanya jika sel dan barisnya masih seperti saat diajukan; kalau sudah berubah, statusnya
+                <b>Konflik</b> dan tidak ada yang ditulis.
+            </div>
+            <div id="eaNotice"></div>
 
-                        <div class="col-12 mt-2">
-                            <div class="card overflow-hidden mdka-border-gray-200">
-                                <div class="card-body table-responsive p-0">
-                                    <table class="table table-vcenter mdka-border-gray-100 mb-0" id="eaTable">
-                                        <thead>
-                                            <tr class="mdka-bg-gray-50">
-                                                <th class="fs-5 py-3" data-key="id" width="60">No</th>
-                                                <th class="fs-5 py-3" data-key="requested">Diajukan</th>
-                                                <th class="fs-5 py-3" data-key="cell">Sel</th>
-                                                <th class="fs-5 py-3" data-key="value">Nilai</th>
-                                                <th class="fs-5 py-3" data-key="status">Status</th>
-                                                <th class="fs-5 py-3" data-key="actions">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="pagination-container mt-2"></div>
-                        </div>
-                    </div>
+            <div class="rm-box">
+                <div class="table-responsive">
+                    <table class="rm-table" id="eaTable">
+                        <thead>
+                            <tr>
+                                <th data-key="id" width="60">No</th>
+                                <th data-key="requested">Diajukan</th>
+                                <th data-key="cell">Sel</th>
+                                <th data-key="value">Nilai</th>
+                                <th data-key="status">Status</th>
+                                <th data-key="actions">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
+                <div class="pagination-container"></div>
             </div>
         </div>
     </div>
@@ -150,10 +154,10 @@
                 return typeof url === 'string' && /^\/(?![\/\\])[^\s\\]*$/.test(url);
             },
             tones: {
-                pending: 'blue',
-                processing: 'azure',
+                pending: 'yellow',
+                processing: 'blue',
                 applied: 'green',
-                rejected: 'secondary',
+                rejected: 'red',
                 conflict: 'orange',
                 failed: 'red',
             },
@@ -190,7 +194,7 @@
                 {
                     key: 'requested',
                     className: '',
-                    render: r => `<div>${eaUi.esc(r.requested_at)}</div><div class="ea-muted">${eaUi.esc(r.requested_by)}${r.mine ? ' (Anda)' : ''}</div>`
+                    render: r => `<div class="rm-strong">${eaUi.esc(r.requested_by)}${r.mine ? ' (Anda)' : ''}</div><div class="rm-line2">${eaUi.esc(r.requested_at)}</div>`
                 },
                 {
                     key: 'cell',
@@ -224,10 +228,10 @@
                     render: r => {
                         const buttons = [];
                         if (r.can_approve) {
-                            buttons.push(`<button type="button" class="btn btn-sm btn-success ea-approve" data-id="${Number(r.id)}"><i class="ti ti-check"></i> Setujui</button>`);
+                            buttons.push(`<button type="button" class="btn-rm sm success ea-approve" data-id="${Number(r.id)}"><i class="ti ti-check"></i> Setujui</button>`);
                         }
                         if (r.can_reject) {
-                            buttons.push(`<button type="button" class="btn btn-sm btn-outline-danger ea-reject" data-id="${Number(r.id)}"><i class="ti ti-x"></i> Tolak</button>`);
+                            buttons.push(`<button type="button" class="btn-rm sm secondary ea-reject" data-id="${Number(r.id)}"><i class="ti ti-x"></i> Tolak</button>`);
                         }
                         if (!buttons.length && r.mine && r.status === 'pending') {
                             return '<span class="ea-muted">Menunggu orang lain</span>';
@@ -275,7 +279,7 @@
                     response.data.forEach(row => {
                         eaPage.rows[row.id] = row;
                     });
-                    eaPage.cards(response.counts);
+                    eaPage.tabs(response.counts);
                     $('#eaNotice').html(response.may_decide ? '' :
                         '<div class="alert alert-info py-2 small mt-2 mb-0">Role Anda hanya bisa melihat pengajuan. Menyetujui atau menolak perlu hak Update di menu ini.</div>');
                     eaPage.render({
@@ -307,24 +311,24 @@
                 return said !== '' ? said : 'Terjadi kesalahan. Coba lagi beberapa saat lagi.';
             },
 
-            /** One card per status with how many requests have it; the card that is open shows them, and a second click shows all. */
-            cards(counts) {
+            /** The statuses that have a tab only while some requests have them (or while their tab is open). */
+            seldom: ['processing', 'conflict', 'failed'],
+
+            /** One tab per status with how many requests have it; the tab that is open shows them, and a second click shows all. */
+            tabs(counts) {
                 const focused = document.activeElement;
-                const had = focused && focused.matches && focused.matches('#eaCards button.ea-card') ? focused.getAttribute('data-status') : null;
+                const had = focused && focused.matches && focused.matches('#eaTabs button.ea-tab') ? focused.getAttribute('data-status') : null;
                 const total = Object.values(counts).reduce((sum, n) => sum + Number(n || 0), 0);
-                const tones = { '': 'blue', ...eaUi.tones };
-                const cards = [{ status: '', label: 'Semua', count: total }].concat(
-                    Object.keys(eaPage.labels).filter(status => status !== 'processing' || Number(counts[status]) > 0)
+                const tabs = [{ status: '', label: 'Semua', count: total }].concat(
+                    Object.keys(eaPage.labels).filter(status => !eaPage.seldom.includes(status) || Number(counts[status]) > 0 || eaPage.status === status)
                     .map(status => ({ status, label: eaPage.labels[status], count: counts[status] || 0 })));
-                $('#eaCards').html(cards.map(card => {
-                    const active = eaPage.status === card.status;
-                    const tone = Object.prototype.hasOwnProperty.call(tones, card.status) ? tones[card.status] : 'secondary';
-                    return `<div class="col-6 col-md"><button type="button" class="card card-sm w-100 ea-card ${active ? 'active' : ''}" data-status="${eaUi.esc(card.status)}" aria-pressed="${active}">` +
-                        `<span class="card-body p-2 d-block"><span class="d-flex align-items-center"><span class="badge bg-${tone} me-2">&nbsp;</span>` +
-                        `<span class="ea-card-label">${eaUi.esc(card.label)}</span></span><span class="ea-card-count d-block">${Number(card.count) || 0}</span></span></button></div>`;
+                $('#eaTabs').html(tabs.map(tab => {
+                    const active = eaPage.status === tab.status;
+                    return `<button type="button" class="ea-tab${active ? ' is-on' : ''}" data-status="${eaUi.esc(tab.status)}" aria-pressed="${active}">` +
+                        `${eaUi.esc(tab.label)}<span class="rm-tab-count">${Number(tab.count) || 0}</span></button>`;
                 }).join(''));
                 if (had !== null) {
-                    const again = document.querySelector(`#eaCards button.ea-card[data-status="${had}"]`);
+                    const again = document.querySelector(`#eaTabs button.ea-tab[data-status="${had}"]`);
                     if (again) again.focus();
                 }
             },
@@ -343,28 +347,27 @@
 
             /** The value as the question shows it: where it was, and what it becomes. */
             question(row) {
-                return `<div class="text-start small">` +
+                return `<div class="ea-question">` +
                     `<div><b>${eaUi.esc(row.workbook)}</b> · sheet ${eaUi.esc(row.sheet)} · sel <b>${eaUi.esc(row.cell)}</b>` +
                     `${row.column ? ' (' + eaUi.esc(row.column) + ')' : ''}</div>` +
-                    `<div class="mt-2">Sekarang: <span class="text-muted">${eaUi.esc(row.old)}</span></div>` +
-                    `<div>Menjadi: <b>${eaUi.esc(row.new)}</b></div>` +
-                    `<div class="mt-2 text-muted">Diajukan oleh ${eaUi.esc(row.requested_by)}, ${eaUi.esc(row.requested_at)}.</div></div>`;
+                    `<div class="ea-diff"><span class="ea-diff-head">Sekarang</span><span class="ea-diff-head">Menjadi</span>` +
+                    `<span class="ea-old">${eaUi.esc(row.old)}</span><span class="ea-new">${eaUi.esc(row.new)}</span></div>` +
+                    `<div class="ea-by">Diajukan oleh ${eaUi.esc(row.requested_by)}, ${eaUi.esc(row.requested_at)}.</div></div>`;
             },
 
             decide(id) {
                 const row = eaPage.rows[id];
                 if (!row) return;
-                Swal.fire({
+                rmDialog.confirm({
+                    tone: 'green',
+                    icon: 'check',
                     title: 'Setujui perubahan ini?',
-                    html: eaPage.question(row) + '<div class="alert alert-warning py-2 small mt-3 mb-0 text-start">Workbook di SharePoint akan langsung diubah.</div>',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ti ti-check"></i> Setujui dan tulis',
-                    cancelButtonText: '<i class="ti ti-x"></i> Batal',
-                    reverseButtons: true,
-                    showLoaderOnConfirm: true,
-                    allowOutsideClick: () => !Swal.isLoading(),
+                    html: eaPage.question(row) +
+                        '<div class="rm-alert warning mt-3"><i class="ti ti-alert-triangle" aria-hidden="true"></i><span>Workbook di SharePoint akan langsung diubah.</span></div>',
+                    confirmText: '<i class="ti ti-check"></i> Setujui dan tulis',
+                    confirmKind: 'success',
                     // Kept open while SharePoint is written to, which can take a few seconds.
+                    loader: true,
                     preConfirm: () => $.ajax({
                         url: eaPage.approve.replace(':id', row.id),
                         type: 'POST',
@@ -375,7 +378,7 @@
                     if (!result.isConfirmed) return;
                     const done = result.value;
                     if (done.ok) {
-                        Swal.fire('Berhasil', eaUi.esc(done.response.message), 'success');
+                        rmFeedback.toast(done.response.message);
                     } else {
                         // A conflict or a failure is an answer of the page too: the row says why, and the list is read again.
                         const body = done.xhr.responseJSON || {};
@@ -388,19 +391,17 @@
             turnDown(id) {
                 const row = eaPage.rows[id];
                 if (!row) return;
-                Swal.fire({
+                rmDialog.confirm({
+                    tone: 'red',
+                    icon: 'x',
                     title: 'Tolak perubahan ini?',
                     html: eaPage.question(row),
-                    icon: 'warning',
                     input: 'textarea',
                     inputLabel: 'Alasan (boleh dikosongkan)',
                     inputAttributes: { maxlength: 500 },
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="ti ti-x"></i> Tolak',
-                    cancelButtonText: 'Batal',
-                    reverseButtons: true,
-                    confirmButtonColor: '#d63939',
-                    showLoaderOnConfirm: true,
+                    confirmText: '<i class="ti ti-x"></i> Tolak',
+                    confirmKind: 'destructive',
+                    loader: true,
                     preConfirm: note => $.ajax({
                         url: eaPage.reject.replace(':id', row.id),
                         type: 'POST',
@@ -411,7 +412,7 @@
                     if (!result.isConfirmed) return;
                     const done = result.value;
                     if (done.ok) {
-                        Swal.fire('Ditolak', eaUi.esc(done.response.message), 'success');
+                        rmFeedback.toast(done.response.message);
                     } else {
                         Swal.fire('Gagal', eaUi.esc(eaPage.failure(done.xhr)), 'error');
                     }
@@ -426,7 +427,7 @@
             })).on('keydown', e => {
                 if (e.key === 'Enter') eaPage.apply();
             });
-            $('#eaCards').on('click', 'button.ea-card', function() {
+            $('#eaTabs').on('click', 'button.ea-tab', function() {
                 const status = $(this).attr('data-status');
                 eaPage.status = eaPage.status === status && status !== '' ? '' : status;
                 eaPage.page = 1;

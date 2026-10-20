@@ -51,7 +51,35 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
   - Riwayat Radio: baris filter dengan pilihan jenis (centang banyak, dengan jumlahnya) dan kalender untuk tanggal.
     Daftarnya langsung mengikuti filter.
 
-**Deploy:** fase 1 dan 2 tanpa migrasi dan tanpa setting baru.
+- Fase 3, Dashboard, Master Data Radio, E-Sign, Import Excel, COF Scan, ICT Masterlist, Persetujuan Edit:
+  - Dashboard:
+    - enam KPI baru (ubin ikon berwarna, angka besar), tetap berupa tautan ke daftar yang tersaring;
+    - kartu Kondisi dengan bar bertumpuk dan legenda yang bisa diklik, lalu Radio ID bebas berikutnya berupa chip;
+    - daftar **Perlu tindakan** dengan tautan **Lihat**, bar per perusahaan dan per tipe, dan tabel aktivitas terbaru
+      dengan badge aksi;
+  - Master Data Radio: tab garis per jenis master dengan tombol Tambah di kanan. Form tambah/ubah ada di kartu di samping
+    tabel, bukan modal lagi. Pencarian langsung saat mengetik, dan hasil simpan/hapus berupa toast;
+  - E-Sign: tampilan Grid (kartu dengan inisial, pratinjau tanda tangan, tanggal diperbarui) atau List; pilihannya
+    diingat;
+  - Import Excel:
+    - dua kartu, unggah dan aturan;
+    - kontrol file dan kotak centang baru, merah untuk "hapus data lama";
+    - konfirmasi oranye bila data lama akan dihapus;
+    - hasil impor berupa ubin angka;
+  - COF Scan dan ICT Masterlist: judul dan kartu, toolbar dengan kolom cari berikon, dan tabel bergaris. ICT Masterlist
+    juga punya:
+    - banner info;
+    - kartu status File scan dengan angka berwarna, yang dipilih bercincin biru;
+    - tab sheet bergaris dengan jumlah barisnya;
+  - Persetujuan Edit:
+    - status berupa tab bergaris dengan jumlahnya. Diproses, Konflik dan Gagal hanya muncul bila ada pengajuannya;
+    - nilai lama merah dicoret, nilai baru hijau;
+    - dialog Setujui/Tolak menampilkan nilai sekarang dan nilai baru berdampingan;
+    - hasil yang berhasil muncul sebagai toast;
+    - warna status mengikuti desain: Menunggu kuning, Ditolak merah;
+  - badge dan kotak info/peringatan Tabler lama di halaman lain ikut memakai warna desain.
+
+**Deploy:** fase 1 sampai 3 tanpa migrasi dan tanpa setting baru.
 
 ## [1.9.0] - 2026-10-19
 

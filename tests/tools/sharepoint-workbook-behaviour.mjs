@@ -907,7 +907,7 @@ check('a reader who may not ask for a change sees no pencil, and the page says i
     const p = fresh();
     p.answer(p.requests[0], reply(0));
     assert.doesNotMatch(p.node('#wbTable tbody').html, /wb-edit|ti-lock|menunggu/);
-    assert.equal(p.node('#wbEditHint').text, 'halaman ini hanya menampilkan, mengubah data tetap dilakukan di Excel.');
+    assert.equal(p.node('#wbEditHint').text, 'Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.');
     assert.equal(p.page('wbBook').editable, 0);
 });
 

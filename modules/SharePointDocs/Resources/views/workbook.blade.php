@@ -4,11 +4,6 @@
 
 @push('style')
     <style>
-        .wb-muted {
-            color: var(--tblr-secondary);
-            font-size: 0.7rem;
-        }
-
         /* A sheet can have many columns: the table scrolls sideways, cells keep a readable width. */
         #wbTable th,
         #wbTable td {
@@ -22,33 +17,35 @@
         }
 
         #wbTable td.wb-line {
-            color: var(--tblr-secondary);
-            font-size: 0.7rem;
+            color: var(--rm-gray-500);
+            font-family: var(--rm-mono);
+            font-size: 12px;
             text-align: center;
-        }
-
-        #wbTabs .badge {
-            font-size: 0.6rem;
         }
 
         /* The cards over the table of a sheet that is checked against a folder: each is a button that shows its rows. */
         #wbCards .wb-card {
-            cursor: pointer;
+            padding: 0;
+            border: 0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: var(--rm-ring);
             text-align: left;
-            border: 1px solid var(--tblr-border-color);
+            cursor: pointer;
+            transition: background-color .12s ease-out, box-shadow .15s ease-out;
         }
 
         #wbCards .wb-card:hover {
-            border-color: var(--tblr-primary);
+            background: var(--rm-gray-50);
         }
 
         #wbCards .wb-card.active {
-            border-color: var(--tblr-primary);
-            box-shadow: 0 0 0 1px var(--tblr-primary);
+            background: var(--rm-brand-50);
+            box-shadow: inset 0 0 0 2px var(--rm-brand-600);
         }
 
         #wbCards .wb-card:focus-visible {
-            outline: 2px solid var(--tblr-primary);
+            outline: 2px solid var(--rm-brand-600);
             outline-offset: 2px;
         }
 
@@ -58,16 +55,48 @@
             opacity: 0.55;
         }
 
+        #wbCards .wb-card .card-body {
+            padding: 10px 16px !important;
+        }
+
         #wbCards .wb-card-label {
-            font-size: 0.7rem;
-            color: var(--tblr-secondary);
+            color: var(--rm-gray-500);
+            font-size: 13px;
+            line-height: 18px;
         }
 
         #wbCards .wb-card-count {
-            font-size: 1.15rem;
+            color: var(--rm-gray-900);
+            font-size: 24px;
             font-weight: 600;
-            line-height: 1.2;
+            line-height: 32px;
             white-space: nowrap;
+        }
+
+        /* The number says the status by its colour (the dot of the old cards is not shown). */
+        #wbCards {
+            --tblr-gutter-x: 12px;
+            --tblr-gutter-y: 12px;
+        }
+
+        #wbCards .wb-card .badge {
+            display: none;
+        }
+
+        #wbCards .wb-card[data-status="ok"] .wb-card-count {
+            color: var(--rm-success-600);
+        }
+
+        #wbCards .wb-card[data-status="missing"] .wb-card-count {
+            color: var(--rm-error-600);
+        }
+
+        #wbCards .wb-card[data-status="differs"] .wb-card-count {
+            color: var(--rm-orange-600);
+        }
+
+        #wbCards .wb-card[data-status="below"] .wb-card-count {
+            color: var(--rm-purple-600);
         }
 
         /* The pencil that asks for a change of a cell: faint until the row is pointed at or the pencil has the focus. */
@@ -84,142 +113,126 @@
 @endpush
 
 @section('content')
-    <div class="row g-2" id="wbPage">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-2">
-                    @if (! $configured)
-                        <div class="alert alert-warning mb-0" id="wbNotConfigured">
-                            <b>{{ $title }} belum bisa ditampilkan.</b>
-                            Alamat workbook di SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code>
-                            (lihat README, bagian "Dokumen SharePoint").
-                        </div>
-                    @else
-                        <div class="row g-2 align-items-end">
-                            <div class="col-md-5">
-                                <label for="wbSearch" class="form-label" id="wbSearchLabel">Cari di semua kolom</label>
-                                <input type="text" id="wbSearch" class="form-control" autocomplete="off" maxlength="100"
-                                    placeholder="Nama, nomor dokumen, serial number, …">
-                            </div>
-                            <div class="col-md-7 d-flex gap-2 flex-wrap">
-                                <x-global.btn-detail label="" color="red" size="sm" outline="true" onclick="wbBook.reset()"
-                                    data-bs-toggle="tooltip" data-bs-title="Reset pencarian, kartu dan baris yang dipilih, dan urutan">
-                                    <x-slot:icon>
-                                        <i class="ti ti-restore"></i>
-                                    </x-slot:icon>
-                                </x-global.btn-detail>
-                                <x-global.btn-detail label="Muat ulang" color="blue" size="sm" id="wbReload"
-                                    onclick="wbBook.load(true)">
-                                    <x-slot:icon>
-                                        <i class="ti ti-refresh"></i>
-                                    </x-slot:icon>
-                                </x-global.btn-detail>
-                                {{-- Shown once the workbook has been read: its address comes with the rows. --}}
-                                <span class="ms-md-auto d-none" id="wbOpenWrap">
-                                    <x-global.btn-detail label="Buka di Excel" color="blue" size="sm" outline="true" id="wbOpen"
-                                        href="#" target="_blank" rel="noopener noreferrer">
-                                        <x-slot:icon>
-                                            <i class="ti ti-external-link"></i>
-                                        </x-slot:icon>
-                                    </x-global.btn-detail>
-                                </span>
-                            </div>
-
-                            <div class="col-12">
-                                <div class="wb-muted">
-                                    @if ($subtitle)
-                                        {{ $subtitle }}.
-                                    @endif
-                                    Isi dibaca dari workbook di SharePoint dan diperbarui tiap {{ $cacheMinutes }} menit;
-                                    <span id="wbEditHint">halaman ini hanya menampilkan, mengubah data tetap dilakukan di Excel.</span>
-                                </div>
-                                <div class="wb-muted" id="wbInfo"></div>
-                                <div id="wbNotice"></div>
-                                {{-- Said when a link from the page of the folder asked for some rows of Excel only. (The live region is
-                                     always there, so that what appears in it is read out; a region that appears with its text may not be.) --}}
-                                <div role="status">
-                                    <div class="alert alert-info py-2 small mt-2 mb-0 d-none" id="wbLineBar">
-                                        <span id="wbLineText"></span>
-                                        <a href="#" id="wbLineClear" class="ms-1">Tampilkan semua baris</a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Only on a sheet that is checked against a folder of scans (the answer says so). --}}
-                            <div class="col-12 mt-2 d-none" id="wbCardsWrap">
-                                <div class="row g-2" id="wbCards" role="group" aria-label="Ringkasan kolom File scan"></div>
-                                <div class="wb-muted mt-1" id="wbCardsInfo"></div>
-                                <div class="wb-muted">
-                                    <b>Ada</b>: file dengan nama yang sama seperti di link (huruf besar atau kecil tidak dibedakan).
-                                    <b>Nama beda</b>: ada file dengan nomor yang sama, tetapi link-nya kosong atau menyebut nama lain
-                                    (spasi lebih atau kurang, misalnya). <b>Subfolder</b>: link menunjuk ke subfolder, biasanya karena
-                                    nama pemohon mengandung tanda "/". <b>Belum ada</b>: tidak ada file dengan nama atau nomor itu.
-                                    Klik sebuah kartu untuk hanya melihat barisnya; pencarian tidak mencari di kolom ini.
-                                </div>
-                            </div>
-
-                            <div class="col-12 mt-2">
-                                <ul class="nav nav-tabs" id="wbTabs" aria-label="Sheet workbook"></ul>
-                                <div class="card overflow-hidden mdka-border-gray-200 border-top-0 rounded-top-0">
-                                    <div class="card-body table-responsive p-0">
-                                        <table class="table table-vcenter mdka-border-gray-100 mb-0" id="wbTable">
-                                            <thead></thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="pagination-container mt-2"></div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
+    <div class="rm-docs" id="wbPage">
+        <div class="rm-head">
+            <div>
+                <h1 class="rm-title">{{ $title }}</h1>
+                <p class="rm-sub">{{ $subtitle ? $subtitle . '. ' : '' }}Isi dibaca dari workbook di SharePoint dan diperbarui tiap
+                    {{ $cacheMinutes }} menit.</p>
             </div>
+        </div>
+        <div class="rm-card">
+            @if (! $configured)
+                <div class="alert alert-warning mb-0" id="wbNotConfigured">
+                    <b>{{ $title }} belum bisa ditampilkan.</b>
+                    Alamat workbook di SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code>
+                    (lihat README, bagian "Dokumen SharePoint").
+                </div>
+            @else
+                <div class="rm-banner">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <span id="wbEditHint">Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.</span>
+                </div>
+
+                <div class="rm-toolbar">
+                    <div class="rm-field">
+                        <label for="wbSearch" class="form-label" id="wbSearchLabel">Cari di semua kolom</label>
+                        <div class="rm-search rm-search-wide">
+                            <i class="ti ti-search" aria-hidden="true"></i>
+                            <input type="search" id="wbSearch" autocomplete="off" maxlength="100"
+                                placeholder="Nama, nomor dokumen, serial number, …">
+                        </div>
+                    </div>
+                    <button type="button" class="btn-rm secondary" onclick="wbBook.reset()" data-bs-toggle="tooltip"
+                        data-bs-title="Reset pencarian, kartu dan baris yang dipilih, dan urutan"><i class="ti ti-restore"
+                            aria-hidden="true"></i> Reset</button>
+                    <button type="button" class="btn-rm secondary" id="wbReload" onclick="wbBook.load(true)">
+                        <i class="ti ti-refresh" aria-hidden="true"></i> Muat ulang
+                    </button>
+                    {{-- Shown once the workbook has been read: its address comes with the rows. --}}
+                    <span class="ms-md-auto d-none" id="wbOpenWrap">
+                        <a class="btn-rm secondary" id="wbOpen" href="#" target="_blank" rel="noopener noreferrer"><i
+                                class="ti ti-external-link" aria-hidden="true"></i> Buka di Excel</a>
+                    </span>
+                </div>
+
+                <div class="wb-muted" id="wbInfo"></div>
+                <div id="wbNotice"></div>
+                {{-- Said when a link from the page of the folder asked for some rows of Excel only. (The live region is
+                     always there, so that what appears in it is read out; a region that appears with its text may not be.) --}}
+                <div role="status">
+                    <div class="alert alert-info py-2 small mt-2 mb-0 d-none" id="wbLineBar">
+                        <span id="wbLineText"></span>
+                        <a href="#" id="wbLineClear" class="ms-1">Tampilkan semua baris</a>
+                    </div>
+                </div>
+
+                {{-- Only on a sheet that is checked against a folder of scans (the answer says so). --}}
+                <div class="col-12 mt-2 d-none" id="wbCardsWrap">
+                    <div class="row g-2" id="wbCards" role="group" aria-label="Ringkasan kolom File scan"></div>
+                    <div class="wb-muted mt-2" id="wbCardsInfo"></div>
+                    <div class="wb-muted mt-1">
+                        <b>Ada</b>: file dengan nama yang sama seperti di link (huruf besar atau kecil tidak dibedakan).
+                        <b>Nama beda</b>: ada file dengan nomor yang sama, tetapi link-nya kosong atau menyebut nama lain
+                        (spasi lebih atau kurang, misalnya). <b>Subfolder</b>: link menunjuk ke subfolder, biasanya karena
+                        nama pemohon mengandung tanda "/". <b>Belum ada</b>: tidak ada file dengan nama atau nomor itu.
+                        Klik sebuah kartu untuk hanya melihat barisnya; pencarian tidak mencari di kolom ini.
+                    </div>
+                </div>
+
+                <div class="rm-wb-sheets">
+                    <ul class="nav nav-tabs rm-wb-tabs" id="wbTabs" aria-label="Sheet workbook"></ul>
+                    <div class="rm-box mt-3">
+                        <div class="table-responsive">
+                            <table class="rm-table" id="wbTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-container"></div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
 @if ($configured)
     {{-- Asks for a change of one cell: nothing is written to the workbook until somebody else has approved it. --}}
-    <div class="modal fade" data-bs-backdrop="static" id="wbEditModal" tabindex="-1" aria-labelledby="wbEditTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content p-3">
-                <button type="button" class="btn-close btn-pinned" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                <div class="modal-body p-0">
-                    <h3 class="modal-title mb-1" id="wbEditTitle">Ajukan perubahan sel</h3>
-                    <p class="wb-muted mb-3" id="wbEditWhere"></p>
-                    <div class="row g-2">
-                        <div class="col-12">
-                            <label for="wbEditOld" class="form-label">Isi sekarang</label>
-                            <input type="text" id="wbEditOld" class="form-control" readonly tabindex="-1">
-                        </div>
-                        <div class="col-12">
-                            <label for="wbEditValue" class="form-label required">Isi baru</label>
-                            <input type="text" id="wbEditValue" class="form-control" maxlength="1000" autocomplete="off">
-                            <div class="wb-muted mt-1">Kosongkan untuk mengosongkan sel. Kolom angka diisi angka (1500 atau 1.500,50); kolom tanggal dengan format hh-bb-tttt (15-03-2023).</div>
-                        </div>
-                        <div class="col-12" role="alert">
-                            <div class="alert alert-danger py-2 small mb-0 d-none" id="wbEditError"></div>
-                        </div>
-                        <div class="col-12">
-                            <div class="alert alert-info py-2 mb-0 small">
-                                Perubahan <b>belum</b> tersimpan di SharePoint. Orang lain yang berwenang harus menyetujuinya dulu di
-                                halaman Persetujuan Edit; Anda tidak bisa menyetujui pengajuan Anda sendiri.
-                            </div>
-                        </div>
-                        <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-                            <x-global.btn-detail label="Batal" color="secondary" size="sm" outline="true"
-                                data-bs-dismiss="modal">
-                                <x-slot:icon>
-                                    <i class="ti ti-x"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                            <x-global.btn-detail label="Ajukan perubahan" color="blue" size="sm" id="wbEditSend"
-                                onclick="wbEdit.submit()">
-                                <x-slot:icon>
-                                    <i class="ti ti-send"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                        </div>
+    <div class="modal fade rm-modal" data-bs-backdrop="static" id="wbEditModal" tabindex="-1" aria-labelledby="wbEditTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="rm-dialog-head">
+                    <span class="rm-dialog-icon"><i class="ti ti-edit" aria-hidden="true"></i></span>
+                    <div class="rm-dialog-titles">
+                        <h3 class="rm-dialog-title modal-title" id="wbEditTitle">Ajukan perubahan sel</h3>
+                        <p class="rm-dialog-sub wb-muted" id="wbEditWhere"></p>
                     </div>
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                            class="ti ti-x"></i></button>
+                </div>
+                <div class="rm-dialog-body">
+                    <div class="rm-field">
+                        <label for="wbEditOld" class="form-label">Isi sekarang</label>
+                        <input type="text" id="wbEditOld" class="form-control" readonly tabindex="-1">
+                    </div>
+                    <div class="rm-field">
+                        <label for="wbEditValue" class="form-label required">Isi baru</label>
+                        <input type="text" id="wbEditValue" class="form-control" maxlength="1000" autocomplete="off">
+                        <div class="rm-hint">Kosongkan untuk mengosongkan sel. Kolom angka diisi angka (1500 atau 1.500,50); kolom tanggal dengan format hh-bb-tttt (15-03-2023).</div>
+                    </div>
+                    <div role="alert">
+                        <div class="alert alert-danger py-2 small mb-0 d-none" id="wbEditError"></div>
+                    </div>
+                    <div class="alert alert-info py-2 mb-0 small">
+                        Perubahan <b>belum</b> tersimpan di SharePoint. Orang lain yang berwenang harus menyetujuinya dulu di
+                        halaman Persetujuan Edit; Anda tidak bisa menyetujui pengajuan Anda sendiri.
+                    </div>
+                </div>
+                <div class="rm-dialog-foot">
+                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-rm primary" id="wbEditSend" onclick="wbEdit.submit()">
+                        <i class="ti ti-send" aria-hidden="true"></i> Ajukan perubahan
+                    </button>
                 </div>
             </div>
         </div>
@@ -417,8 +430,8 @@
                             wbBook.byLine[row.line] = row;
                         });
                         $('#wbEditHint').text(wbBook.editable > 0 ?
-                            'klik ikon pensil di sebuah sel untuk mengajukan perubahannya. Isi workbook baru berubah setelah disetujui orang lain di halaman Persetujuan Edit.' :
-                            'halaman ini hanya menampilkan, mengubah data tetap dilakukan di Excel.');
+                            'Klik ikon pensil di sebuah sel untuk mengajukan perubahannya. Isi workbook baru berubah setelah disetujui orang lain di halaman Persetujuan Edit.' :
+                            'Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.');
                         wbBook.page = response.meta.current_page;
                         wbBook.sort = response.sheet.sort;
                         wbBook.dir = response.sheet.dir;

@@ -337,11 +337,11 @@ const cellsOf = out => out.split('</tr>').map(row => (row.match(/<td[^>]*>(.*?)<
 check('the page is made with the columns of the sheet when the reader may open it, the first of them sortable', () => {
     assert.deepEqual(JSON.parse(JSON.stringify(spDocs.register)), { title: 'ICT Masterlist', sheet: 'COF', open: '/documents/ict-masterlist' });
     assert.equal(exists('#docsTable th[data-key="masterlist"]'), true);
-    assert.match(html, /<th class="text-capitalize fs-5 py-3" width="200">Catatan<\/th>/);
+    assert.match(html, /<th width="200">Catatan<\/th>/);
     // The headers are in the order of the cells: Masterlist, then Catatan, both after the name and before the type.
     assert.match(html, /<th [^>]*data-key="label">Nama<\/th>\s*<th [^>]*data-key="masterlist"[^>]*>Masterlist<\/th>\s*<th [^>]*>Catatan<\/th>\s*<th [^>]*data-key="extension"/);
     // The name is given room beside them (the rule is in the style of the page, and the table has the class it is for).
-    assert.match(html, /<table class="table table-vcenter mdka-border-gray-100 mb-0 docs-register" id="docsTable">/);
+    assert.match(html, /<table class="rm-table docs-register" id="docsTable">/);
     assert.match(html, /#docsTable\.docs-register \.docs-name \{\s*min-width: 13rem;/);
     assert.match(html, /Kolom Masterlist dan Catatan dari sheet COF di ICT Masterlist/);
     assert.equal(spDocs.columns.length, 'index name label masterlist note extension modified modified_by size view'.split(' ').length);

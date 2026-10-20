@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { assertWellFormed, checker, loadPage } from './page-sandbox.mjs';
 
-const markers = ['function debounce(', 'function renderTableWithFeatures(', 'const RadioUi = {', 'const esignUrls = {'];
+const markers = ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const RadioUi = {', 'const esignUrls = {'];
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 const { check, done } = checker();
 
@@ -175,7 +175,9 @@ check('a signature is sent only when it was taken from the pad, for an account t
 
     p.answer(request, { message: 'Tanda tangan <Citra> berhasil didaftarkan.' });
     assert.equal(p.node('#esignModal').modal, 'hide');
-    assert.deepEqual([...p.dialogs.at(-1).args], ['Berhasil', 'Tanda tangan &lt;Citra&gt; berhasil didaftarkan.', 'success']);
+    // Said in a toast, as text.
+    assert.equal(p.dialogs.at(-1).options.toast, true);
+    assert.equal(p.dialogs.at(-1).options.titleText, 'Tanda tangan <Citra> berhasil didaftarkan.');
     assert.match(p.requests.at(-1).url, /\/list$/);
     assert.equal(p.node('#esignSave').props.disabled, false);
 });
@@ -235,7 +237,7 @@ check('a refusal is said in the dialog, as text, and the dialog stays open', () 
     // A list that cannot be loaded says why.
     const failed = open();
     failed.refuse(failed.requests[0], { status: 503, responseJSON: { message: 'Tabel tanda tangan belum dibuat.' } });
-    assert.match(failed.node('#esignNotice').html, /alert-danger[^>]*>Tabel tanda tangan belum dibuat\./);
+    assert.match(failed.node('#esignNotice').html, /rm-alert danger.*<span>Tabel tanda tangan belum dibuat\.<\/span>/);
     assert.match(body(failed), /Gagal memuat data\./);
 });
 
@@ -256,7 +258,8 @@ check('removing asks first, and says that the record of where it was put stays',
     assert.match(request.url, /\/radio-management\/e-sign\/7$/);
     assert.deepEqual(plain(p.sent()), { _method: 'DELETE' });
     p.answer(request, { message: 'Tanda tangan Pak dihapus.' });
-    assert.deepEqual([...p.dialogs.at(-1).args], ['Terhapus', 'Tanda tangan Pak dihapus.', 'success']);
+    assert.equal(p.dialogs.at(-1).options.toast, true);
+    assert.equal(p.dialogs.at(-1).options.titleText, 'Tanda tangan Pak dihapus.');
     assert.match(p.requests.at(-1).url, /\/list$/);
 
     // A button of a row that is no longer on screen does nothing.
@@ -282,7 +285,7 @@ check('the record of a signature is shown: when, for which radio, by whom', () =
     assert.match(p.node('#esignUsesList').html, /Belum pernah dipakai di form\./);
     press(p, 'uses', 7);
     p.refuse(p.requests.at(-1), { status: 403 });
-    assert.match(p.node('#esignUsesList').html, /alert-danger[^>]*>Anda tidak memiliki izin untuk aksi ini\./);
+    assert.match(p.node('#esignUsesList').html, /rm-alert danger.*<span>Anda tidak memiliki izin untuk aksi ini\.<\/span>/);
 });
 
 check('a search starts from the first page, and every element the script reaches for by id is in the page', () => {
@@ -305,7 +308,7 @@ check('a search starts from the first page, and every element the script reaches
     }
     assert.ok(/class="[^"]*\bpagination-container\b/.test(p.html), 'the page has no .pagination-container');
     // Seven columns in the head, seven drawn.
-    assert.equal((p.html.match(/<table[^>]*id="esignTable"[\s\S]*?<\/thead>/)[0].match(/<th /g) || []).length, [...p.page('esignTable').columns].length);
+    assert.equal((p.html.match(/<table[^>]*id="esignTable"[\s\S]*?<\/thead>/)[0].match(/<th[\s>]/g) || []).length, [...p.page('esignTable').columns].length);
 });
 
 done();

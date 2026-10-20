@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict';
 import { assertWellFormed, checker, loadPage } from './page-sandbox.mjs';
 
-const markers = ['function debounce(', 'function renderTableWithFeatures(', 'const eaUi = {'];
+const markers = ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const eaUi = {'];
 const open = () => loadPage(process.argv[2], markers, { href: 'http://localhost/documents/edit-approvals' });
 const { check, done } = checker();
 
@@ -61,7 +61,7 @@ check('the requests are drawn: who asked, which cell, what it was and becomes, w
 
     // The first: who asked and when, the cell (a link to its row in the workbook), and the values: before, struck, and after.
     assert.match(rows, /<td class="text-muted">7<\/td>/);
-    assert.match(rows, /<div>12-10-2026 10:00<\/div><div class="ea-muted">Admin Radio Satu<\/div>/);
+    assert.match(rows, /<div class="rm-strong">Admin Radio Satu<\/div><div class="rm-line2">12-10-2026 10:00<\/div>/);
     assert.match(rows, /<a href="\/documents\/ict-masterlist\?sheet=SRF&amp;line=7" title="Lihat baris ini di ICT Masterlist"><b>C7<\/b> <span class="ea-muted">SRF<\/span><\/a>/);
     assert.match(rows, /<div class="ea-muted">Requested By · baris ICT\/SRF\/7<\/div>/);
     assert.match(rows, /<span class="ea-old">Budi Santoso<\/span><\/div><div><span class="ea-new">Budi S\.<\/span>/);
@@ -69,9 +69,9 @@ check('the requests are drawn: who asked, which cell, what it was and becomes, w
     assert.match(rows, /<span class="ea-old ea-empty">\(kosong\)<\/span>/);
     assert.match(rows, /<span class="ea-new ea-empty">\(dikosongkan\)<\/span>/);
     // What became of it: the badge, and who decided, why, or why nothing was written.
-    assert.match(rows, /<span class="badge bg-blue-lt">Menunggu<\/span>/);
+    assert.match(rows, /<span class="badge bg-yellow-lt">Menunggu<\/span>/);
     assert.match(rows, /<span class="badge bg-green-lt">Diterapkan<\/span><div class="ea-muted mt-1">Disetujui Doc Controller Satu, 12-10-2026 11:01<\/div>/);
-    assert.match(rows, /<span class="badge bg-secondary-lt">Ditolak<\/span><div class="ea-muted mt-1">Ditolak Doc Controller Satu, 12-10-2026 11:05<br>Alasan: Nama salah<\/div>/);
+    assert.match(rows, /<span class="badge bg-red-lt">Ditolak<\/span><div class="ea-muted mt-1">Ditolak Doc Controller Satu, 12-10-2026 11:05<br>Alasan: Nama salah<\/div>/);
     assert.match(rows, /<span class="badge bg-orange-lt">Konflik<\/span><div class="ea-muted mt-1">Isi sel C4 sudah berubah di SharePoint\.<\/div>/);
 });
 
@@ -85,7 +85,7 @@ check('the buttons of a row are the ones its reader may press', () => {
     ]);
     const rows = body(p).split('</tr>');
     const [first, turnDownOnly, own, none, again] = rows;
-    assert.match(first, /<button type="button" class="btn btn-sm btn-success ea-approve" data-id="7"><i class="ti ti-check"><\/i> Setujui<\/button> <button type="button" class="btn btn-sm btn-outline-danger ea-reject" data-id="7">/);
+    assert.match(first, /<button type="button" class="btn-rm sm success ea-approve" data-id="7"><i class="ti ti-check"><\/i> Setujui<\/button> <button type="button" class="btn-rm sm secondary ea-reject" data-id="7">/);
     assert.doesNotMatch(turnDownOnly, /ea-approve/);
     assert.match(turnDownOnly, /ea-reject" data-id="6"/);
     // The one who asked is told that somebody else decides (and may still turn it down, when the menu lets them).
@@ -120,30 +120,35 @@ check('what comes from the database is shown as text, and only an address of thi
     }
 });
 
-// ---------------------------------------------------------------- the cards and the search
-check('one card for each status says how many there are, and a click shows only those', () => {
+// ---------------------------------------------------------------- the tabs and the search
+check('one tab for each status says how many there are, and a click shows only those', () => {
     const p = loaded([row(7)], { others: { pending: 3, applied: 2, conflict: 1 } });
-    const cards = p.node('#eaCards').html;
-    assertWellFormed(cards, 'the cards');
-    // "Semua", then every status but "Diproses", which is shown only while somebody is writing.
-    assert.deepEqual([...cards.matchAll(/data-status="([^"]*)"/g)].map(match => match[1]), ['', 'pending', 'applied', 'rejected', 'conflict', 'failed']);
-    assert.match(cards, /ea-card-label">Semua<\/span><\/span><span class="ea-card-count d-block">6</);
-    assert.match(cards, /class="card card-sm w-100 ea-card active" data-status="pending" aria-pressed="true"/);
-    assert.match(cards, /ea-card-label">Konflik<\/span><\/span><span class="ea-card-count d-block">1</);
+    const cards = p.node('#eaTabs').html;
+    assertWellFormed(cards, 'the tabs');
+    // "Semua", Menunggu, Diterapkan and Ditolak; Diproses, Konflik and Gagal only while some requests have them.
+    assert.deepEqual([...cards.matchAll(/data-status="([^"]*)"/g)].map(match => match[1]), ['', 'pending', 'applied', 'rejected', 'conflict']);
+    assert.match(cards, />Semua<span class="rm-tab-count">6<\/span><\/button>/);
+    assert.match(cards, /<button type="button" class="ea-tab is-on" data-status="pending" aria-pressed="true">Menunggu<span class="rm-tab-count">3</);
+    assert.match(cards, /<button type="button" class="ea-tab" data-status="conflict" aria-pressed="false">Konflik<span class="rm-tab-count">1</);
 
     // Somebody is writing one: its card is there.
     const busy = loaded([row(7)], { others: { processing: 1 } });
-    assert.match(busy.node('#eaCards').html, /data-status="processing"/);
+    assert.match(busy.node('#eaTabs').html, /data-status="processing"/);
+    assert.doesNotMatch(busy.node('#eaTabs').html, /data-status="(conflict|failed)"/);
+    // The tab that is open stays, even with none (a link of a notification may open it).
+    busy.page('eaPage').status = 'failed';
+    busy.page('eaPage').tabs(counts());
+    assert.match(busy.node('#eaTabs').html, /<button type="button" class="ea-tab is-on" data-status="failed" aria-pressed="true">Gagal<span class="rm-tab-count">0</);
 
-    press(p, '#eaCards', 'click button.ea-card', { 'data-status': 'conflict' });
+    press(p, '#eaTabs', 'click button.ea-tab', { 'data-status': 'conflict' });
     assert.equal(p.sent().status, 'conflict');
     assert.equal(p.sent().page, 1);
     p.answer(p.requests.at(-1), reply([row(4, { status: 'conflict', status_label: 'Konflik' })], { others: { conflict: 1 } }));
     // The same card again shows all; "Semua" itself stays all.
-    press(p, '#eaCards', 'click button.ea-card', { 'data-status': 'conflict' });
+    press(p, '#eaTabs', 'click button.ea-tab', { 'data-status': 'conflict' });
     assert.equal(p.sent().status, '');
     p.answer(p.requests.at(-1), reply([row(4)]));
-    press(p, '#eaCards', 'click button.ea-card', { 'data-status': '' });
+    press(p, '#eaTabs', 'click button.ea-tab', { 'data-status': '' });
     assert.equal(p.sent().status, '');
 });
 
@@ -220,8 +225,10 @@ check('approving asks first, shows what is changed, and only then sends; the ans
     assert.equal(dialog.options.showCancelButton, true);
     // The question says where the cell is, what it holds and what it becomes, as text; and that the workbook is changed at once.
     assert.match(dialog.options.html, /sel <b>C7<\/b> \(Requested By\)/);
-    assert.match(dialog.options.html, /Sekarang: <span class="text-muted">Budi Santoso<\/span>/);
-    assert.match(dialog.options.html, /Menjadi: <b>&lt;b&gt;Budi S\.&lt;\/b&gt;<\/b>/);
+    assert.match(dialog.options.html, /<span class="ea-diff-head">Sekarang<\/span><span class="ea-diff-head">Menjadi<\/span><span class="ea-old">Budi Santoso<\/span><span class="ea-new">&lt;b&gt;Budi S\.&lt;\/b&gt;<\/span>/);
+    // In the design's dialog: a green tile, and the button of a step that succeeds.
+    assert.equal(dialog.options.customClass.icon, 'rm-swal-icon tone-green');
+    assert.equal(dialog.options.customClass.confirmButton, 'btn-rm success');
     assert.match(dialog.options.html, /Workbook di SharePoint akan langsung diubah/);
 
     // Confirmed: the dialog's own function sends the approval (a PATCH, as a form field), and keeps the dialog open while it waits.
@@ -242,7 +249,9 @@ check('approving asks first, shows what is changed, and only then sends; the ans
     // The person answers: written, and the list is read again.
     p.resolve({ isConfirmed: true, value: { ok: true, response: { message: 'Perubahan sel C7 sudah ditulis ke SharePoint.' } } });
     assert.equal(p.dialogs.length, 2);
-    assert.deepEqual([...p.dialogs[1].args], ['Berhasil', 'Perubahan sel C7 sudah ditulis ke SharePoint.', 'success']);
+    // Said in a toast, as text.
+    assert.equal(p.dialogs[1].options.toast, true);
+    assert.equal(p.dialogs[1].options.titleText, 'Perubahan sel C7 sudah ditulis ke SharePoint.');
     assert.match(p.requests.at(-1).url, /\/list$/);
 });
 
@@ -285,6 +294,9 @@ check('turning down asks for a reason that may be left empty, and sends it', () 
     assert.equal(dialog.options.title, 'Tolak perubahan ini?');
     assert.equal(dialog.options.input, 'textarea');
     assert.equal(dialog.options.inputAttributes.maxlength, 500);
+    assert.equal(dialog.options.inputLabel, 'Alasan (boleh dikosongkan)');
+    assert.equal(dialog.options.showLoaderOnConfirm, true);
+    assert.equal(dialog.options.customClass.confirmButton, 'btn-rm destructive');
 
     dialog.options.preConfirm('Nama salah');
     assert.match(p.requests.at(-1).url, /\/documents\/edit-approvals\/7\/reject$/);
@@ -293,7 +305,8 @@ check('turning down asks for a reason that may be left empty, and sends it', () 
     assert.deepEqual(p.sent(), { _method: 'PATCH', note: '' });
 
     p.resolve({ isConfirmed: true, value: { ok: true, response: { message: 'Pengajuan perubahan sel C7 ditolak.' } } });
-    assert.deepEqual([...p.dialogs[1].args], ['Ditolak', 'Pengajuan perubahan sel C7 ditolak.', 'success']);
+    assert.equal(p.dialogs[1].options.toast, true);
+    assert.equal(p.dialogs[1].options.titleText, 'Pengajuan perubahan sel C7 ditolak.');
     assert.match(p.requests.at(-1).url, /\/list$/);
 
     const refused = loaded([row(7)]);
