@@ -110,6 +110,112 @@
 
 
 <script>
+    /**
+     * The design layer's motion (radio-ui.css, section 5) where a script has to do it: rows that fade in each time they
+     * are drawn, numbers that count up, the line under the open tab that slides. Nothing moves for a person who asked
+     * for less motion (prefers-reduced-motion).
+     */
+    const rmMotion = {
+        reduced() {
+            return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        },
+
+        /** The keyframe each table used last: the other one starts the animation again. */
+        flips: {},
+
+        tableFade(container) {
+            const next = rmMotion.flips[container] === 'a' ? 'b' : 'a';
+            rmMotion.flips[container] = next;
+            $(`${container} tbody`).removeClass('rm-fade-a rm-fade-b').addClass(`rm-fade-${next}`);
+        },
+
+        /** Ease-out cubic: fast at first, slow at the end (k from 0 to 1). */
+        ease(k) {
+            const t = Math.min(1, Math.max(0, Number(k) || 0));
+            return 1 - Math.pow(1 - t, 3);
+        },
+
+        /** "1.234", as the pages write a count. */
+        number(value) {
+            return String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        },
+
+        /**
+         * A number that counts up to `to` in `duration` ms, a step every `tick` ms. The timers of a page in the background
+         * are slowed down: after `failsafe` ms the number is the right one, whatever the steps did.
+         */
+        countUp(element, to, { duration = 800, tick = 32, failsafe = 1500, format = rmMotion.number } = {}) {
+            const target = Number(to) || 0;
+            const show = value => {
+                element.textContent = format(value);
+            };
+            if (rmMotion.reduced() || target <= 0) {
+                show(target);
+                return;
+            }
+            const start = Date.now();
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                show(target);
+            };
+            const step = () => {
+                if (done) return;
+                const k = (Date.now() - start) / duration;
+                if (k >= 1) return finish();
+                show(target * rmMotion.ease(k));
+                setTimeout(step, tick);
+            };
+            show(0);
+            setTimeout(step, tick);
+            setTimeout(finish, failsafe);
+        },
+
+        /** The tabs that have a sliding line, and how their open tab is found: placed again when the window is resized. */
+        inked: {},
+
+        /**
+         * The line under the open tab of `selector` (line tabs that a script writes again) slides to it. The line sits
+         * beside the tabs, in their parent, so that it stays when the tabs are written again.
+         */
+        ink(selector, active = '.is-on', still = false) {
+            const tabs = typeof document.querySelector === 'function' ? document.querySelector(selector) : null;
+            const wrap = tabs && tabs.parentElement;
+            if (!wrap) return;
+            rmMotion.inked[selector] = active;
+            let line = wrap.querySelector(':scope > .rm-tab-ink');
+            const on = tabs.querySelector(active);
+            if (!on) {
+                if (line) line.style.width = '0';
+                return;
+            }
+            const first = !line;
+            if (first) {
+                line = document.createElement('span');
+                line.className = 'rm-tab-ink';
+                line.setAttribute('aria-hidden', 'true');
+                wrap.classList.add('rm-ink-wrap');
+                wrap.appendChild(line);
+            }
+            tabs.classList.add('has-ink');
+            const box = on.getBoundingClientRect();
+            const base = wrap.getBoundingClientRect();
+            line.classList.toggle('is-moving', !first && !still && !rmMotion.reduced());
+            line.style.left = `${box.left - base.left}px`;
+            line.style.width = `${box.width}px`;
+            line.style.top = `${box.bottom - base.top - 2}px`;
+        },
+    };
+
+    if (typeof window.addEventListener === 'function') {
+        let rmInkWait = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(rmInkWait);
+            rmInkWait = setTimeout(() => Object.entries(rmMotion.inked).forEach(([selector, active]) => rmMotion.ink(selector, active, true)), 150);
+        });
+    }
+
     function renderTableWithFeatures({
         container,
         data = [],
@@ -194,6 +300,7 @@
 
         if (!data || data.length == 0) {
             tbody.html(`<tr><td colspan="${columns.length}" class="text-center rm-empty">${emptyText}</td></tr>`);
+            rmMotion.tableFade(container);
             return;
         }
 
@@ -218,6 +325,7 @@
         });
 
         tbody.html(html);
+        rmMotion.tableFade(container);
     }
 
     /**

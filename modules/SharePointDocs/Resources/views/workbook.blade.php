@@ -511,6 +511,7 @@
                         const again = document.querySelector(`#wbTabs a.wb-tab[data-sheet="${had}"]`);
                         if (again) again.focus();
                     }
+                    rmMotion.ink('#wbTabs', '.nav-link.active');
                 },
 
                 /**

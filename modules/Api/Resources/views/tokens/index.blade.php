@@ -329,6 +329,7 @@
                         ` data-bs-toggle="tooltip" data-bs-title="Revoke" aria-label="Revoke ${esc(t.name)}"><i class="ti ti-trash"></i></button></td>` +
                         `</tr>`;
                 }).join(''));
+                rmMotion.tableFade('#tokenTable');
                 $('#tokenTable [data-bs-toggle="tooltip"]').tooltip({ trigger: 'hover' });
             },
 
@@ -355,6 +356,7 @@
                     `<button type="button" class="rm-act is-danger" data-delete-client="${Number(c.id)}" data-name="${esc(c.name)}"` +
                     ` data-bs-toggle="tooltip" data-bs-title="Delete" aria-label="Delete ${esc(c.name)}"><i class="ti ti-trash"></i></button>` +
                     `</span></td></tr>`).join(''));
+                rmMotion.tableFade('#clientTable');
                 $('#clientTable [data-bs-toggle="tooltip"]').tooltip({ trigger: 'hover' });
             },
 

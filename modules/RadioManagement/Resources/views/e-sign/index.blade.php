@@ -299,13 +299,22 @@
 
         /** The signatures as cards (the design's Grid): the same rows as the list, and a tile to register one more. */
         const esignGrid = {
+            /** The signature just saved: { id } when it was changed, { user } when it is new; it pulses when drawn. */
+            fresh: null,
+
+            isFresh(row) {
+                const fresh = esignGrid.fresh;
+                if (!fresh) return false;
+                return fresh.id ? Number(row.id) === Number(fresh.id) : Number(row.user_id) === Number(fresh.user);
+            },
+
             initials(name) {
                 return String(name || '?').trim().split(/\s+/).slice(0, 2).map(word => word.charAt(0).toUpperCase()).join('') || '?';
             },
             card(row) {
                 const name = row.display_name || row.account || '';
                 const active = row.active && !row.account_gone;
-                return `<div class="rm-esign-card${active ? '' : ' is-off'}">
+                return `<div class="rm-esign-card${active ? '' : ' is-off'}${esignGrid.isFresh(row) ? ' is-new' : ''}">
                     <div class="rm-esign-head">
                         <span class="rm-avatar-ini">${RadioUi.esc(esignGrid.initials(name))}</span>
                         <div class="rm-esign-who">
@@ -329,6 +338,8 @@
                 const cards = (rows || []).map(esignGrid.card).join('');
                 const add = esignMay.create ? `<button type="button" class="rm-esign-add" onclick="esignForm.open()"><i class="ti ti-plus"></i><span>Daftarkan tanda tangan</span></button>` : '';
                 $('#esignGrid').html(cards + add || '<div class="radio-muted">Belum ada tanda tangan yang didaftarkan</div>');
+                // (Once: the next time the cards are drawn nothing is new.)
+                esignGrid.fresh = null;
                 RadioUi.tooltips('#esignGrid');
             },
         };
@@ -439,6 +450,7 @@
                     dataType: 'json',
                     data,
                 })?.done(response => {
+                    esignGrid.fresh = esignForm.id ? { id: esignForm.id } : { user: data.user_id };
                     $('#esignModal').modal('hide');
                     rmFeedback.toast(response.message);
                     esignTable.load();

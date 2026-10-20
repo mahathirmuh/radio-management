@@ -201,20 +201,20 @@
                 {{-- KPI row --}}
                 <div class="rm-kpis">
                     <a href="{{ $radioUrl }}" class="rm-kpi-link">
-                        <x-global.summary-card value="{{ $fmt($totalActive) }}" title="Radio aktif" color="brand">
+                        <x-global.summary-card value="{{ $fmt($totalActive) }}" count="{{ $totalActive }}" title="Radio aktif" color="brand">
                             <x-slot:icon><i class="ti ti-radio"></i></x-slot:icon>
                         </x-global.summary-card>
                     </a>
                     @foreach ($placements as $placement)
                         <a href="{{ $radioUrl }}?placement={{ $placement['value'] }}" class="rm-kpi-link">
-                            <x-global.summary-card value="{{ $fmt($placement['count']) }}" title="{{ $placement['label'] }}"
+                            <x-global.summary-card value="{{ $fmt($placement['count']) }}" count="{{ $placement['count'] }}" title="{{ $placement['label'] }}"
                                 color="{{ $placementTiles[$placement['value']]['color'] }}">
                                 <x-slot:icon><i class="ti {{ $placementTiles[$placement['value']]['icon'] }}"></i></x-slot:icon>
                             </x-global.summary-card>
                         </a>
                     @endforeach
                     <a href="{{ $radioUrl }}?scope=archived" class="rm-kpi-link">
-                        <x-global.summary-card value="{{ $fmt($totalArchived) }}" title="Diarsipkan">
+                        <x-global.summary-card value="{{ $fmt($totalArchived) }}" count="{{ $totalArchived }}" title="Diarsipkan">
                             <x-slot:icon><i class="ti ti-archive"></i></x-slot:icon>
                         </x-global.summary-card>
                     </a>
@@ -404,8 +404,12 @@
 
 @push('javascript')
     <script>
-        // Hover + keyboard-focus tooltips for every chart mark (values are also printed beside them).
+        // Hover + keyboard-focus tooltips for every chart mark (values are also printed beside them); the numbers of the
+        // tiles count up (the page has them right already: without the script they are simply there).
         $(function() {
+            $('.rm-kpi-value[data-count]').each(function() {
+                rmMotion.countUp(this, Number(this.getAttribute('data-count')));
+            });
             $('[data-viz-tip]').each(function() {
                 $(this).attr('data-bs-title', $(this).attr('data-viz-tip'))
                     .tooltip({ trigger: 'hover focus', placement: 'top' });

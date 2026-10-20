@@ -1,6 +1,8 @@
 @props([
     'value_id',
     'value',
+    // The number itself (the value is it as the page writes it), when it may count up (rmMotion.countUp).
+    'count' => null,
     'unit',
     'title',
     'icon' => '',
@@ -27,7 +29,7 @@
     <span class="rm-kpi-icon tone-{{ $tone }}">{{ $icon ?? '' }}</span>
     <span class="rm-kpi-text">
         <span class="rm-kpi-label">{{ $title ?? '' }}</span>
-        <span class="rm-kpi-value" @isset($value_id) id="{{ $value_id }}" @endisset>{{ $value ?? '' }}</span>
+        <span class="rm-kpi-value" @isset($value_id) id="{{ $value_id }}" @endisset @if ($count !== null) data-count="{{ (int) $count }}" @endif>{{ $value ?? '' }}</span>
         @isset($trend)
             <span class="rm-kpi-trend" @isset($value_id) id="{{ $value_id }}-trend" @endisset>{{ $trend }}</span>
         @endisset

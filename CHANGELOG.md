@@ -112,13 +112,26 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - tombol Microsoft 48px dan tombol Login dengan status sibuk;
     - panduan login 440px.
 
+- Fase 5, gerak:
+  - halaman muncul dengan fade; dialog dan popup muncul (pop-in) dan hilang lebih cepat, latarnya memudar;
+  - menu (user, lonceng, pilihan, baris per halaman) turun dari sisi tempatnya dibuka;
+  - toast naik dari bawah dan turun lagi;
+  - baris tabel memudar masuk setiap kali filter, halaman atau tampilan berganti;
+  - bulk bar, chip filter dan panel filter turun saat muncul; kotak yang dicentang "pop";
+  - Dashboard: angka KPI menghitung naik, bar kondisi terbuka dari kiri, bar per perusahaan/tipe tumbuh;
+  - Log activity: entri naik satu per satu;
+  - garis bawah tab Persetujuan Edit dan sheet ICT Masterlist bergeser ke tab yang dipilih;
+  - kartu tanda tangan yang baru disimpan berdenyut;
+  - semua gerak mati bila sistem operasi meminta "kurangi gerak" (prefers-reduced-motion): angka langsung tampil,
+    login hanya menampilkan foto pertama.
+
 ### Diperbaiki
 
 - Role & Permission: di mode View, kotak izin bisa dicentang setelah role selesai dimuat. Sekarang tetap terkunci.
 - Halaman login tidak lagi memuat gambar yang tidak ada: thumbnail carousel lama, dan ikon `manifest.json` peninggalan
   template. Tautan manifest dihapus dari halaman login; file-nya masih ada di `public/`.
 
-**Deploy:** fase 1 sampai 4 tanpa migrasi dan tanpa setting baru.
+**Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru.
 
 ## [1.9.0] - 2026-10-19
 

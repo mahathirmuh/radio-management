@@ -99,6 +99,58 @@ check('a question in the design dialog: the tone, the icon, text as text, the ki
     assert.equal(waiting.inputLabel, 'Alasan');
 });
 
+check('the rows of a table fade in each time they are drawn, the two keyframes by turns; not while loading', () => {
+    const page = open();
+    const table = page.page('renderTable');
+    const tbody = () => [...page.node('#motionTable tbody').classes];
+    const columns = [{ key: 'name', render: item => item.name }];
+    table({ container: '#motionTable', data: [{ name: 'A' }], columns });
+    assert.deepEqual(tbody(), ['rm-fade-a']);
+    table({ container: '#motionTable', data: [{ name: 'B' }], columns });
+    assert.deepEqual(tbody(), ['rm-fade-b']);
+    table({ container: '#motionTable', loading: true, columns });
+    assert.deepEqual(tbody(), ['rm-fade-b']);
+    // Nothing found fades in too.
+    table({ container: '#motionTable', data: [], columns });
+    assert.deepEqual(tbody(), ['rm-fade-a']);
+    // Another table takes its own turns.
+    table({ container: '#otherTable', data: [{ name: 'C' }], columns });
+    assert.deepEqual([...page.node('#otherTable tbody').classes], ['rm-fade-a']);
+});
+
+check('a number counts up: ease-out cubic, "1.234" as the pages write it, and the right number after the failsafe', () => {
+    const page = open();
+    const motion = page.page('rmMotion');
+    assert.equal(motion.ease(0), 0);
+    assert.equal(motion.ease(0.5), 0.875);
+    assert.equal(motion.ease(1), 1);
+    assert.equal(motion.ease(2), 1);
+    assert.deepEqual([motion.number(0), motion.number(999), motion.number(1234), motion.number(1234567.4)], ['0', '999', '1.234', '1.234.567']);
+
+    // It starts at 0; whatever the steps did, the failsafe leaves the right number, and nothing changes it after.
+    const tile = { textContent: '1.234' };
+    motion.countUp(tile, 1234);
+    assert.equal(tile.textContent, '0');
+    page.runTimers();
+    assert.equal(tile.textContent, '1.234');
+    page.runTimers();
+    page.runTimers();
+    assert.equal(tile.textContent, '1.234');
+
+    // Time gone by the first step: the last number at once.
+    page.page('Date.now = () => 1000');
+    const late = { textContent: '' };
+    motion.countUp(late, 26);
+    page.page('Date.now = () => 5000');
+    page.runTimers();
+    assert.equal(late.textContent, '26');
+
+    // Nothing to count: the number as it is.
+    const none = { textContent: 'x' };
+    motion.countUp(none, 0);
+    assert.equal(none.textContent, '0');
+});
+
 check('dates of the pickers: YYYY-MM-DD, read back, and shown as "01 Okt 2026"', () => {
     const page = open();
     const pickers = page.page('rmPickers');

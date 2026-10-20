@@ -530,7 +530,7 @@
                     `<span>${esc(change.new)}</span></div>`
                 ).join('');
 
-                return `<li class="audit-event${auditLog.open === index ? ' is-open' : ''}" data-index="${index}" tabindex="0">` +
+                return `<li class="audit-event${auditLog.open === index ? ' is-open' : ''}" data-index="${index}" tabindex="0" style="--i: ${index}">` +
                     `<span class="audit-disc tone-${kind.tone}" aria-hidden="true"><i class="ti ti-${kind.icon}"></i></span>` +
                     `<div class="audit-event-body">` +
                     `<div class="audit-sentence"><b>${esc(row.user)}</b> ${esc(row.activity)} ${what ? `<b>${esc(what)}</b> ` : ''}` +

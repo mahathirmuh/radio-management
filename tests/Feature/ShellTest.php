@@ -131,6 +131,6 @@ class ShellTest extends TestCase
 
     public function test_the_shared_helpers_draw_the_foot_of_a_table_toasts_dialogs_and_dates(): void
     {
-        $this->checkPageScript(route('dashboard.index'), 'tests/tools/design-helpers-behaviour.mjs', 8);
+        $this->checkPageScript(route('dashboard.index'), 'tests/tools/design-helpers-behaviour.mjs', 10);
     }
 }

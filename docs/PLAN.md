@@ -538,28 +538,28 @@ Tes yang terdampak:
 
 ## Fase 5: gerak (motion)
 
-- [ ] Main fade-in .22s.
-- [ ] Modal:
+- [x] Main fade-in .22s.
+- [x] Modal:
   - scrim: masuk .18s, keluar .15s;
   - dialog: pop-in .22s, pop-out .15s;
   - berlaku untuk modal Bootstrap dan SweetAlert.
-- [ ] Dropdown, popover, menu user dan panel lonceng: drop-in .16s, titik asal sesuai sisi.
-- [ ] Toast: masuk .28s; hilang setelah sekitar 2,6s, keluar .2s.
-- [ ] Body tabel: fade .2s setiap kali filter, halaman atau tampilan berganti. Keyframe `rm-fade-in` dan `rm-fade-in-b`
+- [x] Dropdown, popover, menu user dan panel lonceng: drop-in .16s, titik asal sesuai sisi.
+- [x] Toast: masuk .28s; hilang setelah sekitar 2,6s, keluar .2s.
+- [x] Body tabel: fade .2s setiap kali filter, halaman atau tampilan berganti. Keyframe `rm-fade-in` dan `rm-fade-in-b`
   dipakai bergantian supaya animasinya berulang.
-- [ ] Bulk bar, chip Applied dan kartu filter: drop-in atau rise .22s.
-- [ ] Centang kotak: `rm-check` .18s.
-- [ ] Dashboard:
+- [x] Bulk bar, chip Applied dan kartu filter: drop-in atau rise .22s.
+- [x] Centang kotak: `rm-check` .18s.
+- [x] Dashboard:
   - KPI menghitung naik 800ms (ease-out cubic `1-(1-k)^3`, tick 32ms, failsafe 1,5s);
   - bar bertumpuk `rm-reveal` .8s;
   - bar horizontal `rm-grow`.
-- [ ] Timeline Log activity: `rm-rise` .26s, jeda 26ms × indeks.
-- [ ] Tab: garis bawah bergeser. Edit approvals: daftar muncul bertahap, kartu buka/tutup lewat `grid-template-rows` .28s.
-- [ ] Tanda tangan baru: `rm-pulse 1.3s ease-out .4s 2`.
-- [ ] Foto login: `rm-xfade 24s`, jeda 0/6/12/18s.
-- [ ] Spinner tombol sibuk: `rm-spin .7s`.
-- [ ] `prefers-reduced-motion`: semua animasi mati; login hanya menampilkan foto pertama.
-- [ ] Checker untuk hitung naik (failsafe) dan pergantian keyframe tabel.
+- [x] Timeline Log activity: `rm-rise` .26s, jeda 26ms × indeks.
+- [x] Tab: garis bawah bergeser. Edit approvals: daftar muncul bertahap, kartu buka/tutup lewat `grid-template-rows` .28s.
+- [x] Tanda tangan baru: `rm-pulse 1.3s ease-out .4s 2`.
+- [x] Foto login: `rm-xfade 24s`, jeda 0/6/12/18s.
+- [x] Spinner tombol sibuk: `rm-spin .7s`.
+- [x] `prefers-reduced-motion`: semua animasi mati; login hanya menampilkan foto pertama.
+- [x] Checker untuk hitung naik (failsafe) dan pergantian keyframe tabel.
 
 ## Fase 6: kemampuan baru (backend)
 
@@ -782,4 +782,24 @@ Prinsip:
     `user-bulk-behaviour.mjs` jadi 14.
   - Diperiksa di browser (preview, data rekaan): Audit log 1366/1440/1920, API Tokens dan dialognya, Users dan
     dialognya, Roles (View: 0 kotak izin aktif), lonceng, halaman notifikasi, login 1440/1366/390.
+  - Suite penuh: 475 lulus (2 warning lama di `WorkbookReaderTest`).
+- 2026-10-20, fase 5 selesai:
+  - CSS gerak di `radio-ui.css` bagian 5 (pemakaian di atas, keyframe di bawah):
+    - main fade .22;
+    - modal Bootstrap: scrim .18/.15, dialog pop .22/.15;
+    - SweetAlert: backdrop, pop, toast;
+    - dropdown `rm-drop-in-menu` memakai properti `translate`/`scale` supaya tidak bentrok dengan transform Popper;
+    - `rm-fade-a`/`rm-fade-b`, bulk bar, panel, chip, centang, bar dashboard, timeline (`--i`), garis tab, pulse;
+    - di blok reduced-motion ditambah `animation-iteration-count: 1`.
+  - `rmMotion` di blok helper tabel `js.blade.php`:
+    - `tableFade` dipanggil oleh `renderTable` dan halaman API Tokens;
+    - `countUp` (ease-out cubic, tick 32, failsafe 1,5 dtk), `ease`, `number`;
+    - `ink` untuk tab yang ditulis ulang skrip (`#eaTabs`, `#wbTabs`), diletakkan ulang saat resize.
+  - `summary-card` mendapat prop `count` (`data-count`) untuk hitung naik dashboard.
+  - "Daftar muncul bertahap / kartu buka-tutup" Persetujuan Edit tidak dibuat: halamannya tabel (lihat fase 3); barisnya
+    memakai fade tabel.
+  - Tes: `design-helpers-behaviour.mjs` +2 cek (pergantian keyframe, hitung naik dan failsafe); `page-sandbox.mjs`
+    membaca beberapa kelas sekaligus ("a b") seperti jQuery.
+  - Diperiksa di browser: angka KPI berakhir di nilai yang benar (juga dengan reduced motion), garis tab tepat di bawah
+    tab aktif, dropdown di posisi yang benar, modal dan SweetAlert buka-tutup bersih.
   - Suite penuh: 475 lulus (2 warning lama di `WorkbookReaderTest`).

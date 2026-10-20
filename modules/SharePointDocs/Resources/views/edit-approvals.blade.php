@@ -92,7 +92,9 @@
             </div>
         </div>
         <div class="rm-card">
-            <div class="rm-tabs" id="eaTabs" role="group" aria-label="Status pengajuan"></div>
+            <div>
+                <div class="rm-tabs" id="eaTabs" role="group" aria-label="Status pengajuan"></div>
+            </div>
 
             <div class="rm-toolbar">
                 <label class="rm-search rm-search-wide" for="eaSearch">
@@ -331,6 +333,7 @@
                     const again = document.querySelector(`#eaTabs button.ea-tab[data-status="${had}"]`);
                     if (again) again.focus();
                 }
+                rmMotion.ink('#eaTabs');
             },
 
             apply() {

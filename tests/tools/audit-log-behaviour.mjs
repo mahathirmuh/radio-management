@@ -164,7 +164,9 @@ check('Log activity: a disc in the colour of the action, a sentence, the change,
     const list = p.node('#auditTimeline').html;
     assertWellFormed(list, 'Log activity');
     const [first, second] = list.split('</li>');
-    assert.match(first, /<li class="audit-event" data-index="0" tabindex="0"><span class="audit-disc tone-orange" aria-hidden="true"><i class="ti ti-edit"><\/i><\/span>/);
+    // (Each entry rises after the one before it: --i is its place.)
+    assert.match(first, /<li class="audit-event" data-index="0" tabindex="0" style="--i: 0"><span class="audit-disc tone-orange" aria-hidden="true"><i class="ti ti-edit"><\/i><\/span>/);
+    assert.match(second, /<li class="audit-event" data-index="1" tabindex="0" style="--i: 1">/);
     assert.match(first, /<div class="audit-sentence"><b>Admin Satu<\/b> updated radio <b>ID 101 · SN SN001<\/b> <span class="audit-dot">•<\/span> <span class="audit-ago">18 minutes ago<\/span><\/div>/);
     assert.match(first, /<div class="audit-changes"><div><span class="audit-field">User:<\/span><s>Pemakai Lama<\/s><span class="audit-to">→<\/span><span>Pemakai Baru<\/span><\/div><div><span class="audit-field">Location:<\/span><span>Gudang<\/span><\/div><\/div>/);
     assert.match(first, /<div class="audit-stamp"><span>19-10-2026 10:12:41<\/span><span class="audit-key">radio\.updated<\/span><span>from 192\.0\.2\.10<\/span><\/div>/);

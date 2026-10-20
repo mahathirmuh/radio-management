@@ -4591,16 +4591,155 @@ input.rm-codebox:focus {
 
 /* 5. Motion ---------------------------------------------------------------------------------------------------------- */
 
+/* Where each animation of the design is used (the keyframes follow). prefers-reduced-motion stops all of them (end of
+   this section); the scripts that count or move something ask for it too (rmMotion). */
+
+/* The page fades in. */
+.rm-main > .rm-container {
+    animation: rm-fade-in .22s ease-out backwards;
+}
+
+/* Dialogs: the scrim in .18s and out .15s; the dialog pops in .22s and out .15s (Bootstrap's and SweetAlert's). */
+.modal-backdrop.fade {
+    transition: opacity .15s linear;
+}
+
+.modal-backdrop.fade.show {
+    transition-duration: .18s;
+}
+
+.modal.fade .modal-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(.98);
+    transition: transform .15s ease-in, opacity .15s ease-in;
+}
+
+.modal.show .modal-dialog {
+    opacity: 1;
+    transform: none;
+    transition: transform .22s cubic-bezier(.2, .8, .2, 1), opacity .22s ease-out;
+}
+
+.swal2-container.swal2-backdrop-show {
+    animation: rm-fade-in .18s ease-out;
+}
+
+.swal2-container.swal2-backdrop-hide {
+    animation: rm-fade-out .15s ease-in forwards;
+}
+
+.swal2-popup.swal2-show {
+    animation: rm-pop-in .22s cubic-bezier(.2, .8, .2, 1);
+}
+
+.swal2-popup.swal2-hide {
+    animation: rm-pop-out .15s ease-in forwards;
+}
+
+/* The toast rises in .28s and sinks out in .2s (it goes after about 2.6 s: rmFeedback.toast). */
+.swal2-popup.swal2-toast.rm-toast.swal2-show {
+    animation: rm-toast-in .28s cubic-bezier(.2, .8, .2, 1);
+}
+
+.swal2-popup.swal2-toast.rm-toast.swal2-hide {
+    animation: rm-toast-out .2s ease-in forwards;
+}
+
+/* Menus (the user, the bell, the pickers, the page size) drop in from the side they open from. The menu is placed by
+   Popper with "transform": the animation moves it with "translate" and "scale", which add to it. */
+.dropdown-menu.show {
+    transform-origin: top left;
+    animation: rm-drop-in-menu .16s ease-out;
+}
+
+.dropdown-menu.dropdown-menu-end.show {
+    transform-origin: top right;
+}
+
+/* A table's rows fade in each time they are drawn again (a filter, a page, a view); two keyframes take turns so that
+   the animation starts again (rmMotion.tableFade). */
+.rm-fade-a {
+    animation: rm-fade-in .2s ease-out;
+}
+
+.rm-fade-b {
+    animation: rm-fade-in-b .2s ease-out;
+}
+
+/* What appears above a list: the bar of the ticked rows, the chips of the filters on, the panel of the filters. */
+.rm-bulk:not(.d-none),
+.rm-panel:not(.d-none) {
+    transform-origin: top left;
+    animation: rm-drop-in .22s cubic-bezier(.2, .8, .2, 1);
+}
+
+.rm-chip {
+    animation: rm-rise .22s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+
+/* A box being ticked. */
+.rm-table .form-check-input:checked {
+    animation: rm-check .18s ease-out;
+}
+
+/* Dashboard: the stacked bar is revealed from the left, the bars grow (the numbers count up: rmMotion.countUp). */
+.viz-stack {
+    animation: rm-reveal .8s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.viz-bar {
+    transform-origin: left center;
+    animation: rm-grow .8s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+/* Log activity: the entries rise one after another (26 ms apart; --i is the place of the entry). */
+.audit-event {
+    animation: rm-rise .26s cubic-bezier(.2, .8, .2, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 26ms);
+}
+
+/* Line tabs whose content is drawn again by a script: the line under the open tab slides to the next one
+   (rmMotion.ink). */
+.rm-ink-wrap {
+    position: relative;
+}
+
+.rm-tab-ink {
+    position: absolute;
+    left: 0;
+    width: 0;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--rm-brand-600);
+    pointer-events: none;
+}
+
+.rm-tab-ink.is-moving {
+    transition: left .3s cubic-bezier(.2, .8, .2, 1), width .3s cubic-bezier(.2, .8, .2, 1), top .3s cubic-bezier(.2, .8, .2, 1);
+}
+
+.rm-tabs.has-ink > .is-on,
+.nav.rm-wb-tabs.has-ink .nav-item .nav-link.active {
+    box-shadow: none;
+}
+
+/* A signature just saved: two rings go out from its card. */
+.rm-esign-card.is-new {
+    animation: rm-pulse 1.3s ease-out .4s 2;
+}
+
+
 @keyframes rm-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rm-fade-in-b { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rm-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes rm-pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 @keyframes rm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.985); } }
 @keyframes rm-drop-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes rm-drop-in-menu { from { opacity: 0; translate: 0 -6px; scale: .97; } to { opacity: 1; translate: none; scale: none; } }
 @keyframes rm-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes rm-rise-b { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-@keyframes rm-toast-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes rm-toast-out { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes rm-toast-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes rm-toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(10px); } }
 @keyframes rm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes rm-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes rm-check { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -4615,6 +4754,7 @@ input.rm-codebox:focus {
     *::after {
         animation-duration: .01ms !important;
         animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
     }
 }

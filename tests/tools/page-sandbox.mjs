@@ -75,6 +75,8 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
         return nodes.get(selector);
     };
     const records = start => [...nodes].filter(([selector]) => selector.startsWith(start)).map(([, record]) => record);
+    // The classes of "a b", as jQuery reads them.
+    const names = name => String(name ?? '').split(/\s+/).filter(Boolean);
     // What is written into an element replaces what was inside it: the elements that were inside are gone, and
     // those that take their place have no attributes, classes or handlers of theirs.
     const forget = gone => gone.forEach(record => Object.assign(record, { html: '', text: '', wrote: null, attrs: {}, props: {}, data: {}, classes: new Set(), handlers: {} }));
@@ -136,9 +138,9 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
             data(name) { return n.data[name]; },
             // (A checkbox is ticked when its "checked" property says so; nothing else is asked of an element here.)
             is(what) { return what === ':checked' ? !!n.props.checked : false; },
-            addClass(name) { all().forEach(record => record.classes.add(name)); return api; },
-            removeClass(name) { all().forEach(record => record.classes.delete(name)); return api; },
-            toggleClass(name, on) { all().forEach(record => (on ? record.classes.add(name) : record.classes.delete(name))); return api; },
+            addClass(name) { all().forEach(record => names(name).forEach(one => record.classes.add(one))); return api; },
+            removeClass(name) { all().forEach(record => names(name).forEach(one => record.classes.delete(one))); return api; },
+            toggleClass(name, on) { all().forEach(record => names(name).forEach(one => (on ? record.classes.add(one) : record.classes.delete(one)))); return api; },
             on(event, filter, handler) {
                 const key = handler ? `${event} ${filter}` : event;
                 (n.handlers[key] ||= []).push(handler || filter);
