@@ -817,6 +817,115 @@ class SharePointEditTest extends TestCase
         $this->assertSame(1, DB::table('roles')->where('name', 'Document Controller')->count());
     }
 
+    // ================================================================ writing a row straight away (6.6, K13h)
+
+    /** Writes cells of a row as the dialog "Edit baris" does: the columns by their place in the table. */
+    private function writeRow(int $line, array $values, int $sheet = 0): TestResponse
+    {
+        return $this->patchJson(route('documents.ict-masterlist.write-row'), ['sheet' => $sheet, 'line' => $line, 'values' => $values]);
+    }
+
+    public function test_who_may_approve_changes_writes_a_row_straight_away_and_nobody_else(): void
+    {
+        // The Document Controller and Super Admin may ask and approve: the page offers them "Edit baris".
+        foreach ([$this->controller(), $this->superAdmin()] as $user) {
+            $this->actingAs($user->fresh());
+            $this->getJson(route('documents.ict-masterlist.rows'))->assertOk()->assertJsonPath('direct', true);
+        }
+        // Admin Radio may only ask: not offered, and refused.
+        $this->actingAs($this->admin()->fresh());
+        $this->getJson(route('documents.ict-masterlist.rows'))->assertOk()->assertJsonPath('direct', false);
+        $this->writeRow(2, [2 => 'Budi S.'])->assertForbidden()
+            ->assertJsonPath('message', 'Anda tidak berwenang mengubah workbook ini langsung. Ajukan perubahan per sel.');
+        // Nor an API client, whatever its role.
+        $client = $this->makeUser('client@api-client.invalid', 1, 'Klien API');
+        $client->forceFill(['api_client' => true])->save();
+        $this->actingAs($client->fresh());
+        $this->getJson(route('documents.ict-masterlist.rows'))->assertOk()->assertJsonPath('direct', false);
+        $this->writeRow(2, [2 => 'Budi S.'])->assertForbidden();
+        $this->assertSame(0, $this->puts());
+        $this->assertSame(0, EditRequest::count());
+    }
+
+    public function test_a_row_is_read_once_checked_and_put_back_once_with_its_version(): void
+    {
+        $controller = $this->controller();
+        $this->actingAs($controller);
+        $version = $this->version();
+
+        // Three cells: a text, a number (the cell held one), a text of digits (the cell held text).
+        $this->writeRow(2, [2 => 'Budi S.', 3 => '5', 5 => '000124', 0 => 'ICT/SRF/1'])->assertOk()
+            ->assertJsonPath('message', 'Baris 2 tersimpan ke SharePoint (3 sel).')
+            ->assertJsonPath('cells', ['C2', 'D2', 'F2']);
+        $this->assertSame(1, $this->puts());
+        $this->assertSame($version, $this->saved[0]['ifMatch']);
+        $this->assertSame(['Budi S.', '5', '000124'], [$this->written('SRF', 'C2'), $this->written('SRF', 'D2'), $this->written('SRF', 'F2')]);
+
+        // Kept as requests applied by the one who made them, marked "direct", each in the audit trail.
+        $made = EditRequest::query()->orderBy('id')->get();
+        $this->assertSame([['C2', 'applied', true], ['D2', 'applied', true], ['F2', 'applied', true]],
+            $made->map(fn (EditRequest $one) => [$one->cell, $one->status, $one->direct])->all());
+        $this->assertSame([[$controller->id, $controller->id]], $made->map(fn (EditRequest $one) => [$one->requested_by, (int) $one->decided_by])->unique()->values()->all());
+        $audit = AuditLog::query()->where('action', 'document.edited_directly')->orderBy('id')->get();
+        $this->assertCount(3, $audit);
+        $this->assertSame([['Value' => 'Budi Santoso'], ['Value' => 'Budi S.', 'Column' => 'Requested By']], [$audit[0]->old_values, $audit[0]->new_values]);
+        // The page of the approvals shows them as written straight away.
+        $this->getJson(route('documents.edit-approvals.list', ['status' => 'applied']))->assertOk()->assertJsonPath('data.0.direct', true);
+
+        // Nothing changed, a formula, a value that is no number for a number: refused, nothing written.
+        $this->writeRow(2, [2 => 'Budi S.'])->assertStatus(422)->assertJsonPath('message', 'Tidak ada isi yang berubah.');
+        $this->writeRow(2, [6 => '7'])->assertStatus(422)->assertJsonPath('message', 'Kolom "Check" berisi rumus. Ubah di Excel.');
+        $this->writeRow(2, [3 => 'lima'])->assertStatus(422)->assertJsonPath('message', fn ($message) => str_starts_with($message, 'Kolom "Qty": Kolom ini berisi angka'));
+        $this->writeRow(99, [2 => 'x'])->assertStatus(422)->assertJsonPath('message', 'Baris itu tidak ada lagi di sheet ini. Muat ulang halaman.');
+        $this->writeRow(2, ['x' => 'y'])->assertStatus(422);
+        $this->assertSame(1, $this->puts());
+    }
+
+    public function test_nothing_is_written_when_the_row_changed_or_sharepoint_refuses_the_file(): void
+    {
+        $this->actingAs($this->controller());
+        $this->getJson(route('documents.ict-masterlist.rows'))->assertOk();
+
+        // Changed in SharePoint since the page was loaded: a conflict, nothing written.
+        $this->savedByOther('SRF', 'C2', 'Orang Lain');
+        $this->writeRow(2, [2 => 'Budi S.', 3 => '5'])->assertStatus(409)
+            ->assertJsonPath('message', 'Baris 2 sudah berubah di SharePoint sejak halaman dimuat (sel C2). Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.');
+        $this->assertSame(0, $this->puts());
+
+        // Saved by somebody else between reading and putting back (412): nothing kept.
+        $this->onSave = fn () => Http::response(['error' => ['code' => 'preconditionFailed', 'message' => 'The ETag does not match.']], 412);
+        $this->writeRow(3, [2 => 'Andi W.'])->assertStatus(412)
+            ->assertJsonPath('message', 'Workbook disimpan orang lain di SharePoint sejak dibaca. Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.');
+        // Open in Excel (423).
+        $this->onSave = fn () => Http::response(['error' => ['code' => 'resourceLocked', 'message' => 'The file is locked.']], 423);
+        $this->writeRow(3, [2 => 'Andi W.'])->assertStatus(423)
+            ->assertJsonPath('message', 'Workbook sedang dikunci karena dibuka orang lain di Excel. Tidak ada yang ditulis; coba lagi beberapa saat lagi.');
+        $this->assertSame('Andi Wijaya', $this->written('SRF', 'C3'));
+        $this->assertSame(0, EditRequest::count());
+        $this->assertSame(0, AuditLog::query()->where('action', 'document.edited_directly')->count());
+
+        // A cell that waits for a decision is decided first.
+        $this->onSave = null;
+        $this->actingAs($this->admin());
+        $this->ask([3, 2], 'Andi Baru')->assertCreated();
+        $this->actingAs($this->controller());
+        $this->writeRow(3, [2 => 'Andi W.', 3 => '11'])->assertStatus(409)
+            ->assertJsonPath('message', 'Sel C3 punya pengajuan yang menunggu keputusan (diajukan oleh Admin Radio Satu). Putuskan dulu di halaman Persetujuan Edit.');
+        $this->writeRow(3, [3 => '11'])->assertOk()->assertJsonPath('cells', ['D3']);
+    }
+
+    public function test_before_its_migration_has_run_nobody_writes_a_row_straight_away(): void
+    {
+        Schema::table('sharepoint_edit_requests', fn ($table) => $table->dropColumn('direct'));
+        Cache::forget('sharepoint-edit-direct-column');
+        $this->actingAs($this->controller());
+
+        $this->getJson(route('documents.ict-masterlist.rows'))->assertOk()->assertJsonPath('direct', false);
+        $this->writeRow(2, [2 => 'Budi S.'])->assertForbidden();
+        // Asking for a change of a cell goes on as before.
+        $this->ask([2, 2], 'Budi S.')->assertCreated();
+    }
+
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
         // The database as it was when this migration was new: without the later "Stock Opname", "Perlu Perhatian", "Servis &

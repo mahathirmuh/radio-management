@@ -217,7 +217,11 @@
                     className: '',
                     render: r => {
                         let more = '';
-                        if (r.status === 'applied' && r.decided_by) more = `Disetujui ${eaUi.esc(r.decided_by)}, ${eaUi.esc(r.applied_at || r.decided_at)}`;
+                        if (r.status === 'applied' && r.decided_by) {
+                            // Written straight away by who may approve (K13h): nobody else approved it.
+                            more = r.direct ? `Ditulis langsung oleh ${eaUi.esc(r.decided_by)}, ${eaUi.esc(r.applied_at || r.decided_at)}` :
+                                `Disetujui ${eaUi.esc(r.decided_by)}, ${eaUi.esc(r.applied_at || r.decided_at)}`;
+                        }
                         else if (r.status === 'rejected' && r.decided_by) more = `Ditolak ${eaUi.esc(r.decided_by)}, ${eaUi.esc(r.decided_at)}`;
                         if (r.note) more += `${more ? '<br>' : ''}Alasan: ${eaUi.esc(r.note)}`;
                         if (r.failure) more += `${more ? '<br>' : ''}${eaUi.esc(r.failure)}`;

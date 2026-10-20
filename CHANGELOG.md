@@ -53,6 +53,16 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - impor Excel yang menghapus data lama ditolak selama masih ada sesi opname terbuka;
     - endpoint baru di `radio-management/opname`: `outlook`, `POST /`, `{opname}`, `{opname}/lookup`, `PUT {opname}/scan`,
       `PUT {opname}/report`, `PUT {opname}/submit`.
+  - **Edit baris** langsung di ICT Masterlist (K13h): akun orang (bukan API client) yang boleh mengajukan sekaligus
+    menyetujui perubahan (praktisnya Document Controller dan Super Admin) mendapat pensil di nomor baris. Dialognya berisi
+    semua kolom sheet; sel rumus, sel yang punya pengajuan menunggu, dan kolom File scan hanya bisa dibaca:
+    - workbook diunduh sekali, setiap sel dan kolom pengenal baris dicek, lalu diunggah sekali dengan versinya
+      (If-Match). Tidak ada yang ditulis bila baris sudah berubah (409), file disimpan orang lain (412), atau dikunci
+      karena dibuka di Excel (423);
+    - setiap sel tercatat sebagai pengajuan yang diterapkan oleh pembuatnya, bertanda "langsung" (halaman Persetujuan
+      Edit menulis "Ditulis langsung oleh ..."), dan di Audit log sebagai `document.edited_directly`;
+    - bagi mereka aturan empat-mata tidak berlaku; SharePoint mencatat aplikasi sebagai yang menyimpan;
+    - endpoint baru: `PATCH documents/ict-masterlist/row`; jawaban `rows` membawa `direct`.
   - menu baru **Servis & Perbaikan**, di bawah Perlu Perhatian (entri di bawahnya turun satu tempat). Yang memegang
     Register Radio mendapat izin yang sama di menu ini: Admin Radio dan Super Admin penuh, Viewer Radio baca:
     - tiket servis bernomor `SRV-0001` untuk radio yang bermasalah, satu tiket terbuka per radio, tidak untuk radio arsip;
@@ -194,7 +204,8 @@ per database. Migrasinya:
 - `2026_10_20_120000_create_radio_check_states_table` (tabel `radio_check_states`: pertama terlihat, penugasan, abaikan);
 - `2026_10_20_130000_add_attention_menu` (menu Perlu Perhatian);
 - `2026_10_20_140000_create_radio_opname_tables` (tabel `radio_opname_sessions` dan `radio_opname_items`);
-- `2026_10_20_150000_add_opname_menu` (menu Stock Opname).
+- `2026_10_20_150000_add_opname_menu` (menu Stock Opname);
+- `2026_10_20_160000_add_direct_to_sharepoint_edit_requests` (kolom `direct` di `sharepoint_edit_requests`).
 
 Migrasi menu menghapus sendiri cache peta menu (`rbac_menu_route_key_map`). Instalasi yang tidak berbagi cache dengan
 tempat migrasi dijalankan: `php artisan cache:forget rbac_menu_route_key_map` di instalasi itu.

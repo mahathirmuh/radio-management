@@ -103,6 +103,9 @@ class AuditLogger
 
     public const EDIT_REJECTED = 'document.edit_rejected';
 
+    /** A cell written straight away by somebody who may approve changes too (K13h): no request, no second person. */
+    public const EDIT_DIRECT = 'document.edited_directly';
+
     /** The accounts of applications and the tokens of the API (page API Tokens). Never the token itself. */
     public const API_CLIENT_CREATED = 'api.client_created';
 

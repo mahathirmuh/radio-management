@@ -122,6 +122,8 @@ class EditApprovalController extends Controller
             'note' => $one->decision_note,
             'failure' => $one->failure,
             'applied_at' => $one->applied_at?->format('d-m-Y H:i'),
+            // Written straight away by its maker (K13h): not asked for, so not approved by somebody else.
+            'direct' => (bool) $one->direct,
             'mine' => $mine,
             // The buttons: approving is for who may (and not for the one who asked); a conflict cannot be approved, only turned down.
             'can_approve' => $mayDecide && ! $mine && $open,

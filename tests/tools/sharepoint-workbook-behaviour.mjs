@@ -1043,6 +1043,111 @@ check('Enter in the box sends the question; any other key does not', () => {
     assert.equal(p.sent().line, 3);
 });
 
+// ---------------------------------------------------------------- writing a row straight away (K13h)
+const directMarkers = ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const wbUi = {'];
+// The page of a reader who writes rows straight away: the server says so, and which columns are cells of the workbook.
+const direct = ({ data, sheet = {}, allowed = true } = {}) => {
+    const p = loadPage(process.argv[2], directMarkers, { href: 'http://localhost/documents/ict-masterlist' });
+    p.answer(p.requests[0], {
+        ...reply(0, {
+            sheet: { editable_columns: 3, ...sheet },
+            data: data ?? [
+                { line: 3, cells: ['No 3', 'Nama <i>3</i>', 'Tanggal 3'], locked: [2] },
+                { line: 2, cells: ['No 2', 'Nama 2', 'Tanggal 2'], waiting: { 1: '<b>Baru</b>' } },
+            ],
+        }),
+        direct: allowed,
+    });
+
+    return p;
+};
+const openRow = (p, line) => {
+    p.node('(object)').attrs['data-line'] = String(line);
+
+    return p.fire('#wbTable', 'click button.wb-row-edit', {});
+};
+
+check('who writes rows straight away gets the pencil of the row instead of those of the cells, and the page says so', () => {
+    const p = direct();
+    const rows = p.node('#wbTable tbody').html;
+    assertWellFormed(rows, 'the rows of who writes straight away');
+    assert.match(rows, /^<tr><td class="wb-line"><button type="button" class="btn btn-link btn-sm p-0 me-1 wb-row-edit" data-line="3" title="Edit baris ini" aria-label="Edit baris 3"><i class="ti ti-pencil"><\/i><\/button>3<\/td>/);
+    assert.doesNotMatch(rows, /wb-edit"/, 'no pencil on a cell');
+    // What a cell is, is still said: a formula, a request that waits.
+    assert.match(rows, /ti ti-lock/);
+    assert.match(rows, /title="Menunggu persetujuan: &lt;b&gt;Baru&lt;\/b&gt;">menunggu<\/span>/);
+    assert.equal(p.node('#wbEditHint').text, 'Klik ikon pensil di nomor baris untuk mengubah baris itu. Perubahan langsung ditulis ke SharePoint dan tercatat di Audit log.');
+
+    // Not told so, or nothing to change: no pencil of a row.
+    for (const q of [direct({ allowed: false }), direct({ sheet: { editable_columns: 0 } })]) {
+        assert.doesNotMatch(q.node('#wbTable tbody').html, /wb-row-edit/);
+    }
+});
+
+check('the pencil of a row opens the form with every column; what is not changed from here is there to read only', () => {
+    const p = direct();
+    openRow(p, 3);
+    assert.equal(p.node('#wbRowModal').modal, 'show');
+    assert.equal(p.node('#wbRowTitle').text, 'Edit baris 3');
+    assert.equal(p.node('#wbRowWhere').text, 'Sheet SRF · langsung tersimpan ke SharePoint');
+    const fields = p.node('#wbRowFields').html;
+    assertWellFormed(fields, 'the form of a row');
+    assert.match(fields, /<label for="wbRow0" class="form-label">No<\/label><input type="text" class="form-control" id="wbRow0" value="No 3" maxlength="1000" autocomplete="off"><\/div>/);
+    assert.match(fields, /id="wbRow1" value="Nama &lt;i&gt;3&lt;\/i&gt;" maxlength="1000" autocomplete="off"><\/div>/);
+    assert.match(fields, /id="wbRow2" value="Tanggal 3" maxlength="1000" autocomplete="off" readonly><div class="rm-hint">Berisi rumus: ubah di Excel.<\/div>/);
+    assert.deepEqual(Array.from(p.page('wbRow').fields), [0, 1]);
+
+    // A cell that waits for a decision; the check against the folder.
+    const q = direct({ sheet: { columns: ['No', 'Nama', 'Tanggal', 'File scan'], scan: { column: 3, counts: { total: 1, ok: 1, missing: 0, differs: 0, below: 0 }, status: null, fetched_at: '07-10-2026 10:00', stale: false, folder: 'COF Scan', open: '/documents/cof-scan' } },
+        data: [{ line: 2, cells: ['No 2', 'Nama 2', 'Tanggal 2', 'Ada'], waiting: { 1: '<b>Baru</b>' }, scan: { status: 'ok', code: 'ICTCOF1' } }] });
+    openRow(q, 2);
+    const more = q.node('#wbRowFields').html;
+    assert.match(more, /id="wbRow1" value="Nama 2" maxlength="1000" autocomplete="off" readonly><div class="rm-hint">Menunggu persetujuan: &lt;b&gt;Baru&lt;\/b&gt;. Putuskan dulu di Persetujuan Edit.<\/div>/);
+    assert.match(more, /id="wbRow3" value="Ada" maxlength="1000" autocomplete="off" readonly><div class="rm-hint">Kolom pemeriksaan file scan: tidak diubah dari sini.<\/div>/);
+    assert.deepEqual(Array.from(q.page('wbRow').fields), [0, 2]);
+
+    // A row that is not on screen, or another sheet loading: nothing.
+    const r = direct();
+    openRow(r, 99);
+    assert.equal(r.node('#wbRowModal').modal, null);
+    r.page('wbBook').sheet = 1;
+    openRow(r, 3);
+    assert.equal(r.node('#wbRowModal').modal, null);
+});
+
+check('saving sends only what was changed; nothing changed says so; refused, the reason shows; saved, a toast and the rows again', () => {
+    const p = direct();
+    openRow(p, 3);
+    const before = p.requests.length;
+    p.node('#wbRow0').value = 'No 3';
+    p.node('#wbRow1').value = 'Nama <i>3</i>';
+    p.page('wbRow').save();
+    assert.equal(p.requests.length, before);
+    assert.equal(p.node('#wbRowError').text, 'Tidak ada isi yang berubah.');
+
+    p.node('#wbRow1').value = 'Nama Baru';
+    p.page('wbRow').save();
+    const asked = p.requests.at(-1);
+    assert.match(asked.url, /\/documents\/ict-masterlist\/row$/);
+    assert.equal(asked.type, 'POST');
+    // (Through JSON: the object of the values is one of the page's, made in another realm.)
+    assert.deepEqual(JSON.parse(JSON.stringify(p.sent())), { _method: 'PATCH', sheet: 0, line: 3, values: { 1: 'Nama Baru' } });
+    assert.equal(p.node('#wbRowSave').props.disabled, true);
+    p.page('wbRow').save();
+    assert.equal(p.requests.at(-1), asked, 'a second click while it waits sends nothing');
+
+    p.refuse(asked, { status: 409, responseJSON: { message: 'Baris 3 sudah berubah di SharePoint sejak halaman dimuat (sel B3).' } });
+    assert.equal(p.node('#wbRowError').text, 'Baris 3 sudah berubah di SharePoint sejak halaman dimuat (sel B3).');
+    assert.equal(p.node('#wbRowError').wrote, 'text');
+    assert.equal(p.node('#wbRowSave').props.disabled, false);
+
+    p.page('wbRow').save();
+    p.answer(p.requests.at(-1), { message: 'Baris 3 tersimpan ke SharePoint (1 sel).', cells: ['B3'] });
+    assert.equal(p.node('#wbRowModal').modal, 'hide');
+    assert.equal(p.dialogs.at(-1).options.titleText, 'Baris 3 tersimpan ke SharePoint (1 sel).');
+    assert.match(p.requests.at(-1).url, /\/documents\/ict-masterlist\/rows$/);
+});
+
 // ---------------------------------------------------------------- the script and the page fit together
 check('every element the script reaches for by id is in the page', () => {
     const used = ids();

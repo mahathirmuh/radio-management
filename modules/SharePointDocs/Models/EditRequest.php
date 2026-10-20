@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $line
  * @property string $status
  * @property int $requested_by
+ * @property bool $direct written straight away by its maker, who may approve changes too (K13h)
  */
 class EditRequest extends Model
 {
@@ -60,6 +61,7 @@ class EditRequest extends Model
         'decided_by' => 'integer',
         'decided_at' => 'datetime',
         'applied_at' => 'datetime',
+        'direct' => 'boolean',
     ];
 
     /** What the cell is to hold, as the pages show it: the text, or "(dikosongkan)". */

@@ -106,8 +106,23 @@
         }
 
         #wbTable tr:hover .wb-edit,
-        #wbTable .wb-edit:focus-visible {
+        #wbTable .wb-edit:focus-visible,
+        #wbTable tr:hover .wb-row-edit,
+        #wbTable .wb-row-edit:focus-visible {
             opacity: 1;
+        }
+
+        /* The pencil of a row, for who may write it straight away: before its number. */
+        #wbTable .wb-row-edit {
+            opacity: 0.3;
+            line-height: 1;
+        }
+
+        /* A cell of the row that is not changed from here (a formula, a request that waits, the check of the folder): to read. */
+        #wbRowFields .form-control[readonly] {
+            background: var(--rm-gray-50);
+            box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+            color: var(--rm-gray-500);
         }
     </style>
 @endpush
@@ -237,6 +252,36 @@
             </div>
         </div>
     </div>
+
+    {{-- Writes the cells of one row straight away: for who may approve changes too (K13h). Static, as every form (K11). --}}
+    <div class="modal fade rm-modal wide" data-bs-backdrop="static" id="wbRowModal" tabindex="-1" aria-labelledby="wbRowTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="rm-dialog-head is-ruled">
+                    <span class="rm-dialog-icon"><i class="ti ti-edit" aria-hidden="true"></i></span>
+                    <div class="rm-dialog-titles">
+                        <h3 class="rm-dialog-title modal-title" id="wbRowTitle">Edit baris</h3>
+                        <p class="rm-dialog-sub" id="wbRowWhere"></p>
+                    </div>
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                            class="ti ti-x"></i></button>
+                </div>
+                <div class="rm-dialog-body is-form">
+                    <div class="row g-3" id="wbRowFields"></div>
+                    <div role="alert">
+                        <div class="alert alert-danger py-2 small mb-0 d-none" id="wbRowError"></div>
+                    </div>
+                </div>
+                <div class="rm-dialog-foot is-gray">
+                    <span class="rm-dialog-note">Langsung ditulis ke workbook di SharePoint, tanpa persetujuan orang lain; tercatat di Audit log.</span>
+                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-rm primary" id="wbRowSave" onclick="wbRow.save()">
+                        <i class="ti ti-device-floppy" aria-hidden="true"></i> Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endif
 @endsection
 
@@ -307,9 +352,17 @@
                     if (Array.isArray(row.locked) && row.locked.includes(index)) {
                         return '<i class="ti ti-lock text-muted me-1" title="Sel ini berisi rumus: ubah di Excel" aria-label="Berisi rumus"></i>';
                     }
+                    // Who writes a row straight away has the pencil of the row instead (before its number).
+                    if (wbBook.direct) return '';
 
                     return `<button type="button" class="btn btn-link btn-sm p-0 me-1 wb-edit" data-line="${Number(row.line)}" data-col="${Number(index)}" ` +
                         `title="Ajukan perubahan sel ini" aria-label="Ajukan perubahan sel ini"><i class="ti ti-pencil"></i></button>`;
+                },
+                /** The pencil of a row, for who may write it straight away (K13h): it opens "Edit baris". */
+                rowEditor(row) {
+                    const line = Number(row.line);
+                    return `<button type="button" class="btn btn-link btn-sm p-0 me-1 wb-row-edit" data-line="${line}" title="Edit baris ini" ` +
+                        `aria-label="Edit baris ${line}"><i class="ti ti-pencil"></i></button>`;
                 },
                 /** A cell: its text, whole in the tooltip where the column cuts it off. An address (the link to a scan, say) can be clicked. */
                 cell(value) {
@@ -341,6 +394,9 @@
                 request: 0,
                 /** How many columns of the sheet on screen can be asked a change of (0: the reader may not ask); the rows on screen by their number in Excel. */
                 editable: 0,
+                /** Whether the reader writes rows straight away (K13h, the server says so), and the name of the sheet on screen. */
+                direct: false,
+                shownName: '',
                 byLine: {},
                 /** The titles the table head was last built for (as one string): rebuilt only when they change. */
                 head: null,
@@ -358,7 +414,7 @@
                         sortable: true,
                         headerClassName: '',
                         className: 'wb-line',
-                        render: r => wbUi.esc(r.line)
+                        render: r => (wbBook.direct ? wbUi.rowEditor(r) : '') + wbUi.esc(r.line)
                     }, ...titles.map((title, index) => ({
                         key: `c${index}`,
                         sortable: true,
@@ -425,13 +481,17 @@
                         wbBook.sheetName = '';
                         // Whether the reader may ask for a change of a cell (the server says so), and the rows the pencils belong to.
                         wbBook.editable = Math.max(0, Number(response.sheet.editable_columns) || 0);
+                        wbBook.direct = response.direct === true && wbBook.editable > 0;
+                        wbBook.shownName = String(response.sheet.name || '');
                         wbBook.byLine = {};
                         response.data.forEach(row => {
                             wbBook.byLine[row.line] = row;
                         });
-                        $('#wbEditHint').text(wbBook.editable > 0 ?
-                            'Klik ikon pensil di sebuah sel untuk mengajukan perubahannya. Isi workbook baru berubah setelah disetujui orang lain di halaman Persetujuan Edit.' :
-                            'Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.');
+                        $('#wbEditHint').text(wbBook.direct ?
+                            'Klik ikon pensil di nomor baris untuk mengubah baris itu. Perubahan langsung ditulis ke SharePoint dan tercatat di Audit log.' :
+                            (wbBook.editable > 0 ?
+                                'Klik ikon pensil di sebuah sel untuk mengajukan perubahannya. Isi workbook baru berubah setelah disetujui orang lain di halaman Persetujuan Edit.' :
+                                'Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.'));
                         wbBook.page = response.meta.current_page;
                         wbBook.sort = response.sheet.sort;
                         wbBook.dir = response.sheet.dir;
@@ -703,7 +763,94 @@
                 },
             };
 
+            /**
+             * Writing the cells of one row straight away (K13h): every column of the sheet in the form, the ones that are not
+             * changed from here (a formula, a cell that waits for a decision, the check against the folder) only to read. Only
+             * what was changed is sent.
+             */
+            const wbRow = {
+                url: "{{ route('documents.' . $workbookKey . '.write-row') }}",
+                line: 0,
+                sheet: 0,
+                /** The columns that can be changed, and what they held when the form was opened. */
+                fields: [],
+                original: {},
+
+                open(line) {
+                    const row = wbBook.byLine[line];
+                    if (!row || !wbBook.direct) return;
+                    const esc = wbUi.esc;
+                    const has = (object, key) => !!object && Object.prototype.hasOwnProperty.call(object, key);
+                    const titles = wbBook.head ? JSON.parse(wbBook.head) : [];
+                    wbRow.line = line;
+                    wbRow.sheet = wbBook.shown;
+                    wbRow.fields = [];
+                    wbRow.original = {};
+                    $('#wbRowFields').html(titles.map((title, index) => {
+                        const value = row.cells[index] === undefined || row.cells[index] === null ? '' : String(row.cells[index]);
+                        const scan = !!wbBook.scan && wbBook.scan.column === index;
+                        const locked = Array.isArray(row.locked) && row.locked.includes(index);
+                        const waiting = has(row.waiting, index) ? row.waiting[index] : null;
+                        const hint = scan ? 'Kolom pemeriksaan file scan: tidak diubah dari sini.' :
+                            (locked ? 'Berisi rumus: ubah di Excel.' :
+                                (waiting !== null ? `Menunggu persetujuan: ${waiting}. Putuskan dulu di Persetujuan Edit.` :
+                                    (index >= wbBook.editable ? 'Tidak diubah dari sini.' : '')));
+                        const readonly = hint !== '';
+                        if (!readonly) {
+                            wbRow.fields.push(index);
+                            wbRow.original[index] = value;
+                        }
+                        return `<div class="col-md-6 rm-field"><label for="wbRow${index}" class="form-label">${esc(title)}</label>` +
+                            `<input type="text" class="form-control" id="wbRow${index}" value="${esc(value)}" maxlength="1000" autocomplete="off"${readonly ? ' readonly' : ''}>` +
+                            (readonly ? `<div class="rm-hint">${esc(hint)}</div>` : '') + '</div>';
+                    }).join(''));
+                    $('#wbRowTitle').text(`Edit baris ${line}`);
+                    $('#wbRowWhere').text(`Sheet ${wbBook.shownName} · langsung tersimpan ke SharePoint`);
+                    wbRow.error('');
+                    $('#wbRowModal').modal('show');
+                },
+
+                error(text) {
+                    $('#wbRowError').toggleClass('d-none', text === '').text(text);
+                },
+
+                save() {
+                    const button = $('#wbRowSave');
+                    if (button.prop('disabled')) return;
+                    const values = {};
+                    wbRow.fields.forEach(index => {
+                        const value = String($(`#wbRow${index}`).val() ?? '');
+                        if (value !== wbRow.original[index]) values[index] = value;
+                    });
+                    if (!Object.keys(values).length) {
+                        wbRow.error('Tidak ada isi yang berubah.');
+                        return;
+                    }
+                    button.prop('disabled', true);
+                    wbRow.error('');
+                    $.ajax({
+                        url: wbRow.url,
+                        type: 'POST',
+                        dataType: 'json',
+                        data: { _method: 'PATCH', sheet: wbRow.sheet, line: wbRow.line, values },
+                    }).done(response => {
+                        $('#wbRowModal').modal('hide');
+                        rmFeedback.toast(response.message);
+                        wbBook.load();
+                    }).fail(xhr => {
+                        wbRow.error(wbEdit.failure(xhr));
+                    }).always(() => {
+                        button.prop('disabled', false);
+                    });
+                },
+            };
+
             $(function() {
+                $('#wbTable').on('click', 'button.wb-row-edit', function() {
+                    // Another sheet is loading: the rows on screen are those of the sheet that is being left.
+                    if (wbBook.sheet !== wbBook.shown) return;
+                    wbRow.open(Number($(this).attr('data-line')));
+                });
                 $('#wbTable').on('click', 'button.wb-edit', function() {
                     // Another sheet is loading: the rows on screen are those of the sheet that is being left.
                     if (wbBook.sheet !== wbBook.shown) return;

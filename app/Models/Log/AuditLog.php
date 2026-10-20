@@ -115,6 +115,7 @@ class AuditLog extends Model
             AuditLogger::EDIT_REQUESTED => 'asked to change',
             AuditLogger::EDIT_APPROVED => 'approved the change of',
             AuditLogger::EDIT_REJECTED => 'turned down the change of',
+            AuditLogger::EDIT_DIRECT => 'changed directly',
             AuditLogger::API_CLIENT_CREATED => 'created API client',
             AuditLogger::API_CLIENT_UPDATED => 'updated API client',
             AuditLogger::API_CLIENT_DELETED => 'deleted API client',

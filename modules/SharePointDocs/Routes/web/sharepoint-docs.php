@@ -29,6 +29,8 @@ Route::middleware(['web', 'auth', 'permission', RequireMenu::class])->prefix('do
             Route::get('rows', 'rows')->name('rows')->defaults('workbook', $workbook);
             // Asks for a change of one cell: Update on this page's menu. Nothing is written to the workbook by it.
             Route::patch('edit', 'edit')->name('edit')->defaults('workbook', $workbook);
+            // Writes cells of one row straight away: Update on this page's menu, and who may approve changes (K13h).
+            Route::patch('row', 'writeRow')->name('write-row')->defaults('workbook', $workbook);
         });
     }
 

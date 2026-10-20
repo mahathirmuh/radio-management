@@ -55,6 +55,25 @@ class CellEdits
         return Cache::remember('sharepoint-edit-requests-table', 60, fn () => Schema::hasTable((new EditRequest())->getTable()));
     }
 
+    /** Whether the column that marks a change written straight away is there (its migration is run by hand). Asked once a minute. */
+    public static function directReady(): bool
+    {
+        return self::ready() && Cache::remember('sharepoint-edit-direct-column', 60, fn () => Schema::hasColumn((new EditRequest())->getTable(), 'direct'));
+    }
+
+    /**
+     * Whether $user may write cells of the workbook straight away, without somebody else approving it (K13h): a person
+     * (not an API client) who may ask for changes of the workbook (Update on its menu) and approve them (Update on
+     * "Persetujuan Edit"): the Document Controller, Super Admin. For them the rule of two people does not hold; SharePoint
+     * names the application as the one who saved, the audit trail names them.
+     */
+    public static function mayWriteDirectly(?User $user, string $workbook): bool
+    {
+        return $user !== null && ! $user->isApiClient() && self::enabled($workbook) && self::directReady()
+            && MenuAccess::allows($user, "documents.{$workbook}.edit", 'Update')
+            && MenuAccess::allows($user, 'documents.edit-approvals.approve', 'Update');
+    }
+
     /** Whether the workbook may be changed from here at all (config "edit.enabled", and the table of the requests being there). */
     public static function enabled(string $workbook): bool
     {
@@ -233,6 +252,193 @@ class CellEdits
         $this->tellRequester($request, $decider);
 
         return $request;
+    }
+
+    /**
+     * Writes cells of one row straight away (for who mayWriteDirectly()). The workbook is read once; every cell, and the
+     * column that tells the row, are checked against what the page showed; the cells are put in, and the file is put back
+     * once with the version it was read as (If-Match). Nothing is written when anything is not as it was. Each cell is kept
+     * as a request applied by its maker, marked "direct", with a line in the audit trail.
+     *
+     * @param array<int, string> $values the column (its position in the table) => what it is to hold ('' empties it)
+     * @return list<EditRequest> the cells written (a cell that held the new value already is not)
+     *
+     * @throws EditException refused, or SharePoint refused the file (what is wrong is said in words; nothing was written)
+     * @throws GraphException the workbook could not be read for the page
+     */
+    public function writeRow(User $user, string $workbook, int $sheetIndex, int $line, array $values): array
+    {
+        if (! self::mayWriteDirectly($user, $workbook)) {
+            throw new EditException('Anda tidak berwenang mengubah workbook ini langsung. Ajukan perubahan per sel.', 403);
+        }
+        $book = $this->workbooks->tables($workbook);
+        if ($book['stale']) {
+            throw new EditException('SharePoint sedang tidak bisa dihubungi, jadi isi yang tampil mungkin sudah lama. Coba lagi beberapa saat lagi.', 503);
+        }
+        $sheet = $book['sheets'][$sheetIndex] ?? null;
+        if ($sheet === null) {
+            throw new EditException('Sheet tidak ditemukan. Muat ulang halaman.');
+        }
+        $row = array_search($line, $sheet['lines'], true);
+        if ($row === false) {
+            throw new EditException('Baris itu tidak ada lagi di sheet ini. Muat ulang halaman.');
+        }
+        $anchor = $this->anchor($workbook, $sheet);
+
+        // What changes, cell by cell (a value that is what the cell holds already is left out).
+        $requests = [];
+        foreach ($values as $column => $value) {
+            $title = (string) ($sheet['columns'][$column] ?? '');
+            if ($column < 0 || ! isset($sheet['positions'][$column])) {
+                throw new EditException('Kolom "' . $title . '" tidak bisa diubah. Muat ulang halaman.');
+            }
+            $oldText = (string) ($sheet['rows'][$row][$column] ?? '');
+            $oldNumber = isset($sheet['numbers'][$row][$column]) ? (float) $sheet['numbers'][$row][$column] : null;
+            try {
+                [$kind, $text, $number] = self::interpret($value, $oldText, $oldNumber);
+            } catch (EditException $e) {
+                throw new EditException("Kolom \"{$title}\": {$e->getMessage()}", $e->status);
+            }
+            if (self::same($kind, $text, $number, $oldText, $oldNumber)) {
+                continue;
+            }
+            if (isset($sheet['formulas'][$row][$column])) {
+                throw new EditException("Kolom \"{$title}\" berisi rumus. Ubah di Excel.");
+            }
+            $requests[] = new EditRequest([
+                'workbook' => $workbook,
+                'sheet' => $sheet['name'],
+                'cell' => XlsxPatcher::columnLetters($sheet['positions'][$column]) . $line,
+                'line' => $line,
+                'column_title' => mb_substr($title, 0, 200),
+                'anchor_cell' => $anchor === null ? null : XlsxPatcher::columnLetters($sheet['positions'][$anchor]) . $line,
+                'anchor_value' => $anchor === null ? null : mb_substr((string) ($sheet['rows'][$row][$anchor] ?? ''), 0, 500),
+                'old_text' => mb_substr($oldText, 0, 2000),
+                'old_number' => self::stored($oldNumber),
+                'new_kind' => $kind,
+                'new_value' => $kind === EditRequest::KIND_EMPTY ? null : $text,
+                'new_number' => self::stored($number),
+            ]);
+        }
+        if ($requests === []) {
+            throw new EditException('Tidak ada isi yang berubah.');
+        }
+
+        // A cell that waits for a decision is decided first, not written over by who could decide it.
+        $waiting = EditRequest::query()->where('workbook', $workbook)->where('sheet', $sheet['name'])
+            ->whereIn('cell', array_map(fn (EditRequest $one) => $one->cell, $requests))
+            ->whereIn('status', [EditRequest::PENDING, EditRequest::PROCESSING])->first();
+        if ($waiting !== null) {
+            throw new EditException("Sel {$waiting->cell} punya pengajuan yang menunggu keputusan (diajukan oleh {$waiting->requested_by_name}). Putuskan dulu di halaman Persetujuan Edit.", 409);
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(max(60, 3 * (int) config('sharepoint-docs.preview_time_limit', 25)));
+        }
+        try {
+            $source = $this->workbooks->download($workbook);
+        } catch (GraphException $e) {
+            Log::warning('The workbook could not be read to write a row.', ['workbook' => $workbook, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
+
+            throw new EditException($e->writeMessage(), 502);
+        }
+
+        $write = [];
+        foreach ($requests as $request) {
+            $check = $this->check($source['bytes'], $request);
+            if ($check['verdict'] === 'applied') {
+                continue;
+            }
+            if ($check['verdict'] === EditRequest::CONFLICT) {
+                throw new EditException("Baris {$line} sudah berubah di SharePoint sejak halaman dimuat (sel {$request->cell}). Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.", 409);
+            }
+            if ($check['verdict'] !== 'write') {
+                throw new EditException((string) $check['message'], 422);
+            }
+            $write[] = $request;
+        }
+        if ($write === []) {
+            $this->workbooks->forget($workbook);
+
+            return [];
+        }
+
+        $bytes = $source['bytes'];
+        try {
+            foreach ($write as $request) {
+                $bytes = $this->patcher->write($bytes, $request->sheet, $request->cell, match ($request->new_kind) {
+                    EditRequest::KIND_EMPTY => null,
+                    EditRequest::KIND_NUMBER => (float) $request->new_number,
+                    default => (string) $request->new_value,
+                });
+            }
+        } catch (WorkbookNotSaved $e) {
+            Log::warning('The changed workbook could not be saved on this server.', ['workbook' => $workbook, 'detail' => $e->getMessage()]);
+
+            throw new EditException('Workbook yang sudah diubah tidak bisa disimpan sementara di server aplikasi. Tidak ada yang ditulis ke SharePoint; coba lagi.', 503);
+        } catch (RuntimeException $e) {
+            Log::warning('A row could not be written in the workbook.', ['workbook' => $workbook, 'detail' => $e->getMessage()]);
+
+            throw new EditException('Baris ini tidak bisa ditulis ke workbook: bentuk sheet atau sel di file ini belum didukung. Ubah di Excel.', 422);
+        }
+
+        try {
+            $this->workbooks->replace($workbook, $source, $bytes);
+        } catch (GraphException $e) {
+            Log::warning('A row could not be written to the workbook.', ['workbook' => $workbook, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
+            // Refused as saved by somebody else meanwhile: or by this very request a moment ago, when Microsoft was asked a
+            // second time (GraphClient::upload). The file says which.
+            if (! ($e->reason === GraphException::CHANGED && $this->hasAll($workbook, $write))) {
+                throw new EditException(match ($e->reason) {
+                    GraphException::CHANGED => 'Workbook disimpan orang lain di SharePoint sejak dibaca. Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.',
+                    default => $e->writeMessage(),
+                }, match ($e->reason) {
+                    GraphException::CHANGED => 412,
+                    GraphException::LOCKED => 423,
+                    default => $e->httpStatus(),
+                });
+            }
+        }
+        $this->workbooks->forget($workbook);
+
+        $now = now();
+        foreach ($write as $request) {
+            $request->forceFill([
+                'status' => EditRequest::APPLIED,
+                'direct' => true,
+                'requested_by' => $user->id,
+                'requested_by_name' => mb_substr((string) $user->name, 0, 255),
+                'decided_by' => $user->id,
+                'decided_by_name' => mb_substr((string) $user->name, 0, 255),
+                'decided_at' => $now,
+                'applied_at' => $now,
+            ])->save();
+            app(AuditLogger::class)->log(AuditLogger::EDIT_DIRECT, $request, ['Value' => $request->oldShown()],
+                ['Value' => $request->newShown()] + array_filter(['Column' => $request->column_title]), $user, $request->auditLabel());
+        }
+        Log::info('Cells of a SharePoint workbook were written directly.', [
+            'workbook' => $workbook, 'sheet' => $sheet['name'], 'line' => $line,
+            'cells' => array_map(fn (EditRequest $one) => $one->cell, $write), 'by' => $user->id,
+        ]);
+
+        return $write;
+    }
+
+    /** After a refused save: whether the workbook holds every new value now (it was this request's own save). */
+    private function hasAll(string $workbook, array $requests): bool
+    {
+        try {
+            $now = $this->workbooks->download($workbook);
+        } catch (GraphException) {
+            return false;
+        }
+        foreach ($requests as $request) {
+            if ($this->check($now['bytes'], $request)['verdict'] !== 'applied') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** Tells whoever may approve (Update on "Persetujuan Edit") that a request waits; never the one who made it. */

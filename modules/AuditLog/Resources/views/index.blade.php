@@ -456,6 +456,7 @@
                 'document.edit_requested': ['Requested', 'yellow', 'send'],
                 'document.edit_approved': ['Approved', 'green', 'check'],
                 'document.edit_rejected': ['Rejected', 'red', 'x'],
+                'document.edited_directly': ['Edited', 'orange', 'edit'],
                 'api.token_revoked': ['Revoked', 'red', 'ban'],
             },
 

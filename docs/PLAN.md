@@ -658,17 +658,17 @@ Prinsip:
 - [x] Tes: alur sesi, izin, submit.
 
 ### 6.6 Edit langsung ICT masterlist
-- [ ] Rute baru dan `CellEdits::writeRow`:
+- [x] Rute baru dan `CellEdits::writeRow`:
   - unduh sekali;
   - cek semua sel dan anchor baris;
   - patch;
   - unggah sekali dengan If-Match.
-- [ ] Pencatatan: `EditRequest` disimpan sebagai disetujui sendiri, dengan penanda "langsung" (kolom baru lewat
+- [x] Pencatatan: `EditRequest` disimpan sebagai disetujui sendiri, dengan penanda "langsung" (kolom baru lewat
   migration); audit tetap tercatat.
-- [ ] Respons `rows` membawa flag "boleh tulis" (aturan K13h).
-- [ ] Dialog "Edit baris" berisi kolom sheet; sel rumus dan "File scan" hanya bisa dibaca.
-- [ ] Bila ada permintaan menunggu di sel yang sama, edit langsung ditolak dengan pesan.
-- [ ] Tes: izin, konflik 412 dan 423, API client ditolak.
+- [x] Respons `rows` membawa flag "boleh tulis" (aturan K13h).
+- [x] Dialog "Edit baris" berisi kolom sheet; sel rumus dan "File scan" hanya bisa dibaca.
+- [x] Bila ada permintaan menunggu di sel yang sama, edit langsung ditolak dengan pesan.
+- [x] Tes: izin, konflik 412 dan 423, API client ditolak.
 
 ### 6.7 Tambahan dari K3 dan K12 yang diambil
 - [ ] Audit log:
@@ -899,3 +899,20 @@ Prinsip:
   - diperiksa di browser (preview, data rekaan): 390 untuk mulai, pindai, cek radio, sesudah verifikasi, ringkasan, toast;
     1440 (kolom 480 di tengah).
   - suite penuh: 514 lulus.
+- 2026-10-20, 6.6 selesai:
+  - migration `add_direct_to_sharepoint_edit_requests` (kolom `direct`), hanya dijalankan di LocalDB (tes dan preview);
+  - `CellEdits::mayWriteDirectly()` (aturan K13h: bukan API client, Update di menu workbook dan Update di Persetujuan
+    Edit, kolom `direct` sudah ada) dan `CellEdits::writeRow()`: unduh sekali, cek tiap sel dan anchor baris dengan
+    `check()` yang sama dengan persetujuan, patch semua sel, unggah sekali dengan If-Match. Sesudah 412 file dibaca ulang:
+    bila semua nilai baru sudah ada (unggahan sendiri yang diulang Graph), dianggap berhasil;
+  - `PATCH documents.{workbook}.write-row` (`WorkbookController::writeRow`), `rows` membawa `direct`;
+  - audit `document.edited_directly` per sel; `EditApprovalController` membawa `direct`, halaman Persetujuan Edit menulis
+    "Ditulis langsung oleh ...";
+  - halaman workbook: pensil di nomor baris menggantikan pensil per sel bagi yang menulis langsung; dialog `#wbRowModal`
+    (`wbRow`) hanya mengirim isi yang berubah;
+  - tes: 4 tes baru di `SharePointEditTest` (izin termasuk API client, satu unggahan dengan If-Match, konflik 409/412/423,
+    pengajuan yang menunggu, sebelum migration), 3 cek baru di `sharepoint-workbook-behaviour.mjs`;
+  - beda dari desain dan README: aturan berdasarkan izin (K13h), bukan nama role; API tidak mendapat jalur tulis langsung;
+  - diperiksa di browser (preview, halaman dengan pengaturan Microsoft palsu dan baris rekaan): pensil baris, dialog di
+    1440 dan 1366, kolom baca-saja (rumus, menunggu, File scan).
+  - suite penuh: 518 lulus.

@@ -87,6 +87,8 @@ class WorkbookController extends Controller
         $count = count($shown['rows']);
 
         return response()->json([
+            // Whether the reader may write the cells of a row straight away (K13h): the page offers "Edit baris" then.
+            'direct' => CellEdits::mayWriteDirectly($request->user(), $workbook),
             'sheets' => $shown['sheets'],
             'sheet' => [
                 'index' => $shown['index'],
@@ -147,6 +149,47 @@ class WorkbookController extends Controller
             'cell' => $made->cell,
             'status' => $made->status,
         ], 201);
+    }
+
+    /**
+     * Writes cells of one row straight away (K13h): only for a person who may approve changes of the workbook as well as
+     * ask for them (CellEdits::mayWriteDirectly). The workbook is read once, checked, and put back once; nothing is written
+     * when a cell or the row has changed in SharePoint since the page was loaded.
+     */
+    public function writeRow(Request $request, string $workbook, CellEdits $edits): JsonResponse
+    {
+        $this->settings($workbook);
+        $data = $request->validate([
+            'sheet' => ['required', 'integer', 'min:0', 'max:1000'],
+            'line' => ['required', 'integer', 'min:1', 'max:2000000'],
+            'values' => ['required', 'array', 'min:1', 'max:500'],
+            'values.*' => ['nullable', 'string', 'max:5000'],
+        ]);
+        $values = [];
+        foreach ($data['values'] as $column => $value) {
+            if (! is_int($column) && ! ctype_digit((string) $column)) {
+                return response()->json(['message' => 'Kolom yang diubah tidak dikenal. Muat ulang halaman.'], 422);
+            }
+            $values[(int) $column] = $value === null ? '' : (string) $value;
+        }
+
+        try {
+            $made = $edits->writeRow($request->user(), $workbook, (int) $data['sheet'], (int) $data['line'], $values);
+        } catch (EditException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->status);
+        } catch (GraphException $e) {
+            Log::warning('SharePoint workbook could not be read to write a row.', ['workbook' => $workbook, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
+
+            return response()->json(['message' => self::message($e), 'reason' => $e->reason], $e->httpStatus());
+        }
+
+        $line = (int) $data['line'];
+
+        return response()->json([
+            'message' => $made === [] ? "Isi baris {$line} di SharePoint sudah seperti itu; tidak ada yang ditulis."
+                : "Baris {$line} tersimpan ke SharePoint (" . count($made) . ' sel).',
+            'cells' => array_map(fn ($one) => $one->cell, $made),
+        ]);
     }
 
     /**
