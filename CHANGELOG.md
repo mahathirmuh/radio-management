@@ -8,6 +8,28 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [Unreleased]
+
+Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; rencana dan keputusannya di
+[docs/PLAN.md](docs/PLAN.md). Bagian ini menjadi satu rilis saat branch itu digabung ke `main`.
+
+### Diubah
+
+- Fase 1, kerangka halaman:
+  - lapisan gaya baru `public/assets/css/radio-ui.css` (warna desain, bayangan, gerak, resep komponen), dimuat setelah
+    `custom.css` di semua halaman dan di halaman login;
+  - sidebar 248px dengan label seksi, grup yang terlipat dengan animasi, dan angka pengajuan yang menunggu di
+    **Persetujuan Edit**. Menu tetap tertandai di halaman turunannya (detail radio menandai **Register Radio**);
+  - rail ikon 80px dengan logo kecil, garis antar-seksi, titik penanda jumlah, dan nama menu di samping ikon. Pilihan
+    lebarnya diingat dan dipasang sebelum halaman tergambar, jadi tidak berkedip;
+  - top bar 56px: tombol menu, judul halaman, nama perusahaan, lonceng dengan angka merah, serta nama dan role user
+    yang membuka menu **Notifikasi** dan **Keluar**;
+  - warna utama biru `#2563eb`, latar halaman `#f8fafc`, footer selalu di dasar jendela;
+  - halaman login memakai font Inter (sebelumnya menautkan file font yang tidak ada); tautan Google Fonts yang tidak
+    terpakai dibuang.
+
+**Deploy:** fase 1 tanpa migrasi dan tanpa setting baru.
+
 ## [1.9.0] - 2026-10-19
 
 ### Ditambahkan

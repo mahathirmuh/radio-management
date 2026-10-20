@@ -117,7 +117,7 @@ class AuditLogTest extends TestCase
         // Super Admin: in the sidebar under "Settings", and the page of trilingual-docon.
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('audit-log.index'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('#subheader[^>]*>\s*Settings\s*</span>.*?href="' . preg_quote(route('audit-log.index'), '#') . '".*?Audit Log#s', $page);
+        $this->assertMatchesRegularExpression('#rm-nav-section[^>]*><span>\s*Settings\s*</span>.*?href="' . preg_quote(route('audit-log.index'), '#') . '".*?Audit Log#s', $page);
         foreach (['Audit log', 'data-audit-view="table"', 'data-audit-view="timeline"', 'Log Activity', 'User email', 'Search by email', 'All actions'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }

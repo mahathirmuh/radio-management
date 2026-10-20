@@ -1,45 +1,24 @@
 <!-- Sidebar -->
-<aside class="navbar navbar-vertical navbar-expand-lg mdka-bg-gray-50" data-bs-theme="light">
+<aside class="navbar navbar-vertical navbar-expand-lg rm-sidebar d-print-none" data-bs-theme="light" aria-label="Menu utama">
     <div class="container-fluid overflow-x-hidden">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
-            aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+            aria-controls="sidebar-menu" aria-expanded="false" aria-label="Buka menu">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <h1 class="navbar-brand navbar-brand-autodark">
-            <div class="d-flex flex-column gap-2 align-items-center">
-                <a href="/" class="link-underline link-underline-opacity-0">
-                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="32" alt="Merdeka"
-                        class="navbar-brand-image">
-                    <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="32" alt="Merdeka"
-                        class="navbar-brand-image">
-
-                    <img src="{{ asset('assets/img/branding/favicon.ico') }}" height="20" alt="Merdeka"
-                        class="navbar-brand-image-small d-none">
-                    <img src="{{ asset('assets/img/branding/mbm-logo-small.png') }}" height="24" alt="Merdeka"
-                        class="navbar-brand-image-small d-none">
-                </a>
-            </div>
-        </h1>
-
-        <div class="navbar-nav flex-row d-lg-none">
-            <div class="nav-item d-none d-lg-flex me-3">
-                <div class="btn-list">
-                    <!-- button -->
-                </div>
-            </div>
-            <div class="d-none d-lg-flex">
-                @include('main.navbar.component.notification')
-            </div>
-        </div>
+        <a href="/" class="rm-brand" aria-label="{{ config('app.name') }}">
+            <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" alt="Merdeka Copper Gold" class="rm-brand-full">
+            <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" alt="Merdeka Battery Materials" class="rm-brand-full">
+            <img src="{{ asset('assets/img/branding/mbm-logo-small.png') }}" alt="Merdeka Battery Materials" class="rm-brand-rail">
+        </a>
         <div class="collapse navbar-collapse" id="sidebar-menu">
-            <ul class="navbar-nav py-lg-3">
+            <ul class="navbar-nav rm-nav">
                 @include('main.sidebar.menu')
-                {{-- The top navbar with the user menu is hidden below 992px: keep a way to sign out. --}}
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="{{ route('logout') }}"
+                {{-- The top bar with the user menu is hidden below 992px: keep a way to sign out. --}}
+                <li class="rm-nav-item d-lg-none">
+                    <a class="rm-nav-link" href="{{ route('logout') }}"
                         onclick="event.preventDefault(); document.getElementById('logout-form-sidebar').submit();">
-                        <span class="nav-link-icon"><i class="ti ti-logout"></i></span>
-                        <span class="nav-link-title">Logout ({{ Auth::user()->name }})</span>
+                        <span class="rm-nav-icon"><i class="ti ti-logout"></i></span>
+                        <span class="rm-nav-label">Keluar ({{ Auth::user()->name }})</span>
                     </a>
                     <form id="logout-form-sidebar" action="{{ route('logout') }}" method="POST" class="d-none">
                         @csrf
@@ -47,86 +26,76 @@
                 </li>
             </ul>
         </div>
-        <img class="sidebar-background" src="{{ asset('assets/img/branding/sidebar-background.png') }}" alt=""
-            style="user-select: none; pointer-events: none;">
+        <div class="rm-sidebar-mark" aria-hidden="true">
+            <img src="{{ asset('assets/img/branding/sidebar-background.png') }}" alt="">
+        </div>
     </div>
 </aside>
+<div class="rm-nav-tip" id="rmNavTip" role="tooltip" hidden></div>
 
 @push('javascript')
     <script>
-        // Check localStorage for saved sidebar state on page load
-        var savedState = localStorage.getItem('sidebarState');
-        if (savedState === 'collapsed') {
-            collapseSidebar();
-        } else {
-            expandSidebar();
-        }
+        // The sidebar (main.sidebar.sidebar): full width or the icon rail, the groups that fold, and the name of an icon in
+        // the rail. The choice of width is kept in localStorage ("sidebarState", as before); the head of the page applies it
+        // before anything is drawn (main.index), this script only changes it.
+        const sidebarUi = {
+            key: 'sidebarState',
+            rail: false,
+            read() {
+                try {
+                    return window.localStorage.getItem(this.key) === 'collapsed';
+                } catch (e) {
+                    return false;
+                }
+            },
+            write(rail) {
+                try {
+                    window.localStorage.setItem(this.key, rail ? 'collapsed' : 'expanded');
+                } catch (e) {
+                    // A private window, or storage turned off: the choice lasts for this page only.
+                }
+            },
+            apply(rail) {
+                this.rail = rail;
+                $('html').toggleClass('rm-rail', rail);
+                $('#sidebarControl').attr('aria-pressed', rail ? 'true' : 'false');
+                if (!rail) this.hideTip();
+            },
+            toggle() {
+                this.apply(!this.rail);
+                this.write(this.rail);
+            },
+            /** A group opens or closes; in the rail its icon goes to its first page instead. */
+            group(id, first) {
+                if (this.rail) {
+                    if (first) window.location.href = first;
+                    return;
+                }
+                const button = $(`[data-rm-group="${id}"]`);
+                const open = button.attr('aria-expanded') !== 'true';
+                button.attr('aria-expanded', open ? 'true' : 'false');
+                $(`#rm-navgroup-${id}`).toggleClass('is-open', open);
+            },
+            rectOf: element => element.getBoundingClientRect(),
+            /** The name of an icon, to the right of it (only the rail hides the names). */
+            showTip(text, rect) {
+                if (!this.rail || !text) return;
+                $('#rmNavTip').text(text).css({ left: `${rect.right + 10}px`, top: `${rect.top + rect.height / 2}px` }).removeAttr('hidden');
+            },
+            hideTip() {
+                $('#rmNavTip').attr('hidden', 'hidden');
+            },
+        };
 
-        $('#sidebarControl').on('click', function() {
-            var navbar = $('.navbar-expand-lg');
-
-            if (navbar.hasClass('collapsed')) {
-                expandSidebar();
-                localStorage.setItem('sidebarState', 'expanded');
-            } else {
-                collapseSidebar();
-                localStorage.setItem('sidebarState', 'collapsed');
-            }
+        sidebarUi.apply(sidebarUi.read());
+        $('#sidebarControl').on('click', () => sidebarUi.toggle());
+        $(document).on('click', '[data-rm-group]', function() {
+            sidebarUi.group($(this).attr('data-rm-group'), $(this).attr('data-rm-first'));
         });
-
-        function expandSidebar() {
-            var navbar = $('.navbar-expand-lg');
-            var navbarMd = $('.navbar-expand-md');
-            var pageWrapper = $('.page-wrapper');
-
-            navbar.removeClass('collapsed');
-            navbar.css('width', ''); // Reset width
-            navbar.css('overflow-y', 'auto'); // Scroll only when the menu actually overflows
-
-            $('.navbar-nav').css('gap', '');
-            $('.sidebar-control').removeClass('d-none');
-            $('.navbar-brand-image').removeClass('d-none');
-            $('.navbar-brand-image-small').addClass('d-none');
-
-            $('.item-dropdown .item-sidebar').addClass('dropdown');
-            $('.sidebar-item').css('padding-left',
-                'calc(calc(calc(var(--tblr-page-padding) * 2)/ 2) + 1.75rem)');
-            $('.nav-link-icon').css('padding-left', '0');
-            $('.nav-link-icon').css('color', 'var(--tblr-icon-color)');
-            $('.nav-link-icon').css('transform', 'scale(1)');
-
-            // Only apply margin when screen width is large (lg)
-            if (window.innerWidth >= 992) { // Check if screen width is not mobile
-                navbarMd.css('margin-left', '15rem');
-                pageWrapper.css('margin-left', '15rem');
-            }
-        }
-
-        function collapseSidebar() {
-            var navbar = $('.navbar-expand-lg');
-            var navbarMd = $('.navbar-expand-md');
-            var pageWrapper = $('.page-wrapper');
-
-            navbar.addClass('collapsed');
-            navbar.css('width', '80px'); // Shrink navbar width
-            navbar.css('overflow-y', 'auto');
-
-            $('.navbar-nav').css('gap', '0.5rem');
-            $('.sidebar-control').addClass('d-none');
-            $('.navbar-brand-image').addClass('d-none');
-            $('.navbar-brand-image-small').removeClass('d-none');
-
-            $('.item-dropdown .item-sidebar').removeClass('dropdown');
-            $('.sidebar-item').css('padding-left', '15px');
-            $('.nav-link-icon').css('padding-left', '10px');
-            $('.nav-link-icon').css('color', 'var(--tblr-primary) !important');
-            $('.nav-link-icon').css('transform', 'scale(1.2)');
-
-            // Only apply margin when screen width is large (lg)
-            if (window.innerWidth >= 992) { // Check if screen width is not mobile
-                navbarMd.css('margin-left', '80px');
-                pageWrapper.css('margin-left', '80px');
-            }
-        }
+        $(document).on('mouseenter focusin', '[data-rm-tip]', function() {
+            sidebarUi.showTip($(this).attr('data-rm-tip'), sidebarUi.rectOf(this));
+        });
+        $(document).on('mouseleave focusout', '[data-rm-tip]', () => sidebarUi.hideTip());
+        $('.rm-sidebar').on('scroll', () => sidebarUi.hideTip());
     </script>
 @endpush

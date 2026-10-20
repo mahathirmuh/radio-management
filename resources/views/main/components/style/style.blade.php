@@ -2,6 +2,7 @@
  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.36.0/tabler-icons.min.css">
  <link href="{{ asset('assets/css/fonts/fonts.css') }}" rel="stylesheet" />
  <link href="{{ asset('assets/css/custom.css') }}" rel="stylesheet" />
+ <link href="{{ asset('assets/css/radio-ui.css') }}?v={{ @filemtime(public_path('assets/css/radio-ui.css')) }}" rel="stylesheet" />
  @stack('style')
  <style> 
      body {
@@ -166,57 +167,9 @@
          font-size: 13px;
      }
 
-     .actives {
-         background: var(--tblr-navbar-active-bg);
-     }
-
      .dropdown-item {
          font-size: 0.8rem;
      }
 
-     .dropdown-item.sidebar-item.active,
-     .nav-item.active {
-         background-color: rgba(var(--tblr-blue-rgb), var(--tblr-bg-opacity)) !important;
-         color: var(--tblr-blue-fg) !important;
-     }
-
-     .dropdown-menu-columns {
-         /* background-color: rgb(220, 228, 237); */
-         /* background-color: rgb(255, 255, 255); */
-         background-color: rgb(239, 244, 251);
-         color: #000;
-     }
-
-     .navbar-vertical {
-         overflow: auto !important;
-     }
-
-     .nav-menu-app {
-         overflow: auto;
-     }
-
-     .navbar-expand-lg {
-         transition: width 0.2s ease-in-out;
-     }
-
-     .page-wrapper,
-     .navbar-expand-md {
-         transition: margin-left 0.2s ease-in-out;
-     }
-
-     @media (min-width: 992px) {
-         .nav-menu-app {
-             border-width: 1px;
-             border-style: solid;
-             border-color: rgba(0, 0, 0, 0.175);
-             /* Warna hitam dengan 17.5% opacity */
-             /* Ganti warna sesuai kebutuhan */
-         }
-     }
-
-     @media (max-width: 991.98px) {
-         .nav-menu-app {
-             border: none;
-         }
-     }
+     /* The sidebar, the top bar and their sizes and motion are in radio-ui.css. */
  </style>

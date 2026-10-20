@@ -1,0 +1,1105 @@
+/*
+ * radio-ui.css: the design layer of MTI Radio Management (the design handoff of October 2026, docs/PLAN.md).
+ * Loaded after custom.css on every page and on the sign-in page. apps.min.css (Tabler) is never edited: what the design
+ * changes of it is changed here.
+ *
+ * 1. Tokens          the design's colours (Tailwind slate, emerald, rose, amber, ...), shadows, easing, mono font
+ * 2. Tabler          the primary colour and the page background, through Tabler's own variables
+ * 3. Shell           sidebar and icon rail, top bar, main area, footer
+ * 4. Recipes         title block, content card, toolbar, box, table, segmented control, tabs, buttons, fields, badges
+ * 5. Motion          keyframes, and no motion for those who asked for none
+ */
+
+/* 1. Tokens ---------------------------------------------------------------------------------------------------------- */
+
+:root {
+    --rm-brand-50: #eff6ff;
+    --rm-brand-100: #dbeafe;
+    --rm-brand-200: #bfdbfe;
+    --rm-brand-300: #93c5fd;
+    --rm-brand-500: #3b82f6;
+    --rm-brand-600: #2563eb;
+    --rm-brand-700: #1d4ed8;
+    --rm-brand-800: #1e40af;
+
+    --rm-gray-50: #f8fafc;
+    --rm-gray-100: #f1f5f9;
+    --rm-gray-200: #e2e8f0;
+    --rm-gray-300: #cbd5e1;
+    --rm-gray-400: #94a3b8;
+    --rm-gray-500: #64748b;
+    --rm-gray-600: #475569;
+    --rm-gray-700: #334155;
+    --rm-gray-800: #1e293b;
+    --rm-gray-900: #0f172a;
+
+    --rm-success-50: #ecfdf5;
+    --rm-success-100: #d1fae5;
+    --rm-success-400: #34d399;
+    --rm-success-500: #10b981;
+    --rm-success-600: #059669;
+    --rm-success-700: #047857;
+
+    --rm-error-50: #fff1f2;
+    --rm-error-100: #ffe4e6;
+    --rm-error-200: #fecdd3;
+    --rm-error-600: #e11d48;
+    --rm-error-700: #be123c;
+
+    --rm-warning-50: #fffbeb;
+    --rm-warning-100: #fef3c7;
+    --rm-warning-200: #fde68a;
+    --rm-warning-500: #f59e0b;
+    --rm-warning-600: #d97706;
+    --rm-warning-700: #b45309;
+
+    --rm-orange-50: #fff7ed;
+    --rm-orange-100: #ffedd5;
+    --rm-orange-200: #fed7aa;
+    --rm-orange-600: #ea580c;
+    --rm-orange-700: #c2410c;
+
+    --rm-purple-100: #f3e8ff;
+    --rm-purple-600: #9333ea;
+    --rm-purple-700: #7e22ce;
+    /* The purple of the faded badge (README .rm-badge.purple). */
+    --rm-violet-100: #ede9fe;
+    --rm-violet-600: #7c3aed;
+
+    --rm-sky-100: #e0f2fe;
+    --rm-sky-700: #0369a1;
+
+    --rm-ring: 0 0 0 1px var(--rm-gray-200);
+    --rm-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, .10), 0 4px 6px -4px rgba(15, 23, 42, .10);
+    --rm-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, .10), 0 8px 10px -6px rgba(15, 23, 42, .10);
+    --rm-ease: cubic-bezier(.2, .8, .2, 1);
+    --rm-hover: rgba(15, 23, 42, .045);
+    --rm-press: rgba(15, 23, 42, .09);
+    --rm-mono: ui-monospace, "IBM Plex Mono", Menlo, monospace;
+
+    --rm-sidebar: 248px;
+    --rm-rail: 80px;
+}
+
+/* 2. Tabler ---------------------------------------------------------------------------------------------------------- */
+
+/* brand-600 is the primary action colour (README "Design tokens"): buttons, links, checkboxes, focus rings. */
+:root {
+    --tblr-primary: #2563eb;
+    --tblr-primary-rgb: 37, 99, 235;
+    --tblr-primary-darken: #1d4ed8;
+    --tblr-primary-lt: #eff6ff;
+    --tblr-primary-lt-rgb: 239, 246, 255;
+    --tblr-primary-text-emphasis: #1e40af;
+    --tblr-primary-bg-subtle: #dbeafe;
+    --tblr-primary-border-subtle: #bfdbfe;
+    --tblr-link-color: #2563eb;
+    --tblr-link-color-rgb: 37, 99, 235;
+    --tblr-link-hover-color: #1d4ed8;
+    --tblr-link-hover-color-rgb: 29, 78, 216;
+    --tblr-body-bg: #f8fafc;
+}
+
+.rm-mono {
+    font-family: var(--rm-mono);
+}
+
+/* 3. Shell ----------------------------------------------------------------------------------------------------------- */
+
+/* Sidebar (main.sidebar.sidebar). Below 992px it is Tabler's folding menu at the top of the page. */
+.rm-sidebar.navbar {
+    background: #fff;
+    border: 0;
+}
+
+.rm-sidebar .rm-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 56px;
+    margin: 0;
+    padding: 0 16px;
+    flex: none;
+}
+
+.rm-sidebar .rm-brand img {
+    display: block;
+    height: 28px;
+    width: auto;
+}
+
+.rm-sidebar .rm-brand-rail {
+    display: none !important;
+}
+
+.rm-nav.navbar-nav {
+    gap: 2px;
+    margin: 0;
+    padding: 8px 12px 16px;
+    position: relative;
+    z-index: 1;
+}
+
+.rm-nav-item {
+    list-style: none;
+}
+
+.rm-nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rm-gray-700);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: box-shadow .12s ease-out, background-color .15s ease-out, color .15s ease-out;
+}
+
+.rm-nav-link:hover,
+.rm-nav-link:focus {
+    color: var(--rm-gray-700);
+    text-decoration: none;
+    box-shadow: inset 0 0 0 100px var(--rm-hover);
+}
+
+.rm-nav-link:active {
+    box-shadow: inset 0 0 0 100px var(--rm-press);
+}
+
+.rm-nav-link:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: -2px;
+}
+
+.rm-nav-link.is-active,
+.rm-nav-link.is-active:hover {
+    background: var(--rm-brand-50);
+    color: var(--rm-brand-700);
+    font-weight: 600;
+}
+
+.rm-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+
+.rm-nav-icon .ti {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.rm-nav-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-nav-count {
+    flex: none;
+}
+
+.rm-nav-dot {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--rm-gray-400);
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.rm-nav-dot.red {
+    background: var(--rm-error-600);
+}
+
+.rm-nav-dot.blue {
+    background: var(--rm-brand-600);
+}
+
+.rm-nav-chevron {
+    display: inline-flex;
+    flex: none;
+    color: var(--rm-gray-400);
+    font-size: 14px;
+    transition: transform .22s ease-out;
+}
+
+.rm-nav-group.is-open > .rm-nav-link .rm-nav-chevron {
+    transform: rotate(180deg);
+}
+
+/* A group folds by its rows (1fr <-> 0fr); a folded one cannot be reached with the keyboard either. */
+.rm-nav-kids {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows .22s ease-out, visibility 0s linear .22s;
+}
+
+.rm-nav-group.is-open > .rm-nav-kids {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows .22s ease-out, visibility 0s;
+}
+
+.rm-nav-kids-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.rm-nav-group.is-open > .rm-nav-kids .rm-nav-kids-inner {
+    padding-top: 2px;
+}
+
+.rm-nav-link.rm-nav-kid {
+    padding: 7px 10px 7px 36px;
+}
+
+.rm-nav-subhead {
+    padding: 8px 10px 4px 36px;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rm-gray-400);
+}
+
+.rm-nav-section {
+    list-style: none;
+    padding: 16px 10px 6px;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--rm-gray-400);
+}
+
+/* The mark at the foot of the sidebar: under the menu, never in the way. */
+.rm-sidebar-mark {
+    display: none;
+}
+
+/* The name of an icon in the rail. */
+.rm-nav-tip {
+    position: fixed;
+    z-index: 1080;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--rm-gray-900);
+    color: #fff;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: var(--rm-shadow-lg);
+    transform: translateY(-50%);
+    animation: rm-fade-in .12s ease-out backwards;
+}
+
+.rm-nav-tip[hidden] {
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .rm-sidebar.navbar-vertical.navbar-expand-lg {
+        width: var(--rm-sidebar);
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        box-shadow: inset -1px 0 0 var(--rm-gray-200);
+        transition: width .24s var(--rm-ease);
+    }
+
+    .rm-sidebar.navbar-vertical ~ .navbar,
+    .rm-sidebar.navbar-vertical ~ .page-wrapper {
+        margin-left: var(--rm-sidebar);
+        transition: margin-left .24s var(--rm-ease);
+    }
+
+    .rm-sidebar .rm-brand,
+    .rm-sidebar .rm-nav {
+        width: var(--rm-sidebar);
+        box-sizing: border-box;
+    }
+
+    .rm-sidebar .rm-brand {
+        box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+    }
+
+    .rm-sidebar-mark {
+        display: block;
+        position: sticky;
+        bottom: 0;
+        height: 0;
+        flex: none;
+        z-index: 0;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .rm-sidebar-mark img {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        display: block;
+        width: var(--rm-sidebar);
+        max-width: none;
+        height: auto;
+    }
+
+    /* The icon rail. The <html> element carries the choice, so it is there before the page is drawn. */
+    html.rm-rail .rm-sidebar.navbar-vertical.navbar-expand-lg {
+        width: var(--rm-rail);
+    }
+
+    html.rm-rail .rm-sidebar.navbar-vertical ~ .navbar,
+    html.rm-rail .rm-sidebar.navbar-vertical ~ .page-wrapper {
+        margin-left: var(--rm-rail);
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand,
+    html.rm-rail .rm-sidebar .rm-nav {
+        width: var(--rm-rail);
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand {
+        justify-content: center;
+        padding: 0;
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand-full {
+        display: none !important;
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand-rail {
+        display: block !important;
+    }
+
+    html.rm-rail .rm-nav-link {
+        justify-content: center;
+        padding: 8px 0;
+    }
+
+    html.rm-rail .rm-nav-label,
+    html.rm-rail .rm-nav-section > span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    html.rm-rail .rm-nav-chevron,
+    html.rm-rail .rm-nav-count,
+    html.rm-rail .rm-nav-kids,
+    html.rm-rail .rm-sidebar-mark {
+        display: none;
+    }
+
+    html.rm-rail .rm-nav-dot {
+        display: block;
+    }
+
+    html.rm-rail .rm-nav-section {
+        height: 1px;
+        margin: 10px 8px 6px;
+        padding: 0;
+        background: var(--rm-gray-200);
+    }
+
+    /* In the rail a group is its icon: it shows as the current page when one of its pages is. */
+    html.rm-rail .rm-nav-group.has-active > .rm-nav-link {
+        background: var(--rm-brand-50);
+        color: var(--rm-brand-700);
+        font-weight: 600;
+    }
+}
+
+/* Top bar (main.navbar.navbar). */
+.rm-topbar.navbar {
+    height: 56px;
+    min-height: 56px;
+    padding: 0 24px;
+    background: #fff;
+    border: 0;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+}
+
+.rm-topbar-title {
+    min-width: 0;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    color: var(--rm-gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rm-topbar-end {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+}
+
+.rm-topbar-company {
+    font-size: 13px;
+    color: var(--rm-gray-500);
+    white-space: nowrap;
+}
+
+.rm-icon-btn {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rm-gray-500);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color .12s ease-out;
+}
+
+.rm-icon-btn .ti {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.rm-icon-btn:hover,
+.rm-icon-btn:focus {
+    color: var(--rm-gray-500);
+    text-decoration: none;
+}
+
+.rm-icon-btn:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 0;
+}
+
+.rm-icon-btn.is-ringed {
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-icon-btn.is-ringed:hover {
+    background: var(--rm-gray-50);
+}
+
+.rm-icon-btn.is-ringed:active {
+    background: var(--rm-gray-100);
+}
+
+.rm-bell .ti {
+    font-size: 18px;
+}
+
+.rm-bell:hover,
+.rm-bell[aria-expanded="true"] {
+    background: var(--rm-gray-100);
+}
+
+.rm-bell:active {
+    background: var(--rm-gray-200);
+}
+
+.rm-bell-count {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    box-sizing: border-box;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--rm-error-600);
+    color: #fff;
+    font-size: 10px;
+    line-height: 16px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.rm-user-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -4px -8px;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rm-gray-900);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .12s ease-out;
+}
+
+.rm-user-btn:hover,
+.rm-user-btn[aria-expanded="true"] {
+    background: var(--rm-gray-50);
+}
+
+.rm-user-btn:active {
+    background: var(--rm-gray-100);
+}
+
+.rm-user-btn:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 0;
+}
+
+.rm-avatar {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    object-fit: cover;
+}
+
+.rm-user-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.rm-user-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rm-user-role {
+    font-size: 12px;
+    color: var(--rm-gray-500);
+}
+
+/* A menu that opens under a button (the user menu; later the other dropdowns). */
+.rm-menu.dropdown-menu {
+    min-width: 0;
+    padding: 6px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--rm-ring), var(--rm-shadow-lg);
+}
+
+.rm-user-menu.dropdown-menu {
+    width: 228px;
+}
+
+.rm-menu-head {
+    margin-bottom: 6px;
+    padding: 8px 10px 10px;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-100);
+}
+
+.rm-menu-head-name {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+    color: var(--rm-gray-900);
+}
+
+.rm-menu-head-mail {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--rm-gray-500);
+    overflow-wrap: anywhere;
+}
+
+.rm-menu .rm-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--rm-gray-700);
+    font-size: 14px;
+    line-height: 20px;
+    text-decoration: none;
+    transition: background-color .12s ease-out;
+}
+
+.rm-menu .rm-menu-item .ti {
+    font-size: 16px;
+}
+
+.rm-menu .rm-menu-item:hover,
+.rm-menu .rm-menu-item:focus {
+    background: var(--rm-gray-50);
+    color: var(--rm-gray-700);
+}
+
+.rm-menu .rm-menu-item:active {
+    background: var(--rm-gray-100);
+}
+
+.rm-menu .rm-menu-item.is-danger,
+.rm-menu .rm-menu-item.is-danger:hover,
+.rm-menu .rm-menu-item.is-danger:focus {
+    color: var(--rm-error-600);
+}
+
+/* Main area and footer (main.index, main.footer.footer): the main area takes the height left, so the footer stays at the
+   foot of the window on a short page. */
+.rm-page {
+    min-height: 100vh;
+}
+
+.rm-main.page-body {
+    flex: 1 0 auto;
+    margin: 0;
+    padding: 24px;
+}
+
+.rm-main > .rm-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.rm-footer.footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 14px 24px;
+    border: 0;
+    background: transparent;
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-footer a {
+    color: inherit;
+}
+
+.rm-footer .rm-version {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--rm-gray-700);
+    color: #fff;
+    font-size: 11px;
+    line-height: 16px;
+    text-decoration: none;
+}
+
+/* 4. Recipes --------------------------------------------------------------------------------------------------------- */
+
+/* Page title block: above the content card. */
+.rm-title {
+    margin: 0;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    color: var(--rm-gray-900);
+}
+
+.rm-sub {
+    margin: 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--rm-gray-500);
+}
+
+/* Content card: the toolbar and the boxes of a page. */
+.rm-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--rm-ring);
+}
+
+.rm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.rm-toolbar .rm-end {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* A bordered box inside the card (tables, sheets, diffs, timelines): a real border, because rows with a background of
+   their own paint over an inset ring. */
+.rm-box {
+    overflow: hidden;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+    background: #fff;
+}
+
+/* Table. */
+.rm-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.rm-table > thead > tr > th {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rm-gray-200);
+    background: var(--rm-gray-50);
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.rm-table > tbody > tr > td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--rm-gray-100);
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 1.35;
+    vertical-align: middle;
+}
+
+.rm-table.compact > tbody > tr > td {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.rm-table > tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+.rm-table > tbody > tr:hover > td {
+    background: var(--rm-gray-50);
+}
+
+.rm-table > tbody > tr.is-selected > td {
+    background: var(--rm-brand-50);
+}
+
+.rm-foot {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+}
+
+/* Segmented control (Board | List, Table | Log activity, Active | Archived | All, Grid | List). */
+.rm-seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: var(--rm-ring);
+}
+
+.rm-seg > * {
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--rm-gray-700);
+    font-size: 14px;
+    line-height: 20px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s ease-out, color .15s ease-out;
+}
+
+.rm-seg > .is-on {
+    background: var(--rm-brand-50);
+    color: var(--rm-brand-700);
+    font-weight: 600;
+}
+
+.rm-seg > :not(.is-on):hover {
+    background: var(--rm-gray-50);
+}
+
+/* Line tabs (Master data, Edit approvals, Notifications). */
+.rm-tabs {
+    display: flex;
+    gap: 20px;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-tabs > * {
+    padding: 10px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--rm-gray-500);
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.rm-tabs > .is-on {
+    color: var(--rm-brand-700);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--rm-brand-600);
+}
+
+/* Buttons: regular 36px, small 28px. */
+.btn-rm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .12s ease-out, box-shadow .12s ease-out;
+}
+
+.btn-rm .ti {
+    font-size: 16px;
+}
+
+.btn-rm.sm {
+    height: 28px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 16px;
+    gap: 6px;
+}
+
+.btn-rm.sm .ti {
+    font-size: 14px;
+}
+
+.btn-rm.primary {
+    background: var(--rm-brand-600);
+    color: #fff;
+}
+
+.btn-rm.primary:hover {
+    background: var(--rm-brand-700);
+    color: #fff;
+}
+
+.btn-rm.primary:active {
+    background: var(--rm-brand-800);
+}
+
+.btn-rm.secondary {
+    background: #fff;
+    color: var(--rm-gray-700);
+    box-shadow: var(--rm-ring);
+}
+
+.btn-rm.secondary:hover {
+    background: var(--rm-gray-50);
+    color: var(--rm-gray-700);
+}
+
+.btn-rm.secondary:active {
+    background: var(--rm-gray-100);
+}
+
+.btn-rm.success {
+    background: var(--rm-success-500);
+    color: #fff;
+}
+
+.btn-rm.success:hover {
+    background: var(--rm-success-600);
+    color: #fff;
+}
+
+.btn-rm.destructive {
+    background: var(--rm-error-600);
+    color: #fff;
+}
+
+.btn-rm.destructive:hover {
+    background: var(--rm-error-700);
+    color: #fff;
+}
+
+.btn-rm:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+.btn-rm:disabled,
+.btn-rm.disabled {
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-400);
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.btn-rm.is-busy {
+    pointer-events: none;
+}
+
+.btn-rm.is-busy::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, .35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: rm-spin .7s linear infinite;
+}
+
+.btn-rm.secondary.is-busy::before {
+    border-color: rgba(51, 65, 85, .25);
+    border-top-color: var(--rm-gray-700);
+}
+
+/* Fields. */
+.rm-field label,
+.rm-field .form-label {
+    margin-bottom: 6px;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+}
+
+.rm-field .form-control,
+.rm-field .form-select {
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 14px;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+}
+
+.rm-field .form-control:focus,
+.rm-field .form-select:focus {
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+/* Badge (faded): radius 4, padding 2px 4px, 12/16. */
+.rm-badge {
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.rm-badge.blue {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-600);
+}
+
+.rm-badge.green {
+    background: var(--rm-success-100);
+    color: var(--rm-success-500);
+}
+
+.rm-badge.yellow {
+    background: var(--rm-warning-100);
+    color: var(--rm-warning-600);
+}
+
+.rm-badge.orange {
+    background: var(--rm-orange-100);
+    color: var(--rm-orange-600);
+}
+
+.rm-badge.red {
+    background: var(--rm-error-100);
+    color: var(--rm-error-600);
+}
+
+.rm-badge.purple {
+    background: var(--rm-violet-100);
+    color: var(--rm-violet-600);
+}
+
+.rm-badge.gray {
+    background: var(--rm-gray-200);
+    color: var(--rm-gray-700);
+}
+
+/* 5. Motion ---------------------------------------------------------------------------------------------------------- */
+
+@keyframes rm-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rm-fade-in-b { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rm-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes rm-pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes rm-pop-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.985); } }
+@keyframes rm-drop-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes rm-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes rm-rise-b { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes rm-toast-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes rm-toast-out { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes rm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rm-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes rm-check { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes rm-spin { to { transform: rotate(360deg); } }
+@keyframes rm-pulse { from { box-shadow: 0 0 0 0 rgba(37, 99, 235, .45); } to { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); } }
+@keyframes rm-slide-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes rm-xfade { 0% { opacity: 0; } 3% { opacity: 1; } 25% { opacity: 1; } 28% { opacity: 0; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-delay: 0s !important;
+        transition-duration: .01ms !important;
+    }
+}

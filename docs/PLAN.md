@@ -268,73 +268,73 @@ Prototipe: `Shell.dc.html`. Berkas utama:
 - `main/footer/footer.blade.php`
 - `auth/components/style/style.blade.php`
 
-- [ ] `public/assets/css/radio-ui.css`, ditautkan setelah `custom.css` di layout utama dan layout login. Isinya:
+- [x] `public/assets/css/radio-ui.css`, ditautkan setelah `custom.css` di layout utama dan layout login. Isinya:
   - token: `--rm-ring`, `--rm-shadow-lg`, `--rm-shadow-xl`, `--rm-ease`, palet sesuai K6, dan `--tblr-primary` sesuai A2;
   - semua keyframe README, yang baru dipakai di fase 5, beserta aturan `prefers-reduced-motion`;
   - resep: `.rm-title`, `.rm-sub`, `.rm-card`, `.rm-toolbar`, `.rm-end`, `.rm-box`, `.rm-table` (compact, hover,
     `is-selected`), `.rm-foot`, `.rm-seg`, `.rm-tabs`, `.btn-rm` (sm, primary, secondary, success, destructive, disabled,
     `is-busy`), `.rm-field`, `.rm-badge`.
-- [ ] Font sesuai K2:
+- [x] Font sesuai K2:
   - buang tautan Public Sans di layout utama;
   - login: ganti tautan file yang tidak ada dengan `fonts.css`, lalu tambahkan Tabler Icons dan `radio-ui.css`.
-- [ ] Sidebar:
+- [x] Sidebar:
   - 248px, putih, garis kanan `inset -1px 0 0 gray-200`;
   - kepala 56px berisi logo MCG dan MBM (tinggi 28, jarak 10, padding `0 16px`, garis bawah);
   - nav: padding `8px 12px 16px`, jarak 2px;
   - item: padding `8px 10px`, radius 8, teks 14/20, ikon 16, jarak 10;
   - hover `rgba(15,23,42,.045)`, ditekan `.09`; aktif brand-50 / brand-700 / 600;
   - label seksi: 11/16, 600, `.06em`, huruf besar, gray-400, padding `16px 10px 6px`.
-- [ ] Grup Master Data:
+- [x] Grup Master Data:
   - chevron 14px gray-400 berputar 180° dalam .22s;
   - anak: padding `7px 10px 7px 36px`;
   - buka/tutup dengan `grid-template-rows 1fr ↔ 0fr` dalam .22s;
   - ganti dropdown Tabler (`data-bs-toggle="dropdown"`) dengan toggle milik sendiri.
-- [ ] `sidebar-background.png`: lebar 248px, menempel di bawah, di belakang nav (z 0), tidak bisa diklik, disembunyikan
+- [x] `sidebar-background.png`: lebar 248px, menempel di bawah, di belakang nav (z 0), tidak bisa diklik, disembunyikan
   di rail.
-- [ ] Rail 80px:
+- [x] Rail 80px:
   - logo `mbm-logo-small.png` tinggi 28; hanya ikon, rata tengah (padding `8px 0`);
   - label seksi jadi garis 1px (`margin:10px 8px 6px`);
   - badge jumlah jadi titik 8px (top 5, right 9, cincin putih 2px);
   - ikon grup membuka anak pertama;
   - tooltip di kanan ikon: gray-900, teks 12/16 500, radius 6, padding `6px 10px`, shadow-lg, fade .12s. Pakai tooltip
     Bootstrap yang sudah diinisialisasi global.
-- [ ] Toggle:
+- [x] Toggle:
   - transisi lebar .24s `var(--rm-ease)`;
   - status tetap disimpan di `localStorage.sidebarState`;
   - JavaScript yang menulis style inline diganti satu kelas di `<body>` plus CSS;
   - margin halaman 248px ↔ 80px.
-- [ ] Badge jumlah di menu Edit approvals, sesuai A13.
-- [ ] Top bar:
+- [x] Badge jumlah di menu Edit approvals, sesuai A13.
+- [x] Top bar:
   - 56px, putih, garis bawah, padding `0 24px`, sticky;
   - tombol toggle 32px: cincin, radius 8, `ti-layout-sidebar` 16px, gray-500, hover gray-50, ditekan gray-100;
   - judul halaman 16/24 600, dari `@yield('page-title')`.
-- [ ] Sisi kanan top bar (jarak 16):
+- [x] Sisi kanan top bar (jarak 16):
   - nama perusahaan 13px gray-500;
   - lonceng 32px radius 8 (`ti-bell` 18px) dengan pil merah (error-600, minimal 16px, teks 10/16 600). Id `notifBell`,
     `notifCount`, `notifReadAll` dan `notifList` tetap;
   - blok user: avatar 32 bulat, nama 13/600, role 12 gray-500.
-- [ ] Dropdown user:
+- [x] Dropdown user:
   - lebar 228px, cincin + shadow-lg;
   - kepala berisi nama dan email;
   - item: (My profile sesuai K10), Notifikasi, Keluar (error-600);
   - `#logout-form` tetap ada (dipakai timer sesi).
-- [ ] Main: latar gray-50, padding 24px, lebar sesuai A1.
-- [ ] Footer:
+- [x] Main: latar gray-50, padding 24px, lebar sesuai A1.
+- [x] Footer:
   - garis atas, padding `14px 24px`, rata tengah, teks 12px gray-500;
   - teks "Copyright © {tahun}, Development by Merdeka Group" dan chip versi (gray-700, putih, 11px, radius 4, padding
     `1px 6px`);
   - `VersionTest` harus tetap lulus.
-- [ ] Di bawah 992px, perilaku sekarang tetap (A9).
-- [ ] Tes:
+- [x] Di bawah 992px, perilaku sekarang tetap (A9).
+- [x] Tes:
   - perbarui `NotificationsTest` dan `VersionTest` bila perlu;
   - tes baru `ShellTest`: `radio-ui.css` tertaut di dua layout, tautan Public Sans hilang, seksi dan item aktif, badge
     Edit approvals;
   - checker baru `tests/tools/sidebar-behaviour.mjs` lewat `page-sandbox.mjs`: toggle, `localStorage`, grup, tooltip
     rail. Tambahkan stand-in `localStorage` dan `Swal.mixin` di sandbox bila perlu.
-- [ ] Browser:
+- [x] Browser:
   - lebar 1366, 1440, 1920, rail, dan 390;
   - bandingkan dengan `Shell.dc.html`.
-- [ ] Perbarui aturan desain di `CLAUDE.local.md` (file lokal) sesuai K6.
+- [x] Perbarui aturan desain di `CLAUDE.local.md` (file lokal) sesuai K6.
 
 ## Fase 2: content card, Register, Riwayat Radio, Detail
 
@@ -525,6 +525,10 @@ Login (`resources/views/auth/login.blade.php`):
   - tanpa popup Welcome;
   - pesan sesi berakhir tetap tampil;
   - `type="text"` tetap atribut pertama di field username.
+- [ ] Perbaiki 404 yang sudah ada sebelumnya (terlihat saat fase 1):
+  - thumbnail carousel menunjuk `branding/mdka-bg.jpg`, `mdka-bg-2.png` dan `mdka-bg-3.jpg` yang tidak ada (hilang
+    bersama carousel);
+  - `auth/main/app.blade.php` menautkan `/manifest.json`, yang ikonnya (`/images/icons/icon-192x192.png`) tidak ada.
 
 Tes yang terdampak:
 - `AuditLogTest`, `Api/ApiTokensPageTest`;
@@ -683,3 +687,13 @@ Prinsip:
   (baca-saja), dan PLAN.md ini ditulis. Menunggu jawaban K1–K13 sebelum fase 1.
 - 2026-10-20: pemilik menyetujui semua rekomendasi ("oke, eksekusi sekarang"). Folder handoff dan zip-nya dimasukkan ke
   `.git/info/exclude`; zip tidak dihapus. Fase 1 dimulai.
+- 2026-10-20, fase 1 selesai:
+  - Dikerjakan: `radio-ui.css`, sidebar/rail/top bar/footer baru, tes `ShellTest` (8 tes) dan checker
+    `tests/tools/sidebar-behaviour.mjs` (10 cek). `page-sandbox.mjs` kini punya `localStorage` (opsi `storage`,
+    `stored()`).
+  - Tooltip rail memakai elemen sendiri (`#rmNavTip`), bukan tooltip Bootstrap, supaya hanya muncul di rail dan persis
+    seperti prototipe.
+  - Grup menu terbuka bila salah satu anaknya halaman aktif. Menu juga aktif di semua rute dengan menu key yang sama.
+  - Diperiksa di browser (preview, data rekaan): 1366, 1440, 1920, rail dan 390.
+  - Suite penuh: 466 lulus.
+  - Alat bantu preview ada di scratchpad sesi; untuk sesi baru, buat ulang dari langkah di "Aturan kerja".

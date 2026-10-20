@@ -1,5 +1,7 @@
-<link href="{{ asset('assets/css/apps.min.css?1684106062') }}" rel="stylesheet" />  
-<link href="{{ asset('assets/css/googleApis-publicSans.css') }}" rel="stylesheet" />  
+<link href="{{ asset('assets/css/apps.min.css?1684106062') }}" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.36.0/tabler-icons.min.css">
+<link href="{{ asset('assets/css/fonts/fonts.css') }}" rel="stylesheet" />
+<link href="{{ asset('assets/css/radio-ui.css') }}?v={{ @filemtime(public_path('assets/css/radio-ui.css')) }}" rel="stylesheet" />
 <style>
     body {
         margin: 0;

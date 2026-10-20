@@ -10,23 +10,26 @@
     <title>{{ config('app.name') }} | Merdeka Copper Gold</title>
     <meta name="description" content="" />
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/branding/favicon.ico') }}" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
-        rel="stylesheet" />
     <link rel="shortcut icon" href="{{ asset('assets/img/branding/favicon.ico') }}" />
     <!--  Main Style -->
     @include('main.components.style.style')
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#ffffff">
+    <script>
+        // The sidebar as the person left it (full width or the icon rail), before anything is drawn. main.sidebar.sidebar.
+        try {
+            if (window.localStorage.getItem('sidebarState') === 'collapsed') document.documentElement.classList.add('rm-rail');
+        } catch (e) {
+            // No storage (a private window): the full sidebar.
+        }
+    </script>
 </head>
-    
+
 <body class="layout-fluid">
 
     <div id="loader">
         {{-- @include('main.loader.loader') --}}
     </div>
-    <div class="page">
+    <div class="page rm-page">
         <!--  Sidebar -->
         @include('main.sidebar.sidebar')
         <!--  Navbar -->
@@ -38,11 +41,11 @@
             {{-- @include('main.header.header') --}}
 
             <!--  Main Page -->
-            <div class="page-body mt-1">
-                <div class="container-xl" style="max-width: 1440px">
+            <main class="page-body rm-main">
+                <div class="container-xl rm-container">
                     @yield('content')
                 </div>
-            </div>
+            </main>
             <!--  End OF Main Page -->
             @include('main.footer.footer')
         </div>

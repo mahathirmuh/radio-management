@@ -43,9 +43,10 @@ export function assertWellFormed(html, what = 'the markup') {
 /**
  * @param {string} file the rendered page
  * @param {string[]} markers one piece of text per inline script to run, in that order
- * @param {{href: string, framePath?: string}} at the address of the page, and the path a frame made by the page shows unless a test says otherwise
+ * @param {{href: string, framePath?: string, storage?: Object<string, string>}} at the address of the page, the path a frame made by the
+ *     page shows unless a test says otherwise, and what the browser has kept for the page (localStorage) before it runs
  */
-export function loadPage(file, markers, { href, framePath = '/' }) {
+export function loadPage(file, markers, { href, framePath = '/', storage = {} }) {
     const html = fs.readFileSync(file, 'utf8');
     const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script\s*>/gi)].map(match => match[1]);
     const scripts = markers.map(marker => {
@@ -218,9 +219,18 @@ export function loadPage(file, markers, { href, framePath = '/' }) {
         },
     };
 
+    // localStorage: what the browser keeps for the person between pages (the width of the sidebar). stored() shows it.
+    const kept = new Map(Object.entries(storage));
+    const localStorage = {
+        getItem: key => (kept.has(key) ? kept.get(key) : null),
+        setItem: (key, value) => { kept.set(key, String(value)); },
+        removeItem: key => { kept.delete(key); },
+    };
+
     const sandbox = vm.createContext({
         $,
         Swal,
+        localStorage,
         console,
         URL,
         URLSearchParams,
@@ -241,6 +251,8 @@ export function loadPage(file, markers, { href, framePath = '/' }) {
         exists,
         requests,
         dialogs,
+        /** What the page has kept in localStorage. */
+        stored: () => Object.fromEntries(kept),
         /** The person's answer to the dialog that was opened last (what Swal.fire(...).then() is called with). */
         resolve: (result, dialog = dialogs.at(-1)) => dialog.callbacks.forEach(callback => callback(result)),
         appended,
