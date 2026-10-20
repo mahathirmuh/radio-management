@@ -180,6 +180,8 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
             modal(action) { n.modal = action; return api; },
             ready(callback) { ready.push(callback); return api; },
             tooltip() { return api; },
+            // (A menu that opens or closes: what it was told is kept.)
+            dropdown(action) { n.dropdown = action; return api; },
             css() { return api; },
             // Widgets and animations a page may use: what they would show is not what these checkers are about.
             select2() { return api; },

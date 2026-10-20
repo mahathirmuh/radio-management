@@ -13,6 +13,14 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; rencana dan keputusannya di
 [docs/PLAN.md](docs/PLAN.md). Bagian ini menjadi satu rilis saat branch itu digabung ke `main`.
 
+### Ditambahkan
+
+- Fase 6, kemampuan baru:
+  - pemilih Radio ID di form radio: begitu ID diketik, form bilang apakah ID itu bisa dipakai. Bila tidak, form
+    menyebut alasannya (MDC Code mengandung F, dipakai radio lain, atau dicadangkan radio tanpa ID) beserta pemegangnya,
+    dan menawarkan ID pengganti ("Pakai 768"). Panelnya menampilkan ID di sekitarnya (bebas / dipakai / ada F) dan
+    ID bebas berikutnya. Endpoint baru: `GET radio-management/radio/id-check`.
+
 ### Diubah
 
 - Fase 1, kerangka halaman:

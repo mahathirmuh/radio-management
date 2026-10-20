@@ -92,6 +92,21 @@ class RadioController extends Controller
         ]);
     }
 
+    /**
+     * The Radio ID picker of the form: can this ID be used (and if not, why, who holds it, and what to use instead)?
+     * ?id= the ID typed, ?except= the radio being edited.
+     */
+    public function idCheck(Request $request): JsonResponse
+    {
+        $max = (int) config('radio.id_max');
+        $id = filter_var($request->query('id'), FILTER_VALIDATE_INT);
+        if ($id === false || $id < 1 || $id > $max) {
+            return response()->json(['message' => "Radio ID harus angka 1 sampai {$max}."], 422);
+        }
+
+        return response()->json(['data' => $this->ids->check($id, $request->integer('except') ?: null)]);
+    }
+
     public function export(Request $request)
     {
         return RadioExport::download(

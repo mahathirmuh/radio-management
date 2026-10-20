@@ -572,7 +572,7 @@ Prinsip:
 - Baris Deploy di CHANGELOG menyebut migration-nya dan cara menghapus cache peta menu di setiap instalasi.
 
 ### 6.1 Radio ID picker
-- [ ] GET `radio-management.radio.id-check` (Read Register Radio). Mengembalikan:
+- [x] GET `radio-management.radio.id-check` (Read Register Radio). Mengembalikan:
   - status: ok, hex_f, taken atau reserved;
   - pemegang ID;
   - ID yang disarankan;
@@ -580,8 +580,8 @@ Prinsip:
   - ID bebas berikutnya.
 
   Untuk ini ditambahkan `RadioConflicts::holderOf()`.
-- [ ] Picker di form tambah/edit, popover 440px: MDC hex tampil langsung, huruf F merah, saran "Pakai 768".
-- [ ] Tes:
+- [x] Picker di form tambah/edit, popover 440px: MDC hex tampil langsung, huruf F merah, saran "Pakai 768".
+- [x] Tes:
   - 751 → 768;
   - taken, reserved, dan ID milik radio itu sendiri;
   - radio yang diarsip melepas ID-nya;
@@ -803,3 +803,11 @@ Prinsip:
   - Diperiksa di browser: angka KPI berakhir di nilai yang benar (juga dengan reduced motion), garis tab tepat di bawah
     tab aktif, dropdown di posisi yang benar, modal dan SweetAlert buka-tutup bersih.
   - Suite penuh: 475 lulus (2 warning lama di `WorkbookReaderTest`).
+- 2026-10-20, fase 6 dimulai. Fase ini besar, jadi di-commit per bagian dengan pesan "fase 6.x: ..."; test penuh
+  dijalankan sebelum tiap commit.
+- 2026-10-20, 6.1 selesai:
+  - `RadioConflicts::holderOf()`, `RadioIdService::check()` (status, pemegang, saran, rentang F yang dilewati, strip,
+    ID bebas berikutnya), `GET radio-management.radio.id-check` (Read; 422 untuk angka di luar 1..id_max);
+  - di form: tombol "Pilih ID" membuka panel 440 (`rm-idp`), dan baris status di bawah field (`#radioIdStatus`) dengan
+    tombol "Pakai N". Panel lama "ID bebas" dan peringatan F lama diganti;
+  - tes: `RadioIdPickerTest` (5, termasuk checker `radio-id-picker-behaviour.mjs`, 5 cek). Suite penuh: 480 lulus.

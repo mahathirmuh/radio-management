@@ -42,6 +42,28 @@ class RadioConflicts
         return null;
     }
 
+    /**
+     * The active radio that holds a Radio ID ("taken"), or that last held it and has none now ("reserved": it probably
+     * still carries it); null when the ID is nobody's. The radio $exceptRadioId (the one being edited) is left out.
+     *
+     * @return array{radio: Radio, kind: string}|null
+     */
+    public function holderOf(int $id, ?int $exceptRadioId = null): ?array
+    {
+        $taken = Radio::query()->active()->with('department')->where('dmr_id', $id)
+            ->when($exceptRadioId, fn ($query) => $query->where('id', '!=', $exceptRadioId))
+            ->first();
+        if ($taken) {
+            return ['radio' => $taken, 'kind' => 'taken'];
+        }
+
+        $reserved = Radio::query()->active()->with('department')->whereNull('dmr_id')->where('previous_dmr_id', $id)
+            ->when($exceptRadioId, fn ($query) => $query->where('id', '!=', $exceptRadioId))
+            ->first();
+
+        return $reserved ? ['radio' => $reserved, 'kind' => 'reserved'] : null;
+    }
+
     public function serial(string $serial, ?int $exceptRadioId = null): ?string
     {
         $other = Radio::query()->where('serial_number', $serial)

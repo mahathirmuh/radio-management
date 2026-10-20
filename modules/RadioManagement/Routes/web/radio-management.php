@@ -18,6 +18,7 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::get('/', 'index')->name('index');
         Route::get('list', 'list')->name('list');
         Route::get('next-id', 'nextId')->name('next-id');
+        Route::get('id-check', 'idCheck')->name('id-check');
         Route::get('export', 'export')->name('export');
         // Several radios at once (ticked in the list). The names stay "<menu key>.<action>" (bulk-verify, not bulk.verify)
         // so the `permission` middleware finds "Register Radio": verifying and archiving are an Update, deleting a Delete.

@@ -36,19 +36,24 @@
                                         placeholder="Kosongkan bila belum diprogram">
                                     <span class="input-group-text rm-suffix radio-mono" id="radioMdcPreview"></span>
                                     <button class="btn-rm secondary rm-input-btn" type="button" data-bs-toggle="dropdown"
-                                        id="radioNextIdButton" aria-expanded="false">ID bebas <i class="ti ti-chevron-down"
-                                            aria-hidden="true"></i></button>
-                                    <div class="dropdown-menu dropdown-menu-end rm-menu rm-id-menu" id="radioNextIdMenu">
-                                        <span class="dropdown-item-text radio-muted">Memuat…</span>
+                                        data-bs-auto-close="outside" id="radioNextIdButton" aria-expanded="false">Pilih ID <i
+                                            class="ti ti-chevron-down" aria-hidden="true"></i></button>
+                                    {{-- The picker (radioForm.renderPicker): whether the ID can be used, the IDs around it,
+                                         the next free ones. --}}
+                                    <div class="dropdown-menu dropdown-menu-end rm-idp" id="radioNextIdMenu">
+                                        <span class="radio-muted">Memuat…</span>
                                     </div>
                                 </div>
-                                {{-- An ID whose MDC Code (hexadecimal) contains F cannot be used: say so and offer replacements. --}}
-                                <div class="rm-alert danger mt-2 d-none" id="radioHexWarning">
+                                {{-- An ID that cannot be used (its MDC Code has F, another radio holds or keeps it): why,
+                                     and the one to use instead. --}}
+                                <div class="rm-alert danger mt-2 d-none" id="radioIdStatus" role="status">
                                     <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                                    <div>
-                                        <span id="radioHexWarningText"></span>
-                                        <span class="d-flex flex-wrap gap-2 mt-2" id="radioHexSuggestions"></span>
+                                    <div class="flex-fill min-w-0">
+                                        <div class="fw-semibold" id="radioIdStatusTitle"></div>
+                                        <div id="radioIdStatusText"></div>
                                     </div>
+                                    <button type="button" class="btn-rm sm primary align-self-center d-none" id="radioIdUse"
+                                        data-use=""></button>
                                 </div>
                             </div>
                             <div class="col-md-6 rm-field">
@@ -196,7 +201,11 @@
                 store: "{{ route('radio-management.radio.store') }}",
                 update: "{{ route('radio-management.radio.update', ':id') }}",
                 nextId: "{{ route('radio-management.radio.next-id') }}",
+                idCheck: "{{ route('radio-management.radio.id-check') }}",
             },
+            /** What the register said of the ID typed last (id-check), and the free IDs when none is typed. */
+            idInfo: null,
+            nextIds: null,
             fields: ['dmr_id', 'serial_number', 'radio_type_id', 'owner_company_id', 'user_name', 'department_id',
                 'company_id', 'channel_template_id', 'last_programmed_at', 'placement', 'condition',
                 'last_verified_at', 'document_no', 'notes'
@@ -229,7 +238,12 @@
                 $('#last_programmed_at, #last_verified_at').attr('max', RadioUi.today());
                 $('#dmr_id').on('input', radioForm.previewId);
                 $('#radio_type_id').on('change', radioForm.previewType);
-                $('#radioNextIdButton').on('show.bs.dropdown', radioForm.loadNextIds);
+                $('#radioNextIdButton').on('show.bs.dropdown', radioForm.openPicker);
+                // An ID chosen in the picker or under the field.
+                $('#radioNextIdMenu, #radioIdStatus').on('click', '[data-use]', function(e) {
+                    e.preventDefault();
+                    radioForm.useId($(this).attr('data-use'));
+                });
                 // The segmented control of "Posisi" writes the value that is sent.
                 $('input[name="placement_pick"]').on('change', function() {
                     $('#placement').val($(this).val());
@@ -255,7 +269,8 @@
                 $('#serial_number').prev('label').toggleClass('required', mode !== 'edit');
                 $('#radio_type_id').closest('div').find('label').toggleClass('required', mode !== 'edit');
                 $('#dmr_id').prop('disabled', false).attr('placeholder', 'Kosongkan bila belum diprogram');
-                $('#radioHexWarning').addClass('d-none');
+                radioForm.idInfo = null;
+                radioForm.showIdStatus(null);
 
                 if (mode !== 'edit') {
                     $('#placement').val('di_user');
@@ -291,56 +306,137 @@
                     .fail(RadioUi.fail);
             },
 
+            /** The MDC Code beside the field (its F in red), and what the register says of the ID, a moment after typing. */
             previewId() {
-                const id = $('#dmr_id').val();
-                $('#radioMdcPreview').text(id ? `MDC ${RadioUi.mdc(id)}` : '');
-
-                const blocked = RadioUi.hexHasF(id);
-                $('#radioHexWarning').toggleClass('d-none', !blocked);
-                if (!blocked) return;
-
-                // The radio's own imported ID may contain F: it can still be saved, but should be replaced.
-                const own = String(id) === String(radioForm.loaded.dmr_id ?? '');
-                $('#radioHexWarningText').text(own ?
-                    `Radio ini masih memakai Radio ID ${id}, yang MDC Code-nya (${RadioUi.mdc(id)}) mengandung huruf F. ID seperti ini seharusnya tidak dipakai: program ulang radionya ke ID lain, lalu ganti di sini.` :
-                    `Radio ID ${id} tidak bisa dipakai: MDC Code-nya (${RadioUi.mdc(id)}) mengandung huruf F. Ganti dengan ID lain.`);
-                $('#radioHexSuggestions').empty();
-                radioForm.suggestIds(id);
+                const id = String($('#dmr_id').val() ?? '');
+                $('#radioMdcPreview').html(/^[1-9]\d*$/.test(id) ? `MDC ${radioForm.hexHtml(RadioUi.mdc(id))}` : '');
+                radioForm.idInfo = null;
+                if (!/^[1-9]\d*$/.test(id)) {
+                    radioForm.showIdStatus(null);
+                    return;
+                }
+                // An F is seen at once; who holds it, and what to use instead, once the register has answered.
+                radioForm.showIdStatus(RadioUi.hexHasF(id) ? { id: Number(id), mdc: RadioUi.mdc(id), status: 'hex_f', own: id === String(radioForm.loaded.dmr_id ?? ''), suggested: null, skipped: null } : null);
+                radioForm.checkId(id);
             },
 
-            /** Free IDs just above the one that cannot be used, as one-click replacements. */
-            suggestIds: debounce(id => {
-                $.getJSON(radioForm.urls.nextId, { except: radioForm.id, after: id }).done(({ data }) => {
-                    if (String($('#dmr_id').val()) !== String(id) || !data.length) return; // typed on meanwhile
-                    const box = $('#radioHexSuggestions').html('<span class="radio-muted">ID bebas terdekat:</span> ' + data.map(item =>
-                        `<a href="#" class="rm-idchip" data-id="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono">MDC ${RadioUi.esc(item.mdc)}</span></a>`
-                    ).join(''));
-                    box.find('a').on('click', function(e) {
-                        e.preventDefault();
-                        $('#dmr_id').val($(this).data('id')).trigger('input');
-                    });
+            /** An MDC Code with its F in red (as text: the code is made of hex digits only). */
+            hexHtml(mdc) {
+                return String(mdc ?? '').split('').map(ch => ch === 'F' ? '<span class="rm-hex-f">F</span>' : RadioUi.esc(ch)).join('');
+            },
+
+            checkId: debounce(id => {
+                $.getJSON(radioForm.urls.idCheck, { id, except: radioForm.id || '' }).done(({ data }) => {
+                    if (String($('#dmr_id').val()) !== String(id)) return; // typed on meanwhile
+                    radioForm.idInfo = data;
+                    radioForm.showIdStatus(data);
+                    radioForm.renderPicker();
                 });
             }),
+
+            /** What is said of an ID: a title and a sentence, in the words of the form. */
+            idWords(info) {
+                const id = Number(info.id);
+                const holder = info.holder ? [info.holder.label, info.holder.user, info.holder.department ? `(${info.holder.department})` : ''].filter(Boolean).join(', ').replace(', (', ' (') : '';
+                const next = info.suggested ? ` ID berikutnya yang bisa dipakai: ${Number(info.suggested.id)} (MDC ${info.suggested.mdc}).` : '';
+                switch (info.status) {
+                    case 'ok':
+                        return info.own ?
+                            { title: `${id} adalah ID radio ini`, text: `MDC Code ${info.mdc}.` } :
+                            { title: `${id} bebas`, text: `MDC Code ${info.mdc} tanpa huruf F. ID ini dipakai radio ini saat disimpan.` };
+                    case 'hex_f':
+                        return info.own ?
+                            { title: `Radio ini memakai ${id}: MDC ${info.mdc} mengandung F`, text: `ID seperti ini seharusnya tidak dipakai: program ulang radionya ke ID lain, lalu ganti di sini.${next}` } :
+                            { title: `${id} tidak bisa dipakai: MDC ${info.mdc} mengandung F`, text: (info.skipped ? `ID ${Number(info.skipped.from)} sampai ${Number(info.skipped.to)} dilewati.` : 'ID yang MDC Code-nya mengandung F tidak dipakai.') + next };
+                    case 'taken':
+                        return { title: `${id} sudah dipakai`, text: `Dipakai ${holder}. Radio ID unik di antara radio aktif.${next}` };
+                    case 'reserved':
+                        return { title: `${id} dicadangkan`, text: `${holder} belum punya ID dan kemungkinan masih memakai ${id}. Cek radio tersebut dulu.${next}` };
+                    default:
+                        return { title: String(id), text: '' };
+                }
+            },
+
+            /** The line under the field when the ID cannot be used: why, and a button for the ID to use instead. */
+            showIdStatus(info) {
+                const box = $('#radioIdStatus');
+                if (!info || info.status === 'ok') {
+                    box.addClass('d-none');
+                    return;
+                }
+                const words = radioForm.idWords(info);
+                $('#radioIdStatusTitle').text(words.title);
+                $('#radioIdStatusText').text(words.text);
+                const use = $('#radioIdUse');
+                if (info.suggested) {
+                    use.attr('data-use', String(Number(info.suggested.id))).text(`Pakai ${Number(info.suggested.id)}`).removeClass('d-none');
+                } else {
+                    use.attr('data-use', '').addClass('d-none');
+                }
+                box.removeClass('d-none');
+            },
+
+            /** The picker: for an ID typed, whether it can be used and the IDs around it; the next free IDs in any case. */
+            renderPicker() {
+                const info = radioForm.idInfo;
+                const esc = RadioUi.esc;
+                let html = '';
+                if (info) {
+                    const words = radioForm.idWords(info);
+                    const ok = info.status === 'ok';
+                    html += `<div class="rm-idp-status ${ok ? 'is-ok' : 'is-bad'}"><i class="ti ti-${ok ? 'circle-check' : 'alert-triangle'}" aria-hidden="true"></i>` +
+                        `<div class="rm-idp-words"><div class="rm-idp-title">${esc(words.title)}</div><div>${esc(words.text)}</div></div>` +
+                        (info.suggested ? `<button type="button" class="btn-rm sm primary" data-use="${Number(info.suggested.id)}">Pakai ${Number(info.suggested.id)}</button>` : '') + `</div>`;
+                    const cells = (info.strip || []).map(cell => {
+                        if (cell.gap) return `<span class="rm-idp-cell is-gap"><b>···</b><small>${Number(cell.gap)} lagi</small></span>`;
+                        const kind = cell.state === 'hex_f' ? 'hex' : (cell.state === 'used' ? 'used' : 'free');
+                        const label = `<b>${Number(cell.id)}</b><small>${esc(cell.mdc)}</small>`;
+                        return kind === 'free' && !cell.selected ?
+                            `<button type="button" class="rm-idp-cell is-free" data-use="${Number(cell.id)}">${label}</button>` :
+                            `<span class="rm-idp-cell is-${kind}${cell.selected ? ' is-selected' : ''}">${label}</span>`;
+                    }).join('');
+                    html += `<div><div class="rm-idp-head"><span>ID SEKITAR</span><span class="rm-idp-legend"><i class="is-free"></i>bebas<i class="is-used"></i>dipakai<i class="is-hex"></i>ada F</span></div>` +
+                        `<div class="rm-idp-strip">${cells}</div></div>`;
+                }
+                const next = info ? info.next : radioForm.nextIds;
+                const chips = next === null ? '<span class="radio-muted">Memuat…</span>' : (next.length ?
+                    next.map(item => `<button type="button" class="rm-idchip" data-use="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono">${esc(item.mdc)}</span></button>`).join('') :
+                    '<span class="radio-muted">Tidak ada ID bebas lagi</span>');
+                html += `<div><div class="rm-idp-head"><span>ID BEBAS BERIKUTNYA</span></div><div class="rm-idp-chips">${chips}</div></div>` +
+                    `<div class="rm-idp-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>MDC Code adalah Radio ID dalam heksadesimal. Kode yang mengandung F berlaku sebagai wildcard di sistem radio, jadi ID seperti itu tidak pernah dipakai.</span></div>`;
+                $('#radioNextIdMenu').html(`<div class="rm-idp-body">${html}</div>`);
+            },
+
+            /** The picker opens: on what is known of the ID typed, or on the lowest free IDs. */
+            openPicker() {
+                radioForm.renderPicker();
+                if (radioForm.idInfo) return;
+                const typed = String($('#dmr_id').val() ?? '');
+                if (/^[1-9]\d*$/.test(typed)) {
+                    radioForm.checkId(typed);
+                    return;
+                }
+                radioForm.nextIds = null;
+                radioForm.renderPicker();
+                $.getJSON(radioForm.urls.nextId, { except: radioForm.id || '' })
+                    .done(({ data }) => {
+                        radioForm.nextIds = data || [];
+                        radioForm.renderPicker();
+                    })
+                    .fail(() => $('#radioNextIdMenu').html('<span class="text-danger">Gagal memuat</span>'));
+            },
+
+            /** An ID chosen: into the field, and the picker closes. */
+            useId(id) {
+                if (!/^[1-9]\d*$/.test(String(id))) return;
+                $('#dmr_id').val(id).trigger('input');
+                $('#radioNextIdButton').dropdown('hide');
+            },
 
             previewType() {
                 const option = $('#radio_type_id').find(':selected');
                 const category = option.data('category');
                 $('#radioTypeHint').text(category ? `${category} · ${option.data('power') || '-'}` : '');
-            },
-
-            loadNextIds() {
-                const menu = $('#radioNextIdMenu').html('<span class="dropdown-item-text radio-muted">Memuat…</span>');
-                $.getJSON(radioForm.urls.nextId, { except: radioForm.id })
-                    .done(({ data }) => {
-                        menu.html(data.map(item =>
-                            `<a class="dropdown-item rm-menu-item" href="#" data-id="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono radio-muted ms-auto">MDC ${RadioUi.esc(item.mdc)}</span></a>`
-                        ).join('') + '<div class="dropdown-divider"></div><span class="dropdown-item-text radio-muted">ID yang MDC Code-nya mengandung huruf F dilewati</span>');
-                        menu.find('a').on('click', function(e) {
-                            e.preventDefault();
-                            $('#dmr_id').val($(this).data('id')).trigger('input');
-                        });
-                    })
-                    .fail(() => menu.html('<span class="dropdown-item-text text-danger">Gagal memuat</span>'));
             },
 
             submit() {
