@@ -22,7 +22,7 @@ export const isWellFormed = text => !/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\u
  * The tags of a page are a short list: a tag outside it is a mistake until it is added here.
  */
 export function assertWellFormed(html, what = 'the markup') {
-    const known = new Set(['a', 'b', 'button', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'i', 'li', 'ol', 'option', 's', 'small', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul']);
+    const known = new Set(['a', 'b', 'button', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'h2', 'i', 'label', 'li', 'ol', 'option', 's', 'select', 'small', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul']);
     const unpaired = new Set(['br', 'hr', 'img', 'input']);
     const open = [];
     for (const match of String(html).matchAll(/<(\/?)([A-Za-z][A-Za-z0-9-]*)((?:"[^"]*"|'[^']*'|[^'">])*)>/g)) {

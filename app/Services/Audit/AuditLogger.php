@@ -73,6 +73,11 @@ class AuditLogger
 
     public const SERVICE_NOTE_ADDED = 'service.note_added';
 
+    /** Perlu Perhatian: an item of the register's checks given to somebody, or set aside with a reason. */
+    public const ATTENTION_ASSIGNED = 'attention.assigned';
+
+    public const ATTENTION_DISMISSED = 'attention.dismissed';
+
     /** Tipe Radio, Perusahaan, Department, Template Channel: the entry names which. */
     public const MASTER_CREATED = 'master_data.created';
 

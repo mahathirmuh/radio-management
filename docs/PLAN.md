@@ -623,10 +623,10 @@ Prinsip:
 - [x] Tes: izin per role, riwayat dan audit, export, `RouteSmokeTest`.
 
 ### 6.4 Perlu perhatian (inbox)
-- [ ] Migration `create_radio_check_states_table` (penugasan, alasan abaikan, pertama terlihat) dan `add_attention_menu`.
-- [ ] Endpoint index, list, show, assign, dismiss, fix (menu `radio-management.attention`). Cek tetap dihitung langsung
+- [x] Migration `create_radio_check_states_table` (penugasan, alasan abaikan, pertama terlihat) dan `add_attention_menu`.
+- [x] Endpoint index, list, show, assign, dismiss, fix (menu `radio-management.attention`). Cek tetap dihitung langsung
   oleh `RadioCheckService`.
-- [ ] Opsi perbaikan lewat `RadioService`, yang menulis riwayat dan audit:
+- [x] Opsi perbaikan lewat `RadioService`, yang menulis riwayat dan audit:
 
   | Cek | Opsi perbaikan |
   | --- | --- |
@@ -640,9 +640,9 @@ Prinsip:
   | `reprogram` | tambah riwayat Program |
   | `verify_empty`, `verify_stale` | tambah riwayat Verifikasi |
   | `needs_review` | tandai sudah ditinjau |
-- [ ] Halaman tiga panel (250px cek, 340px item, detail perbandingan). Badge merah di sidebar dan tautan "Buka inbox" di
+- [x] Halaman tiga panel (250px cek, 340px item, detail perbandingan). Badge merah di sidebar dan tautan "Buka inbox" di
   Dashboard.
-- [ ] Tes per jenis cek dan per izin.
+- [x] Tes per jenis cek dan per izin.
 
 ### 6.5 Stock opname di ponsel
 - [ ] Migration `create_radio_opname_tables` (sesi dan item) dan `add_opname_menu`.
@@ -854,3 +854,25 @@ Prinsip:
     kirim dengan kalender, tiket baru dengan pencarian radio;
   - suite penuh: 498 lulus (setelah itu hanya tampilan halaman servis yang diubah; ServiceTicketTest, BladeScriptSyntaxTest
     dan ShellTest lulus lagi).
+- 2026-10-20, 6.4 selesai:
+  - migration `create_radio_check_states_table` (kolom `check_code`, karena `check` kata SQL) dan `add_attention_menu`,
+    hanya dijalankan di LocalDB (tes dan preview). Menu Perlu Perhatian masuk di bawah Register Radio, Servis & Perbaikan
+    turun ke bawahnya;
+  - `AttentionInbox`: item per radio, atau per SN / Radio ID yang dipakai beberapa radio (yang tertua dianggap benar, opsi
+    perbaikan untuk yang lain). Item yang diabaikan tetap tersembunyi selama sidik jarinya (id dan versi radio-radionya)
+    sama. Pertama terlihat dicatat saat cek itu dibuka; state item yang sudah hilang dibuang. Angka di sidebar disimpan
+    semenit di cache (`attention-open-count`), dihapus setiap kali perbaikan atau abaikan;
+  - `AttentionController` + `RequireMenu`: list, item, assign, dismiss, fix. Fix butuh Update di Perlu Perhatian dan di
+    Register Radio. `RadioCheckService` dibuat baru di setiap panggilan (controller hidup antar-request di tes);
+  - `rmDialog.confirm` menerima `inputValidator`;
+  - halaman tiga panel `attention/index.blade.php` (kelas `rm-inbox-*`, karena `rm-attn-*` sudah dipakai Dashboard);
+  - tes: `AttentionInboxTest` (8, termasuk checker `attention-inbox-behaviour.mjs`, 11 cek). Tes menu servis dan tes
+    migrasi menu SharePoint menyesuaikan entri baru di atasnya;
+  - beda dari desain dan README:
+    - "Run checks now" hanya memuat ulang: cek memang dihitung langsung, tidak ada cek malam;
+    - "Detected by the nightly check on ..." menjadi "Terlihat pertama ...";
+    - tidak ada notifikasi saat item ditugaskan;
+    - item yang diabaikan tidak punya tampilan sendiri; kembali sendiri bila datanya berubah;
+  - diperiksa di browser (preview, data rekaan): 1440, 1366, 390, SN dobel dengan perbandingan, perlu dicek dengan catatan,
+    ID dengan F dengan saran ID, dialog abaikan dengan validasi alasan, tautan Buka inbox di Dashboard.
+  - suite penuh: 506 lulus.

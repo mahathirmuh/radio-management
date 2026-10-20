@@ -82,13 +82,14 @@ class ServiceTicketTest extends TestCase
         $menu = DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->sole();
         $this->assertSame(['Servis & Perbaikan', 'tool', null, null], [$menu->title, $menu->icon, $menu->parent_id, $menu->section]);
         $register = DB::table('menu')->where('route', 'radio-management.radio.index')->sole();
-        // Riwayat Radio, the group of the master data and Import Excel moved down to make room.
+        // Below Perlu Perhatian (AttentionInboxTest), the first of the pages that came with the design refresh; Riwayat Radio,
+        // the group of the master data and Import Excel moved down to make room.
         $this->assertSame([
             'Register Radio' => (int) $register->order,
-            'Servis & Perbaikan' => $register->order + 1,
-            'Riwayat Radio' => $register->order + 2,
-            'Master Data Radio' => $register->order + 3,
-            'Import Excel' => $register->order + 4,
+            'Perlu Perhatian' => $register->order + 1,
+            'Servis & Perbaikan' => $register->order + 2,
+            'Riwayat Radio' => $register->order + 3,
+            'Master Data Radio' => $register->order + 4,
         ], $this->sidebar());
 
         // The same roles and permissions as Register Radio: Admin Radio all, Viewer Radio Read, Super Admin all.
@@ -119,17 +120,19 @@ class ServiceTicketTest extends TestCase
             ->where(fn ($query) => $query->whereNull('route')->orWhere('route', '<>', ServiceMenuSeeder::ROUTE))
             ->orderBy('id')->pluck('order', 'id')->map(fn ($place) => (int) $place)->all();
         $with = $orders();
+        $at = (int) DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->value('order');
 
         // Rolled back: the entry and its grants are gone, and what is below it moves up again.
         $migration->down();
         $this->assertFalse(DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->exists());
         $this->assertSame(0, DB::table('menu_role')->whereNotIn('menu_id', DB::table('menu')->select('id'))->count());
-        $this->assertSame(['Register Radio' => $register, 'Riwayat Radio' => $register + 1], array_slice($this->sidebar(), 0, 2, true));
-        $this->assertSame(array_map(fn (int $place) => $place > $register ? $place - 1 : $place, $with), $orders());
+        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Riwayat Radio' => $register + 2], array_slice($this->sidebar(), 0, 3, true));
+        $this->assertSame(array_map(fn (int $place) => $place > $at ? $place - 1 : $place, $with), $orders());
 
-        // Migrated again: back in its place, with the grants of Register Radio.
+        // Migrated again: back in its place (below Perlu Perhatian), with the grants of Register Radio.
         $migration->up();
-        $this->assertSame(['Register Radio' => $register, 'Servis & Perbaikan' => $register + 1, 'Riwayat Radio' => $register + 2], array_slice($this->sidebar(), 0, 3, true));
+        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Servis & Perbaikan' => $register + 2, 'Riwayat Radio' => $register + 3],
+            array_slice($this->sidebar(), 0, 4, true));
         $this->assertSame($with, $orders());
         $this->assertTrue(DB::table('menu_role')->where('menu_id', DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->value('id'))->where('role_id', 1)->exists());
 

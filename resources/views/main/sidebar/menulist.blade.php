@@ -9,6 +9,11 @@
 
             return ['count' => $count, 'color' => 'blue', 'title' => "{$count} pengajuan menunggu"];
         }
+        if ($route === 'radio-management.attention.index') {
+            $count = \Modules\RadioManagement\Services\AttentionInbox::openCount();
+
+            return ['count' => $count, 'color' => 'red', 'title' => "{$count} item perlu perhatian"];
+        }
 
         return null;
     };

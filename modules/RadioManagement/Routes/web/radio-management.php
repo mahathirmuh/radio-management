@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\RadioManagement\Http\Controllers\AttentionController;
 use Modules\RadioManagement\Http\Controllers\ESignController;
 use Modules\RadioManagement\Http\Controllers\MasterDataController;
 use Modules\RadioManagement\Http\Controllers\RadioBulkController;
@@ -41,6 +42,17 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         // PUT, not POST: a history line changes an existing radio (Update permission).
         Route::put('{radio}/history', 'storeHistory')->name('add-history')->whereNumber('radio');
         Route::delete('{radio}', 'destroy')->name('destroy')->whereNumber('radio');
+    });
+
+    // "Perlu Perhatian": the register's checks as items to fix, set aside or give to somebody. It changes radios, so without
+    // its menu row it is closed to everyone but Super Admin (RequireMenu). Giving, setting aside and fixing are an Update.
+    Route::prefix('attention')->name('attention.')->controller(AttentionController::class)->middleware(RequireMenu::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('list', 'list')->name('list');
+        Route::get('item', 'show')->name('show');
+        Route::put('assign', 'assign')->name('assign');
+        Route::put('dismiss', 'dismiss')->name('dismiss');
+        Route::put('fix', 'fix')->name('fix');
     });
 
     // "Servis & Perbaikan": the radios away for repair. It changes radios, so without its menu row it is closed to everyone

@@ -494,11 +494,12 @@
     // buttons at the foot (layout "center": the icon over the title, everything in the middle, as the user form asks).
     // tone: blue | green | orange | red | yellow | sky; confirmKind: primary | success | destructive.
     // "text" goes in as text; "html" only when the caller has escaped what it puts in. loader: preConfirm sends a
-    // request, and the dialog waits for its answer (it cannot be closed meanwhile).
+    // request, and the dialog waits for its answer (it cannot be closed meanwhile). inputValidator: what is wrong with what
+    // was typed (shown under the field), or nothing; it is asked before preConfirm.
     const rmDialog = {
         confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = 'OK', cancelText = 'Batal',
-            confirmKind = 'primary', input = undefined, inputLabel = undefined, inputAttributes = undefined, preConfirm = undefined,
-            loader = false, layout = 'side' } = {}) {
+            confirmKind = 'primary', input = undefined, inputLabel = undefined, inputAttributes = undefined, inputValidator = undefined,
+            preConfirm = undefined, loader = false, layout = 'side' } = {}) {
             return Swal.fire({
                 title,
                 ...(html === null ? { text } : { html }),
@@ -507,6 +508,7 @@
                 input,
                 inputLabel,
                 inputAttributes,
+                inputValidator,
                 preConfirm,
                 ...(loader ? { showLoaderOnConfirm: true, allowOutsideClick: () => !Swal.isLoading(), allowEscapeKey: () => !Swal.isLoading() } : {}),
                 showCancelButton: true,

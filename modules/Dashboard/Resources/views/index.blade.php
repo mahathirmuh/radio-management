@@ -283,6 +283,9 @@
                                 <h2 class="rm-cardbox-title">Perlu tindakan</h2>
                                 <div class="rm-cardbox-sub">Hasil cek otomatis di kolom "Cek" pada Register Radio</div>
                             </div>
+                            @if (\Modules\SharePointDocs\Services\MenuAccess::allows(auth()->user(), 'radio-management.attention.index'))
+                                <a href="{{ route('radio-management.attention.index') }}" class="rm-cardbox-link">Buka inbox <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+                            @endif
                         </header>
                         <div class="rm-cardbox-body">
                             @if ($issues->isEmpty())

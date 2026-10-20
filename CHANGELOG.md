@@ -29,7 +29,18 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - tanda tangan hanya untuk cetak: form checkout terbuka dengan tanda tangan itu di kotak Responsible User, dan tidak
       disimpan di mana pun (juga tidak di audit);
     - endpoint baru: `PUT radio-management/radio/{radio}/handover` dan `GET radio-management/radio/employees`.
-  - menu baru **Servis & Perbaikan**, tepat di bawah Register Radio (entri di bawahnya turun satu tempat). Yang memegang
+  - menu baru **Perlu Perhatian**, tepat di bawah Register Radio, dengan angka merah item yang terbuka; Dashboard punya
+    tautan **Buka inbox**. Hasil cek kolom "Cek" menjadi item yang dikerjakan:
+    - satu item per radio, atau satu per SN / Radio ID yang dipakai beberapa radio (radio-radionya dibandingkan, kolom
+      yang berbeda ditandai);
+    - perbaikan per jenis cek lewat RadioService (riwayat dan audit tercatat): betulkan SN, arsipkan duplikat, ID bebas
+      berikutnya, ID terakhir, pilih tipe, isi No. BA (dan arsipkan sebagai hilang), catat program atau verifikasi hari
+      ini, tandai sudah ditinjau. Memperbaiki butuh izin Update di Register Radio juga;
+    - **Abaikan** wajib beralasan; item muncul lagi bila data radionya berubah;
+    - item bisa ditugaskan ke akun yang boleh mengubah data radio; filter Semua / Tugas saya / Belum ditugaskan;
+    - audit `attention.assigned` dan `attention.dismissed`;
+    - endpoint baru di `radio-management/attention`: `list`, `item`, `PUT assign`, `PUT dismiss`, `PUT fix`.
+  - menu baru **Servis & Perbaikan**, di bawah Perlu Perhatian (entri di bawahnya turun satu tempat). Yang memegang
     Register Radio mendapat izin yang sama di menu ini: Admin Radio dan Super Admin penuh, Viewer Radio baca:
     - tiket servis bernomor `SRV-0001` untuk radio yang bermasalah, satu tiket terbuka per radio, tidak untuk radio arsip;
     - langkahnya Dilaporkan → Dikirim ke servis → Dalam perbaikan → Siap diambil → Kembali. Saat dikirim, lokasi radio
@@ -164,7 +175,9 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
 **Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru. Fase 6 membawa migrasi: `php artisan migrate`, sekali
 per database. Migrasinya:
 - `2026_10_20_100000_create_service_tickets_tables` (tabel `service_tickets` dan `service_ticket_events`);
-- `2026_10_20_110000_add_service_menu` (menu Servis & Perbaikan).
+- `2026_10_20_110000_add_service_menu` (menu Servis & Perbaikan);
+- `2026_10_20_120000_create_radio_check_states_table` (tabel `radio_check_states`: pertama terlihat, penugasan, abaikan);
+- `2026_10_20_130000_add_attention_menu` (menu Perlu Perhatian).
 
 Migrasi menu menghapus sendiri cache peta menu (`rbac_menu_route_key_map`). Instalasi yang tidak berbagi cache dengan
 tempat migrasi dijalankan: `php artisan cache:forget rbac_menu_route_key_map` di instalasi itu.

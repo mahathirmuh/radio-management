@@ -819,8 +819,9 @@ class SharePointEditTest extends TestCase
 
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
-        // The database as it was when this migration was new: without the later "Servis & Perbaikan", "API Tokens" and
-        // "Audit Log" (rolled back, the latest first).
+        // The database as it was when this migration was new: without the later "Perlu Perhatian", "Servis & Perbaikan",
+        // "API Tokens" and "Audit Log" (rolled back, the latest first).
+        (require database_path('migrations/2026_10_20_130000_add_attention_menu.php'))->down();
         (require database_path('migrations/2026_10_20_110000_add_service_menu.php'))->down();
         (require database_path('migrations/2026_10_17_150000_add_api_tokens_menu.php'))->down();
         (require database_path('migrations/2026_10_17_110000_add_audit_log_menu.php'))->down();

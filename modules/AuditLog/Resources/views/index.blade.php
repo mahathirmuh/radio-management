@@ -449,6 +449,8 @@
                 'radio.restored': ['Restored', 'green', 'restore'],
                 'service.status_changed': ['Moved', 'orange', 'tool'],
                 'service.note_added': ['Note', 'blue', 'notes'],
+                'attention.assigned': ['Assigned', 'blue', 'user-plus'],
+                'attention.dismissed': ['Dismissed', 'gray', 'eye-off'],
                 'esign.used': ['Signed', 'blue', 'signature'],
                 'document.edit_requested': ['Requested', 'yellow', 'send'],
                 'document.edit_approved': ['Approved', 'green', 'check'],

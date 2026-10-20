@@ -102,6 +102,8 @@ class AuditLog extends Model
             AuditLogger::SERVICE_CREATED => 'opened service ticket',
             AuditLogger::SERVICE_STATUS_CHANGED => 'moved service ticket',
             AuditLogger::SERVICE_NOTE_ADDED => 'added a note to service ticket',
+            AuditLogger::ATTENTION_ASSIGNED => 'assigned the check',
+            AuditLogger::ATTENTION_DISMISSED => 'set aside the check',
             AuditLogger::MASTER_CREATED => 'added',
             AuditLogger::MASTER_UPDATED => 'updated',
             AuditLogger::MASTER_DELETED => 'deleted',

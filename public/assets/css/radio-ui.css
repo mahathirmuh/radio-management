@@ -5564,6 +5564,482 @@ input.rm-codebox:focus {
     line-height: 16px;
 }
 
+/* Perlu Perhatian: three panes. The checks (250), the items of the one chosen (340), the item: its radios side by side,
+   the fixes, who has it. */
+.rm-inbox-grid {
+    display: grid;
+    grid-template-columns: 250px 340px minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+@media (max-width: 1199.98px) {
+    .rm-inbox-grid {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .rm-inbox-detail {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .rm-inbox-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rm-inbox-checks {
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-inbox-checks-head {
+    padding: 8px 10px;
+    color: var(--rm-gray-500);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.rm-inbox-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 20px;
+    text-align: left;
+    transition: background-color .12s ease-out;
+}
+
+.rm-inbox-check:hover,
+.rm-inbox-check:focus-visible {
+    background: var(--rm-hover);
+    outline: 0;
+}
+
+.rm-inbox-check.is-on {
+    background: var(--rm-brand-50);
+    color: var(--rm-brand-700);
+    font-weight: 600;
+}
+
+.rm-inbox-check-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-inbox-check-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.rm-inbox-check.is-none .rm-inbox-check-count {
+    color: var(--rm-gray-400);
+    font-weight: 400;
+}
+
+/* The colour of a check, as its badge has it: red, orange, yellow, gray. */
+.rm-inbox-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--rm-gray-400);
+}
+
+.rm-inbox-dot.is-red {
+    background: var(--rm-error-600);
+}
+
+.rm-inbox-dot.is-orange {
+    background: var(--rm-orange-600);
+}
+
+.rm-inbox-dot.is-yellow {
+    background: var(--rm-warning-500);
+}
+
+.rm-inbox-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.rm-inbox-items-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+}
+
+.rm-inbox-items-title {
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-inbox-who {
+    width: auto;
+    margin-left: auto;
+}
+
+.rm-inbox-who .form-select {
+    height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 13px;
+}
+
+/* An item: a button, reached with the keyboard too. */
+.rm-inbox-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-900);
+    text-align: left;
+    transition: box-shadow .15s ease-out;
+}
+
+.rm-inbox-item:hover,
+.rm-inbox-item:focus-visible {
+    outline: 0;
+    box-shadow: inset 0 0 0 1px var(--rm-brand-300), 0 2px 6px rgba(15, 23, 42, .08);
+}
+
+.rm-inbox-item.is-on {
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+.rm-inbox-item-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rm-inbox-item-head {
+    min-width: 0;
+    font-family: var(--rm-mono);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.rm-inbox-item-side {
+    flex: none;
+    max-width: 50%;
+    margin-left: auto;
+    overflow: hidden;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-inbox-item-who {
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-inbox-item-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* A person's initials in a circle (who has an item). */
+.rm-inbox-av {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.rm-inbox-av.lg {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+}
+
+.rm-inbox-none {
+    padding: 16px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.rm-inbox-more {
+    align-self: center;
+}
+
+/* The item. */
+.rm-inbox-detail {
+    overflow: hidden;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.rm-inbox-detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px 16px 12px;
+}
+
+.rm-inbox-detail-title {
+    margin: 0;
+    color: var(--rm-gray-900);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.rm-inbox-detail-sub {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-inbox-detail-head .rm-badge {
+    flex: none;
+    margin-left: auto;
+}
+
+.rm-inbox-note {
+    margin: 0 16px 12px;
+}
+
+.rm-inbox-records {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 16px;
+}
+
+.rm-inbox-records.is-one {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.rm-inbox-record {
+    overflow: hidden;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+}
+
+.rm-inbox-record.is-suspect {
+    border-color: var(--rm-warning-200);
+}
+
+.rm-inbox-record-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--rm-gray-50);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-inbox-record.is-suspect .rm-inbox-record-head {
+    background: var(--rm-warning-50);
+}
+
+.rm-inbox-record-tag {
+    margin-left: auto;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.rm-inbox-row {
+    padding: 7px 12px;
+    background: #fff;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-inbox-row.is-marked {
+    background: var(--rm-warning-50);
+}
+
+.rm-inbox-row-label {
+    color: var(--rm-gray-500);
+}
+
+.rm-inbox-row-value {
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.rm-inbox-row.is-marked .rm-inbox-row-value {
+    font-weight: 600;
+}
+
+.rm-inbox-row-value.is-mono {
+    font-family: var(--rm-mono);
+}
+
+.rm-inbox-fixes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+}
+
+.rm-inbox-fixes-title {
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+/* A fix to choose: a card with a round mark, the chosen one blue. */
+.rm-inbox-fix {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    cursor: pointer;
+}
+
+.rm-inbox-fix.is-on {
+    background: var(--rm-brand-50);
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+.rm-inbox-fix > input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    border-radius: 999px;
+    appearance: none;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+}
+
+.rm-inbox-fix > input:checked {
+    box-shadow: inset 0 0 0 5px var(--rm-brand-600);
+}
+
+.rm-inbox-fix > input:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+.rm-inbox-fix-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-inbox-fix-title {
+    display: block;
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.rm-inbox-fix-detail {
+    display: block;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-inbox-fix-field {
+    width: 240px;
+    max-width: 100%;
+    margin-top: 8px;
+}
+
+.rm-inbox-detail-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fff;
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-inbox-detail-foot .rm-end {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.rm-inbox-assign {
+    width: 200px;
+}
+
+.rm-inbox-assign .form-select {
+    height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 13px;
+}
+
+.rm-inbox-holder {
+    color: var(--rm-gray-900);
+    font-weight: 500;
+}
+
+.rm-inbox-empty {
+    padding: 48px 16px;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    text-align: center;
+}
+
 /* Bootstrap's dialogs get the scrim of the design. */
 .modal-backdrop {
     --tblr-backdrop-bg: #0f172a;
