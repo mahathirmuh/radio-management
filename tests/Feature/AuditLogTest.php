@@ -103,10 +103,12 @@ class AuditLogTest extends TestCase
     {
         $menu = DB::table('menu')->where('route', AuditLogMenuSeeder::ROUTE)->sole();
         $this->assertSame(['Audit Log', null, 'Settings', 'shield-search'], [$menu->title, $menu->parent_id, $menu->section, $menu->icon]);
-        // It took the place of "Approval Management" (hidden), which moved down: "Settings" is printed above it. (Below it
-        // comes "API Tokens", at 12, which moved "Approval Management" down once more: ApiTokensPageTest.)
+        // It took the place of "Approval Management" (hidden), right below "User Management", which moved down: "Settings" is
+        // printed above it. (Below it comes "API Tokens", which moved "Approval Management" down once more: ApiTokensPageTest.
+        // The pages of the section "Radio" that came later moved all of them down: ServiceTicketTest.)
         $approvals = DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->sole();
-        $this->assertSame([11, 13], [(int) $menu->order, (int) $approvals->order]);
+        $users = (int) DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->value('order');
+        $this->assertSame([$users + 1, $users + 3], [(int) $menu->order, (int) $approvals->order]);
         $this->assertSame([1], DB::table('menu_role')->where('menu_id', $menu->id)->pluck('role_id')->map(fn ($id) => (int) $id)->all());
         $this->assertSame(array_values(CheckMenuPermission::PERMISSION_IDS),
             DB::table('menu_role_permission')->where('menu_id', $menu->id)->where('role_id', 1)->orderBy('permission_id')->pluck('permission_id')->map(fn ($id) => (int) $id)->all());
@@ -114,7 +116,7 @@ class AuditLogTest extends TestCase
         // Seeding again adds nothing and moves nothing.
         (new AuditLogMenuSeeder())->run();
         $this->assertSame(1, DB::table('menu')->where('route', AuditLogMenuSeeder::ROUTE)->count());
-        $this->assertSame(13, (int) DB::table('menu')->where('id', $approvals->id)->value('order'));
+        $this->assertSame($users + 3, (int) DB::table('menu')->where('id', $approvals->id)->value('order'));
 
         // Super Admin: in the sidebar under "Settings", and the page of trilingual-docon.
         $this->actingAs($this->superAdmin());

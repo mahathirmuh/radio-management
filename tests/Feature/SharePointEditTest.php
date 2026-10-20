@@ -788,11 +788,15 @@ class SharePointEditTest extends TestCase
 
         // The page of the approvals: in the section "Dokumen" below the masterlist, the others below it.
         $menu = DB::table('menu')->where('route', EditApprovalsMenuSeeder::ROUTE)->sole();
-        $this->assertSame(['Persetujuan Edit', 'Dokumen', null, 9], [$menu->title, $menu->section, $menu->parent_id, (int) $menu->order]);
-        // (Since 2026-10-17 "Audit Log" and "API Tokens" take places 11 and 12, before the hidden "Approval Management":
-        // AuditLogTest, ApiTokensPageTest.)
+        // (Counted from the last entry of the section "Radio", Import Excel: the pages that came with the design refresh moved
+        // the section down, ServiceTicketTest.)
+        $import = (int) DB::table('menu')->where('route', 'radio-management.import.index')->value('order');
+        $this->assertSame(['Persetujuan Edit', 'Dokumen', null, $import + 3], [$menu->title, $menu->section, $menu->parent_id, (int) $menu->order]);
+        // (Since 2026-10-17 "Audit Log" and "API Tokens" come right after "User Management", before the hidden "Approval
+        // Management": AuditLogTest, ApiTokensPageTest.)
         $this->assertSame(
-            ['COF Scan' => 7, 'ICT Masterlist' => 8, 'Persetujuan Edit' => 9, 'User Management' => 10, 'Audit Log' => 11, 'API Tokens' => 12, 'Approval Management' => 13],
+            ['COF Scan' => $import + 1, 'ICT Masterlist' => $import + 2, 'Persetujuan Edit' => $import + 3, 'User Management' => $import + 4,
+                'Audit Log' => $import + 5, 'API Tokens' => $import + 6, 'Approval Management' => $import + 7],
             DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Audit Log', 'API Tokens', 'Approval Management'])
                 ->orderBy('order')->pluck('order', 'title')->map(fn ($place) => (int) $place)->all()
         );
@@ -815,7 +819,9 @@ class SharePointEditTest extends TestCase
 
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
-        // The database as it was when this migration was new: without the later "API Tokens" and "Audit Log".
+        // The database as it was when this migration was new: without the later "Servis & Perbaikan", "API Tokens" and
+        // "Audit Log" (rolled back, the latest first).
+        (require database_path('migrations/2026_10_20_110000_add_service_menu.php'))->down();
         (require database_path('migrations/2026_10_17_150000_add_api_tokens_menu.php'))->down();
         (require database_path('migrations/2026_10_17_110000_add_audit_log_menu.php'))->down();
         $migration = require database_path('migrations/2026_10_12_110000_add_edit_approvals_menu.php');

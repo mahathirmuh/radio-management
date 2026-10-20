@@ -276,6 +276,35 @@ class RadioService
         });
     }
 
+    /**
+     * A step of a service ticket that moves the radio (ServiceTickets, which holds the lock of the register already):
+     * sent, it is at "Service"; back, it is where it was put, in the condition it came back in. One line "Service" in its
+     * history, with the ticket's number in the words and the BA as its document. A radio that was archived meanwhile is
+     * left as it is (null).
+     *
+     * @param array{placement?: string, condition?: string} $values
+     */
+    public function serviceStep(Radio $radio, array $values, string $description, ?string $document, string $date, ?int $userId): ?RadioHistory
+    {
+        $this->reload($radio);
+        if ($radio->isArchived()) {
+            return null;
+        }
+
+        $radio->fill($values);
+        $changes = $this->pendingChanges($radio);
+        if ($changes) {
+            $radio->updated_by = $userId;
+            $radio->save();
+        }
+
+        return $this->log($radio, 'Service', $description, $userId, [
+            'event_date' => $date,
+            'document_no' => $document,
+            'changes' => $changes ?: null,
+        ]);
+    }
+
     /** Remove a radio that was entered by mistake (soft delete; its history is kept). */
     public function delete(Radio $radio, ?int $userId): void
     {

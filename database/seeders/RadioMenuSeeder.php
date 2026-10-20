@@ -22,23 +22,35 @@ class RadioMenuSeeder extends Seeder
     {
         $now = now();
 
-        $register = $this->menu('radio-management.radio.index', 'Register Radio', 'radio', 3, null, 'Radio');
-        $history = $this->menu('radio-management.history.index', 'Riwayat Radio', 'history', 4);
-        $masterGroup = $this->group('Master Data Radio', 'database', 5);
+        $register = $this->menu(RadioSectionMenuSeeder::REGISTER, 'Register Radio', 'radio', 3, null, 'Radio');
+        // The pages that came with the design refresh (Perlu Perhatian, Servis & Perbaikan, Stock Opname) are right below
+        // it, when they are there: their seeders add them (after this one on a new install). The rest follows them.
+        $sectionPages = [];
+        foreach (RadioSectionMenuSeeder::ROUTES as $route) {
+            $id = DB::table('menu')->where('route', $route)->value('id');
+            if ($id) {
+                DB::table('menu')->where('id', $id)->update(['order' => 4 + count($sectionPages), 'parent_id' => null, 'updated_at' => now()]);
+                $sectionPages[] = (int) $id;
+            }
+        }
+        $order = 4 + count($sectionPages);
+        $history = $this->menu('radio-management.history.index', 'Riwayat Radio', 'history', $order);
+        $masterGroup = $this->group('Master Data Radio', 'database', $order + 1);
         $masters = [
             $this->menu('radio-management.radio-type.index', 'Tipe Radio', null, 1, $masterGroup),
             $this->menu('radio-management.company.index', 'Perusahaan', null, 2, $masterGroup),
             $this->menu('radio-management.department.index', 'Department', null, 3, $masterGroup),
             $this->menu('radio-management.channel-template.index', 'Template Channel', null, 4, $masterGroup),
         ];
-        $import = $this->menu('radio-management.import.index', 'Import Excel', 'file-import', 6);
+        $import = $this->menu('radio-management.import.index', 'Import Excel', 'file-import', $order + 2);
 
-        // Keep the base sections below the radio section (3-6) and the "Dokumen" entries (7-9).
-        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 10]);
-        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 11]);
+        // Keep the base sections below the radio section (3-6, and one more for each page above) and the "Dokumen"
+        // entries (7-9, moved down as far).
+        DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => 10 + count($sectionPages)]);
+        DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->update(['order' => 11 + count($sectionPages)]);
 
         $dashboardId = (int) DB::table('menu')->where('route', 'dashboard.index')->value('id') ?: null;
-        $routedMenus = array_merge([$register, $history, $import], $masters);
+        $routedMenus = array_merge([$register], $sectionPages, [$history, $import], $masters);
         $allMenus = array_filter(array_merge([$dashboardId, $masterGroup], $routedMenus));
 
         $superAdmin = 1;

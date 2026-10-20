@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             $this->command?->warn('Base data is already there and is left alone. Only the radio master data and menus are refreshed.');
             $this->call(RadioMasterSeeder::class);
             $this->call(RadioMenuSeeder::class);
+            // (Added when missing: a database whose migrations ran before it had the radio menus.)
+            $this->call(ServiceMenuSeeder::class);
 
             return;
         }
@@ -68,6 +70,9 @@ class DatabaseSeeder extends Seeder
         // The base approval module does not work here: its menus are seeded above but not shown.
         // (Only on a new install: on a database in use the owner's later choice is left alone.)
         $this->call(HideApprovalMenusSeeder::class);
+        // The pages of the section "Radio" that came with the design refresh go right below Register Radio and move
+        // everything below them down by one: last, so that the places the seeders above go by are still where they look.
+        $this->call(ServiceMenuSeeder::class);
     }
 
     /**

@@ -56,6 +56,7 @@
     --rm-orange-50: #fff7ed;
     --rm-orange-100: #ffedd5;
     --rm-orange-200: #fed7aa;
+    --rm-orange-500: #f97316;
     --rm-orange-600: #ea580c;
     --rm-orange-700: #c2410c;
 
@@ -65,6 +66,10 @@
     /* The purple of the faded badge (README .rm-badge.purple). */
     --rm-violet-100: #ede9fe;
     --rm-violet-600: #7c3aed;
+
+    /* Green (not the success emerald): the tint and the edge of the column "Siap diambil" on the service board. */
+    --rm-green-50: #f0fdf4;
+    --rm-green-200: #bbf7d0;
 
     --rm-sky-100: #e0f2fe;
     --rm-sky-700: #0369a1;
@@ -4950,6 +4955,615 @@ input.rm-codebox:focus {
     flex: none;
 }
 
+/* Servis & Perbaikan: four numbers, then the board (a column for each step) or the list, and the drawer of a ticket. */
+.rm-svc-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-svc-stat {
+    padding: 16px 20px;
+}
+
+.rm-svc-stat + .rm-svc-stat {
+    box-shadow: inset 1px 0 0 var(--rm-gray-200);
+}
+
+.rm-svc-stat-label {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-svc-stat-value {
+    color: var(--rm-gray-900);
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+}
+
+.rm-svc-stat-value.is-red {
+    color: var(--rm-error-600);
+}
+
+.rm-svc-stat-hint {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+@media (max-width: 991.98px) {
+    .rm-svc-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rm-svc-stat:nth-child(3) {
+        box-shadow: inset 0 1px 0 var(--rm-gray-200);
+    }
+
+    .rm-svc-stat:nth-child(4) {
+        box-shadow: inset 1px 0 0 var(--rm-gray-200), inset 0 1px 0 var(--rm-gray-200);
+    }
+}
+
+.rm-svc-search {
+    width: 300px;
+}
+
+.rm-svc-center {
+    width: 230px;
+    max-width: 100%;
+}
+
+/* "Hapus filter": a word, there only while a filter is on. */
+.rm-svc-clear {
+    padding: 0 0 8px;
+    border: 0;
+    background: none;
+    color: var(--rm-brand-600);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.rm-svc-clear:hover,
+.rm-svc-clear:focus-visible {
+    text-decoration: underline;
+}
+
+/* The board: a column for each step, its colour on a 3px edge at the top and in a 1px ring. */
+.rm-svc-board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+}
+
+@media (max-width: 1199.98px) {
+    .rm-svc-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .rm-svc-board {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.rm-svc-col {
+    --svc-dot: var(--rm-gray-400);
+    --svc-tint: var(--rm-gray-100);
+    --svc-edge: var(--rm-gray-300);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px 12px 12px;
+    border-radius: 12px;
+    background: var(--svc-tint);
+    box-shadow: inset 0 3px 0 var(--svc-dot), inset 0 0 0 1px var(--svc-edge);
+}
+
+.rm-svc-col[data-status="sent"] {
+    --svc-dot: var(--rm-brand-500);
+    --svc-tint: var(--rm-brand-50);
+    --svc-edge: var(--rm-brand-200);
+}
+
+.rm-svc-col[data-status="in_repair"] {
+    --svc-dot: var(--rm-orange-500);
+    --svc-tint: var(--rm-orange-50);
+    --svc-edge: var(--rm-orange-200);
+}
+
+.rm-svc-col[data-status="ready"] {
+    --svc-dot: var(--rm-success-500);
+    --svc-tint: var(--rm-green-50);
+    --svc-edge: var(--rm-green-200);
+}
+
+.rm-svc-col-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px;
+}
+
+.rm-svc-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--svc-dot);
+}
+
+.rm-svc-col-title {
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-svc-count {
+    margin-left: auto;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--rm-gray-700);
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-svc-none {
+    padding: 4px 4px 2px;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* A ticket on the board: a button, so that it is reached with the keyboard too. */
+.rm-svc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-900);
+    text-align: left;
+    cursor: pointer;
+    transition: box-shadow .15s ease-out;
+}
+
+.rm-svc-card.is-late {
+    box-shadow: inset 0 0 0 1px var(--rm-error-200);
+}
+
+.rm-svc-card:hover,
+.rm-svc-card:focus-visible {
+    outline: 0;
+    box-shadow: inset 0 0 0 1px var(--rm-brand-300), 0 2px 6px rgba(15, 23, 42, .08);
+}
+
+.rm-svc-card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rm-svc-radio {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rm-svc-no {
+    color: var(--rm-gray-500);
+    font-family: var(--rm-mono);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+/* The type: a long name is cut short rather than pushing the number onto two lines. */
+.rm-svc-card-top .rm-badge {
+    display: block;
+    min-width: 0;
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-svc-issue {
+    font-size: 13px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+.rm-svc-who {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-svc-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-svc-vendor {
+    flex: 1;
+    min-width: 0;
+}
+
+/* How long it has been away: red past the limit. */
+.rm-svc-days {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-700);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rm-svc-days.is-late {
+    background: var(--rm-error-100);
+    color: var(--rm-error-700);
+}
+
+.rm-svc-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    padding: 6px 4px;
+    border: 0;
+    background: none;
+    color: var(--rm-brand-600);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.rm-svc-more:hover,
+.rm-svc-more:focus-visible {
+    text-decoration: underline;
+}
+
+.rm-svc-more .ti {
+    font-size: 14px;
+}
+
+/* The list: a row opens the drawer (its number is a button, for the keyboard). */
+.rm-svc-table > tbody > tr[data-ticket] {
+    cursor: pointer;
+}
+
+.rm-svc-rowlink {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rm-gray-900);
+    font-family: var(--rm-mono);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-svc-rowlink:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+.rm-svc-table .rm-svc-issue-cell {
+    min-width: 180px;
+    white-space: normal;
+}
+
+.rm-svc-two b {
+    display: block;
+    font-weight: 600;
+}
+
+.rm-svc-two span {
+    display: block;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+/* The dialog of the next step: the calendars of its dates open below the dialog's edge. */
+.rm-modal.rm-svc-move .modal-content {
+    overflow: visible;
+}
+
+/* The radio chosen for a new ticket. */
+.rm-svc-picked {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--rm-gray-50);
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-svc-picked > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-match:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+/* The drawer of a ticket (Bootstrap's offcanvas): 460 wide, from the right. */
+.offcanvas-end.rm-drawer {
+    width: 460px;
+    max-width: 100%;
+    border-left: 0;
+    background: #fff;
+    box-shadow: var(--rm-shadow-xl);
+}
+
+.offcanvas-backdrop.show {
+    opacity: .35;
+}
+
+.offcanvas-backdrop {
+    background-color: var(--rm-gray-900);
+}
+
+.rm-drawer-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px 24px 16px;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-drawer-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-drawer-no {
+    color: var(--rm-gray-500);
+    font-family: var(--rm-mono);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-drawer-title {
+    margin: 0;
+    color: var(--rm-gray-900);
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.rm-drawer-sub {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-drawer-close {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--rm-gray-500);
+    font-size: 18px;
+    transition: background-color .12s ease-out;
+}
+
+.rm-drawer-close:hover,
+.rm-drawer-close:focus-visible {
+    background: var(--rm-gray-100);
+}
+
+.rm-drawer-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+.rm-drawer-foot {
+    display: flex;
+    gap: 8px;
+    padding: 14px 24px;
+    background: var(--rm-gray-50);
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+}
+
+/* The steps of a ticket: done (a tick on blue), the one it is at (a blue ring), the ones to come. */
+.rm-steps {
+    display: flex;
+    align-items: flex-start;
+}
+
+.rm-step {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.rm-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--rm-gray-200);
+}
+
+.rm-step.is-done:not(:last-child)::after {
+    background: var(--rm-brand-600);
+}
+
+.rm-step-dot {
+    position: relative;
+    z-index: 1;
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.rm-step.is-done .rm-step-dot {
+    background: var(--rm-brand-600);
+    box-shadow: none;
+    color: #fff;
+}
+
+.rm-step.is-on .rm-step-dot {
+    background: var(--rm-brand-50);
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+    color: var(--rm-brand-700);
+}
+
+.rm-step-label {
+    color: var(--rm-gray-500);
+    font-size: 11px;
+    line-height: 14px;
+    text-align: center;
+}
+
+.rm-step.is-on .rm-step-label {
+    color: var(--rm-gray-900);
+    font-weight: 600;
+}
+
+/* What is known of the ticket: the names in a column of 120px (the design's 110, for the longer Indonesian names). */
+.rm-svc-facts {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 10px 12px;
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-svc-facts dt {
+    color: var(--rm-gray-500);
+    font-weight: 400;
+}
+
+.rm-svc-facts dd {
+    margin: 0;
+    color: var(--rm-gray-900);
+    overflow-wrap: anywhere;
+}
+
+.rm-svc-facts .is-mono {
+    font-family: var(--rm-mono);
+}
+
+.rm-svc-acts-title {
+    margin-bottom: 10px;
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-svc-act {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 12px;
+}
+
+.rm-svc-act-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--rm-gray-400);
+}
+
+.rm-svc-act-dot.is-sent,
+.rm-svc-act-dot.is-returned {
+    background: var(--rm-brand-600);
+}
+
+.rm-svc-act-dot.is-in_repair {
+    background: var(--rm-orange-500);
+}
+
+.rm-svc-act-dot.is-ready {
+    background: var(--rm-success-500);
+}
+
+.rm-svc-act-dot.is-note {
+    background: var(--rm-gray-300);
+}
+
+.rm-svc-act-text {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-svc-act-title {
+    color: var(--rm-gray-900);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.rm-svc-act-title.is-note {
+    font-weight: 400;
+    white-space: pre-line;
+}
+
+.rm-svc-act-meta {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
 /* Bootstrap's dialogs get the scrim of the design. */
 .modal-backdrop {
     --tblr-backdrop-bg: #0f172a;
@@ -5088,6 +5702,39 @@ input.rm-codebox:focus {
 .rm-tabs.has-ink > .is-on,
 .nav.rm-wb-tabs.has-ink .nav-item .nav-link.active {
     box-shadow: none;
+}
+
+/* Servis & Perbaikan: the cards that "N lagi" shows rise one after another (50 ms apart). The drawer slides in from the
+   right in .24s over a scrim that fades in in .18s, and goes in .15s (Bootstrap's offcanvas, which marks the way in
+   "showing" and the way out "hiding"). */
+.rm-svc-card.is-extra {
+    animation: rm-rise .26s cubic-bezier(.2, .8, .2, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+.offcanvas-end.rm-drawer {
+    opacity: 0;
+    transform: translateX(28px);
+    transition: transform .24s cubic-bezier(.2, .8, .2, 1), opacity .24s ease-out, visibility .24s;
+}
+
+.offcanvas-end.rm-drawer.showing,
+.offcanvas-end.rm-drawer.show:not(.hiding) {
+    opacity: 1;
+    transform: none;
+}
+
+.offcanvas-end.rm-drawer.hiding {
+    transition-duration: .15s;
+    transition-timing-function: ease-in;
+}
+
+.offcanvas-backdrop.fade {
+    transition: opacity .15s linear;
+}
+
+.offcanvas-backdrop.fade.show {
+    transition-duration: .18s;
 }
 
 /* A signature just saved: two rings go out from its card. */

@@ -10,6 +10,7 @@ use Modules\RadioManagement\Models\RadioCompany;
 use Modules\RadioManagement\Models\RadioDepartment;
 use Modules\RadioManagement\Models\RadioHistory;
 use Modules\RadioManagement\Models\RadioType;
+use Modules\RadioManagement\Models\ServiceTicket;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
@@ -134,6 +135,9 @@ class RadioImportService
 
     private const NOT_EMPTY = 'Data radio sudah ada. Pilih opsi "hapus data lama" untuk mengimpor ulang dari Excel.';
 
+    /** Starting over would delete the radios that are away for repair (Servis & Perbaikan). */
+    private const OPEN_TICKETS = 'Masih ada %d tiket servis yang terbuka. Impor yang menghapus data lama baru bisa dijalankan setelah semua radio itu kembali (menu Servis & Perbaikan).';
+
     /** Upper bound for the write phase; the web request allows itself 600 s as well. */
     private const WRITE_SECONDS = 600;
 
@@ -155,6 +159,9 @@ class RadioImportService
         // Refuse early, before the workbook is read. Checked again where it counts, below.
         if (! $fresh && Radio::withTrashed()->exists()) {
             throw new RuntimeException(self::NOT_EMPTY);
+        }
+        if ($fresh && ($open = ServiceTicket::openCount()) > 0) {
+            throw new RuntimeException(sprintf(self::OPEN_TICKETS, $open));
         }
 
         $reader = IOFactory::createReader('Xlsx');
@@ -197,6 +204,9 @@ class RadioImportService
         // being replaced, and a second import that was started meanwhile finds it no longer empty.
         $this->lock->run(function () use ($records, $fresh, $userId, $fileName, &$report) {
             if ($fresh) {
+                if (($open = ServiceTicket::openCount()) > 0) {
+                    throw new RuntimeException(sprintf(self::OPEN_TICKETS, $open));
+                }
                 RadioHistory::query()->delete();
                 Radio::withTrashed()->forceDelete();
             } elseif (Radio::withTrashed()->exists()) {

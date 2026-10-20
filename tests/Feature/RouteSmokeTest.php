@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Modules\RadioManagement\Models\Radio;
+use Modules\RadioManagement\Models\ServiceTicket;
 use Tests\Concerns\MakesUsers;
 use Tests\Concerns\MakesWorkbooks;
 use Tests\TestCase;
@@ -36,6 +37,8 @@ class RouteSmokeTest extends TestCase
     public function test_no_get_route_ends_in_a_server_error(): void
     {
         $radio = Radio::create(['dmr_id' => 20, 'serial_number' => '867TZB5309', 'user_name' => 'Iqbal']);
+        $ticket = ServiceTicket::create(['number' => 'SRV-0001', 'radio_id' => $radio->id, 'radio_label' => $radio->display_name, 'status' => 'sent',
+            'issue' => 'LCD retak', 'sent_at' => now()->subDays(3)->toDateString(), 'service_center' => 'Pusat Servis Contoh']);
         $admin = $this->superAdmin();
         $this->actingAs($admin);
 
@@ -79,6 +82,7 @@ class RouteSmokeTest extends TestCase
             // (seeded roles, menus and master data start there); a 404 is fine.
             $id = match (true) {
                 str_contains($uri, '{radio}') => $radio->id,
+                str_contains($uri, '{ticket}') => $ticket->id,
                 str_starts_with($uri, 'user-management/user-registered') => $admin->id,
                 default => 1,
             };

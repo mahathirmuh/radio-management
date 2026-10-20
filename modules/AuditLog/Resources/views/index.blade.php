@@ -447,6 +447,8 @@
                 'radio.imported': ['Imported', 'purple', 'upload'],
                 'radio.archived': ['Archived', 'gray', 'archive'],
                 'radio.restored': ['Restored', 'green', 'restore'],
+                'service.status_changed': ['Moved', 'orange', 'tool'],
+                'service.note_added': ['Note', 'blue', 'notes'],
                 'esign.used': ['Signed', 'blue', 'signature'],
                 'document.edit_requested': ['Requested', 'yellow', 'send'],
                 'document.edit_approved': ['Approved', 'green', 'check'],

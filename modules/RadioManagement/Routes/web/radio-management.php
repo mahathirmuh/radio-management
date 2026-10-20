@@ -7,6 +7,7 @@ use Modules\RadioManagement\Http\Controllers\RadioBulkController;
 use Modules\RadioManagement\Http\Controllers\RadioController;
 use Modules\RadioManagement\Http\Controllers\RadioHistoryController;
 use Modules\RadioManagement\Http\Controllers\RadioImportController;
+use Modules\RadioManagement\Http\Controllers\ServiceTicketController;
 use Modules\SharePointDocs\Http\Middleware\RequireMenu;
 
 /*
@@ -40,6 +41,20 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         // PUT, not POST: a history line changes an existing radio (Update permission).
         Route::put('{radio}/history', 'storeHistory')->name('add-history')->whereNumber('radio');
         Route::delete('{radio}', 'destroy')->name('destroy')->whereNumber('radio');
+    });
+
+    // "Servis & Perbaikan": the radios away for repair. It changes radios, so without its menu row it is closed to everyone
+    // but Super Admin (RequireMenu), as E-Sign Master is. Opening a ticket is a Create; moving one on and a note, Update.
+    Route::prefix('service')->name('service.')->controller(ServiceTicketController::class)->middleware(RequireMenu::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('list', 'list')->name('list');
+        // The radios a new ticket can be for (for who may open one).
+        Route::get('radios', 'radios')->name('radios');
+        Route::get('export', 'export')->name('export');
+        Route::get('{ticket}', 'show')->name('show')->whereNumber('ticket');
+        Route::post('/', 'store')->name('store');
+        Route::put('{ticket}/status', 'status')->name('status')->whereNumber('ticket');
+        Route::put('{ticket}/note', 'note')->name('note')->whereNumber('ticket');
     });
 
     Route::prefix('history')->name('history.')->controller(RadioHistoryController::class)->group(function () {

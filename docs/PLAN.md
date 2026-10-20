@@ -607,20 +607,20 @@ Prinsip:
   - radio arsip ditolak.
 
 ### 6.3 Servis dan perbaikan
-- [ ] Migration `create_service_tickets_tables` (`service_tickets`, `service_ticket_events`) dan `add_service_menu`.
-- [ ] `ServiceTicketController`: index, list, show, export, store, status, note.
+- [x] Migration `create_service_tickets_tables` (`service_tickets`, `service_ticket_events`) dan `add_service_menu`.
+- [x] `ServiceTicketController`: index, list, show, export, store, status, note.
   - Nomor `SRV-0001` dibuat di dalam `RegisterLock`.
   - Satu tiket terbuka per radio; radio arsip tidak bisa diberi tiket.
-- [ ] Efek status pada radio:
+- [x] Efek status pada radio:
   - Dikirim: lokasi radio jadi Servis, plus riwayat "Service" bernomor SRV;
   - Kembali: lokasi dan kondisi dipilih, plus riwayat;
   - audit `service.*`.
-- [ ] Halaman:
+- [x] Halaman:
   - 4 sel statistik; Board/List; cari; filter pusat servis; Export; Tiket baru;
   - kolom board: abu, biru, oranye, hijau, dengan garis atas 3px;
   - kartu dengan chip jumlah hari, merah bila lebih dari 14 hari;
   - drawer 460px berisi stepper, fakta, aktivitas, catatan.
-- [ ] Tes: izin per role, riwayat dan audit, export, `RouteSmokeTest`.
+- [x] Tes: izin per role, riwayat dan audit, export, `RouteSmokeTest`.
 
 ### 6.4 Perlu perhatian (inbox)
 - [ ] Migration `create_radio_check_states_table` (penugasan, alasan abaikan, pertama terlihat) dan `add_attention_menu`.
@@ -822,3 +822,35 @@ Prinsip:
   - tes: `RadioHandoverTest` (4, termasuk checker `radio-handover-behaviour.mjs`, 5 cek);
   - diperiksa di browser: dialog, tanda tangan, form terbuka dengan nama penerima dan tanda tangannya;
   - suite penuh: 484 lulus.
+- 2026-10-20, 6.3 selesai:
+  - migration `create_service_tickets_tables` dan `add_service_menu`, hanya dijalankan di LocalDB (tes dan preview);
+  - `RadioSectionMenuSeeder` (dasar menu Perlu Perhatian, Servis & Perbaikan, Stock Opname): entri masuk tepat di bawah
+    Register Radio (atau di bawah halaman seksi itu yang urutannya lebih awal), semua entri di bawahnya turun satu, dan
+    rollback menaikkannya lagi. Izinnya disalin dari Register Radio. `RadioMenuSeeder` sekarang mengenal halaman-halaman
+    itu, jadi seed ulang tidak membuat urutan bentrok. `DatabaseSeeder` memanggil `ServiceMenuSeeder` paling akhir
+    (instalasi baru) dan di cabang database terpakai. Butir urutan menu di 6.8 dengan begitu sudah dikerjakan di sini;
+  - `ServiceTicket`, `ServiceTicketEvent`, `ServiceTickets` (buka, pindah langkah, catatan, statistik; nomor dan efek ke
+    radio di dalam `RegisterLock`), `RadioService::serviceStep()` (tanpa lock: dipanggil dari dalam lock tiket),
+    `ServiceTicketController` + `RequireMenu`, `ServiceTicketExport`;
+  - impor fresh ditolak selama ada tiket terbuka (`RadioImportService`, dicek sebelum dan di dalam lock);
+  - halaman `service/index.blade.php` dengan resep `rm-svc-*`, `rm-drawer`, `rm-steps` di `radio-ui.css`, token baru
+    `--rm-orange-500`, `--rm-green-50`, `--rm-green-200`;
+  - pesan validasi halaman ini berbahasa Indonesia (pesan bawaan aplikasi berbahasa Inggris);
+  - tes: `ServiceTicketTest` (12, termasuk checker `service-board-behaviour.mjs`, 16 cek), `RouteSmokeTest` membuka
+    tiket sungguhan. Tes yang dulu mengunci angka urutan menu (AuditLogTest, ApiTokensPageTest, SharePointDocsTest,
+    SharePointEditTest) sekarang menghitung dari User Management atau Import Excel; tes migrasi menu SharePoint
+    me-rollback menu servis lebih dulu;
+  - `page-sandbox.mjs`: `offcanvas()`, `append()`, `after()`, tag `option`;
+  - beda dari desain dan README:
+    - angka Terlambat merah hanya bila lebih dari 0;
+    - fakta tambahan di drawer: Dilaporkan, Biaya, Kembali; kolom nama fakta 120px (label Indonesia lebih panjang);
+    - tiket yang sudah kembali tidak tampil di board/list; ada di Export dan di riwayat radionya;
+    - drawer menyingkir selama dialog langkah atau catatan terbuka, lalu kembali (dua lapisan Bootstrap berebut fokus);
+    - lama hari dihitung sejak dikirim, atau sejak dilaporkan selama belum dikirim; terlambat hanya untuk yang sudah di
+      pusat servis;
+    - langkah hanya maju satu per satu; tidak ada hapus atau batal tiket;
+    - setelah tiket baru dibuat, drawer tiket itu langsung terbuka;
+  - diperiksa di browser (preview, data rekaan): board 1366/1440/390, list, filter pusat servis, "N lagi", drawer, dialog
+    kirim dengan kalender, tiket baru dengan pencarian radio;
+  - suite penuh: 498 lulus (setelah itu hanya tampilan halaman servis yang diubah; ServiceTicketTest, BladeScriptSyntaxTest
+    dan ShellTest lulus lagi).

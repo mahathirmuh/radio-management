@@ -29,6 +29,19 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - tanda tangan hanya untuk cetak: form checkout terbuka dengan tanda tangan itu di kotak Responsible User, dan tidak
       disimpan di mana pun (juga tidak di audit);
     - endpoint baru: `PUT radio-management/radio/{radio}/handover` dan `GET radio-management/radio/employees`.
+  - menu baru **Servis & Perbaikan**, tepat di bawah Register Radio (entri di bawahnya turun satu tempat). Yang memegang
+    Register Radio mendapat izin yang sama di menu ini: Admin Radio dan Super Admin penuh, Viewer Radio baca:
+    - tiket servis bernomor `SRV-0001` untuk radio yang bermasalah, satu tiket terbuka per radio, tidak untuk radio arsip;
+    - langkahnya Dilaporkan → Dikirim ke servis → Dalam perbaikan → Siap diambil → Kembali. Saat dikirim, lokasi radio
+      menjadi Service; saat kembali, lokasi dan kondisinya dipilih. Keduanya menulis baris riwayat "Service" (nomor
+      SRV di keterangannya, No. BA sebagai nomor dokumen);
+    - halaman: empat angka (tiket terbuka, rata-rata lama servis 90 hari terakhir, terlambat lebih dari 14 hari, biaya
+      kuartal ini), Board / List, cari, filter pusat servis, Export Excel (juga tiket yang sudah selesai), drawer tiket
+      dengan langkah, fakta, aktivitas dan catatan;
+    - audit `service.created`, `service.status_changed`, `service.note_added`;
+    - impor Excel yang menghapus data lama ditolak selama masih ada tiket servis terbuka;
+    - endpoint baru di `radio-management/service`: `list`, `radios`, `export`, `{ticket}`, `POST /`,
+      `PUT {ticket}/status`, `PUT {ticket}/note`.
 
 ### Diubah
 
@@ -148,7 +161,13 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
 - Halaman login tidak lagi memuat gambar yang tidak ada: thumbnail carousel lama, dan ikon `manifest.json` peninggalan
   template. Tautan manifest dihapus dari halaman login; file-nya masih ada di `public/`.
 
-**Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru.
+**Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru. Fase 6 membawa migrasi: `php artisan migrate`, sekali
+per database. Migrasinya:
+- `2026_10_20_100000_create_service_tickets_tables` (tabel `service_tickets` dan `service_ticket_events`);
+- `2026_10_20_110000_add_service_menu` (menu Servis & Perbaikan).
+
+Migrasi menu menghapus sendiri cache peta menu (`rbac_menu_route_key_map`). Instalasi yang tidak berbagi cache dengan
+tempat migrasi dijalankan: `php artisan cache:forget rbac_menu_route_key_map` di instalasi itu.
 
 ## [1.9.0] - 2026-10-19
 

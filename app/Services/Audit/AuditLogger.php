@@ -66,6 +66,13 @@ class AuditLogger
 
     public const RADIO_IMPORTED = 'radio.imported';
 
+    /** Servis & Perbaikan: a ticket opened for a radio, moved a step on (sent, in repair, ready, back), given a note. */
+    public const SERVICE_CREATED = 'service.created';
+
+    public const SERVICE_STATUS_CHANGED = 'service.status_changed';
+
+    public const SERVICE_NOTE_ADDED = 'service.note_added';
+
     /** Tipe Radio, Perusahaan, Department, Template Channel: the entry names which. */
     public const MASTER_CREATED = 'master_data.created';
 

@@ -52,7 +52,9 @@ class ApiTokensPageTest extends TestCase
         $audit = DB::table('menu')->where('route', AuditLogMenuSeeder::ROUTE)->sole();
         $approvals = DB::table('menu')->whereNull('parent_id')->where('title', 'Approval Management')->sole();
         $this->assertSame(['API Tokens', 'Settings', 'key', null], [$menu->title, $menu->section, $menu->icon, $menu->parent_id]);
-        $this->assertSame([11, 12, 13], [(int) $audit->order, (int) $menu->order, (int) $approvals->order]);
+        // Right below "User Management" (wherever the pages above have moved it).
+        $users = (int) DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->value('order');
+        $this->assertSame([$users + 1, $users + 2, $users + 3], [(int) $audit->order, (int) $menu->order, (int) $approvals->order]);
         $this->assertSame([1], DB::table('menu_role')->where('menu_id', $menu->id)->pluck('role_id')->map(fn ($id) => (int) $id)->all());
 
         $this->actingAs($this->superAdmin());

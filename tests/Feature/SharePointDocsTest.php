@@ -1392,7 +1392,9 @@ class SharePointDocsTest extends TestCase
     public function test_the_menu_is_added_once_and_is_then_the_owners(): void
     {
         $menu = DB::table('menu')->where('route', CofScanMenuSeeder::ROUTE)->sole();
-        $this->assertSame(['COF Scan', 'Dokumen', 'files', null, 7], [$menu->title, $menu->section, $menu->icon, $menu->parent_id, (int) $menu->order]);
+        // Right below the section "Radio" (Import Excel is its last entry).
+        $import = (int) DB::table('menu')->where('route', 'radio-management.import.index')->value('order');
+        $this->assertSame(['COF Scan', 'Dokumen', 'files', null, $import + 1], [$menu->title, $menu->section, $menu->icon, $menu->parent_id, (int) $menu->order]);
         // The route exists, and the folder key in it is not repeated as a query string.
         $this->assertSame('/documents/cof-scan', route(CofScanMenuSeeder::ROUTE, [], false));
         $this->assertSame('/documents/cof-scan/list', route('documents.cof-scan.list', [], false));
