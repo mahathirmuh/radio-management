@@ -1003,6 +1003,12 @@
     outline-offset: 2px;
 }
 
+/* A link drawn as a button that leads nowhere now (the first page has no "previous"). */
+.btn-rm.disabled {
+    opacity: .5;
+    pointer-events: none;
+}
+
 .btn-rm:disabled,
 .btn-rm.disabled {
     background: var(--rm-gray-100);
@@ -1820,6 +1826,58 @@
 .rm-swal .swal2-icon.rm-swal-icon.tone-yellow {
     background: var(--rm-warning-100);
     color: var(--rm-warning-600);
+}
+
+.rm-swal .swal2-icon.rm-swal-icon.tone-sky {
+    background: var(--rm-sky-100);
+    color: var(--rm-sky-700);
+}
+
+/* The centred variant (rmDialog.confirm layout "center"): a 420 card, the icon in a 56px disc over the title, the
+   buttons in the middle. */
+.swal2-popup.rm-swal.rm-swal-center {
+    grid-template-columns: minmax(0, 1fr);
+    width: 420px;
+    padding: 28px 24px 20px;
+    text-align: center;
+}
+
+.rm-swal.rm-swal-center .swal2-icon.rm-swal-icon {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: center;
+    width: 56px;
+    height: 56px;
+    margin: 0;
+}
+
+.rm-swal.rm-swal-center .swal2-icon.rm-swal-icon .swal2-icon-content {
+    font-size: 28px;
+}
+
+.rm-swal.rm-swal-center .swal2-title {
+    grid-column: 1;
+    grid-row: auto;
+    padding: 14px 0 0;
+    font-size: 20px;
+    line-height: 28px;
+    text-align: center;
+}
+
+.rm-swal.rm-swal-center .swal2-html-container {
+    grid-column: 1;
+    grid-row: auto;
+    margin: 6px 0 0;
+    padding: 0;
+    color: var(--rm-gray-500);
+    text-align: center;
+}
+
+.rm-swal.rm-swal-center .swal2-actions {
+    justify-content: center;
+    margin-top: 20px;
+    padding: 0;
+    box-shadow: none;
 }
 
 .rm-swal .swal2-title {
@@ -3204,6 +3262,11 @@ a:focus-visible > .rm-kpi {
     font-size: 20px;
 }
 
+.rm-empty-icon.tone-green {
+    background: var(--rm-success-100);
+    color: var(--rm-success-700);
+}
+
 .rm-empty-title {
     color: var(--rm-gray-900);
     font-size: 16px;
@@ -4009,6 +4072,515 @@ a:focus-visible > .rm-kpi {
     font-size: 16px;
     line-height: 24px;
     font-weight: 600;
+}
+
+/* Notifications: the panel of the bell (400 wide) and the page, with the same rows. */
+.dropdown-menu.rm-notif-menu {
+    width: 400px;
+    max-width: calc(100vw - 24px);
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: var(--rm-shadow-xl), var(--rm-ring);
+}
+
+.rm-notif-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 12px;
+}
+
+.rm-notif-head-title {
+    margin: 0;
+    color: var(--rm-gray-900);
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+}
+
+.rm-notif-readall {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--rm-brand-600);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.rm-notif-readall:hover {
+    text-decoration: underline;
+}
+
+.rm-notif-menu .rm-notif-list {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.rm-notif-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+    color: inherit;
+    text-decoration: none;
+    transition: background-color .12s ease-out;
+}
+
+.rm-notif-item.is-unread {
+    background: var(--rm-brand-50);
+}
+
+.rm-notif-item:hover,
+.rm-notif-item:focus-visible {
+    background: var(--rm-gray-50);
+    color: inherit;
+}
+
+.rm-notif-disc {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-600);
+    font-size: 16px;
+}
+
+.rm-notif-disc.tone-red {
+    background: var(--rm-error-100);
+    color: var(--rm-error-600);
+}
+
+.rm-notif-disc.tone-green {
+    background: var(--rm-success-100);
+    color: var(--rm-success-700);
+}
+
+.rm-notif-disc.tone-blue {
+    background: var(--rm-brand-100);
+    color: var(--rm-brand-700);
+}
+
+.rm-notif-disc.tone-orange {
+    background: var(--rm-orange-100);
+    color: var(--rm-orange-700);
+}
+
+.rm-notif-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-notif-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.rm-notif-title {
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.rm-notif-item.is-unread .rm-notif-title {
+    font-weight: 600;
+}
+
+.rm-notif-time {
+    flex: none;
+    margin-left: auto;
+    color: var(--rm-gray-400);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.rm-notif-body {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.rm-notif-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 999px;
+    background: var(--rm-brand-600);
+}
+
+.rm-notif-empty {
+    padding: 24px 16px;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    text-align: center;
+}
+
+.rm-notif-foot {
+    display: block;
+    padding: 12px 16px;
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+    color: var(--rm-brand-600);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color .12s ease-out;
+}
+
+.rm-notif-foot:hover {
+    background: var(--rm-gray-50);
+    color: var(--rm-brand-700);
+}
+
+/* The page: 960 at most, the rows grouped by day in boxes. */
+.rm-notif-page {
+    max-width: 960px;
+}
+
+.rm-notif-tabsrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-notif-tabsrow .rm-tabs {
+    flex: 1;
+    min-width: 0;
+    box-shadow: none;
+}
+
+.rm-notif-tabsrow form {
+    padding-bottom: 8px;
+}
+
+.rm-notif-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rm-notif-group-label {
+    color: var(--rm-gray-500);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.rm-notif-box {
+    overflow: hidden;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.rm-notif-box .rm-notif-item {
+    gap: 14px;
+    padding: 14px 16px;
+}
+
+.rm-notif-box .rm-notif-item:first-child {
+    box-shadow: none;
+}
+
+.rm-notif-box .rm-notif-disc {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+}
+
+.rm-notif-box .rm-notif-title {
+    font-size: 14px;
+}
+
+.rm-notif-box .rm-notif-body {
+    display: block;
+}
+
+.rm-notif-when {
+    margin-top: 4px;
+    color: var(--rm-gray-400);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-notif-box .rm-notif-dot {
+    align-self: center;
+    margin-top: 0;
+}
+
+/* A form with the label in a column of 190px (the user form); one column on a narrow screen. */
+.rm-form-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rm-form-row {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.rm-form-row > .rm-form-label {
+    margin: 0;
+    padding-top: 8px;
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.rm-form-row > .rm-form-label.required::after {
+    content: " *";
+    color: var(--rm-error-600);
+}
+
+.rm-form-row > .rm-form-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* A dialog whose foot has no line over it (the user form). */
+.rm-dialog-foot.is-plain {
+    gap: 12px;
+    padding: 12px 24px 20px;
+    box-shadow: none;
+}
+
+@media (max-width: 767.98px) {
+    .rm-form-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    .rm-form-row > .rm-form-label {
+        padding-top: 0;
+    }
+}
+
+/* Radios with a word and a line under each (how an account signs in). */
+.rm-radios {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rm-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.rm-radio > input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+    appearance: none;
+    cursor: pointer;
+    transition: box-shadow .12s ease-out;
+}
+
+.rm-radio > input:checked {
+    box-shadow: inset 0 0 0 5px var(--rm-brand-600);
+}
+
+.rm-radio > input:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+.rm-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.rm-radio-label .ti {
+    color: var(--rm-gray-500);
+    font-size: 16px;
+}
+
+.rm-radio-sub {
+    display: block;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* What a search found, to choose from (Find employee). */
+.rm-matches {
+    overflow: hidden;
+    border: 1px solid var(--rm-gray-200);
+    border-radius: 8px;
+}
+
+.rm-match {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .12s ease-out;
+}
+
+.rm-match + .rm-match {
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+}
+
+.rm-match:hover,
+.rm-match:focus-visible {
+    background: var(--rm-gray-50);
+}
+
+.rm-match-name {
+    display: block;
+    color: var(--rm-gray-900);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+}
+
+.rm-match-line {
+    display: block;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-match-id {
+    display: block;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* A quiet way out of a form ("Cancel" as a word). */
+.rm-link-muted {
+    padding: 0 8px;
+    color: var(--rm-gray-500);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.rm-link-muted:hover {
+    color: var(--rm-gray-700);
+    text-decoration: underline;
+}
+
+/* The button that saves a change of something that is there (Update): orange. */
+.btn-rm.update {
+    background: var(--rm-orange-600);
+    color: #fff;
+}
+
+.btn-rm.update:hover {
+    background: var(--rm-orange-700);
+    color: #fff;
+}
+
+/* A card with sections (API Tokens): a title and a line under it on the left, buttons on the right, then the table. */
+.rm-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 16px;
+}
+
+.rm-section-title {
+    margin: 0;
+    color: var(--rm-gray-900);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-section-sub {
+    max-width: 760px;
+    margin: 2px 0 0;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-section-actions {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* A row of something that no longer works (an expired token, an inactive owner): faded. */
+.rm-table > tbody > tr.rm-dim > td {
+    opacity: .55;
+}
+
+/* Text to copy, or an example to try: mono on gray, breaking anywhere. */
+.rm-codebox {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--rm-gray-50);
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-900);
+    font-family: var(--rm-mono);
+    font-size: 12px;
+    line-height: 20px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+input.rm-codebox {
+    border: 0;
+    outline: 0;
+}
+
+input.rm-codebox:focus {
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+.rm-copyrow {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.rm-copyrow > .btn-rm {
+    flex: none;
 }
 
 /* Bootstrap's dialogs get the scrim of the design. */

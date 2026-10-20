@@ -2,106 +2,89 @@
 @push('style')
     <link rel="stylesheet" href="{{ asset('assets/libs/select2/select2.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/libs/select2/select2-bootstrap.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/libs/datatables/datatables.min.css') }}" />
 
     <style>
-        .select2-container.select2-container-disabled .select2-choice {
-            background-color: #ddd;
-            border-color: #a8a8a8;
+        .role-toolbar .rm-search {
+            width: 320px;
+        }
+
+        #rolePermissionTable td.role-no {
+            width: 70px;
+            color: var(--rm-gray-500);
+            text-align: center;
+        }
+
+        #rolePermissionTable td.role-name {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        #rolePermissionTable td.role-count,
+        #rolePermissionTable td.role-actions {
+            width: 180px;
+            text-align: center;
         }
     </style>
 @endpush
 
+@php
+    // What the buttons of a row may do (the server checks again).
+    $roleMay = [
+        'update' => \Illuminate\Support\Facades\Blade::check('permission', 'user-management.role-permission', 'Update'),
+        'delete' => \Illuminate\Support\Facades\Blade::check('permission', 'user-management.role-permission', 'Delete'),
+    ];
+@endphp
+
 @section('page-title', 'Role & Permission')
 
 @section('content')
-    <div class="row g-2">
-        {{-- Table --}}
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body p-2">
-                    <div class="row g-2">
-                        <div class="col-12 d-flex  justify-content-between gap-2">
-                            <div class="d-flex justify-content-start gap-2">
-                                <div class=" d-flex gap-2">
-                                    <div class="d-flex gap-2">
-                                        <input type="text" name="search" id="userRegisterdSearch" value=""
-                                            class="form-control form-control-lg pb-1 rounded-3" autocomplete="off"
-                                            placeholder="Search…" />
-                                        <x-global.btn-detail label="" color="blue" size="sm" outline="true"
-                                            id="toggleSearchButton" data-bs-toggle="tooltip" data-bs-title="Search">
-                                            <x-slot:icon>
-                                                <i class="ti ti-search"></i>
-                                            </x-slot:icon>
-                                        </x-global.btn-detail>
-                                    </div>
-                                    <x-global.btn-detail label="" color="red" size="sm" outline="true"
-                                        id="toggleResetButton" data-bs-toggle="tooltip" data-bs-title="Reset">
-                                        <x-slot:icon>
-                                            <i class="ti ti-restore"></i>
-                                        </x-slot:icon>
-                                    </x-global.btn-detail>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-end gap-2">
-                                <div class="d-flex gap-2">
-                                    @permission('user-management.role-permission', 'Create')
-                                        <x-global.btn-detail label="Add Role" color="blue" size="sm" data-id=""
-                                                             onclick="formRoleModal('formRoleModal','Add')" data-bs-toggle="tooltip"
-                                                             data-bs-title="Add">
-                                            <x-slot:icon>
-                                                <i class="ti ti-plus"></i>
-                                            </x-slot:icon>
-                                        </x-global.btn-detail>
-                                    @endpermission
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="card overflow-hidden mdka-border-gray-200">
-                                <div class="card-body table-responsive p-0">
-                                    <table class="table table-vcenter mdka-border-gray-100 text-nowrap" id="rolePermissionTable">
-                                        <thead>
-                                            <tr class="mdka-bg-gray-50 ">
-                                                <th scope="col" width="30"
-                                                    class="text-capitalize fs-5 py-3 text-center">No</th>
-                                                <th scope="col" data-key="name" class="text-capitalize fs-5 py-3">
-                                                    Name
-                                                </th>
-                                                <th scope="col" class="text-capitalize fs-5 py-3 text-center">
-                                                    Total User
-                                                </th>
-                                                <th scope="col" class="text-capitalize fs-5 py-3 text-center">
-                                                    Action
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+    <div class="rm-head">
+        <div>
+            <h1 class="rm-title">Roles and permissions</h1>
+            <p class="rm-sub">Roles decide which menus a user sees and what they can do in each. Super Admin always has full
+                access.</p>
+        </div>
+    </div>
 
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div class="pagination-container mt-2">
-                                <!-- Pagination will be rendered here -->
-                            </div>
+    <div class="rm-card">
+        <div class="rm-toolbar role-toolbar">
+            <label class="rm-search" for="userRegisterdSearch">
+                <i class="ti ti-search" aria-hidden="true"></i>
+                <input type="search" name="search" id="userRegisterdSearch" value="" autocomplete="off" placeholder="Search…"
+                    aria-label="Search roles" />
+            </label>
+            <button type="button" class="btn-rm secondary" id="toggleResetButton"><i class="ti ti-refresh" aria-hidden="true"></i>
+                Reset</button>
+            @permission('user-management.role-permission', 'Create')
+                <button type="button" class="btn-rm primary ms-auto" id="roleAddButton" onclick="formRoleModal('formRoleModal','Add')"><i
+                        class="ti ti-plus" aria-hidden="true"></i> Add Role</button>
+            @endpermission
+        </div>
 
-                        </div>
-                    </div>
-                </div>
+        <div class="rm-box">
+            <div class="table-responsive">
+                <table class="rm-table" id="rolePermissionTable">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-center">No</th>
+                            <th scope="col" data-key="name">Name</th>
+                            <th scope="col" class="text-center">Total user</th>
+                            <th scope="col" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
+            <div class="pagination-container"></div>
         </div>
     </div>
 
     @include('UserManagement::role-permission.modal')
-
 @endsection
+
 @push('javascript')
     <script src="{{ asset('assets/libs/select2/select2.min.js') }}"></script>
     <script src="{{ asset('assets/libs/select2/select2.init.js') }}"></script>
-    <script src="{{ asset('assets/libs/datatables/datatables.min.js') }}"></script>
-    <script src="{{ asset('assets/libs/datatables/datatable-bootstrap5.js') }}"></script>
-
 
     {{-- URL list --}}
     <script>
@@ -111,6 +94,7 @@
         const urlRolePermissionEdit = "{{ route('user-management.role-permission.update', ':id') }}"
         const urlRolePermissionDelete = "{{ route('user-management.role-permission.destroy', ':id') }}"
         const urlRolePermissionView = "{{ route('user-management.role-permission.show', ':id') }}"
+        const roleMay = @json($roleMay);
     </script>
 
     {{-- render Table --}}
@@ -121,58 +105,45 @@
         let orderBy = 'id';
         let orderDir = 'asc';
 
+        const roleEsc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-        const columns = [
-            'index',
+        const columns = [{
+                key: 'no',
+                className: 'role-no',
+                render: (data, index) => String((currentPage - 1) * limit + index + 1)
+            },
             {
                 key: 'name',
-                headerClassName: 'text-center',
-                className: 'text-center',
-                sortable: true
+                className: 'role-name rm-strong',
+                sortable: true,
+                render: data => roleEsc(data.name)
             },
             {
                 key: 'user_count',
-                className: 'text-center',
+                className: 'role-count',
                 sortable: false,
                 render: function(data) {
                     const count = Number(data.user_count) || 0;
-                    const cls = count > 0 ? 'mdka-bg-blue-500 text-white' : 'bg-light text-muted border';
-                    return `<span class="badge ${cls} px-2 py-1 rounded-pill">${count}</span>`;
+                    return `<span class="badge bg-${count > 0 ? 'blue' : 'secondary'}-lt">${count}</span>`;
                 }
             },
             {
                 key: 'actions',
-                render: function(data, type, row) {
-                    var actionButtons = `
-                            <x-global.btn-detail label="" color="blue" size="sm" data-id="${data.id}" onclick="formRoleModal('formRoleModal','Preview', ${data.id})" data-bs-toggle="tooltip" data-bs-title="View">
-                                <x-slot:icon>
-                                    <i class="ti ti-eye"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                        `;
-
-                    if (data.action.is_active) {
-                        actionButtons += `
-                            <x-global.btn-detail label="" color="orange" size="sm" data-id="${data.id}" onclick="formRoleModal('formRoleModal','Edit', ${data.id})" data-bs-toggle="tooltip" data-bs-title="Edit">
-                                <x-slot:icon>
-                                    <i class="ti ti-edit"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-
-                            <x-global.btn-detail label="" color="red" size="sm" data-id="${data.id}" onclick="formRoleDelete(${data.id})" data-bs-toggle="tooltip" data-bs-title="Delete">
-                                <x-slot:icon>
-                                    <i class="ti ti-trash"></i>
-                                </x-slot:icon>
-                            </x-global.btn-detail>
-                        `;
+                className: 'role-actions',
+                // View for every role; Edit and Delete where the role may be changed and the menu allows. Never on Super Admin
+                // (id 1): it has full access whatever its boxes say, and without it nobody manages the rest.
+                render: function(data) {
+                    const id = Number(data.id);
+                    const act = (icon, title, call, danger = false) =>
+                        `<button type="button" class="rm-act${danger ? ' is-danger' : ''}" data-id="${id}" onclick="${call}" data-bs-toggle="tooltip" data-bs-title="${title}" aria-label="${title}"><i class="ti ti-${icon}"></i></button>`;
+                    let buttons = act('eye', 'View', `formRoleModal('formRoleModal','Preview', ${id})`);
+                    if (data.action && data.action.is_active && id !== 1) {
+                        if (roleMay.update) buttons += act('edit', 'Edit', `formRoleModal('formRoleModal','Edit', ${id})`);
+                        if (roleMay.delete) buttons += act('trash', 'Delete', `formRoleDelete(${id})`, true);
                     }
-                    // Conditionally add Edit and Delete buttons based on row.submited
-
-                    return actionButtons;
-                },
-                className: 'text-center'
+                    return `<span class="rm-acts">${buttons}</span>`;
+                }
             }
-
         ];
 
         // Load after the deferred theme script has registered $.fn.tooltip.
@@ -203,6 +174,7 @@
                 data: params,
                 dataType: 'json',
                 success: response => {
+                    $('.tooltip').remove();
                     renderTableWithFeatures({
                         container: '#rolePermissionTable',
                         data: response.data,
@@ -210,6 +182,7 @@
                         currentPage,
                         limit,
                         meta: response.meta,
+                        paginationLabels: { noun: 'roles' },
                         onPageChange: page => {
                             currentPage = page;
                             dataTable();
@@ -228,7 +201,7 @@
                         currentSortDir: orderDir
                     });
 
-                    $('[data-bs-toggle="tooltip"]').tooltip();
+                    $('#rolePermissionTable [data-bs-toggle="tooltip"]').tooltip({ trigger: 'hover' });
                 },
                 error: () => {
                     renderTableWithFeatures({
@@ -243,86 +216,77 @@
         }
 
         const formRoleDelete = (dataId) => {
-            Swal.fire({
-                title: 'Delete Data?',
-                text: 'Data will be Deleted!',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: '<i class="ti ti-check"></i> Delete',
-                cancelButtonText: '<i class="ti ti-x"></i> Cancel',
-                reverseButtons: true
+            $('[data-bs-toggle="tooltip"]').tooltip('hide');
+            rmDialog.confirm({
+                tone: 'red',
+                icon: 'trash',
+                title: 'Delete this role?',
+                text: 'It is taken off the list of roles. Users who hold it lose what it gives them.',
+                confirmText: '<i class="ti ti-trash"></i> Delete',
+                cancelText: 'Cancel',
+                confirmKind: 'destructive',
             }).then((result) => {
-                if (result.isConfirmed) {
-                    // Collect data from input, select, and textarea elements within the div
-
-                    $.ajax({
-                        type: 'Delete',
-                        url: urlRolePermissionDelete.replace(':id', dataId),
-                        success: function(response) {
-                            Swal.fire({
-                                title: 'Deleted',
-                                text: response.message,
-                                icon: 'success',
-                                showConfirmButton: false,
-                                timer: 2000,
-                                timerProgressBar: true
-                            });
-                            $('.tooltip').remove();
-                            // Step back when the deleted row was the only one on this page.
-                            if (currentPage > 1 && $('#rolePermissionTable tbody tr').length <= 1) {
-                                currentPage -= 1;
-                            }
-                            dataTable();
-                        },
-                        error: function(xhr) {
-                            let errorMessage = '';
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                                errorMessage = xhr.responseJSON.errors;
-                            } else {
-                                errorMessage = xhr.statusText;
-                            }
-                            Swal.fire({
-                                title: 'Oops...',
-                                html: errorMessage,
-                                icon: 'error',
-                                showConfirmButton: true,
-                            });
-                        }
-                    });
-
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    Swal.fire(
-                        'Canceled!',
-                        'Data not deleted!',
-                        'error'
-                    )
+                if (!result.isConfirmed) {
+                    return;
                 }
+                $.ajax({
+                    type: 'Delete',
+                    url: urlRolePermissionDelete.replace(':id', dataId),
+                    success: function(response) {
+                        rmFeedback.toast(response.message);
+                        $('.tooltip').remove();
+                        // Step back when the deleted row was the only one on this page.
+                        if (currentPage > 1 && $('#rolePermissionTable tbody tr').length <= 1) {
+                            currentPage -= 1;
+                        }
+                        dataTable();
+                    },
+                    error: function(xhr) {
+                        let errorMessage = '';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMessage = [].concat(xhr.responseJSON.errors).join(' ');
+                        } else {
+                            errorMessage = xhr.statusText;
+                        }
+                        Swal.fire({
+                            title: 'Oops...',
+                            text: errorMessage,
+                            icon: 'error',
+                            showConfirmButton: true,
+                        });
+                    }
+                });
             });
         }
     </script>
 
-    {{-- toggle refresh button hide show --}}
+    {{-- The search: as it is typed (after a pause), and on Enter; Reset starts over --}}
     <script>
-        $(document).ready(function() {
-            $("#toggleResetButton").click(function() {
+        $(function() {
+            const roleSearch = () => {
+                const typed = String($('#userRegisterdSearch').val() || '').trim();
+                if (typed === search) {
+                    return;
+                }
+                search = typed;
+                currentPage = 1;
+                dataTable();
+            };
+            $('#userRegisterdSearch').on('input', debounce(roleSearch, 400)).on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    roleSearch();
+                }
+            });
+            $('#toggleResetButton').on('click', function() {
                 currentPage = 1;
                 limit = 10;
                 search = '';
                 orderBy = 'id';
                 orderDir = 'asc';
-                dataTable();
-
-                $("#userRegisterdSearch").val('');
-            });
-        });
-    </script>
-    {{-- toggle refresh button hide show --}}
-    <script>
-        $(document).ready(function() {
-            $("#toggleSearchButton").click(function() {
-                search = $("#userRegisterdSearch").val();
+                $('#userRegisterdSearch').val('');
                 dataTable();
             });
         });

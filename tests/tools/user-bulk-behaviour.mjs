@@ -11,7 +11,7 @@ import { checker, loadPage } from './page-sandbox.mjs';
 
 const { node, page, fire, requests, dialogs, resolve, answer } = loadPage(
     process.argv[2],
-    ['function debounce(', 'function renderTableWithFeatures(', 'const urlUserRegisteredList', 'let filterList = {', 'const userBulk = {', 'const columns = ['],
+    ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const urlUserRegisteredList', 'let filterList = {', 'const userBulk = {', 'const columns = ['],
     { href: 'http://localhost/user-management/user-registered' }
 );
 const { check, done } = checker();
@@ -138,6 +138,59 @@ check('what was left out is said as text', () => {
     assert.deepEqual([dialog.title, dialog.icon], ['Some were skipped', 'warning']);
     assert.match(dialog.html, /&lt;b&gt;1&lt;\/b&gt; user deleted/);
     assert.match(dialog.html, /<li>&lt;img src=x onerror=alert\(1\)&gt;: You cannot delete your own account<\/li>/);
+});
+
+check('the questions are the design dialog: a tile in the colour of what is done, the right button', () => {
+    reset();
+    tick(rows[0]);
+    fire('#userBulkActivate', 'click');
+    assert.deepEqual([dialogs.at(-1).options.customClass.icon, dialogs.at(-1).options.customClass.confirmButton], ['rm-swal-icon tone-green', 'btn-rm success']);
+    resolve({ isConfirmed: false });
+    fire('#userBulkDelete', 'click');
+    assert.deepEqual([dialogs.at(-1).options.customClass.icon, dialogs.at(-1).options.customClass.confirmButton], ['rm-swal-icon tone-red', 'btn-rm destructive']);
+    resolve({ isConfirmed: false });
+});
+
+check('a row: the roles as badges in their colours, the sign-in in words with its date in the tooltip, the buttons the role may use', () => {
+    const render = (key, item) => columns.find(column => column.key === key).render(item, 0);
+    assert.equal(render('role', user(1, { role: 'Super Admin, Document Controller' })),
+        '<span class="rm-badges"><span class="badge bg-purple-lt">Super Admin</span><span class="badge bg-orange-lt">Document Controller</span></span>');
+    assert.equal(render('role', user(1, { role: 'Gudang' })), '<span class="rm-badges"><span class="badge bg-secondary-lt">Gudang</span></span>');
+    assert.equal(render('role', user(1, { role: '' })), '<span class="rm-none">—</span>');
+    assert.match(render('name', user(1, { is_self: true })), /<div class="rm-strong user-name">User 1<\/div><div class="rm-line2">You<\/div>/);
+    assert.match(render('last_login_at', user(1, { last_sign_in: '2026-10-20 08:00' })), /^<span class="user-muted" title="2026-10-20 08:00">/);
+    assert.equal(render('last_login_at', user(1, { last_sign_in: null })), '<span class="user-muted">Never</span>');
+
+    const ago = page('userAgo');
+    const now = new Date(2026, 9, 20, 10, 30);
+    assert.equal(ago('2026-10-20 10:30', now), 'just now');
+    assert.equal(ago('2026-10-20 10:29', now), '1 minute ago');
+    assert.equal(ago('2026-10-20 08:00', now), '2 hours ago');
+    assert.equal(ago('2026-10-19 08:00', now), 'yesterday');
+    assert.equal(ago('2026-10-15 08:00', now), '5 days ago');
+    assert.equal(ago('2026-08-01 08:00', now), '01-08-2026');
+
+    // The page was rendered for Super Admin: every button. One's own row: the edit alone.
+    const buttons = render('actions', user(2, { active: true, directory: false }));
+    assert.deepEqual([...buttons.matchAll(/data-bs-title="([^"]+)"/g)].map(match => match[1]), ['Edit', 'Deactivate', 'Set password', 'Delete']);
+    assert.match(buttons, /<button type="button" class="rm-act is-danger" data-id="2" onclick="userDelete\(2\)"/);
+    assert.deepEqual([...render('actions', user(2, { active: false, directory: true })).matchAll(/data-bs-title="([^"]+)"/g)].map(match => match[1]), ['Edit', 'Activate', 'Delete']);
+    assert.deepEqual([...render('actions', user(4, { is_self: true })).matchAll(/data-bs-title="([^"]+)"/g)].map(match => match[1]), ['Edit']);
+});
+
+check('a role or a status chosen in the toolbar is sent at once, from the first page', () => {
+    node('#roleSelectFilter').value = ['2', '3'];
+    node('#statusSelectFilter').value = 'inactive';
+    page('currentPage = 4');
+    fire('#roleSelectFilter, #statusSelectFilter', 'change');
+    const sent = requests.at(-1);
+    assert.equal(sent.url, page('urlUserRegisteredList'));
+    assert.deepEqual([plain(sent.data.role), sent.data.status, sent.data.page], [['2', '3'], 'inactive', 1]);
+    // Nothing chosen: neither is sent as a filter.
+    node('#roleSelectFilter').value = [];
+    node('#statusSelectFilter').value = '';
+    fire('#roleSelectFilter, #statusSelectFilter', 'change');
+    assert.deepEqual([requests.at(-1).data.role, requests.at(-1).data.status], [null, null]);
 });
 
 check('"Clear selection" lets go of everything', () => {

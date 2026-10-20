@@ -22,7 +22,7 @@ export const isWellFormed = text => !/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\u
  * The tags of a page are a short list: a tag outside it is a mistake until it is added here.
  */
 export function assertWellFormed(html, what = 'the markup') {
-    const known = new Set(['a', 'b', 'button', 'code', 'div', 'em', 'i', 'li', 'small', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul']);
+    const known = new Set(['a', 'b', 'button', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'i', 'li', 'ol', 's', 'small', 'span', 'strong', 'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul']);
     const unpaired = new Set(['br', 'hr', 'img', 'input']);
     const open = [];
     for (const match of String(html).matchAll(/<(\/?)([A-Za-z][A-Za-z0-9-]*)((?:"[^"]*"|'[^']*'|[^'">])*)>/g)) {
@@ -67,7 +67,7 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
     const nodes = new Map();
     const members = new Map();
     let element = null;
-    const newRecord = () => ({ html: '', text: '', wrote: null, writes: 0, value: '', attrs: {}, props: {}, data: {}, classes: new Set(), handlers: {}, hidden: false, modal: null, removed: 0, triggered: [] });
+    const newRecord = () => ({ html: '', text: '', wrote: null, writes: 0, value: '', attrs: {}, props: {}, data: {}, classes: new Set(), handlers: {}, hidden: false, modal: null, removed: 0, triggered: [], movedTo: null });
     const node = selector => {
         if (!nodes.has(selector)) {
             nodes.set(selector, newRecord());
@@ -156,6 +156,25 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
                 return api;
             },
             find(inner) { return $(`${selector} ${inner}`); },
+            // (Where an element was moved to: the selector of its new parent.)
+            appendTo(parent) { n.movedTo = String(parent); return api; },
+            // A form as jQuery sends it: what the test put in its value ("a=1&b=2").
+            serialize() { return String(n.value ?? ''); },
+            // Each element the selector stands for (its own record, and the members a test set up), as "this" of the callback.
+            each(callback) {
+                all().forEach((record, index) => {
+                    const [previous, saved] = [element, nodes.get('(object)')];
+                    element = {};
+                    nodes.set('(object)', record);
+                    try {
+                        callback.call(element, index, element);
+                    } finally {
+                        element = previous;
+                        nodes.set('(object)', saved ?? newRecord());
+                    }
+                });
+                return api;
+            },
             modal(action) { n.modal = action; return api; },
             ready(callback) { ready.push(callback); return api; },
             tooltip() { return api; },
@@ -175,6 +194,10 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
     $.param = values => Object.entries(values).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value ?? '')}`).join('&').replace(/%20/g, '+');
     // What a script sees as "document" ($(document) is the record "(document)").
     const documentStub = {
+        visibilityState: 'visible',
+        // (What the page listens for on the document is kept, not called: no event comes by itself.)
+        listeners: {},
+        addEventListener(event, callback) { this.listeners[event] = callback; },
         createElement: tag => ({ tag, listeners: {}, contentWindow: { location: { pathname: framePath } }, addEventListener(event, callback) { this.listeners[event] = callback; } }),
         getElementById: id => { asked.add(id); return { appendChild: element => appended.push({ into: id, element, gone: false }) }; },
     };
@@ -185,6 +208,8 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
             done(callback) { request.done = callback; return chain; },
             fail(callback) { request.fail = callback; return chain; },
             always(callback) { request.always = callback; return chain; },
+            // A request that is called off fails as jQuery's does: with the status text "abort".
+            abort() { request.aborted = true; request.fail?.({ status: 0, statusText: 'abort' }, 'abort'); request.always?.(); return chain; },
         };
         requests.push(request);
         return chain;
@@ -227,10 +252,15 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
         removeItem: key => { kept.delete(key); },
     };
 
+    // history.replaceState: the addresses a page gave itself without loading (addresses() shows them).
+    const addresses = [];
+    const history = { replaceState: (state, title, url) => { addresses.push(String(url)); } };
+
     const sandbox = vm.createContext({
         $,
         Swal,
         localStorage,
+        history,
         console,
         URL,
         URLSearchParams,
@@ -238,6 +268,9 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
         // Timers do not run by themselves: runTimers() lets the waiting ones fire, like time passing.
         setTimeout: callback => { timers.set(++lastTimer, callback); return lastTimer; },
         clearTimeout: id => { timers.delete(id); },
+        // A repeated timer is kept and never fires: what it repeats is checked by calling it.
+        setInterval: () => ++lastTimer,
+        clearInterval: () => {},
         document: documentStub,
     });
     vm.runInContext('globalThis.window = globalThis;', sandbox); // scripts say window.location, window.print ...
@@ -253,6 +286,8 @@ export function loadPage(file, markers, { href, framePath = '/', storage = {} })
         dialogs,
         /** What the page has kept in localStorage. */
         stored: () => Object.fromEntries(kept),
+        /** The addresses the page gave itself with history.replaceState, the latest last. */
+        addresses: () => [...addresses],
         /** The person's answer to the dialog that was opened last (what Swal.fire(...).then() is called with). */
         resolve: (result, dialog = dialogs.at(-1)) => dialog.callbacks.forEach(callback => callback(result)),
         appended,

@@ -1,168 +1,424 @@
 @extends('auth.main.app')
+@push('style')
+    <style>
+        /* The card on the darkened photo (the photo is the body's, auth.components.style): 1180 wide, the photos at the
+           left (7fr), the sign-in at the right (5fr). */
+        .rm-login {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .rm-login-card {
+            display: grid;
+            grid-template-columns: 7fr 5fr;
+            width: 1180px;
+            max-width: 100%;
+            overflow: hidden;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .55);
+        }
+
+        /* Four photos that fade one into the next (24 s for all four), and a bar for each under them. */
+        .rm-login-photos {
+            position: relative;
+            min-height: 760px;
+            overflow: hidden;
+            background: var(--rm-gray-200);
+        }
+
+        .rm-login-photos img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            animation: rm-xfade 24s linear infinite;
+        }
+
+        .rm-login-bars {
+            position: absolute;
+            right: 0;
+            bottom: 20px;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .rm-login-bars > span {
+            position: relative;
+            width: 44px;
+            height: 6px;
+            overflow: hidden;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, .45);
+        }
+
+        .rm-login-bars > span > span {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            opacity: 0;
+            animation: rm-xfade 24s linear infinite;
+        }
+
+        .rm-login [data-xf="0"] {
+            animation-delay: -0.72s;
+        }
+
+        .rm-login [data-xf="1"] {
+            animation-delay: 6s;
+        }
+
+        .rm-login [data-xf="2"] {
+            animation-delay: 12s;
+        }
+
+        .rm-login [data-xf="3"] {
+            animation-delay: 18s;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .rm-login [data-xf] {
+                animation: none !important;
+                opacity: 0 !important;
+            }
+
+            .rm-login [data-xf="0"] {
+                opacity: 1 !important;
+            }
+        }
+
+        .rm-login-side {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 36px 44px 16px;
+        }
+
+        .rm-login-logos {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .rm-login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .rm-login-title {
+            margin: 0;
+            color: var(--rm-gray-600);
+            font-size: 28px;
+            line-height: 36px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .rm-login-rule {
+            height: 1px;
+            background: var(--rm-gray-200);
+        }
+
+        .rm-login-hint {
+            color: var(--rm-gray-500);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .rm-ms-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            height: 48px;
+            padding: 0 20px;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: inset 0 0 0 1px var(--rm-gray-300);
+            color: var(--rm-gray-900);
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color .12s ease-out, box-shadow .12s ease-out;
+        }
+
+        .rm-ms-button:hover {
+            background: #ecf5fc;
+            box-shadow: inset 0 0 0 1px #4299e1;
+            color: var(--rm-gray-900);
+        }
+
+        .rm-ms-button:active {
+            background: #dbeafe;
+        }
+
+        /* The four squares of Microsoft (its colours, not tokens of the app). */
+        .rm-ms-mark {
+            display: inline-grid;
+            grid-template-columns: 10px 10px;
+            gap: 2px;
+        }
+
+        .rm-ms-mark > span {
+            height: 10px;
+        }
+
+        .rm-ms-mark.lg {
+            grid-template-columns: 16px 16px;
+            gap: 3px;
+        }
+
+        .rm-ms-mark.lg > span {
+            height: 16px;
+        }
+
+        .rm-ms-mark > span:nth-child(1) {
+            background: #f25022;
+        }
+
+        .rm-ms-mark > span:nth-child(2) {
+            background: #7fba00;
+        }
+
+        .rm-ms-mark > span:nth-child(3) {
+            background: #00a4ef;
+        }
+
+        .rm-ms-mark > span:nth-child(4) {
+            background: #ffb900;
+        }
+
+        .rm-login-or {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--rm-gray-400);
+            font-size: 12px;
+        }
+
+        .rm-login-or::before,
+        .rm-login-or::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--rm-gray-200);
+        }
+
+        .rm-login-submit {
+            width: 100%;
+            height: 44px;
+        }
+
+        .rm-login-guide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--rm-gray-700);
+            font-size: 13px;
+        }
+
+        .rm-login-guide button {
+            padding: 4px 10px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--rm-sky-100);
+            color: var(--rm-sky-700);
+            font-weight: 500;
+            transition: background-color .12s ease-out;
+        }
+
+        .rm-login-guide button:hover {
+            background: #bae6fd;
+        }
+
+        .rm-login-foot {
+            color: var(--rm-gray-500);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* The guide: 440 wide, a cross at the top right, the logos and the words in a ringed box. */
+        #accessLoginGuide .modal-dialog {
+            max-width: 440px;
+        }
+
+        #accessLoginGuide .modal-content {
+            position: relative;
+            padding: 20px;
+            border: 0;
+            border-radius: 12px;
+            box-shadow: var(--rm-shadow-xl);
+        }
+
+        #accessLoginGuide .rm-dialog-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+        }
+
+        .rm-guide-box {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 40px 24px;
+            border-radius: 8px;
+            box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+            color: var(--rm-gray-900);
+            font-size: 15px;
+            line-height: 24px;
+            text-align: center;
+        }
+
+        .rm-guide-logos {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .rm-guide-domain {
+            color: var(--rm-warning-700);
+            font-size: 13px;
+        }
+
+        .rm-guide-sso {
+            color: var(--rm-sky-700);
+            font-weight: 700;
+        }
+
+        .rm-guide-logos > .rm-guide-pipe {
+            color: var(--rm-gray-400);
+            font-size: 32px;
+            line-height: 1;
+            font-weight: 300;
+        }
+
+        @media (max-width: 991.98px) {
+            .rm-login {
+                padding: 16px;
+            }
+
+            .rm-login-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .rm-login-photos {
+                display: none;
+            }
+
+            .rm-login-side {
+                padding: 28px 20px 16px;
+            }
+        }
+    </style>
+@endpush
 @section('content')
-    <section class="h-100 gradient-form">
-        <div class="container py-5 h-100">
-            <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col-xl-10">
-                    <div class="card rounded-4 text-black"
-                        style="box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.55); border-radius: 20px; overflow: hidden;">
-                        <div class="row g-0">
-                            <div class="col-lg-7 d-flex align-items-center">
-                                <div id="carousel-indicators-thumb" class="carousel slide carousel-fade h-100"
-                                    data-bs-ride="carousel">
-                                    <div class="carousel-indicators carousel-indicators-thumb">
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="0" class=" ratio ratio-4x3 active"
-                                            style="background-image: url(./assets/img/branding/mdka-bg.jpg)"></button>
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="1" class=" ratio ratio-4x3"
-                                            style="background-image: url(./assets/img/branding/mdka-bg-2.png)"></button>
-                                        <button type="button" data-bs-target="#carousel-indicators-thumb"
-                                            data-bs-slide-to="2" class=" ratio ratio-4x3"
-                                            style="background-image: url(./assets/img/branding/mdka-bg-3.jpg)"></button>
+    <section class="rm-login">
+        <div class="rm-login-card">
+            <div class="rm-login-photos" aria-hidden="true">
+                <img data-xf="0" src="{{ asset('assets/img/bg-auth/mdka-bg.jpg') }}" alt="">
+                <img data-xf="1" src="{{ asset('assets/img/bg-auth/mdka-bg-1.jpg') }}" alt="">
+                <img data-xf="2" src="{{ asset('assets/img/bg-auth/mdka-bg-2.jpg') }}" alt="">
+                <img data-xf="3" src="{{ asset('assets/img/bg-auth/mdka-bg-3.jpg') }}" alt="">
+                <div class="rm-login-bars">
+                    <span><span data-xf="0"></span></span>
+                    <span><span data-xf="1"></span></span>
+                    <span><span data-xf="2"></span></span>
+                    <span><span data-xf="3"></span></span>
+                </div>
+            </div>
 
-                                    </div>
-                                    <div class="carousel-inner h-100">
-                                        <div class="carousel-item h-100  active">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                        <div class="carousel-item h-100  active">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-1.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                        <div class="carousel-item  h-100  ">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-2.jpg') }}"
-                                                style="object-fit:cover;">
-                                        </div>
-                                        <div class="carousel-item  h-100 ">
-                                            <img class="d-block w-100 h-100" alt=""
-                                                src="{{ asset('assets/img/bg-auth/mdka-bg-3.jpg') }}"
-                                                style="object-fit: cover;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-5 d-flex flex-column justify-content-between">
-                                <div class="p-md-5 mx-md-3 mb-0 d-flex justify-content-between align-items-center">
-                                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="38px"
-                                        alt="">
+            <div class="rm-login-side">
+                <div class="rm-login-logos">
+                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="36" alt="Merdeka Copper Gold">
+                    <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="40" alt="Merdeka Battery Materials">
+                </div>
 
-                                    <img src="{{ asset('assets/img/branding/mbm-logo.jpg') }}" height="56px"
-                                        alt="">
-                                </div>
-                                <div class="card-body px-md-5 pt-0 mx-md-3">
-                                    <div class="text-center mt-4">
-                                        <h1 class=" text-secondary">{{ config('app.name') }}
-                                        </h1>
-                                    </div>
-                                    <hr class="my-3">
-                                    <div class="text-center mb-3">
-                                        <span class="mb-2 text-muted w-100" style="font-size: 15px">
-                                            Sign In with SSO</span>
-                                    </div>
+                <div class="rm-login-form">
+                    <h1 class="rm-login-title">{{ config('app.name') }}</h1>
+                    <div class="rm-login-rule"></div>
+                    <div class="rm-login-hint">Sign in with SSO</div>
+                    <div class="d-flex justify-content-center">
+                        <a href="{{ route('sso-login-mirosoft') }}" class="rm-ms-button">
+                            <span class="rm-ms-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+                            Microsoft
+                        </a>
+                    </div>
+                    <div class="rm-login-or">Or</div>
+                    <div class="rm-login-hint">Sign in with Merdeka Account</div>
 
-                                    <form id="formAuthentication" class="mt-3" action="{{ route('login') }}"
-                                        method="POST">
-                                        @csrf
-                                        <div class="d-flex flex-column flex-lg-row justify-content-center gap-3 mb-2">
-                                            <a href="{{ route('sso-login-mirosoft') }}"
-                                                class="btn btn-login btn-lg p-3 d-flex flex-row gap-2"
-                                                style="width: 120px;">
-                                                <img src="{{ asset('assets/img/logo/microsoft.png') }}" class="rounded-top"
-                                                    width="24" alt="">
-                                                <span class="h4 mb-0">Microsoft</span>
-                                            </a>
-                                        </div>
-                                    </form>
-                                    <div class="hr-text my-4"> <span class="h6 mb-0"> Or </span> </div>
-                                    <div class="text-center">
-                                        <span class="text-muted w-100" style="font-size: 15px">
-                                            Sign in with Merdeka Account</span>
-                                    </div> 
-                                    <form id="loginForm" class="p-3 rounded" method="POST" action="{{ route('login') }}">
-                                        @csrf
-                                        <div class="row g-3">
-                                            <div class="col-12">
-                                                {{-- Not type="email": an account that signs in with its Active Directory
-                                                     password may be named by its directory username, which has no "@". --}}
-                                                <label for="employeeId" class="form-label  ">Email or username</label>
-                                                <input type="text" class="form-control" id="employeeId"
-                                                    name="emailusername" placeholder="Email or username"
-                                                    autocomplete="username" autocapitalize="none" spellcheck="false"
-                                                    required>
-                                            </div>
-                                            <div class="col-12">
-                                                {{-- No "Forgot Password": the password of a directory account is the one of
-                                                     Active Directory, and this application resets none. --}}
-                                                <label for="password" class="form-label  ">Password</label>
-                                                <input type="password" class="form-control" id="password"
-                                                    name="password" placeholder="Password" required>
-                                            </div>
-                                            <div class="col-12">
-                                                <button type="submit" class="btn btn-primary w-100">Login</button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                    <br>
-                                    <div class="text-center">
-                                        Access Login Guide :
-                                         <button
-                                            class="btn btn-sm btn-info rounded" data-bs-toggle="modal"
-                                            data-bs-target="#accessLoginGuide">
-                                            Click
-                                            Here</button>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex justify-content-center pb-2">
-                                    <small class="text-muted">© Merdeka Group {{ date('Y') }}</small>
-                                </div>
-                            </div>
-
+                    <form id="loginForm" class="rm-login-form" method="POST" action="{{ route('login') }}">
+                        @csrf
+                        <div class="rm-field">
+                            {{-- Not type="email": an account that signs in with its Active Directory password may be named
+                                 by its directory username, which has no "@". --}}
+                            <label for="employeeId" class="form-label">Email or username</label>
+                            <input type="text" class="form-control" id="employeeId" name="emailusername"
+                                placeholder="Email or username" autocomplete="username" autocapitalize="none"
+                                spellcheck="false" required>
                         </div>
+                        <div class="rm-field">
+                            {{-- No "Forgot Password": the password of a directory account is the one of Active Directory,
+                                 and this application resets none. --}}
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Password"
+                                autocomplete="current-password" required>
+                        </div>
+                        <button type="submit" class="btn-rm primary rm-login-submit" id="loginSubmit">Login</button>
+                    </form>
+
+                    <div class="rm-login-guide">
+                        Access Login Guide:
+                        <button type="button" data-bs-toggle="modal" data-bs-target="#accessLoginGuide">Click here</button>
                     </div>
                 </div>
+
+                <div class="rm-login-foot">© Merdeka Group {{ date('Y') }}</div>
             </div>
         </div>
     </section>
-    <!-- Modal -->
-    <div class="modal fade" id="accessLoginGuide" tabindex="-1" aria-labelledby="accessLoginGuide" aria-hidden="true">
-        {{-- Microsoft only: this application has no Google sign-in (the card for Merdeka Copper Gold Group was removed). --}}
+
+    {{-- Microsoft only: this application has no Google sign-in (the card for Merdeka Copper Gold Group was removed). --}}
+    <div class="modal fade" id="accessLoginGuide" tabindex="-1" aria-labelledby="accessLoginGuideTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-
-                <div class="modal-body p-3">
-                    <div class="row row-deck">
-                        <div class="col ">
-                            <div class="px-3 py-5 w-100  border rounded d-flex flex-column gap-3">
-                                <div class="d-flex justify-content-center align-items-center gap-2">
-                                    <div>
-                                        <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="42px"
-                                            alt="">
-                                    </div>
-                                    <div><span class="display-5 text-secondary fw-light">|</span></div>
-                                    <div>
-                                        <img src="{{ asset('assets/img/logo/microsoft.png') }}" class="rounded-top"
-                                            height="36px" alt="">
-                                    </div>
-                                </div>
-                                <div class="text-center">
-                                    Merdeka Battery Materials Group
-                                    <br><span class="text-warning small">@merdekabattery.com</span>
-                                    <br>access via
-                                    <br> <span class="text-azure fw-bold">Microsoft SSO</span>
-                                </div>
-                            </div>
-
-                        </div>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                        class="ti ti-x"></i></button>
+                <div class="rm-guide-box">
+                    <div class="rm-guide-logos">
+                        <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="42" alt="Merdeka Battery Materials">
+                        <span class="rm-guide-pipe" aria-hidden="true">|</span>
+                        <span class="rm-ms-mark lg" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+                    </div>
+                    <div id="accessLoginGuideTitle">
+                        Merdeka Battery Materials Group
+                        <br><span class="rm-guide-domain">@merdekabattery.com</span>
+                        <br>access via
+                        <br><span class="rm-guide-sso">Microsoft SSO</span>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 @endsection
+
+@push('javascript')
+    <script>
+        // While the sign-in is sent: a spinner in the button, and no second click.
+        $(function() {
+            $('#loginForm').on('submit', function() {
+                $('#loginSubmit').addClass('is-busy').prop('disabled', true).attr('aria-busy', 'true').text('Signing in…');
+            });
+        });
+    </script>
+@endpush

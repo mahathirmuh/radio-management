@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Api\Models\ApiToken;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\RunsPageChecks;
 use Tests\Concerns\UsesApi;
 use Tests\TestCase;
 
@@ -25,6 +26,7 @@ class ApiTokensPageTest extends TestCase
 {
     use MakesUsers;
     use RefreshDatabase;
+    use RunsPageChecks;
     use UsesApi;
 
     protected bool $seed = true;
@@ -197,5 +199,10 @@ class ApiTokensPageTest extends TestCase
         $this->assertStringContainsString('id="tokensNotReady"', (string) $this->get(route('api-tokens.index'))->assertOk()->getContent());
         $this->getJson(route('api-tokens.list'))->assertStatus(503);
         $this->postJson(route('api-tokens.store-token'), ['name' => 'x', 'owner' => 'me', 'access' => 'read', 'days' => 30])->assertStatus(503);
+    }
+
+    public function test_the_script_of_the_page_behaves_as_described(): void
+    {
+        $this->checkPageScript(route('api-tokens.index'), 'tests/tools/api-tokens-behaviour.mjs', 9);
     }
 }

@@ -5,38 +5,84 @@
     directory of HR for Microsoft) and whether a directory username is recorded. "Find employee" is there only where it
     has somewhere to search, for who may add or change a user: see UserRegisteredController::lookupSources().
 --}}
-<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userModal" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-fullscreen-lg-down modal-dialog-centered">
+@push('style')
+    <style>
+        /* The microsoft mark beside the method: four squares. */
+        #userModal .user-ms-mark {
+            display: inline-grid;
+            grid-template-columns: 7px 7px;
+            gap: 1px;
+        }
+
+        #userModal .user-ms-mark > span {
+            height: 7px;
+        }
+
+        #userModal .user-ms-mark > span:nth-child(1) {
+            background: #f25022;
+        }
+
+        #userModal .user-ms-mark > span:nth-child(2) {
+            background: #7fba00;
+        }
+
+        #userModal .user-ms-mark > span:nth-child(3) {
+            background: #00a4ef;
+        }
+
+        #userModal .user-ms-mark > span:nth-child(4) {
+            background: #ffb900;
+        }
+
+        #userModal .rm-dialog-body {
+            padding: 8px 24px 4px;
+        }
+
+        #userModal .user-directory-note {
+            font-size: 12px;
+            line-height: 16px;
+        }
+    </style>
+@endpush
+
+<div class="modal fade rm-modal wide" data-bs-backdrop="static" data-bs-keyboard="false" id="userModal" aria-labelledby="userModalTitle" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-body p-3">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h3 class="modal-title mb-0">Title</h3>
-                    <button type="button" class="btn-close position-static m-0" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+            <div class="rm-dialog-head">
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title modal-title" id="userModalTitle">Title</h3>
                 </div>
-                <form id="form" autocomplete="off">
-                    <div class="row g-3">
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <form id="form" autocomplete="off">
+                <div class="rm-dialog-body">
+                    <div class="rm-form-rows">
                         @if (count($signInMethods) > 1)
                             {{-- How the account is entered, asked first: it decides where "Find employee" searches and
                                  whether a directory username is recorded. LDAP: it has a directory username, and the login
                                  form checks its password against Active Directory. Microsoft: it has none. Always asked
                                  once the column is there (before its migration there is one method, so no choice). --}}
-                            <div class="col-12">
-                                <div class="row">
-                                    <label class="col-md-4 col-form-label required">Sign-in method
-                                    </label>
-                                    <div class="col-md-8">
-                                        @foreach ($signInMethods as $method)
-                                            <label class="form-check">
-                                                <input class="form-check-input" type="radio" name="sign_in_method"
-                                                    value="{{ $method }}">
-                                                <span class="form-check-label">
-                                                    <i class="ti {{ $method === 'LDAP' ? 'ti-server' : 'ti-brand-windows' }} me-1"></i>{{ $method }}
+                            <div class="rm-form-row" role="radiogroup" aria-labelledby="userMethodLabel">
+                                <span class="rm-form-label required pt-0" id="userMethodLabel">Sign-in method</span>
+                                <div class="rm-radios">
+                                    @foreach ($signInMethods as $method)
+                                        <label class="rm-radio">
+                                            <input type="radio" name="sign_in_method"
+                                                value="{{ $method }}">
+                                            <span>
+                                                <span class="rm-radio-label">
+                                                    @if ($method === 'LDAP')
+                                                        <i class="ti ti-server" aria-hidden="true"></i>
+                                                    @else
+                                                        <span class="user-ms-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+                                                    @endif
+                                                    {{ $method }}
                                                 </span>
-                                                <span class="form-check-description">{{ $signInMeanings[$method] }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
+                                                <span class="rm-radio-sub">{{ $signInMeanings[$method] }}</span>
+                                            </span>
+                                        </label>
+                                    @endforeach
                                 </div>
                             </div>
                         @endif
@@ -45,185 +91,149 @@
                             {{-- Above the name, because it fills in the name and the address (and, with LDAP, the directory
                                  username): choosing them is surer than typing them. Where it searches follows the method:
                                  Active Directory for LDAP, the employee directory of HR for Microsoft (see lookupSources()). --}}
-                            <div class="col-12" id="userLookupRow">
-                                <div class="row">
-                                    <label for="employeeLookup" class="col-md-4 col-form-label">Find employee
-                                    </label>
-                                    <div class="col-md-8">
-                                        <input type="search" id="employeeLookup" class="form-control"
+                            <div class="rm-form-row" id="userLookupRow">
+                                <label for="employeeLookup" class="rm-form-label">Find employee</label>
+                                <div class="rm-form-field rm-field">
+                                    <div class="rm-search w-100">
+                                        <i class="ti ti-search" aria-hidden="true"></i>
+                                        <input type="search" id="employeeLookup"
                                             placeholder="Name or work email.." autocomplete="off">
-                                        <small class="form-hint" id="employeeLookupHint">
-                                            Optional. Choosing somebody fills in their name and work address, which
-                                            is the address Microsoft signs them in with.
-                                        </small>
-                                        <div id="employeeMatches" aria-live="polite"></div>
                                     </div>
+                                    <div class="rm-hint" id="employeeLookupHint">
+                                        Optional. Choosing somebody fills in their name and work address, which
+                                        is the address Microsoft signs them in with.
+                                    </div>
+                                    <div id="employeeMatches" aria-live="polite"></div>
                                 </div>
                             </div>
                         @endif
 
-                        <div class="col-12">
-                            <div class="row">
-                                <label for="name" class="col-md-4 col-form-label required">Name
-                                </label>
-                                <div class="col-md-8">
-                                    <input type="text" id="name" class="form-control" name="name"
-                                        placeholder="Name.." autocomplete="off" required>
-                                </div>
+                        <div class="rm-form-row">
+                            <label for="name" class="rm-form-label required">Name</label>
+                            <div class="rm-form-field rm-field">
+                                <input type="text" id="name" class="form-control" name="name"
+                                    placeholder="Name.." autocomplete="off" required>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="row">
-                                <label for="email" class="col-md-4 col-form-label required">Email
-                                </label>
-                                <div class="col-md-8">
-                                    <input type="email" id="email" class="form-control" name="email"
-                                        placeholder="Email.." autocomplete="off" required>
-                                </div>
+                        <div class="rm-form-row">
+                            <label for="email" class="rm-form-label required">Email</label>
+                            <div class="rm-form-field rm-field">
+                                <input type="email" id="email" class="form-control" name="email"
+                                    placeholder="Email.." autocomplete="off" required>
                             </div>
                         </div>
 
                         @if (count($signInMethods) > 1)
-                            <div class="col-12" id="userDirectoryRow">
-                                <div class="row">
-                                    <label for="ldapUsername" class="col-md-4 col-form-label">Directory username
-                                    </label>
-                                    <div class="col-md-8">
-                                        <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
-                                            maxlength="128" autocomplete="off"
-                                            placeholder="Taken from the email if left blank">
-                                        <small class="form-hint">
-                                            The Active Directory account this person signs in with. Choosing somebody in
-                                            Find employee fills it in; left blank it is taken from the part of the email
-                                            before the &commat;. It is checked against the directory when the account is
-                                            saved. No password is stored here; the one they already use is checked against
-                                            the directory each time.
-                                        </small>
-                                        @unless ($ldapConfigured)
-                                            {{-- Said, instead of the choice going away: a setting that went missing
-                                                 should show where it is missed. --}}
-                                            <small class="form-hint text-orange" id="userLdapOffNote">
-                                                Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
-                                                in .env). Until it is, this account cannot sign in with its directory
-                                                password; it can with Microsoft.
-                                            </small>
-                                        @endunless
+                            <div class="rm-form-row" id="userDirectoryRow">
+                                <label for="ldapUsername" class="rm-form-label">Directory username</label>
+                                <div class="rm-form-field rm-field">
+                                    <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
+                                        maxlength="128" autocomplete="off"
+                                        placeholder="Taken from the email if left blank">
+                                    <div class="rm-hint">
+                                        The Active Directory account this person signs in with. Choosing somebody in
+                                        Find employee fills it in; left blank it is taken from the part of the email
+                                        before the &commat;. It is checked against the directory when the account is
+                                        saved. No password is stored here; the one they already use is checked against
+                                        the directory each time.
                                     </div>
+                                    @unless ($ldapConfigured)
+                                        {{-- Said, instead of the choice going away: a setting that went missing
+                                             should show where it is missed. --}}
+                                        <div class="rm-hint text-orange" id="userLdapOffNote">
+                                            Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
+                                            in .env). Until it is, this account cannot sign in with its directory
+                                            password; it can with Microsoft.
+                                        </div>
+                                    @endunless
                                 </div>
                             </div>
 
                             {{-- With Microsoft there is no box, not a greyed one: nothing is recorded. --}}
-                            <div class="col-12 d-none" id="userMicrosoftNote">
-                                <div class="row">
-                                    <div class="col-md-8 offset-md-4">
-                                        <div class="alert alert-info mb-0 py-2" role="alert">
-                                            No directory username is recorded for this account. The email above must
-                                            be the address Microsoft knows this person by &mdash; that is how
-                                            Microsoft sign-in finds the account.
-                                        </div>
-                                    </div>
+                            <div class="rm-form-row d-none" id="userMicrosoftNote">
+                                <span></span>
+                                <div class="rm-alert" role="alert">
+                                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                                    <span>No directory username is recorded for this account. The email above must
+                                        be the address Microsoft knows this person by &mdash; that is how
+                                        Microsoft sign-in finds the account.</span>
                                 </div>
                             </div>
                         @endif
 
-                        <div class="col-12">
-                            <div class="row">
-                                <label for="roleSelect" class="col-md-4 col-form-label required">Role
-                                </label>
-                                <div class="col-md-8">
-                                    <select id="roleSelect" name="role_id[]" class="form-select" required>
-                                        <option value="">Select role</option>
-                                        @foreach ($roles as $role)
-                                            <option value="{{ $role->id }}">{{ $role->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <div class="form-hint d-none" id="userOtherRolesNote"></div>
-                                </div>
-
+                        <div class="rm-form-row">
+                            <label for="roleSelect" class="rm-form-label required">Role</label>
+                            <div class="rm-form-field rm-field">
+                                <select id="roleSelect" name="role_id[]" class="form-select" required>
+                                    <option value="">Select role</option>
+                                    @foreach ($roles as $role)
+                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="rm-hint d-none" id="userOtherRolesNote"></div>
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <div class="row">
-                                <label for="statusSelect" class="col-md-4 col-form-label required">Status
-                                </label>
-                                <div class="col-md-8">
-                                    <select id="statusSelect" name="active" class="form-select" required>
-                                        <option value="1">Active</option>
-                                        <option value="0">Inactive</option>
-                                    </select>
-                                    <div class="form-hint d-none" id="userOwnStatusNote">Your own account stays
-                                        active.</div>
-                                </div>
+                        <div class="rm-form-row">
+                            <label for="statusSelect" class="rm-form-label required">Status</label>
+                            <div class="rm-form-field rm-field">
+                                <select id="statusSelect" name="active" class="form-select" required>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                                <div class="rm-hint d-none" id="userOwnStatusNote">Your own account stays active.</div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="d-flex justify-content-end align-items-center gap-2 mt-3" id="actionButtons">
-                        <a href="#" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal"
-                            role="button">Cancel</a>
-
-                        <x-global.btn-detail label="Update" color="orange" size="md"
-                            onclick="userSubmit(event, this)" id="userModalUpdateButton" type="submit"
-                            data-type="edit" data-form-id="id">
-                            <x-slot name="icon">
-                                <i class="ti ti-device-floppy"></i>
-                            </x-slot>
-                        </x-global.btn-detail>
-
-                        <x-global.btn-detail label="Submit" color="blue" size="md"
-                            onclick="userSubmit(event, this)" id="userModalSubmitButton" type="submit"
-                            data-type="submit" data-form-id="id">
-                            <x-slot name="icon">
-                                <i class="ti ti-device-floppy"></i>
-                            </x-slot>
-                        </x-global.btn-detail>
-                    </div>
-                </form>
-            </div>
+                <div class="rm-dialog-foot is-plain" id="actionButtons">
+                    <a href="#" class="rm-link-muted" data-bs-dismiss="modal" role="button">Cancel</a>
+                    <button type="submit" class="btn-rm update" onclick="userSubmit(event, this)" id="userModalUpdateButton"
+                        data-type="edit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Update</button>
+                    <button type="submit" class="btn-rm primary" onclick="userSubmit(event, this)" id="userModalSubmitButton"
+                        data-type="submit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Submit</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 {{-- A password for the e-mail + password form of the login page. Not for an account that signs in with its
      directory password: that one has none here. --}}
-<div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="userPasswordModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body p-3">
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                    <h3 class="modal-title mb-0">Set Password</h3>
-                    <button type="button" class="btn-close position-static m-0" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+<div class="modal fade rm-modal" data-bs-backdrop="static" data-bs-keyboard="false" id="userPasswordModal" aria-labelledby="userPasswordTitle" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" id="userPasswordForm" autocomplete="off">
+            <div class="rm-dialog-head">
+                <span class="rm-dialog-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
+                <div class="rm-dialog-titles">
+                    <h3 class="rm-dialog-title modal-title" id="userPasswordTitle">Set password</h3>
+                    <p class="rm-dialog-sub" id="userPasswordWho"></p>
                 </div>
-                <p class="text-secondary mb-3" id="userPasswordWho"></p>
-                <form id="userPasswordForm" autocomplete="off">
-                    <div class="mb-2">
-                        <label for="userPassword" class="form-label required">New password</label>
-                        <input type="password" id="userPassword" class="form-control" autocomplete="new-password"
-                            maxlength="72" required>
-                        <div class="form-hint">At least 8 characters, with a letter and a number.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="userPasswordAgain" class="form-label required">Repeat the password</label>
-                        <input type="password" id="userPasswordAgain" class="form-control"
-                            autocomplete="new-password" maxlength="72" required>
-                    </div>
-                    <div class="form-hint mb-3">
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                        class="ti ti-x"></i></button>
+            </div>
+            <div class="rm-dialog-body is-form">
+                <div class="rm-field">
+                    <label for="userPassword" class="form-label required">New password</label>
+                    <input type="password" id="userPassword" class="form-control" autocomplete="new-password"
+                        maxlength="72" required placeholder="At least 8 characters, with a letter and a number">
+                </div>
+                <div class="rm-field">
+                    <label for="userPasswordAgain" class="form-label required">Repeat the password</label>
+                    <input type="password" id="userPasswordAgain" class="form-control"
+                        autocomplete="new-password" maxlength="72" required placeholder="Repeat the password">
+                    <div class="rm-hint">
                         With it the account can sign in through the e-mail + password form, next to Microsoft. It is
                         not sent to the user: pass it on yourself.
                     </div>
-                    <div class="d-flex justify-content-end gap-2">
-                        <x-global.btn-detail label="Save" color="blue" size="sm" type="submit"
-                            id="userPasswordSaveButton">
-                            <x-slot name="icon">
-                                <i class="ti ti-device-floppy"></i>
-                            </x-slot>
-                        </x-global.btn-detail>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
+            <div class="rm-dialog-foot">
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn-rm primary" id="userPasswordSaveButton">Save</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -347,14 +357,14 @@
                 }
 
                 const fromDirectory = source === "directory";
-                const list = $('<div class="list-group list-group-flush mt-2 border rounded">');
+                const list = $('<div class="rm-matches mt-2">');
                 found.forEach((person) => {
-                    $('<button type="button" class="list-group-item list-group-item-action py-2">')
-                        .append($('<span class="d-block fw-bold">').text(person.name || person.username || ""))
-                        .append($('<span class="d-block text-secondary">').text(person.email || ""))
+                    $('<button type="button" class="rm-match">')
+                        .append($('<span class="rm-match-name">').text(person.name || person.username || ""))
+                        .append($('<span class="rm-match-line">').text(person.email || ""))
                         // Active Directory: the username they sign in with. HR: the staff number, which tells apart two
                         // people who are recorded with one address.
-                        .append($('<span class="d-block text-secondary user-directory-id">').text(fromDirectory ? person.username : person.employee_id))
+                        .append($('<span class="rm-match-id">').text(fromDirectory ? person.username : person.employee_id))
                         .on("click", () => {
                             const modal = $("#userModal");
                             modal.find("#name").val(person.name || person.username || "");
@@ -416,15 +426,14 @@
         const toggleUserModal = (modalId, state, id = null) => {
             const modal = $("#" + modalId);
             const modalTitle = modal.find(".modal-title");
-            const submitButton = modal.find("#" + modalId + "SubmitButton");
 
             const stateProperty = {
                 'edit': {
-                    'title': 'Edit User',
+                    'title': 'Edit user',
                     'actionButtons': ['edit']
                 },
                 'add': {
-                    'title': 'Add New User',
+                    'title': 'Add new user',
                     'actionButtons': ['submit']
                 }
             };
@@ -433,32 +442,24 @@
             modal.find("#actionButtons button").addClass("d-none");
 
             if (stateProperty[state]) {
-                modalTitle.text(stateProperty[state].title)
-                    .removeClass("text-warning text-primary")
-                    .addClass(stateProperty[state].titleClass);
-
+                modalTitle.text(stateProperty[state].title);
 
                 // Show only the buttons specified for this state
-                if (stateProperty[state] && stateProperty[state].actionButtons) {
-                    const buttonsToShow = stateProperty[state].actionButtons;
+                stateProperty[state].actionButtons.forEach(buttonType => {
+                    // Get button with matching data-type attribute
+                    const button = modal.find(`button[data-type="${buttonType}"]`);
 
-                    buttonsToShow.forEach(buttonType => {
-                        // Get button with matching data-type attribute
-                        const button = modal.find(`button[data-type="${buttonType}"]`);
+                    // Show the button
+                    button.removeClass("d-none");
 
-                        // Show the button
-                        button.removeClass("d-none");
-
-                        // Set data-form-id for all visible buttons if in edit mode
-                        if (state === "edit" && id) {
-                            button.attr("data-form-id", id);
-                        } else {
-                            button.removeAttr("data-form-id");
-                        }
-                    });
-                }
+                    // Set data-form-id for all visible buttons if in edit mode
+                    if (state === "edit" && id) {
+                        button.attr("data-form-id", id);
+                    } else {
+                        button.removeAttr("data-form-id");
+                    }
+                });
             }
-
 
             if (state === "edit" && id) {
                 $.ajax({
@@ -486,7 +487,7 @@
                     }
                 });
             } else {
-                modal.find("#form")[0].reset();
+                modal.find("#form").trigger("reset");
                 modal.find("#roleSelect").val(userDefaultRole);
                 setOtherRoles(modal, 0);
                 setOwnStatus(modal, true, false);
@@ -519,7 +520,7 @@
         $(document).ready(function() {
             $("#userModal").on("hidden.bs.modal", function() {
                 // Reset the form fields
-                $(this).find("#form")[0].reset();
+                $(this).find("#form").trigger("reset");
 
                 setOtherRoles($(this), 0);
                 setOwnStatus($(this), true, false);
@@ -564,63 +565,60 @@
                 formData.append("_method", "PUT");
             }
 
-            Swal.fire({
+            rmDialog.confirm({
+                layout: "center",
+                tone: "sky",
+                icon: "help-circle",
                 title: "Is the data correct?",
                 text: "This action will " + (state === "submit" ? "add" : "update") + " the user!",
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonText: '<i class="ti ti-check"></i> Save',
-                cancelButtonText: '<i class="ti ti-x"></i> Cancel',
-                reverseButtons: true,
+                confirmText: '<i class="ti ti-check"></i> Save',
+                cancelText: '<i class="ti ti-x"></i> Cancel',
             }).then((result) => {
-                if (result.isConfirmed) {
-                    let errors = [];
-
-                    if (!formData.get("name")) {
-                        errors.push("<strong>Name</strong> cannot be empty");
-                    }
-
-                    if (!formData.get("email")) {
-                        errors.push("<strong>Email</strong> cannot be empty");
-                    }
-
-                    const keepsOtherRoles = state !== "submit" && Number(modal.data("otherRoles")) > 0;
-                    if (!formData.getAll("role_id[]").length && !keepsOtherRoles) {
-                        errors.push("<strong>Role</strong> must be selected");
-                    }
-
-                    if (errors.length > 0) {
-                        showError(errors);
-                        return;
-                    }
-
-                    $.ajax({
-                        url: url,
-                        type: type,
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function(response) {
-                            modal.modal("hide");
-                            Swal.fire("Success!", "User data has been saved!", "success");
-                            userRegisteredTable();
-
-
-                        },
-                        error: function(xhr, status, error) {
-                            // Show the reason the server gave ("text" is rendered as plain text, never as HTML).
-                            const r = xhr.responseJSON || {};
-                            const reasons = [].concat(r.errors || r.message || r.error || "There was a problem saving the user!");
-                            Swal.fire({
-                                icon: "error",
-                                title: "Error!",
-                                text: reasons.join(" "),
-                            });
-                        },
-                    });
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    Swal.fire("Canceled!", "No changes were made!", "error");
+                if (!result.isConfirmed) {
+                    return;
                 }
+                let errors = [];
+
+                if (!formData.get("name")) {
+                    errors.push("<strong>Name</strong> cannot be empty");
+                }
+
+                if (!formData.get("email")) {
+                    errors.push("<strong>Email</strong> cannot be empty");
+                }
+
+                const keepsOtherRoles = state !== "submit" && Number(modal.data("otherRoles")) > 0;
+                if (!formData.getAll("role_id[]").length && !keepsOtherRoles) {
+                    errors.push("<strong>Role</strong> must be selected");
+                }
+
+                if (errors.length > 0) {
+                    showError(errors);
+                    return;
+                }
+
+                $.ajax({
+                    url: url,
+                    type: type,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        modal.modal("hide");
+                        rmFeedback.toast("User data has been saved!");
+                        userRegisteredTable();
+                    },
+                    error: function(xhr, status, error) {
+                        // Show the reason the server gave ("text" is rendered as plain text, never as HTML).
+                        const r = xhr.responseJSON || {};
+                        const reasons = [].concat(r.errors || r.message || r.error || "There was a problem saving the user!");
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error!",
+                            text: reasons.join(" "),
+                        });
+                    },
+                });
             });
         };
 
@@ -633,17 +631,18 @@
         const userRowName = (id) => $('#userTable [data-id="' + id + '"]').first().closest("tr").find(".user-name").text();
 
         const userStatus = (id, active) => {
-            const name = userRowName(id) || "this user";
-            Swal.fire({
+            $('[data-bs-toggle="tooltip"]').tooltip("hide");
+            const name = userRowName(id) || "The user";
+            rmDialog.confirm({
+                tone: active ? "green" : "orange",
+                icon: active ? "user-check" : "alert-triangle",
                 title: active ? "Activate this user?" : "Deactivate this user?",
                 text: active ?
                     name + " will be able to sign in again." :
                     name + " will not be able to sign in, and is signed out. The account and its history stay.",
-                icon: active ? "question" : "warning",
-                showCancelButton: true,
-                confirmButtonText: '<i class="ti ti-check"></i> ' + (active ? "Activate" : "Deactivate"),
-                cancelButtonText: '<i class="ti ti-x"></i> Cancel',
-                reverseButtons: true
+                confirmText: active ? "Activate" : "Deactivate",
+                cancelText: "Cancel",
+                confirmKind: active ? "success" : "primary",
             }).then((result) => {
                 if (!result.isConfirmed) {
                     return;
@@ -655,7 +654,7 @@
                         active: active ? 1 : 0
                     },
                     success: function(response) {
-                        Swal.fire("Saved!", response.message, "success");
+                        rmFeedback.toast(response.message);
                         userRegisteredTable();
                     },
                     error: function(xhr) {
@@ -670,16 +669,17 @@
         };
 
         const toggleUserPasswordModal = (id) => {
+            $('[data-bs-toggle="tooltip"]').tooltip("hide");
             const modal = $("#userPasswordModal");
             modal.data("userId", id);
-            modal.find("#userPasswordForm")[0].reset();
+            modal.find("#userPasswordForm").trigger("reset");
             modal.find("#userPasswordWho").text(userRowName(id));
             modal.modal("show");
         };
 
         $(function() {
             $("#userPasswordModal").on("hidden.bs.modal", function() {
-                $(this).find("#userPasswordForm")[0].reset();
+                $(this).find("#userPasswordForm").trigger("reset");
             });
 
             $("#userPasswordForm").on("submit", function(event) {
@@ -705,7 +705,7 @@
                     return;
                 }
 
-                const button = $(this).prop("disabled", true);
+                rmFeedback.busy("#userPasswordSaveButton", true);
                 $.ajax({
                     url: urlUserPassword.replace(":id", modal.data("userId")),
                     type: "PUT",
@@ -715,7 +715,7 @@
                     },
                     success: function(response) {
                         modal.modal("hide");
-                        Swal.fire("Saved!", response.message, "success");
+                        rmFeedback.toast(response.message);
                     },
                     error: function(xhr) {
                         Swal.fire({
@@ -725,45 +725,47 @@
                         });
                     },
                     complete: function() {
-                        button.prop("disabled", false);
+                        rmFeedback.busy("#userPasswordSaveButton", false);
                     }
                 });
             });
         });
 
         const userDelete = (id) => {
-            Swal.fire({
+            $('[data-bs-toggle="tooltip"]').tooltip("hide");
+            rmDialog.confirm({
+                tone: "red",
+                icon: "trash",
                 title: "Are you sure?",
                 text: "This action cannot be undone!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: '<i class="ti ti-check"></i> Yes, delete it!',
-                cancelButtonText: '<i class="ti ti-x"></i> Cancel',
-                reverseButtons: true
+                confirmText: '<i class="ti ti-trash"></i> Yes, delete it!',
+                cancelText: "Cancel",
+                confirmKind: "destructive",
             }).then((result) => {
-                if (result.isConfirmed) { // ✅ Only proceed if user clicks "Yes"
-                    $.ajax({
-                        url: urlUserDestroy.replace(":id", id),
-                        type: "DELETE",
-                        success: function(response) {
-                            Swal.fire("Deleted!", response.message, "success");
-                            // The row's tooltip would otherwise stay on screen after the row is gone.
-                            $('.tooltip').remove();
-                            // Step back when the deleted row was the only one on this page.
-                            if (currentPage > 1 && $('#userTable tbody tr').length <= 1) {
-                                currentPage -= 1;
-                            }
-                            userRegisteredTable();
-                        },
-                        error: function(xhr) {
-                            let errorMessage = "Something went wrong!";
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            }
-                            Swal.fire("Error!", errorMessage, "error");
-                        }
-                    });
+                if (!result.isConfirmed) {
+                    return;
                 }
+                $.ajax({
+                    url: urlUserDestroy.replace(":id", id),
+                    type: "DELETE",
+                    success: function(response) {
+                        rmFeedback.toast(response.message);
+                        // The row's tooltip would otherwise stay on screen after the row is gone.
+                        $('.tooltip').remove();
+                        // Step back when the deleted row was the only one on this page.
+                        if (currentPage > 1 && $('#userTable tbody tr').length <= 1) {
+                            currentPage -= 1;
+                        }
+                        userRegisteredTable();
+                    },
+                    error: function(xhr) {
+                        let errorMessage = "Something went wrong!";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        Swal.fire("Error!", errorMessage, "error");
+                    }
+                });
             });
         };
     </script>

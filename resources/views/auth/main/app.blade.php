@@ -9,11 +9,8 @@
     <meta name="description" content="" />
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/branding/favicon.ico') }}" />
     <link rel="shortcut icon" href="{{ asset('assets/img/branding/favicon.ico') }}" /> 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     {{-- Main Style --}}
     @include('auth.components.style.style')  
-    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0d6efd">
 </head>
 <body>

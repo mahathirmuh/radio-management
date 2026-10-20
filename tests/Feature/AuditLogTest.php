@@ -19,6 +19,7 @@ use Modules\RadioManagement\Models\RadioType;
 use RuntimeException;
 use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\RunsPageChecks;
 use Tests\TestCase;
 
 /**
@@ -31,6 +32,7 @@ class AuditLogTest extends TestCase
     use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
+    use RunsPageChecks;
 
     protected bool $seed = true;
 
@@ -118,11 +120,11 @@ class AuditLogTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('audit-log.index'))->assertOk()->getContent();
         $this->assertMatchesRegularExpression('#rm-nav-section[^>]*><span>\s*Settings\s*</span>.*?href="' . preg_quote(route('audit-log.index'), '#') . '".*?Audit Log#s', $page);
-        foreach (['Audit log', 'data-audit-view="table"', 'data-audit-view="timeline"', 'Log Activity', 'User email', 'Search by email', 'All actions'] as $part) {
+        foreach (['Audit log', 'data-audit-view="table"', 'data-audit-view="timeline"', 'Log activity', 'User email', 'Search by email', 'All actions', 'id="auditDetails"'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
-        preg_match_all('#<th scope="col" class="fs-5">([^<]*)</th>#', $page, $titles);
-        $this->assertSame(['When', 'User', 'Action', 'Entity', 'Change', 'IP'], $titles[1]);
+        preg_match_all('#<th scope="col"[^>]*>([^<]*)</th>#', $page, $titles);
+        $this->assertSame(['Time', 'User', 'Action', 'Entity', 'Summary', 'IP'], $titles[1]);
         $this->assertStringNotContainsString('auditNotReady', $page);
         $this->getJson(route('audit-log.list'))->assertOk();
 
@@ -515,5 +517,10 @@ class AuditLogTest extends TestCase
         $this->assertStringContainsString('id="auditNotReady"', $page);
         $this->assertStringContainsString('ready: false', $page);
         $this->getJson(route('audit-log.list'))->assertStatus(503)->assertJsonPath('message', 'The audit log is not switched on yet: its migration has not been run on this database.');
+    }
+
+    public function test_the_script_of_the_page_behaves_as_described(): void
+    {
+        $this->checkPageScript(route('audit-log.index'), 'tests/tools/audit-log-behaviour.mjs', 9);
     }
 }

@@ -79,7 +79,46 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - warna status mengikuti desain: Menunggu kuning, Ditolak merah;
   - badge dan kotak info/peringatan Tabler lama di halaman lain ikut memakai warna desain.
 
-**Deploy:** fase 1 sampai 3 tanpa migrasi dan tanpa setting baru.
+- Fase 4, Audit Log, API Tokens, Users, Role & Permission, Notifikasi, Login:
+  - Audit Log:
+    - pilihan Table / Log activity berupa segmented;
+    - aksi berupa badge berwarna (misalnya Created hijau, Updated oranye, Deleted merah), kuncinya tetap di tooltip;
+    - klik baris (atau entri Log activity) membuka kartu **Event details** di samping tabel: waktu sampai detik,
+      user, kunci aksi, IP, dan perubahan baris per baris. Di bawah 1440px kartunya pindah ke bawah tabel;
+    - Log activity: lingkaran ikon berwarna per aksi, kalimat "siapa melakukan apa", kotak perubahan, baris waktu;
+  - API Tokens: satu kartu dengan seksi Tokens dan API clients. Token yang tidak berlaku lagi tampil pudar. Dialog
+    baru untuk membuat token (token tampil sekali dengan contoh curl) dan client. Cabut dan hapus memakai dialog
+    desain, hasilnya berupa toast;
+  - Users:
+    - filter Role (centang banyak) dan Status langsung di toolbar dan berlaku saat diubah; kartu Filter terpisah
+      dihapus;
+    - role tampil sebagai badge berwarna;
+    - Last sign-in ditulis "2 hours ago", tanggal lengkapnya di tooltip;
+    - tombol baris mengikuti izin role (yang tidak boleh tidak ditampilkan);
+    - form user 760px dengan label di kolom 190px dan metode sign-in di urutan pertama;
+    - konfirmasi "Is the data correct?" berupa dialog di tengah;
+    - simpan, aktif/nonaktif, password dan hapus dikabarkan dengan toast. Tidak ada lagi popup "Canceled!";
+  - Role & Permission:
+    - cari langsung saat mengetik;
+    - badge jumlah user;
+    - View di semua role, Edit dan Delete tidak ada di Super Admin;
+    - dialog 800px dengan tabel izin yang header-nya tetap saat digulir;
+  - Notifikasi:
+    - panel lonceng 400px: lingkaran ikon berwarna per jenis, titik biru untuk yang belum dibaca;
+    - halaman maksimal 960px, dikelompokkan Hari ini / Kemarin / Sebelumnya;
+    - **Tandai semua dibaca** di halaman berjalan tanpa memuat ulang;
+  - Login:
+    - kartu 1180px dengan empat foto yang berganti perlahan (cross-fade 24 detik), menggantikan carousel;
+    - tombol Microsoft 48px dan tombol Login dengan status sibuk;
+    - panduan login 440px.
+
+### Diperbaiki
+
+- Role & Permission: di mode View, kotak izin bisa dicentang setelah role selesai dimuat. Sekarang tetap terkunci.
+- Halaman login tidak lagi memuat gambar yang tidak ada: thumbnail carousel lama, dan ikon `manifest.json` peninggalan
+  template. Tautan manifest dihapus dari halaman login; file-nya masih ada di `public/`.
+
+**Deploy:** fase 1 sampai 4 tanpa migrasi dan tanpa setting baru.
 
 ## [1.9.0] - 2026-10-19
 

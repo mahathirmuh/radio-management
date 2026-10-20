@@ -126,7 +126,7 @@ class UserManagementTest extends TestCase
         // The page: the name of a role, how many accounts hold it, and what can be done with it. No type, no companies, no filter.
         $page = (string) $this->get(route('user-management.role-permission.index'))->assertOk()->getContent();
         preg_match_all('#<th scope="col"[^>]*>\s*([^<]*?)\s*</th>#', $page, $titles);
-        $this->assertSame(['No', 'Name', 'Total User', 'Action'], $titles[1]);
+        $this->assertSame(['No', 'Name', 'Total user', 'Action'], $titles[1]);
         foreach (['Company List', 'roleTypeSelect', 'roleHoSelect', 'roleSiteSelect', 'roleCompanySelect', 'companySelectFilter', 'toggleFilterButton', 'userFilterCard', "key: 'company'", "key: 'func_role'", 'filterList'] as $gone) {
             $this->assertStringNotContainsString($gone, $page, $gone);
         }
@@ -164,9 +164,9 @@ class UserManagementTest extends TestCase
         // and at the end the buttons), and a search by name or e-mail.
         $page = (string) $this->get(route('user-management.user-registered.index'))->assertOk()->getContent();
         preg_match_all('#<th scope="col"[^>]*>\s*(?:<span[^>]*>)?([^<]*?)\s*<#', $page, $titles);
-        $this->assertSame(['Select', 'No', 'Name', 'Email', 'Role', 'Status', 'Sign-In', 'Last Sign-In', 'Action'], $titles[1]);
+        $this->assertSame(['Select', 'No', 'Name', 'Email', 'Role', 'Status', 'Sign-in', 'Last sign-in', 'Action'], $titles[1]);
         $this->assertStringContainsString('placeholder="Name or email"', $page);
-        $this->assertStringContainsString('<h2 class="mb-3">Users</h2>', $page);
+        $this->assertStringContainsString('<h1 class="rm-title">Users</h1>', $page);
         foreach (['id="statusSelectFilter"', 'id="userPasswordModal"', 'id="userAddButton"'] as $part) {
             $this->assertSame(1, substr_count($page, $part), $part);
         }
@@ -489,7 +489,12 @@ class UserManagementTest extends TestCase
 
     public function test_the_script_of_the_bar_of_the_users(): void
     {
-        $this->checkPageScript(route('user-management.user-registered.index'), 'tests/tools/user-bulk-behaviour.mjs', 8);
+        $this->checkPageScript(route('user-management.user-registered.index'), 'tests/tools/user-bulk-behaviour.mjs', 14);
+    }
+
+    public function test_the_script_of_the_roles_page_behaves_as_described(): void
+    {
+        $this->checkPageScript(route('user-management.role-permission.index'), 'tests/tools/role-permission-behaviour.mjs', 7);
     }
 
     private function readerRole(): int

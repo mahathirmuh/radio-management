@@ -383,13 +383,14 @@
     };
 
     // A question before something is done, in the design's dialog: the icon in a round tile beside the title, the
-    // buttons at the foot. tone: blue | green | orange | red | yellow; confirmKind: primary | success | destructive.
+    // buttons at the foot (layout "center": the icon over the title, everything in the middle, as the user form asks).
+    // tone: blue | green | orange | red | yellow | sky; confirmKind: primary | success | destructive.
     // "text" goes in as text; "html" only when the caller has escaped what it puts in. loader: preConfirm sends a
     // request, and the dialog waits for its answer (it cannot be closed meanwhile).
     const rmDialog = {
         confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = 'OK', cancelText = 'Batal',
             confirmKind = 'primary', input = undefined, inputLabel = undefined, inputAttributes = undefined, preConfirm = undefined,
-            loader = false } = {}) {
+            loader = false, layout = 'side' } = {}) {
             return Swal.fire({
                 title,
                 ...(html === null ? { text } : { html }),
@@ -406,7 +407,7 @@
                 confirmButtonText: confirmText,
                 cancelButtonText: cancelText,
                 buttonsStyling: false,
-                customClass: { popup: 'rm-swal', icon: `rm-swal-icon tone-${tone}`, confirmButton: `btn-rm ${confirmKind}`, cancelButton: 'btn-rm secondary' },
+                customClass: { popup: layout === 'center' ? 'rm-swal rm-swal-center' : 'rm-swal', icon: `rm-swal-icon tone-${tone}`, confirmButton: `btn-rm ${confirmKind}`, cancelButton: 'btn-rm secondary' },
             });
         },
     };

@@ -471,62 +471,62 @@ Tes yang terdampak:
 ## Fase 4: Audit log, API tokens, Users, Roles, Notifikasi, Login
 
 Audit log (`modules/AuditLog/Resources/views/index.blade.php`):
-- [ ] Judul dan kartu; segmented Table / Log activity (`data-audit-view` dan `?view=` tetap); filter yang ada di-restyle.
-- [ ] Tabel: Time, User, badge Action (warna dari kunci aksi), Entity, Summary, IP.
-- [ ] Klik baris membuka kartu Event details 360px (K3b), yang turun ke bawah tabel di bawah 1440px.
-- [ ] Timeline: ikon bulat 32px berwarna per aksi, kalimat "siapa melakukan apa • waktu relatif", kotak perubahan mono,
+- [x] Judul dan kartu; segmented Table / Log activity (`data-audit-view` dan `?view=` tetap); filter yang ada di-restyle.
+- [x] Tabel: Time, User, badge Action (warna dari kunci aksi), Entity, Summary, IP.
+- [x] Klik baris membuka kartu Event details 360px (K3b), yang turun ke bawah tabel di bawah 1440px.
+- [x] Timeline: ikon bulat 32px berwarna per aksi, kalimat "siapa melakukan apa • waktu relatif", kotak perubahan mono,
   baris stempel.
 
 API tokens (`modules/Api/Resources/views/tokens/index.blade.php`):
-- [ ] Satu content card dengan dua seksi: Tokens, dan API clients (khusus Super Admin).
-- [ ] Owner dengan tag "You"; badge akses hijau/oranye; baris redup bila kedaluwarsa atau pemiliknya tidak aktif.
-- [ ] Dialog 520px radius 12 dengan lingkaran ikon 44px: New token, Copy token + curl, New/Edit client, Revoke, Delete.
+- [x] Satu content card dengan dua seksi: Tokens, dan API clients (khusus Super Admin).
+- [x] Owner dengan tag "You"; badge akses hijau/oranye; baris redup bila kedaluwarsa atau pemiliknya tidak aktif.
+- [x] Dialog 520px radius 12 dengan lingkaran ikon 44px: New token, Copy token + curl, New/Edit client, Revoke, Delete.
 
 Users (`modules/UserManagement/Resources/views/user-registered/*`):
-- [ ] Judul dan subjudul. Toolbar: cari 360px, Role multi-select 210px, Status 170px (langsung di toolbar, berlaku saat
+- [x] Judul dan subjudul. Toolbar: cari 360px, Role multi-select 210px, Status 170px (langsung di toolbar, berlaku saat
   diubah), Tambah user.
-- [ ] Tabel:
+- [x] Tabel:
   - kolom No, Name (+ You), Email, Role (badge berwarna), Status;
   - badge Sign-in: LDAP abu, Microsoft biru, Both ungu, Pending kuning;
   - Last sign-in relatif, waktu lengkap di tooltip;
   - aksi 28px; Hapus merah.
-- [ ] Restyle bulk bar. Footer berisi jumlah hasil.
-- [ ] Dialog 760px (kolom label 190px), metode sign-in di urutan pertama, Find employee. Dialog Set password.
-- [ ] Konfirmasi "Is the data correct?", lalu hasil sesuai K7.
+- [x] Restyle bulk bar. Footer berisi jumlah hasil.
+- [x] Dialog 760px (kolom label 190px), metode sign-in di urutan pertama, Find employee. Dialog Set password.
+- [x] Konfirmasi "Is the data correct?", lalu hasil sesuai K7.
 
 Roles (`modules/UserManagement/Resources/views/role-permission/*`):
-- [ ] Judul dan subjudul; cari langsung 320px; Reset sebagai tombol teks; Add Role.
-- [ ] Tabel: No, Name, Total user (badge pudar), Action. View ada di semua role; Edit dan Delete tidak ada di Super Admin.
-- [ ] Dialog 800px. Tabel izin: 80px + 4×72px, header sticky, baris grup gray-50, anak menjorok 36px, kotak nonaktif.
-- [ ] Perbaiki bug: di mode View, kotak izin bisa diklik setelah role termuat.
+- [x] Judul dan subjudul; cari langsung 320px; Reset sebagai tombol teks; Add Role.
+- [x] Tabel: No, Name, Total user (badge pudar), Action. View ada di semua role; Edit dan Delete tidak ada di Super Admin.
+- [x] Dialog 800px. Tabel izin: 80px + 4×72px, header sticky, baris grup gray-50, anak menjorok 36px, kotak nonaktif.
+- [x] Perbaiki bug: di mode View, kotak izin bisa diklik setelah role termuat.
 
 Notifikasi (`resources/views/main/navbar/notifications.blade.php`, `modules/Notifications/Resources/views/index.blade.php`):
-- [ ] Panel lonceng 400px:
+- [x] Panel lonceng 400px:
   - ikon bulat 36px berwarna per jenis, waktu singkat di kanan;
   - baris belum dibaca brand-50 dengan titik 8px;
   - Tandai semua dibaca.
-- [ ] Halaman, lebar maksimal 960px:
+- [x] Halaman, lebar maksimal 960px:
   - subjudul berisi jumlah belum dibaca;
   - tab Semua / Belum dibaca dengan jumlah;
   - grup Hari ini / Kemarin / Sebelumnya;
   - Tandai semua dibaca lewat AJAX.
 
 Login (`resources/views/auth/login.blade.php`):
-- [ ] Latar dan kartu:
+- [x] Latar dan kartu:
   - latar `mdka-primary-bg.webp`, cover, brightness 50%;
   - kartu 1180px, radius 20, bayangan `0 4px 20px rgba(0,0,0,.55)`, grid 7fr/5fr.
-- [ ] Kiri: empat foto yang sama berganti dengan cross-fade (`rm-xfade`, siklus 24s) dan empat bar 44×6, menggantikan
+- [x] Kiri: empat foto yang sama berganti dengan cross-fade (`rm-xfade`, siklus 24s) dan empat bar 44×6, menggantikan
   carousel.
-- [ ] Kanan (padding `36px 44px 16px`):
+- [x] Kanan (padding `36px 44px 16px`):
   - logo MCG 36px dan MBM 40px; judul 28/36 600;
   - Microsoft 48px; "Or"; Email/username + Password; Login 44px brand-600 dengan status sibuk;
   - chip "Click here" membuka panduan 440px dengan tombol X;
   - footer "© Merdeka Group {tahun}".
-- [ ] Yang dipertahankan:
+- [x] Yang dipertahankan:
   - tanpa popup Welcome;
   - pesan sesi berakhir tetap tampil;
   - `type="text"` tetap atribut pertama di field username.
-- [ ] Perbaiki 404 yang sudah ada sebelumnya (terlihat saat fase 1):
+- [x] Perbaiki 404 yang sudah ada sebelumnya (terlihat saat fase 1):
   - thumbnail carousel menunjuk `branding/mdka-bg.jpg`, `mdka-bg-2.png` dan `mdka-bg-3.jpg` yang tidak ada (hilang
     bersama carousel);
   - `auth/main/app.blade.php` menautkan `/manifest.json`, yang ikonnya (`/images/icons/icon-192x192.png`) tidak ada.
@@ -747,3 +747,39 @@ Prinsip:
     - diperbarui: checker e-sign, sharepoint-page, sharepoint-workbook, sharepoint-approvals, design-helpers, dan
       `SharePointScansTest`;
     - suite penuh: 471 lulus (2 warning lama di `WorkbookReaderTest`).
+- 2026-10-20, fase 4 selesai:
+  - Audit log:
+    - segmented Table / Log activity (`data-audit-view`, `?view=` tetap);
+    - badge aksi dari kunci aksi (`auditLog.kind`); kunci tanpa kata tampil apa adanya, abu-abu;
+    - kartu Event details (`#auditDetails`) dibuka dengan klik/Enter, di samping tabel mulai 1440px;
+    - pagination dipindah ke kotak tampilan yang aktif;
+    - sel tabel boleh membungkus supaya muat di samping kartu detail pada 1440.
+  - API Tokens: `rm-section-head`, `rm-codebox`/`rm-copyrow`, baris `rm-dim`; konfirmasi `rmDialog`, hasil toast.
+  - Users:
+    - filter Role (`rmPickers.multi`) dan Status di toolbar, berlaku saat diubah; kartu filter dan tombol Reset hilang
+      (desain tidak punya);
+    - tombol baris dan Add user mengikuti izin (A6);
+    - form: `rm-form-row` (kolom label 190) dan `rm-radio`;
+    - "Is the data correct?" lewat `rmDialog.confirm({ layout: 'center', tone: 'sky' })`;
+    - popup "Canceled!" dibuang.
+  - Roles:
+    - dialog 800 (kolom label 150, tabel izin 80 + 4×72, header sticky);
+    - bug View diperbaiki di `syncMenuPermissionRowState` (mode `Preview`);
+    - Edit/Delete disembunyikan untuk Super Admin (id 1) di tampilan; server tidak diubah.
+  - Notifikasi:
+    - baris lonceng dibuat sebagai HTML yang di-escape (`notifBell.entry`), warna per jenis di `notifBell.tones`;
+    - halaman dikelompokkan per hari; "Tandai semua dibaca" lewat AJAX, form lamanya tetap jalan tanpa JS.
+  - Login: cross-fade `rm-xfade` 24 dtk dengan bar, logo, tombol Microsoft 48 (kotak warna CSS, bukan gambar),
+    Login 44 dengan status sibuk, panduan 440. Tautan `manifest.json` dan preconnect Google Fonts dihapus dari layout
+    login; 404 lama hilang.
+  - Penyimpangan kecil, untuk laporan akhir:
+    - tidak ada Export CSV di Audit log (K12);
+    - tidak ada "Mark as read" per notifikasi: perlu endpoint baru (K12);
+    - Users tanpa tombol Reset.
+  - Alat uji: `page-sandbox.mjs` mendapat `appendTo`, `serialize`, `each`, `abort` (pada `getJSON`), `history`,
+    `setInterval`, dan `addEventListener` di document. Checker baru: `audit-log-behaviour.mjs` (9),
+    `api-tokens-behaviour.mjs` (9), `role-permission-behaviour.mjs` (7), `notifications-behaviour.mjs` (7);
+    `user-bulk-behaviour.mjs` jadi 14.
+  - Diperiksa di browser (preview, data rekaan): Audit log 1366/1440/1920, API Tokens dan dialognya, Users dan
+    dialognya, Roles (View: 0 kotak izin aktif), lonceng, halaman notifikasi, login 1440/1366/390.
+  - Suite penuh: 475 lulus (2 warning lama di `WorkbookReaderTest`).

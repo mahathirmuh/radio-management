@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Modules\RadioManagement\Models\Radio;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\RunsPageChecks;
 use Tests\Concerns\UsesApi;
 use Tests\TestCase;
 
@@ -23,6 +24,7 @@ use Tests\TestCase;
 class NotificationsTest extends TestCase
 {
     use MakesUsers;
+    use RunsPageChecks;
     use RefreshDatabase;
     use UsesApi;
 
@@ -276,5 +278,12 @@ class NotificationsTest extends TestCase
 
         $this->sweep($me);
         $this->assertSame(['Lama, belum dibaca', 'Baru, dibaca'], $this->titles($me));
+    }
+
+    public function test_the_scripts_of_the_bell_and_of_the_page_behave_as_described(): void
+    {
+        $this->notify($this->superAdmin(), 'Satu');
+        $this->notify($this->superAdmin(), 'Dua');
+        $this->checkPageScript(route('notifications.index'), 'tests/tools/notifications-behaviour.mjs', 7);
     }
 }

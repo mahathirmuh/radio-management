@@ -3,7 +3,9 @@
 <link href="{{ asset('assets/css/fonts/fonts.css') }}" rel="stylesheet" />
 <link href="{{ asset('assets/css/radio-ui.css') }}?v={{ @filemtime(public_path('assets/css/radio-ui.css')) }}" rel="stylesheet" />
 <style>
+    /* The photo behind the sign-in, darkened; the colour under it while it loads. */
     body {
+        background-color: var(--rm-gray-900);
         margin: 0;
         padding: 0;
         background-position: center;
@@ -55,13 +57,6 @@
             border-top-right-radius: 0.3rem;
             border-bottom-right-radius: 0.3rem;
         }
-    }
-
-    .carousel-item img {
-        width: 1100px;
-        /* Set a fixed width */
-        height: 550px;
-        /* Set a fixed height */
     }
 </style>
 @stack('style')
