@@ -7,7 +7,8 @@ lima kemampuan baru yang butuh backend (fase 6).
 - **Spesifikasi:** `docs/design_handoff_radio_management/README.md` dan `design_files/*.dc.html` (folder lokal, lihat K9).
   Ukuran, warna dan state diambil dari atribut `style="…"`. Tag `<dc-import>`, `<sc-for>`, `<sc-if>` dan `{{ }}` hanya
   kerangka prototipe: komponen, perulangan, kondisi, variabel.
-- **Status:** langkah 1 selesai. Rencana ini sudah ditulis dan menunggu jawaban keputusan K1–K13. Lihat "Progres".
+- **Status:** langkah 2 berjalan. Semua rekomendasi K1–K13 dan asumsi A1–A15 disetujui pemilik pada 2026-10-20
+  ("oke, eksekusi sekarang"). Lihat "Progres".
 
 ## Cara melanjutkan di sesi baru
 
@@ -54,7 +55,7 @@ Pilihan:
   berubah.
 - c. Semua Indonesia.
 
-Rekomendasi: a. **Jawaban:** —
+Rekomendasi: a. **Jawaban:** setuju rekomendasi.
 
 **K2. Font.** README mengira aplikasi memakai Public Sans. Faktanya:
 - aplikasi sudah memakai Inter (self-hosted, `public/assets/css/fonts/fonts.css`);
@@ -66,7 +67,7 @@ Rekomendasi:
 - Monospace untuk Radio ID, SN, MDC, nomor dokumen dan IP: `ui-monospace, "IBM Plex Mono", Menlo, monospace`, tanpa
   memuat font baru.
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K3. Tambahan desain di luar repo** (README menyebut boleh dibuang):
 
@@ -79,14 +80,14 @@ Rekomendasi:
 | e | Navigasi di top bar (varian tanpa sidebar). | Buang. |
 | f | Detail radio sebagai drawer. | Buang; tetap halaman detail. |
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K4. Sidebar diciutkan.** `Shell.dc.html` memakai rail ikon 80px, sementara README bagian Decisions menyebut sidebar
 disembunyikan. Rekomendasi: rail 80px seperti sekarang, ditambah tooltip nama menu dan titik penanda jumlah.
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K5. Pop-up cetak.** Rekomendasi: tetap iframe seperti sekarang; yang diubah hanya kepala dan tombol pop-up.
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K6. README lawan aturan desain lokal (`CLAUDE.local.md`).**
 
@@ -105,14 +106,14 @@ Pilihan:
   diperbarui di fase 1.
 - b. README berlaku, tapi warnanya memakai `--mdka-*` terdekat (beda tipis, tanpa token baru).
 
-Rekomendasi: a. **Jawaban:** —
+Rekomendasi: a. **Jawaban:** setuju rekomendasi.
 
 **K7. Umpan balik setelah aksi.** Desain memakai toast di bawah tengah setelah simpan, arsip atau verifikasi; aplikasi
 memakai popup SweetAlert "Success!". Rekomendasi:
 - toast seperti desain untuk hasil sukses sederhana, dibuat dengan mode toast SweetAlert2;
 - konfirmasi, error dan hasil bulk tetap popup SweetAlert.
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K8. Versi dan rilis di branch.** Aturan biasa: setiap commit kode adalah rilis SemVer (VERSION, CHANGELOG, tag).
 Rekomendasi:
@@ -120,7 +121,7 @@ Rekomendasi:
 - tiap fase menambah catatan di bagian `## [Unreleased]` CHANGELOG;
 - saat digabung ke `main`, semuanya jadi satu rilis MINOR (1.10.0), dengan baris Deploy yang memuat migration fase 6.
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K9. Folder handoff dan zip.** README menyarankan folder handoff di-commit, padahal:
 - repo ini publik;
@@ -131,20 +132,20 @@ Rekomendasi:
 - folder tetap lokal: tidak di-commit, dan dimasukkan ke `.git/info/exclude`;
 - zip dihapus, hanya bila pemilik bilang "hapus".
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K10. "My profile" di menu pengguna.** Aplikasi belum punya halaman profil.
 - a. Hilangkan; menu pengguna hanya berisi Notifikasi dan Keluar.
 - b. Jendela kecil baca-saja (nama, email, role, perusahaan, metode sign-in), tanpa endpoint baru.
 
-Rekomendasi: a. **Jawaban:** —
+Rekomendasi: a. **Jawaban:** setuju rekomendasi.
 
 **K11. Menutup dialog.** README: klik di luar dan Esc menutup semua dialog, kecuali pop-up cetak. Rekomendasi:
 - dialog berisi isian (tambah/edit radio, user, set password, role, import) tetap statis, supaya ketikan tidak hilang;
   alasannya sama dengan pop-up cetak;
 - dialog konfirmasi, dialog lihat dan panduan login tertutup dengan klik di luar atau Esc.
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K12. Bagian desain yang butuh backend baru.** Yang diambil dikerjakan di fase 6.
 
@@ -163,7 +164,7 @@ Rekomendasi: a. **Jawaban:** —
 | API tokens | Masa berlaku "Custom…" dengan kalender | Buang. |
 | Notifikasi | Tab Radio/Dokumen/Sistem dan hitungannya; "tandai dibaca" per baris | Buang; tab Semua dan Belum dibaca saja. |
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 **K13. Fase 6 (kemampuan baru).**
 
@@ -203,7 +204,7 @@ Rekomendasi per butir:
 - **j. Database tes.** Tes otomatis memakai LocalDB yang dibuat ulang setiap tes, jadi migration fase 6 ikut terpasang di
   database tes dan database preview. Database live tidak disentuh. Rekomendasi: boleh.
 
-**Jawaban:** —
+**Jawaban:** setuju rekomendasi.
 
 ## Asumsi
 
@@ -680,3 +681,5 @@ Prinsip:
 
 - 2026-10-20: branch `design-refresh` dibuat dari `main` (`673b878`). Kelima perbandingan desain dengan kode selesai
   (baca-saja), dan PLAN.md ini ditulis. Menunggu jawaban K1–K13 sebelum fase 1.
+- 2026-10-20: pemilik menyetujui semua rekomendasi ("oke, eksekusi sekarang"). Folder handoff dan zip-nya dimasukkan ke
+  `.git/info/exclude`; zip tidak dihapus. Fase 1 dimulai.
