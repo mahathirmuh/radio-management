@@ -101,7 +101,7 @@ class AttentionInboxTest extends TestCase
         $register = (int) DB::table('menu')->where('route', 'radio-management.radio.index')->value('order');
         $places = DB::table('menu')->whereNull('parent_id')->where('order', '>=', $register)->orderBy('order')->limit(4)
             ->pluck('order', 'title')->map(fn ($place) => (int) $place)->all();
-        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Servis & Perbaikan' => $register + 2, 'Riwayat Radio' => $register + 3], $places);
+        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Servis & Perbaikan' => $register + 2, 'Stock Opname' => $register + 3], $places);
         $menu = DB::table('menu')->where('route', AttentionMenuSeeder::ROUTE)->sole();
         $this->assertSame(['Perlu Perhatian', 'alert-triangle'], [$menu->title, $menu->icon]);
         $grants = fn (string $route) => DB::table('menu_role_permission')->where('menu_id', DB::table('menu')->where('route', $route)->value('id'))

@@ -88,8 +88,8 @@ class ServiceTicketTest extends TestCase
             'Register Radio' => (int) $register->order,
             'Perlu Perhatian' => $register->order + 1,
             'Servis & Perbaikan' => $register->order + 2,
-            'Riwayat Radio' => $register->order + 3,
-            'Master Data Radio' => $register->order + 4,
+            'Stock Opname' => $register->order + 3,
+            'Riwayat Radio' => $register->order + 4,
         ], $this->sidebar());
 
         // The same roles and permissions as Register Radio: Admin Radio all, Viewer Radio Read, Super Admin all.
@@ -126,12 +126,12 @@ class ServiceTicketTest extends TestCase
         $migration->down();
         $this->assertFalse(DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->exists());
         $this->assertSame(0, DB::table('menu_role')->whereNotIn('menu_id', DB::table('menu')->select('id'))->count());
-        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Riwayat Radio' => $register + 2], array_slice($this->sidebar(), 0, 3, true));
+        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Stock Opname' => $register + 2], array_slice($this->sidebar(), 0, 3, true));
         $this->assertSame(array_map(fn (int $place) => $place > $at ? $place - 1 : $place, $with), $orders());
 
         // Migrated again: back in its place (below Perlu Perhatian), with the grants of Register Radio.
         $migration->up();
-        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Servis & Perbaikan' => $register + 2, 'Riwayat Radio' => $register + 3],
+        $this->assertSame(['Register Radio' => $register, 'Perlu Perhatian' => $register + 1, 'Servis & Perbaikan' => $register + 2, 'Stock Opname' => $register + 3],
             array_slice($this->sidebar(), 0, 4, true));
         $this->assertSame($with, $orders());
         $this->assertTrue(DB::table('menu_role')->where('menu_id', DB::table('menu')->where('route', ServiceMenuSeeder::ROUTE)->value('id'))->where('role_id', 1)->exists());

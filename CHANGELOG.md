@@ -40,6 +40,19 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
     - item bisa ditugaskan ke akun yang boleh mengubah data radio; filter Semua / Tugas saya / Belum ditugaskan;
     - audit `attention.assigned` dan `attention.dismissed`;
     - endpoint baru di `radio-management/attention`: `list`, `item`, `PUT assign`, `PUT dismiss`, `PUT fix`.
+  - menu baru **Stock Opname**, di bawah Servis & Perbaikan: halaman untuk ponsel, tanpa sidebar:
+    - pilih department (dan company bila perlu), lihat jumlah radio yang diharapkan dan opname terakhir, mulai sesi
+      (sesi yang masih terbuka di sana dilanjutkan);
+    - pindai: kamera membaca barcode SN bila browser-nya bisa (Chrome Android, `BarcodeDetector`), selain itu Radio ID
+      atau SN diketik atau dikirim scanner genggam;
+    - cek radio: siapa yang memegang (sesuai register, orang lain, tidak ada), kondisi, catatan; setiap pindaian langsung
+      tersimpan. **Laporkan masalah** membuka tiket servis;
+    - ringkasan: terverifikasi, tidak ditemukan, pemegang lain, department lain. **Kirim ke register** memverifikasi
+      setiap radio yang ditemukan hari ini (dengan baris riwayat), memasukkan kondisi yang berubah, dan mencatat audit
+      `radio.opname_submitted`;
+    - impor Excel yang menghapus data lama ditolak selama masih ada sesi opname terbuka;
+    - endpoint baru di `radio-management/opname`: `outlook`, `POST /`, `{opname}`, `{opname}/lookup`, `PUT {opname}/scan`,
+      `PUT {opname}/report`, `PUT {opname}/submit`.
   - menu baru **Servis & Perbaikan**, di bawah Perlu Perhatian (entri di bawahnya turun satu tempat). Yang memegang
     Register Radio mendapat izin yang sama di menu ini: Admin Radio dan Super Admin penuh, Viewer Radio baca:
     - tiket servis bernomor `SRV-0001` untuk radio yang bermasalah, satu tiket terbuka per radio, tidak untuk radio arsip;
@@ -169,6 +182,8 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
 ### Diperbaiki
 
 - Role & Permission: di mode View, kotak izin bisa dicentang setelah role selesai dimuat. Sekarang tetap terkunci.
+- Pesan toast (mis. "Tiket SRV-0001 dibuat.") tampil putih tanpa teks: gaya SweetAlert yang dimuat belakangan menimpa
+  latar gelapnya.
 - Halaman login tidak lagi memuat gambar yang tidak ada: thumbnail carousel lama, dan ikon `manifest.json` peninggalan
   template. Tautan manifest dihapus dari halaman login; file-nya masih ada di `public/`.
 
@@ -177,7 +192,9 @@ per database. Migrasinya:
 - `2026_10_20_100000_create_service_tickets_tables` (tabel `service_tickets` dan `service_ticket_events`);
 - `2026_10_20_110000_add_service_menu` (menu Servis & Perbaikan);
 - `2026_10_20_120000_create_radio_check_states_table` (tabel `radio_check_states`: pertama terlihat, penugasan, abaikan);
-- `2026_10_20_130000_add_attention_menu` (menu Perlu Perhatian).
+- `2026_10_20_130000_add_attention_menu` (menu Perlu Perhatian);
+- `2026_10_20_140000_create_radio_opname_tables` (tabel `radio_opname_sessions` dan `radio_opname_items`);
+- `2026_10_20_150000_add_opname_menu` (menu Stock Opname).
 
 Migrasi menu menghapus sendiri cache peta menu (`rbac_menu_route_key_map`). Instalasi yang tidak berbagi cache dengan
 tempat migrasi dijalankan: `php artisan cache:forget rbac_menu_route_key_map` di instalasi itu.

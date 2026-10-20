@@ -2728,7 +2728,8 @@ th.is-sorted .rm-sort {
     padding-bottom: 28px;
 }
 
-.swal2-popup.rm-toast {
+/* (".swal2-toast" too: SweetAlert puts its own styles into the page after this file, a white toast of the same weight.) */
+.swal2-popup.swal2-toast.rm-toast {
     display: flex !important;
     align-items: center;
     gap: 10px;
@@ -6038,6 +6039,622 @@ input.rm-codebox:focus {
     color: var(--rm-gray-500);
     font-size: 13px;
     text-align: center;
+}
+
+/* Stock opname: a page for a phone, without the sidebar. One column (480 at most, in the middle of a wider screen), the
+   screens one after another: start, scan, check a radio, summary. */
+.rm-phone-page {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-900);
+}
+
+.rm-phone {
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    background: var(--rm-gray-50);
+    box-shadow: 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-phone-screen {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.rm-phone-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fff;
+    box-shadow: inset 0 -1px 0 var(--rm-gray-200);
+}
+
+.rm-phone-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-phone-kicker {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-phone-title {
+    margin: 0;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 600;
+}
+
+.rm-phone-title.sm {
+    font-size: 18px;
+    line-height: 24px;
+}
+
+.rm-phone-sub {
+    color: var(--rm-gray-500);
+    font-family: var(--rm-mono);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-phone-icon {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--rm-gray-700);
+    font-size: 20px;
+}
+
+.rm-phone-icon:hover,
+.rm-phone-icon:focus-visible {
+    background: var(--rm-hover);
+}
+
+.rm-phone-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+}
+
+.rm-phone-card {
+    padding: 14px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-phone-expect {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.rm-phone-big {
+    font-size: 34px;
+    line-height: 40px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+}
+
+.rm-phone-muted {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
+}
+
+/* The main button of a screen: 48 high, radius 12. */
+.rm-phone-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--rm-brand-600);
+    color: #fff;
+    font-size: 16px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-phone-btn.is-success {
+    background: var(--rm-success-500);
+}
+
+.rm-phone-btn:disabled {
+    opacity: .5;
+}
+
+.rm-phone-btn.is-busy {
+    cursor: progress;
+}
+
+.rm-phone-btn .ti {
+    font-size: 20px;
+}
+
+.rm-phone-link {
+    padding: 4px;
+    border: 0;
+    background: none;
+    color: var(--rm-brand-600);
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.rm-phone-link:disabled {
+    color: var(--rm-gray-400);
+}
+
+.rm-phone-label {
+    margin-top: 6px;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+/* A session in a list: where, when, how far. */
+.rm-phone-session {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-900);
+    text-align: left;
+}
+
+button.rm-phone-session:hover,
+button.rm-phone-session:focus-visible {
+    box-shadow: inset 0 0 0 1px var(--rm-brand-300);
+}
+
+.rm-phone-session-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-phone-session-top span {
+    margin-left: auto;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.rm-phone-session-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    color: var(--rm-gray-700);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* A bar of how many: green, yellow below 90%. */
+.rm-phone-bar {
+    flex: 1;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--rm-gray-100);
+}
+
+.rm-phone-bar > span {
+    display: block;
+    height: 100%;
+    background: var(--rm-success-500);
+}
+
+.rm-phone-bar.is-low > span {
+    background: var(--rm-warning-500);
+}
+
+.rm-phone-bar.lg {
+    height: 8px;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+/* The camera: dark, a frame to aim with, a red line across. */
+.rm-phone-cam {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    overflow: hidden;
+    background: var(--rm-gray-900);
+}
+
+.rm-phone-cam video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rm-phone-cam-place {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.rm-phone-cam-back {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font-size: 20px;
+}
+
+.rm-phone-cam-back:hover,
+.rm-phone-cam-back:focus-visible {
+    background: rgba(255, 255, 255, .14);
+}
+
+.rm-phone-torch {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    z-index: 1;
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    font-size: 18px;
+}
+
+.rm-phone-torch.is-on {
+    background: rgba(255, 255, 255, .4);
+}
+
+.rm-phone-frame {
+    position: relative;
+    z-index: 1;
+    width: 240px;
+    height: 150px;
+}
+
+.rm-phone-frame > span {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border: 0 solid #fff;
+}
+
+.rm-phone-frame > .tl {
+    top: 0;
+    left: 0;
+    border-width: 3px 0 0 3px;
+    border-radius: 8px 0 0 0;
+}
+
+.rm-phone-frame > .tr {
+    top: 0;
+    right: 0;
+    border-width: 3px 3px 0 0;
+    border-radius: 0 8px 0 0;
+}
+
+.rm-phone-frame > .bl {
+    bottom: 0;
+    left: 0;
+    border-width: 0 0 3px 3px;
+    border-radius: 0 0 0 8px;
+}
+
+.rm-phone-frame > .br {
+    right: 0;
+    bottom: 0;
+    border-width: 0 3px 3px 0;
+    border-radius: 0 0 8px 0;
+}
+
+.rm-phone-frame > .line {
+    top: 50%;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    height: 2px;
+    border: 0;
+    background: var(--rm-error-600);
+}
+
+.rm-phone-cam-hint {
+    position: absolute;
+    right: 0;
+    bottom: 14px;
+    left: 0;
+    z-index: 1;
+    color: rgba(255, 255, 255, .85);
+    font-size: 13px;
+    line-height: 18px;
+    text-align: center;
+}
+
+.rm-phone-progress-top {
+    display: flex;
+    align-items: baseline;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-phone-progress-top span {
+    margin-left: auto;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.rm-phone-find {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.rm-phone-find .rm-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-phone-find .btn-rm {
+    height: 36px;
+}
+
+/* A radio just verified. */
+.rm-phone-done {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-phone-done > .ti {
+    color: var(--rm-success-600);
+    font-size: 20px;
+}
+
+.rm-phone-done-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.rm-phone-done-id {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-phone-done-who {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-phone-done-at {
+    color: var(--rm-gray-400);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* What the register says of the radio. */
+.rm-phone-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.rm-phone-facts > div {
+    display: flex;
+}
+
+.rm-phone-facts dt {
+    flex: none;
+    /* (The design's 104, for the longer Indonesian names.) */
+    width: 128px;
+    color: var(--rm-gray-500);
+    font-weight: 400;
+}
+
+.rm-phone-facts dd {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+
+.rm-phone-question {
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+}
+
+/* The condition: three cards to choose from, the chosen one in its colour. */
+.rm-phone-conds {
+    display: flex;
+    gap: 8px;
+}
+
+.rm-phone-cond {
+    flex: 1;
+    margin: 0;
+}
+
+.rm-phone-cond > input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rm-phone-cond > span {
+    display: block;
+    padding: 10px 0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+}
+
+.rm-phone-cond > input:focus-visible + span {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+.rm-phone-cond > input:checked + span {
+    background: var(--rm-success-50);
+    box-shadow: inset 0 0 0 2px var(--rm-success-500);
+    color: var(--rm-success-700);
+    font-weight: 600;
+}
+
+.rm-phone-cond.is-perlu_service > input:checked + span {
+    background: var(--rm-orange-50);
+    box-shadow: inset 0 0 0 2px var(--rm-orange-600);
+    color: var(--rm-orange-700);
+}
+
+.rm-phone-cond.is-rusak > input:checked + span {
+    background: var(--rm-error-50);
+    box-shadow: inset 0 0 0 2px var(--rm-error-600);
+    color: var(--rm-error-700);
+}
+
+/* The foot of a screen, at the bottom of the window while the screen scrolls. */
+.rm-phone-foot {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fff;
+    box-shadow: inset 0 1px 0 var(--rm-gray-200);
+}
+
+.rm-phone-sums {
+    display: flex;
+    gap: 8px;
+}
+
+.rm-phone-sum {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-phone-sum-value {
+    font-size: 26px;
+    line-height: 32px;
+    font-weight: 600;
+}
+
+.rm-phone-sum-value.is-green {
+    color: var(--rm-success-600);
+}
+
+.rm-phone-sum-value.is-red {
+    color: var(--rm-error-600);
+}
+
+.rm-phone-sum-value.is-orange {
+    color: var(--rm-orange-600);
+}
+
+.rm-phone-sum-label {
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.rm-phone-flag {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+}
+
+.rm-phone-flag-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.rm-phone-flag-top .rm-badge {
+    margin-left: auto;
+}
+
+.rm-phone-flag-text {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 18px;
 }
 
 /* Bootstrap's dialogs get the scrim of the design. */

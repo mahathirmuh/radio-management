@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\RadioManagement\Http\Controllers\AttentionController;
 use Modules\RadioManagement\Http\Controllers\ESignController;
 use Modules\RadioManagement\Http\Controllers\MasterDataController;
+use Modules\RadioManagement\Http\Controllers\OpnameController;
 use Modules\RadioManagement\Http\Controllers\RadioBulkController;
 use Modules\RadioManagement\Http\Controllers\RadioController;
 use Modules\RadioManagement\Http\Controllers\RadioHistoryController;
@@ -67,6 +68,19 @@ Route::middleware(['web', 'auth', 'permission'])->prefix('radio-management')->na
         Route::post('/', 'store')->name('store');
         Route::put('{ticket}/status', 'status')->name('status')->whereNumber('ticket');
         Route::put('{ticket}/note', 'note')->name('note')->whereNumber('ticket');
+    });
+
+    // "Stock Opname": counting the radios of a department on a phone. It changes radios: closed without its menu row
+    // (RequireMenu). Starting a session is a Create; scanning, reporting a problem and sending it, an Update.
+    Route::prefix('opname')->name('opname.')->controller(OpnameController::class)->middleware(RequireMenu::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('outlook', 'outlook')->name('outlook');
+        Route::post('/', 'start')->name('start');
+        Route::get('{opname}', 'show')->name('show')->whereNumber('opname');
+        Route::get('{opname}/lookup', 'lookup')->name('lookup')->whereNumber('opname');
+        Route::put('{opname}/scan', 'scan')->name('scan')->whereNumber('opname');
+        Route::put('{opname}/report', 'report')->name('report')->whereNumber('opname');
+        Route::put('{opname}/submit', 'submit')->name('submit')->whereNumber('opname');
     });
 
     Route::prefix('history')->name('history.')->controller(RadioHistoryController::class)->group(function () {

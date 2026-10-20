@@ -645,17 +645,17 @@ Prinsip:
 - [x] Tes per jenis cek dan per izin.
 
 ### 6.5 Stock opname di ponsel
-- [ ] Migration `create_radio_opname_tables` (sesi dan item) dan `add_opname_menu`.
-- [ ] Layout ponsel tanpa sidebar, empat layar:
+- [x] Migration `create_radio_opname_tables` (sesi dan item) dan `add_opname_menu`.
+- [x] Layout ponsel tanpa sidebar, empat layar:
   - Mulai: departemen, jumlah yang diharapkan, sesi terakhir;
   - Scan: K13a;
   - Verifikasi: pemegang, kondisi, catatan;
   - Ringkasan + Submit.
-- [ ] Setiap scan langsung disimpan, karena sesi berakhir setelah 30 menit tanpa aktivitas. Submit:
+- [x] Setiap scan langsung disimpan, karena sesi berakhir setelah 30 menit tanpa aktivitas. Submit:
   - menjalankan `RadioBulk::verify`;
   - mencatat audit `radio.opname_submitted`;
   - "Laporkan masalah" membuat tiket servis.
-- [ ] Tes: alur sesi, izin, submit.
+- [x] Tes: alur sesi, izin, submit.
 
 ### 6.6 Edit langsung ICT masterlist
 - [ ] Rute baru dan `CellEdits::writeRow`:
@@ -876,3 +876,26 @@ Prinsip:
   - diperiksa di browser (preview, data rekaan): 1440, 1366, 390, SN dobel dengan perbandingan, perlu dicek dengan catatan,
     ID dengan F dengan saran ID, dialog abaikan dengan validasi alasan, tautan Buka inbox di Dashboard.
   - suite penuh: 506 lulus.
+- 2026-10-20, 6.5 selesai:
+  - migration `create_radio_opname_tables` dan `add_opname_menu`, hanya dijalankan di LocalDB (tes dan preview). Menu
+    Stock Opname di bawah Servis & Perbaikan;
+  - `RadioOpnames`: yang diharapkan = radio aktif department itu (dan company bila dipilih), bukan yang di servis atau
+    hilang. Satu sesi terbuka per department dan company; memulai lagi di sana melanjutkannya, siapa pun yang membuka.
+    Kirim: per radio `RadioBulk::verify` dengan catatan sendiri (pemegang, kondisi, catatan), kondisi yang berubah lewat
+    `RadioService::update`, satu audit `radio.opname_submitted` untuk sesinya;
+  - `OpnameController` + `RequireMenu`: mulai = Create, pindai/lapor/kirim = Update, lapor juga butuh Create di Servis &
+    Perbaikan;
+  - halaman `opname/index.blade.php` berdiri sendiri (tanpa layout utama): skrip didorong ke stack sebelum bagian bersama
+    dicetak. Kelas `rm-phone-*` di `radio-ui.css`;
+  - `page-sandbox.mjs` tidak berubah; tes: `OpnameTest` (8, termasuk checker `opname-behaviour.mjs`, 12 cek);
+  - diperbaiki sekalian: toast `rmFeedback` tampil putih tanpa teks di seluruh aplikasi (gaya SweetAlert yang disuntik
+    belakangan menang); aturannya sekarang `.swal2-popup.swal2-toast.rm-toast`;
+  - beda dari desain dan README:
+    - tidak ada "Site" (radio tidak punya site): department dan company (K13f);
+    - tanpa foto dan tanpa mode offline (K13f): banner "No signal" tidak ada;
+    - tombol "Selesai, lihat ringkasan" di layar pindai, tombol kembali di atas kamera, dan layar "Terkirim";
+    - label fakta 128px (desain 104) untuk label Indonesia;
+    - kamera hanya bila `BarcodeDetector` ada; di iPhone dan desktop Windows tidak ada, jadi Radio ID/SN diketik;
+  - diperiksa di browser (preview, data rekaan): 390 untuk mulai, pindai, cek radio, sesudah verifikasi, ringkasan, toast;
+    1440 (kolom 480 di tengah).
+  - suite penuh: 514 lulus.

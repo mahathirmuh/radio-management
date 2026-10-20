@@ -99,6 +99,7 @@ class AuditLog extends Model
             AuditLogger::RADIO_HISTORY_ADDED => 'added a history entry to radio',
             AuditLogger::RADIO_HANDED_OVER => 'handed over radio',
             AuditLogger::RADIO_IMPORTED => 'imported radios from Excel',
+            AuditLogger::RADIO_OPNAME_SUBMITTED => 'sent the stock opname',
             AuditLogger::SERVICE_CREATED => 'opened service ticket',
             AuditLogger::SERVICE_STATUS_CHANGED => 'moved service ticket',
             AuditLogger::SERVICE_NOTE_ADDED => 'added a note to service ticket',

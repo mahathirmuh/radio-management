@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             // (Added when missing: a database whose migrations ran before it had the radio menus.)
             $this->call(AttentionMenuSeeder::class);
             $this->call(ServiceMenuSeeder::class);
+            $this->call(OpnameMenuSeeder::class);
 
             return;
         }
@@ -75,6 +76,7 @@ class DatabaseSeeder extends Seeder
         // everything below them down by one: last, so that the places the seeders above go by are still where they look.
         $this->call(AttentionMenuSeeder::class);
         $this->call(ServiceMenuSeeder::class);
+        $this->call(OpnameMenuSeeder::class);
     }
 
     /**

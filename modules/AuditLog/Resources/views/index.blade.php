@@ -445,6 +445,7 @@
                 'radio.history_added': ['Created', 'green', 'plus'],
                 'radio.handed_over': ['Handed over', 'blue', 'user-check'],
                 'radio.imported': ['Imported', 'purple', 'upload'],
+                'radio.opname_submitted': ['Counted', 'green', 'barcode'],
                 'radio.archived': ['Archived', 'gray', 'archive'],
                 'radio.restored': ['Restored', 'green', 'restore'],
                 'service.status_changed': ['Moved', 'orange', 'tool'],

@@ -66,6 +66,9 @@ class AuditLogger
 
     public const RADIO_IMPORTED = 'radio.imported';
 
+    /** A stock opname sent to the register: its radios verified today (each has its own history line). */
+    public const RADIO_OPNAME_SUBMITTED = 'radio.opname_submitted';
+
     /** Servis & Perbaikan: a ticket opened for a radio, moved a step on (sent, in repair, ready, back), given a note. */
     public const SERVICE_CREATED = 'service.created';
 
