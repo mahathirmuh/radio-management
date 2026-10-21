@@ -13,7 +13,7 @@ return [
         'radio-management.history.index' => 'Riwayat Radio',
         'radio-management.radio-type.index' => 'Tipe Radio',
         'radio-management.company.index' => 'Perusahaan',
-        'radio-management.department.index' => 'Departemen',
+        'radio-management.department.index' => 'Department',
         'radio-management.channel-template.index' => 'Template Channel',
         'radio-management.e-sign.index' => 'E-Sign Master',
         'radio-management.import.index' => 'Import Excel',

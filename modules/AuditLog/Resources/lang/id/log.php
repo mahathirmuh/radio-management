@@ -113,7 +113,7 @@ return [
         'Radio' => 'Radio',
         'RadioType' => 'Tipe radio',
         'RadioCompany' => 'Perusahaan',
-        'RadioDepartment' => 'Departemen',
+        'RadioDepartment' => 'Department',
         'ChannelTemplate' => 'Template channel',
         'RadioCheckState' => 'Cek',
         'RadioOpnameSession' => 'Stock Opname',

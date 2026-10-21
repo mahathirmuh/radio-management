@@ -8,6 +8,32 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.13.0] - 2026-10-21
+
+### Ditambahkan
+
+- **Bahasa Indonesia / English.** Ganti bahasa lewat menu akun (kanan atas), di sidebar versi HP, atau "ID | EN" di
+  halaman login. Semua halaman ikut: menu, judul, tombol, tabel, dialog, konfirmasi, pesan server dan validasi, halaman
+  error, nama bulan. Bahasa bawaan Bahasa Indonesia; pilihan disimpan per akun (dan di browser), jadi ikut ke perangkat
+  lain. Notifikasi baru dikirim dalam bahasa penerimanya.
+- Data tetap seperti tersimpan, dalam Bahasa Indonesia: riwayat radio, catatan, Audit Log, isi SharePoint, file Excel,
+  form checkout yang dicetak dan label di REST API. Posisi, kondisi, alasan arsip, aksesori dan jenis riwayat hanya
+  ditampilkan dengan nama dalam bahasa halaman.
+- Halaman yang tadinya hanya English (Users, Role & Permission, Audit Log, API Tokens) kini juga dalam Bahasa
+  Indonesia, dan bagian yang dulu campur (loader unggah/unduh, beberapa label) mengikuti bahasa halaman.
+
+### Diubah
+
+- REST API (`/api/v1`): pesannya kini dalam English, juga yang dulu dalam Bahasa Indonesia (penolakan aturan,
+  validasi, SharePoint); klien yang mengirim `Accept-Language: id` mendapat Bahasa Indonesia. Data (label posisi,
+  kondisi, hasil cek) tidak berubah.
+- Nama menu sidebar dalam Bahasa Indonesia: "Settings" menjadi "Pengaturan", "User Registered" menjadi "User
+  Terdaftar", "Role & Permission" menjadi "Role & Hak Akses".
+
+**Deploy:** satu migrasi baru, `2026_10_21_100000_add_locale_to_users` (kolom `users.locale`):
+`docker compose exec app php artisan migrate`. Tanpa setting baru. Sebelum migrasi dijalankan aplikasi tetap jalan;
+pilihan bahasa hanya tersimpan di browser.
+
 ## [1.12.3] - 2026-10-21
 
 ### Diubah
@@ -729,6 +755,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.13.0]: https://github.com/mahathirmuh/radio-management/compare/v1.12.3...v1.13.0
 [1.12.3]: https://github.com/mahathirmuh/radio-management/compare/v1.12.2...v1.12.3
 [1.12.2]: https://github.com/mahathirmuh/radio-management/compare/v1.12.1...v1.12.2
 [1.12.1]: https://github.com/mahathirmuh/radio-management/compare/v1.12.0...v1.12.1

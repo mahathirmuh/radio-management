@@ -301,8 +301,8 @@ Sesi login punya dua batas waktu yang dijaga di server (`App\Services\SessionClo
 - Setiap halaman memberi peringatan **2 menit** sebelum batas tidak aktif (**Tetap masuk** / **Keluar**) dan
   **5 menit** sebelum batas 8 jam (**Login ulang sekarang** / **Nanti**), dengan hitung mundur. Permintaan yang
   dibuat halaman sendiri (lonceng notifikasi, pengecekan sesi) tidak dihitung sebagai aktivitas.
-- Sesi yang berakhir membawa halaman ke login, yang menyebut alasannya ("You were inactive for 30 minutes", "A
-  session lasts at most 8 hours"); tercatat di [Audit Log](#audit-log) sebagai `auth.session_expired`. Form yang
+- Sesi yang berakhir membawa halaman ke login, yang menyebut alasannya ("Anda tidak aktif selama 30 menit.", "Satu
+  sesi paling lama 8 jam."); tercatat di [Audit Log](#audit-log) sebagai `auth.session_expired`. Form yang
   dikirim dari halaman yang sesinya sudah habis juga berakhir di halaman login, bukan di "Page Expired".
 - Tidak ada "remember me", juga bila diminta lewat form; cookie "remember me" dari sebelumnya tidak menghidupkan
   sesi lagi.
@@ -311,6 +311,27 @@ Sesi login punya dua batas waktu yang dijaga di server (`App\Services\SessionClo
 - `SESSION_LIFETIME` (umur sesi yang disimpan, 120) dibiarkan lebih panjang dari batas tidak aktif, supaya server
   masih tahu kenapa sesi berakhir. Sesi disimpan sebagai file (`SESSION_DRIVER=file`); jangan pakai `cookie`:
   pesan di halaman login membuat cookie-nya lebih dari 4 KB dan ditolak browser.
+
+## Bahasa
+
+Aplikasi tersedia dalam **Bahasa Indonesia** (bawaan) dan **English**.
+
+- Ganti bahasa lewat menu akun (kanan atas), di sidebar versi HP, atau "ID | EN" di bawah form login.
+- Pilihan disimpan **per akun** (kolom `users.locale`, migrasi `2026_10_21_100000_add_locale_to_users`) dan di
+  browser (cookie `locale`), jadi ikut ke perangkat lain setelah login. Sebelum migrasinya dijalankan, hanya browser
+  yang menyimpan; tidak ada yang gagal. Akun yang belum memilih, dan halaman login, memakai Bahasa Indonesia.
+- Yang diterjemahkan: semua teks layar (menu, judul, tombol, tabel, dialog, konfirmasi), pesan server dan validasi,
+  halaman error, nama bulan. Notifikasi baru dikirim dalam bahasa penerimanya.
+- **Data tetap seperti tersimpan, dalam Bahasa Indonesia**: riwayat radio, catatan, entri Audit Log, isi SharePoint,
+  file Excel import/export, label di REST API (`placement.label`, `condition.label`, `issues`), dan form IT Equipment
+  Checkout Form yang dicetak (form perusahaan, dalam English). Posisi, kondisi, alasan arsip, aksesori dan jenis riwayat
+  hanya **ditampilkan** dengan nama dalam bahasa halaman.
+- Nama yang tidak diterjemahkan: Dashboard, Register Radio, Stock Opname, COF Scan, ICT Masterlist, E-Sign Master,
+  Import Excel, Audit Log, API Tokens, User Management, Super Admin, Role.
+- REST API: pesan dalam English; klien yang mengirim `Accept-Language: id` mendapat Bahasa Indonesia.
+- Teksnya ada di `lang/<kode>/*.php` (bagian umum) dan `modules/<Module>/Resources/lang/<kode>/*.php` (per modul);
+  aturan menulisnya di [docs/I18N.md](docs/I18N.md). `TranslationFilesTest` memastikan kedua bahasa punya kunci dan
+  placeholder yang sama.
 
 ## Role
 
@@ -581,7 +602,7 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 | `403` | role atau token tidak boleh (pesan menyebut menunya), atau token read only |
 | `404` | data tidak ada |
 | `409` | radio sudah diubah orang lain sejak dibaca (kirim `version` dari jawaban terakhir), atau register sedang sibuk |
-| `422` | ditolak aturan, `errors` per field (pesan dalam bahasa Indonesia, seperti di halaman) |
+| `422` | ditolak aturan, `errors` per field (pesan dalam English; `Accept-Language: id` untuk Bahasa Indonesia, lihat [Bahasa](#bahasa)) |
 | `429` | terlalu banyak request: 60/menit per token; import dan export Excel 10/menit; yang dibaca dari SharePoint 30/menit, menyetujui perubahan sel 10/menit (120/menit per alamat sebelum token diperiksa) |
 | `502`, `504` | SharePoint menjawab salah atau terlalu lambat (ada `reason`) |
 | `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`) |
