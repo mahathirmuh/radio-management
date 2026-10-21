@@ -111,7 +111,7 @@ trait FakesSnipeIt
                     'location' => ['id' => 2, 'name' => 'Warehouse &amp; Logistics'],
                     'updated_at' => $moment('2026-10-21 09:15:42'), 'purchase_cost' => '1,234.00',
                     'custom_fields' => ['Radio ID' => ['field' => '_snipeit_radio_id_8', 'value' => '4021']],
-                    'notes' => 'Battery SN 50002F1488A5',
+                    'notes' => 'Battery SN 50002F1488A5', 'image' => 'https://snipeit.test/uploads/models/p6620i.png',
                 ],
                 [
                     'id' => 12, 'asset_tag' => 'MTI-HT-002', 'name' => '', 'serial' => null,

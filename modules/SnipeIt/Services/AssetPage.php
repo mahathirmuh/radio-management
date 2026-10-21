@@ -30,20 +30,6 @@ final class AssetPage
         'restored' => ['green', 'restore'],
     ];
 
-    /** The icon of an asset without a picture, by its category. */
-    private const ICONS = [
-        '/\b(ht|radio|repeater|rig)\b/i' => 'radio',
-        '/notebook|laptop/i' => 'device-laptop',
-        '/\bpc\b|desktop|monitor/i' => 'device-desktop',
-        '/cctv|camera|nvr/i' => 'device-cctv',
-        '/printer/i' => 'printer',
-        '/switch|router|access ?point|network/i' => 'router',
-        '/tablet/i' => 'device-tablet',
-        '/phone|mobile/i' => 'device-mobile',
-        '/\bsim/i' => 'device-sim',
-        '/\bups\b|battery/i' => 'battery-charging',
-        '/headset/i' => 'headset',
-    ];
 
     /** The colour of a status, by Snipe-IT's status_meta. */
     private const STATUS_TONES = ['deployed' => 'blue', 'deployable' => 'green', 'pending' => 'yellow', 'undeployable' => 'red', 'archived' => 'gray'];
@@ -69,8 +55,8 @@ final class AssetPage
             'manufacturer' => Rows::text(data_get($asset, 'manufacturer.name')),
             'status' => $this->status($asset),
             'deleted' => Rows::date($asset['deleted_at'] ?? null),
-            'image' => $this->image($asset['image'] ?? null),
-            'icon' => $this->icon((string) $category),
+            'image' => Rows::image($asset['image'] ?? null),
+            'icon' => Rows::icon($category),
             'holder' => $this->holder($asset['assigned_to'] ?? null, $web),
             'facts' => $this->facts($asset, $web),
             'custom' => $this->custom($asset['custom_fields'] ?? null),
@@ -259,22 +245,6 @@ final class AssetPage
         }
     }
 
-    /** A picture of Snipe-IT's, only by a web address. */
-    private function image(mixed $url): ?string
-    {
-        return is_string($url) && preg_match('#^https?://[^\s"\'<>]+$#i', $url) ? $url : null;
-    }
-
-    private function icon(string $category): string
-    {
-        foreach (self::ICONS as $pattern => $icon) {
-            if (preg_match($pattern, $category)) {
-                return $icon;
-            }
-        }
-
-        return 'box';
-    }
 
     /** A longer text of Snipe-IT (a note) as plain text that keeps its lines. */
     public static function paragraph(mixed $value): ?string

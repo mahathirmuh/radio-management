@@ -91,6 +91,22 @@
             line-height: 16px;
         }
 
+        /* The picture, as large as the box allows; a click opens it whole. */
+        .snipe-picture {
+            display: grid;
+            place-items: center;
+            height: 220px;
+            padding: 8px;
+            border-radius: 8px;
+            background: var(--rm-gray-50);
+        }
+
+        .snipe-picture img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
         .snipe-detail .rm-change-old:empty::before,
         .snipe-detail .rm-change-new:empty::before {
             content: "—";
@@ -218,6 +234,21 @@
                 </section>
 
                 <div class="d-flex flex-column gap-3 min-w-0">
+                    {{-- Snipe-IT's picture (the asset's, else its model's); the box goes when it cannot be loaded. --}}
+                    @if ($asset['image'])
+                        <section class="rm-cardbox" aria-labelledby="snipePicture" id="snipePictureBox">
+                            <header class="rm-cardbox-head">
+                                <h2 class="rm-cardbox-title" id="snipePicture">{{ __('SnipeIt::snipe.asset.sections.picture') }}</h2>
+                                <a class="rm-cardbox-link" href="{{ $asset['image'] }}" target="_blank" rel="noopener noreferrer">{{ __('SnipeIt::snipe.asset.full_size') }}</a>
+                            </header>
+                            <div class="rm-cardbox-body">
+                                <a class="snipe-picture" href="{{ $asset['image'] }}" target="_blank" rel="noopener noreferrer"><img src="{{ $asset['image'] }}"
+                                        alt="{{ $asset['model'] ?? $asset['tag'] }}" loading="lazy" referrerpolicy="no-referrer"
+                                        onerror="this.closest('section').remove()"></a>
+                            </div>
+                        </section>
+                    @endif
+
                     @if ($asset['notes'])
                         <section class="rm-cardbox" aria-labelledby="snipeNotes">
                             <header class="rm-cardbox-head">

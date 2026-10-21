@@ -7,8 +7,9 @@ namespace Modules\SnipeIt\Services;
  * endpoint of the API and the columns. The columns are all that leaves the server: whatever else Snipe-IT answers (a
  * licence key, a phone number, an address) is never sent to the browser.
  *
- * A column: 'path' (where its value is in a row of the API, dotted), 'type' (how it is shown: text, link, code, number,
- * date, badge, bool, list, changes), 'sub' (a second line under it), 'words' (a group of SnipeIt::snipe whose word is shown
+ * A column: 'path' (where its value is in a row of the API, dotted), 'type' (how it is shown: text, link, strong, code,
+ * number, date, badge, bool, list, changes; asset: the row's picture with the value; open: the button to the row's page,
+ * the last column), 'sub' (a second line under it), 'words' (a group of SnipeIt::snipe whose word is shown
  * for the value; also for the second line: 'subWords'), 'tone' (where the value is that colours a badge), 'sort' (what
  * Snipe-IT orders the list by when the column is clicked; checked against Snipe-IT 6.2). Its name is
  * SnipeIt::snipe.columns.<key>.
@@ -28,7 +29,8 @@ final class Lists
     public const ACTIONS = ['checkout', 'checkin from', 'create', 'update', 'delete', 'audit'];
 
     /**
-     * endpoint: the API's; detail: where in a row the asset is whose detail (a page here, SnipeIt::asset) the row leads to;
+     * endpoint: the API's; image: where Snipe-IT's picture of a row is; detail: where in a row the asset is whose detail (a
+     * page here, SnipeIt::asset) the row leads to;
      * web: else Snipe-IT's own page of a row ({id}: the row's, {item}: the page of the item an entry of the activity log is
      * about, an asset's detail here); order: [column, asc|desc] when nobody chose one; local: Snipe-IT answers the whole list
      * at once (no pages, no search), so pages and search are done here; filters: what the list can be cut by.
@@ -37,11 +39,12 @@ final class Lists
         'assets' => [
             'endpoint' => 'hardware',
             'detail' => 'id',
+            'image' => 'image',
             'order' => ['updated', 'desc'],
             'filters' => ['category', 'status'],
             'columns' => [
-                'asset_tag' => ['path' => 'asset_tag', 'type' => 'link', 'sort' => 'asset_tag'],
-                'name' => ['path' => 'name', 'sort' => 'name'],
+                // The picture, the tag, and the name under it; the button to the detail at the end of the row.
+                'asset_tag' => ['path' => 'asset_tag', 'type' => 'asset', 'sub' => 'name', 'sort' => 'asset_tag'],
                 'serial' => ['path' => 'serial', 'type' => 'code', 'sort' => 'serial'],
                 'model' => ['path' => 'model.name', 'sort' => 'model'],
                 'category' => ['path' => 'category.name', 'sort' => 'category'],
@@ -49,6 +52,7 @@ final class Lists
                 'holder' => ['path' => 'assigned_to.name', 'sub' => 'assigned_to.type', 'subWords' => 'kinds', 'sort' => 'assigned_to'],
                 'location' => ['path' => 'location.name', 'sort' => 'location'],
                 'updated' => ['path' => 'updated_at', 'type' => 'date', 'sort' => 'updated_at'],
+                'open' => ['path' => 'id', 'type' => 'open'],
             ],
         ],
         'models' => [

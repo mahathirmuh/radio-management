@@ -170,19 +170,23 @@ class SnipeItTest extends TestCase
         $this->assertSame(['key' => 'updated', 'order' => 'desc'], $answer['sort']);
 
         [$first, $second] = $answer['data'];
-        $this->assertSame(['id', 'link', 'inside', 'cells'], array_keys($first));
+        $this->assertSame(['id', 'link', 'inside', 'image', 'icon', 'cells'], array_keys($first));
         $this->assertSame(11, $first['id']);
         // An asset leads to its detail here; Snipe-IT's own page is a button there.
         $this->assertSame([route('snipe-it.assets.show', 11), true], [$first['link'], $first['inside']]);
-        $this->assertSame(['asset_tag', 'name', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated'], array_keys($first['cells']));
+        $this->assertSame(['asset_tag', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated', 'open'], array_keys($first['cells']));
+        // Snipe-IT's picture (the browser loads it from Snipe-IT), and the icon of the category for a row without one.
+        $this->assertSame(['https://snipeit.test/uploads/models/p6620i.png', 'radio'], [$first['image'], $first['icon']]);
+        $this->assertSame([null, 'radio'], [$second['image'], $second['icon']]);
+        $this->assertSame(['t' => null, 's' => null, 'tone' => null], $first['cells']['open']);
         // Snipe-IT's escaped texts as plain text (the page escapes them again), without markup.
-        $this->assertSame(['t' => 'Radio one', 's' => null, 'tone' => null], $first['cells']['name']);
+        $this->assertSame(['t' => 'MTI-HT-001', 's' => 'Radio one', 'tone' => null], $first['cells']['asset_tag']);
         $this->assertSame(['t' => "Ann O'Neil", 's' => 'User', 'tone' => null], $first['cells']['holder']);
         $this->assertSame(['t' => 'Warehouse & Logistics', 's' => null, 'tone' => null], $first['cells']['location']);
         $this->assertSame(['t' => 'Deployed', 's' => null, 'tone' => 'blue'], $first['cells']['status']);
         $this->assertSame('21-10-2026 09:15', $first['cells']['updated']['t']);
         // Nothing becomes "nothing": no serial, no holder, no name.
-        $this->assertSame([null, null, null], [$second['cells']['serial']['t'], $second['cells']['holder']['t'], $second['cells']['name']['t']]);
+        $this->assertSame([null, null, null], [$second['cells']['serial']['t'], $second['cells']['holder']['t'], $second['cells']['asset_tag']['s']]);
         $this->assertSame('green', $second['cells']['status']['tone']);
 
         // What is not a column does not leave the server.
@@ -335,8 +339,11 @@ class SnipeItTest extends TestCase
         $this->assertStringContainsString('placeholder="Cari custom field…"', $catalog);
         $this->assertStringContainsString('<h1 class="rm-topbar-title">Snipe-IT · Katalog</h1>', $catalog);
 
-        // The assets: no tabs, a filter by category and one by status, set by the address.
+        // The assets: no tabs, a filter by category and one by status, set by the address; the picture with the tag, a button to the detail.
         $assets = (string) $this->get(route('snipe-it.assets.index', ['category' => 101, 'q' => 'P6620i']))->assertOk()->getContent();
+        preg_match_all('#<th scope="col" data-key="(\w+)"#', $assets, $assetHeads);
+        $this->assertSame(['asset_tag', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated', 'open'], $assetHeads[1]);
+        $this->assertStringContainsString('<th scope="col" data-key="open" class="text-end rm-sticky-end"><span class="visually-hidden">Detail</span></th>', $assets);
         $this->assertStringNotContainsString('class="rm-tabs"', $assets);
         $this->assertStringContainsString('<option value="101" selected>HT (539)</option>', $assets);
         $this->assertMatchesRegularExpression('#<option value="4"\s*>Deployed \(2\.051\)</option>#', $assets);
@@ -365,6 +372,9 @@ class SnipeItTest extends TestCase
         $this->assertStringContainsString('<span class="snipe-mono">SN 867TBT0001</span>', $page);
         $this->assertStringContainsString('<span class="rm-badge blue">Deployed</span>', $page);
         $this->assertStringContainsString('<img src="https://snipeit.test/uploads/models/p6620i.png" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">', $page);
+        // The picture large too, beside the history; a click opens it whole.
+        $this->assertMatchesRegularExpression('#<h2 class="rm-cardbox-title" id="snipePicture">Gambar</h2>\s*<a class="rm-cardbox-link" href="https://snipeit.test/uploads/models/p6620i.png" target="_blank" rel="noopener noreferrer">Buka ukuran penuh</a>#', $page);
+        $this->assertMatchesRegularExpression('#<a class="snipe-picture" href="https://snipeit.test/uploads/models/p6620i.png" target="_blank" rel="noopener noreferrer"><img src="https://snipeit.test/uploads/models/p6620i.png"\s+alt="Motorola XiR P6620i"#', $page);
         $this->assertStringContainsString('<a class="btn-rm secondary" href="http://snipeit.test/hardware/11" target="_blank" rel="noopener noreferrer">', $page);
 
         // The facts, each by its name.

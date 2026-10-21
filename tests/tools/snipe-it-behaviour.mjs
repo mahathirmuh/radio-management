@@ -16,12 +16,13 @@ const { check, done } = checker();
 
 const meta = (total, current = 1) => ({ current_page: current, per_page: 25, total, last_page: Math.max(1, Math.ceil(total / 25)), from: total ? 1 : null, to: total ? Math.min(25, total) : null, total_text: String(total) });
 const cell = (t, s = null, tone = null) => ({ t, s, tone });
-// A row as the server sends it: an asset leads to its detail here (inside), another row to Snipe-IT's page.
-const row = (id, cells = {}, link = `/snipe-it/assets/${id}`, inside = true) => ({
-    id, link, inside,
+// A row as the server sends it: an asset leads to its detail here (inside), another row to Snipe-IT's page; Snipe-IT's picture
+// of it, and the icon of its category.
+const row = (id, cells = {}, link = `/snipe-it/assets/${id}`, inside = true, image = 'https://snipeit.test/uploads/models/p6620i.png', icon = 'radio') => ({
+    id, link, inside, image, icon,
     cells: {
-        asset_tag: cell(`MTI-HT-00${id}`), name: cell(null), serial: cell(`867TBT000${id}`), model: cell('Motorola XiR P6620i'), category: cell('HT'),
-        status: cell('Deployed', null, 'blue'), holder: cell('Ann O\'Neil', 'User'), location: cell(null), updated: cell('21-10-2026 09:15'),
+        asset_tag: cell(`MTI-HT-00${id}`, `HT ${id}`), serial: cell(`867TBT000${id}`), model: cell('Motorola XiR P6620i'), category: cell('HT'),
+        status: cell('Deployed', null, 'blue'), holder: cell('Ann O\'Neil', 'User'), location: cell(null), updated: cell('21-10-2026 09:15'), open: cell(null),
         ...cells,
     },
 });
@@ -44,12 +45,16 @@ check('the page asks for its first page in its own order, and shows that it is l
 });
 
 // ---------------------------------------------------------------- a row
-check('a row: the asset tag a link to its detail here, the status a badge in its colour, the holder with what it is, a dash for nothing', () => {
+check('a row: the picture with the tag and the name, the status a badge in its colour, the holder with what it is, a dash for nothing, a button to the detail', () => {
     const p = loaded();
     const rows = body(p).split('</tr>');
     assertWellFormed(body(p), 'the rows');
-    assert.match(rows[0], /<td class=""><a href="\/snipe-it\/assets\/1" class="snipe-link" title="Lihat detail">MTI-HT-001<\/a><\/td>/);
+    // Snipe-IT's picture over the icon of the category (which shows when the picture cannot be loaded), the tag, the name.
+    assert.match(rows[0], /<td class=""><div class="snipe-asset"><span class="snipe-thumb"><i class="ti ti-radio" aria-hidden="true"><\/i><img src="https:\/\/snipeit\.test\/uploads\/models\/p6620i\.png" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this\.remove\(\)"><\/span><div class="min-w-0"><div class="rm-strong">MTI-HT-001<\/div><div class="rm-line2">HT 1<\/div><\/div><\/div><\/td>/);
+    // The button to the detail: a page here, in the same tab, with its words for the eye and the ear.
+    assert.match(rows[0], /<td class="text-end rm-sticky-end"><div class="rm-acts"><a href="\/snipe-it\/assets\/1" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Lihat detail" aria-label="Lihat detail"><i class="ti ti-eye" aria-hidden="true"><\/i><\/a><\/div><\/td>/);
     assert.doesNotMatch(rows[0], /target=/, 'the detail opens in the same tab');
+    assert.doesNotMatch(rows[0], /class="snipe-link"/, 'the tag itself is no link: the button is');
     assert.match(rows[0], /<td class=""><span class="rm-none">—<\/span><\/td>/);
     assert.match(rows[0], /<td class=""><span class="rm-code">867TBT0001<\/span><\/td>/);
     assert.match(rows[0], /<td class="is-badge"><span class="rm-badge blue">Deployed<\/span><\/td>/);
@@ -59,20 +64,25 @@ check('a row: the asset tag a link to its detail here, the status a badge in its
     assert.match(p.node('#snipePagination').html, /1 – 2 .* 2/);
 });
 
-check('everything from Snipe-IT is escaped; a page of Snipe-IT opens in a tab of its own; a link-less row shows its tag in bold; an unknown colour is grey', () => {
+check('everything from Snipe-IT is escaped; a page of Snipe-IT opens in a tab of its own; without a picture or a page, the icon and no button; an unknown colour is grey', () => {
     const p = loaded([row(3, {
-        asset_tag: cell('<img src=x onerror=alert(1)>'),
-        name: cell('"><script>alert(2)</script>', '<b>sub</b>'),
+        asset_tag: cell('<img src=x onerror=alert(1)>', '<b>sub</b>'),
+        model: cell('"><script>alert(2)</script>'),
         status: cell('Odd', null, 'pink" onmouseover="alert(3)'),
-    }, 'http://snipeit.test/hardware/3?a="b"', false), row(4, {}, null)]);
+    }, 'http://snipeit.test/hardware/3?a="b"', false, 'https://snipeit.test/p.png" onload="alert(4)', 'x" onclick="alert(5)'), row(4, {}, null, true, null, 'device-laptop')]);
     const html = body(p);
+    const [third, fourth] = html.split('</tr>');
     assertWellFormed(html, 'the rows');
-    assert.doesNotMatch(html, /<img|<script|<b>/);
-    assert.match(html, /<a href="http:\/\/snipeit\.test\/hardware\/3\?a=&quot;b&quot;" class="snipe-link" target="_blank" rel="noopener noreferrer" title="Buka di Snipe-IT">/);
-    assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;<\/a>/);
-    assert.match(html, /&quot;&gt;&lt;script&gt;alert\(2\)&lt;\/script&gt;<div class="rm-line2">&lt;b&gt;sub&lt;\/b&gt;<\/div>/);
-    assert.match(html, /<span class="rm-badge gray">Odd<\/span>/);
-    assert.match(html.split('</tr>')[1], /<td class=""><span class="rm-strong">MTI-HT-004<\/span><\/td>/);
+    assert.doesNotMatch(html, /<script|<b>|\sonload="|\sonclick="/, 'no attribute of the page from Snipe-IT');
+    assert.equal((html.match(/<img /g) || []).length, 1, 'one picture: the escaped address of the third row');
+    assert.match(third, /<img src="https:\/\/snipeit\.test\/p\.png&quot; onload=&quot;alert\(4\)" alt=""/);
+    assert.match(third, /<i class="ti ti-box" aria-hidden="true"><\/i>/, 'an icon that is no name of one is the box');
+    assert.match(third, /<div class="rm-strong">&lt;img src=x onerror=alert\(1\)&gt;<\/div><div class="rm-line2">&lt;b&gt;sub&lt;\/b&gt;<\/div>/);
+    assert.match(third, /&quot;&gt;&lt;script&gt;alert\(2\)&lt;\/script&gt;/);
+    assert.match(third, /<a href="http:\/\/snipeit\.test\/hardware\/3\?a=&quot;b&quot;" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Lihat detail" aria-label="Lihat detail" target="_blank" rel="noopener noreferrer">/);
+    assert.match(third, /<span class="rm-badge gray">Odd<\/span>/);
+    assert.match(fourth, /<span class="snipe-thumb"><i class="ti ti-device-laptop" aria-hidden="true"><\/i><\/span>/);
+    assert.match(fourth, /<td class="text-end rm-sticky-end"><\/td>/, 'no page, no button');
 });
 
 // ---------------------------------------------------------------- search, filters, address
@@ -111,7 +121,7 @@ check('nothing found says so; without a search, that there is nothing', () => {
 // ---------------------------------------------------------------- order, pages, refresh
 check('a click on a column orders by it, a second click the other way; page links and the page size ask for that page', () => {
     const p = loaded([row(1)], 60);
-    for (const key of ['asset_tag', 'name', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated']) {
+    for (const key of ['asset_tag', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated']) {
         assert.equal(p.exists(`#snipeTable th[data-key="${key}"]`), true, key);
     }
     p.fire('#snipeTable th[data-key="asset_tag"]', 'click');

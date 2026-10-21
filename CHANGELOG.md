@@ -8,6 +8,22 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.17.0] - 2026-10-21
+
+### Ditambahkan
+
+- Snipe-IT, Aset: gambar tiap aset di samping asset tag (gambar aset atau modelnya dari Snipe-IT; tanpa gambar, ikon
+  kategorinya), dengan nama aset di bawah asset tag.
+- Snipe-IT, Aset: tombol khusus **Lihat detail** (ikon mata) di ujung tiap baris untuk membuka detail aset.
+- Detail aset: panel **Gambar** yang besar; klik gambarnya untuk membuka ukuran penuh.
+
+### Diubah
+
+- Snipe-IT, Aset: kolom Nama digabung ke kolom Asset tag (sebagai baris kedua), dan asset tag tidak lagi berupa link:
+  detail dibuka lewat tombolnya.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.16.0] - 2026-10-21
 
 ### Ditambahkan
@@ -908,6 +924,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.17.0]: https://github.com/mahathirmuh/radio-management/compare/v1.16.0...v1.17.0
 [1.16.0]: https://github.com/mahathirmuh/radio-management/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/mahathirmuh/radio-management/compare/v1.14.5...v1.15.0
 [1.14.5]: https://github.com/mahathirmuh/radio-management/compare/v1.14.4...v1.14.5

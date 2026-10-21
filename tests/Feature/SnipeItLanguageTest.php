@@ -60,7 +60,8 @@ class SnipeItLanguageTest extends TestCase
             $this->assertStringNotContainsString($part, $catalog, $part);
         }
         $assets = (string) $this->get(route('snipe-it.assets.index'))->assertOk()->getContent();
-        foreach (['<option value="">All categories</option>', '<option value="">All statuses</option>', '>Checked out to</th>', '>Updated</th>'] as $part) {
+        foreach (['<option value="">All categories</option>', '<option value="">All statuses</option>', '>Checked out to</th>', '>Updated</th>',
+            '<span class="visually-hidden">Details</span>', '"open_detail":"See the details"'] as $part) {
             $this->assertStringContainsString($part, $assets, $part);
         }
 
@@ -84,12 +85,12 @@ class SnipeItLanguageTest extends TestCase
             '>Purchase &amp; warranty</h2>', '<dt>Checked out to</dt>', '3 checkouts · 2 checkins', '12 months · until 02-01-2027',
             '>Custom fields</h2>', 'Hidden', '150 events, newest first', 'Showing the 3 newest of 150 events. The rest are in Snipe-IT.',
             '<span class="snipe-sub">to Ann O&#039;Neil (User)</span>', ' · by Admin One</div>', '<span>Created</span>', '<span>Updated</span>',
-            '<span class="rm-change-field">Location</span>', 'Cost 350,000.00', '>Licenses</h2>', '>Assets attached</h2>', '>Dates &amp; audit</h2>',
+            '<span class="rm-change-field">Location</span>', 'Cost 350,000.00', '>Licenses</h2>', '>Assets attached</h2>', '>Dates &amp; audit</h2>', '>Picture</h2>', '>Open full size</a>',
             'Open in Snipe-IT', 'Fetched '] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
         foreach (['Detail Aset', 'Pemegang', 'Pembelian', 'kali checkout', 'bulan', 'Disembunyikan', 'kejadian', 'oleh ', 'Dibuat', 'Diubah',
-            'Biaya', 'Buka di Snipe-IT', 'Diambil', 'Waktu &amp; audit'] as $part) {
+            'Biaya', 'Buka di Snipe-IT', 'Diambil', 'Waktu &amp; audit', 'Gambar', 'ukuran penuh'] as $part) {
             $this->assertStringNotContainsString($part, $page, $part);
         }
         $this->get(route('snipe-it.assets.show', 99))->assertNotFound();

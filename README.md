@@ -974,16 +974,18 @@ untuk dibaca**: aplikasi ini hanya bertanya ke API Snipe-IT (GET) dan tidak pern
 | Submenu | Isi |
 | --- | --- |
 | Ringkasan | Jumlah setiap daftar, aset per status, dan aset per kategori (8 terbesar); tiap angka membuka daftarnya |
-| Aset | Semua aset: asset tag, nama, SN, model, kategori, status, pemegang, lokasi, terakhir diubah; filter kategori dan status (`?category=15`, `?status=4`, `?q=`). Asset tag membuka **detail aset** (lihat di bawah) |
+| Aset | Semua aset dengan gambarnya: asset tag (nama di bawahnya), SN, model, kategori, status, pemegang, lokasi, terakhir diubah; filter kategori dan status (`?category=15`, `?status=4`, `?q=`). Tombol mata di ujung baris membuka **detail aset** (lihat di bawah) |
 | Katalog | Model, kategori, manufaktur, status, supplier, custom field, fieldset, depresiasi |
 | Orang & Organisasi | User (nama, email, username, NIK, jabatan, departemen, lokasi, jumlah aset, aktif), departemen, lokasi, company, grup |
 | Lisensi & Stok | Lisensi (seat, sisa seat, tanggal beli dan kedaluwarsa), aksesori, consumable, komponen, kit |
 | Riwayat | Log aktivitas Snipe-IT (dibuat, diubah, checkout, checkin, dihapus, audit; filter aksi) dan maintenance |
 
-- Setiap daftar bisa dicari, diurutkan per kolom (kolom yang bisa diurutkan Snipe-IT), dan dibuka per halaman. Sebuah
-  aset (di daftar Aset, Log aktivitas, dan Maintenance) membuka detailnya di aplikasi ini; baris lain membuka halamannya
-  di Snipe-IT sendiri.
-- **Detail aset** (`/snipe-it/assets/{id}`, butuh Read pada halaman Aset): data aset, pemegang dan lokasi (checkout
+- Setiap daftar bisa dicari, diurutkan per kolom (kolom yang bisa diurutkan Snipe-IT), dan dibuka per halaman. Di daftar
+  Aset, tombol **Lihat detail** (ikon mata) di ujung baris membuka detail aset di aplikasi ini; di Log aktivitas dan
+  Maintenance, asetnya yang membuka detail itu. Baris lain membuka halamannya di Snipe-IT sendiri.
+- **Gambar**: gambar aset (atau gambar modelnya) dimuat browser langsung dari alamat Snipe-IT, jadi browser pemakai
+  harus bisa menjangkau Snipe-IT; bila tidak, yang tampil ikon kategorinya. Aplikasi ini tidak menyimpan gambar.
+- **Detail aset** (`/snipe-it/assets/{id}`, butuh Read pada halaman Aset): gambar (klik untuk ukuran penuh), data aset, pemegang dan lokasi (checkout
   terakhir, rencana kembali, jumlah checkout/checkin), pembelian dan garansi (supplier, no. order, tanggal dan harga beli,
   nilai buku, garansi, umur), custom field model, catatan, **riwayat** di Snipe-IT (checkout ke siapa, checkin dari
   siapa, perubahan field lama → baru dengan nama field dan nilainya, bukan `status_id: 2 → 4`; 100 kejadian terbaru),

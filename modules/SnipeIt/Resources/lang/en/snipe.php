@@ -79,6 +79,7 @@ return [
         'manager' => 'Manager',
         'manufacturer' => 'Manufacturer',
         'minimum' => 'Minimum value',
+        'open' => 'Details',
         'model' => 'Model',
         'model_number' => 'Model no.',
         'models' => 'Models',
@@ -210,7 +211,9 @@ return [
             'licenses' => 'Licenses',
             'attached' => 'Assets attached',
             'dates' => 'Dates & audit',
+            'picture' => 'Picture',
         ],
+        'full_size' => 'Open full size',
         'facts' => [
             'name' => 'Name',
             'asset_tag' => 'Asset tag',

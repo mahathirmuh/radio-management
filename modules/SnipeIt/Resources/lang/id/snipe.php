@@ -79,6 +79,7 @@ return [
         'manager' => 'Manajer',
         'manufacturer' => 'Manufaktur',
         'minimum' => 'Nilai minimum',
+        'open' => 'Detail',
         'model' => 'Model',
         'model_number' => 'No. model',
         'models' => 'Model',
@@ -210,7 +211,9 @@ return [
             'licenses' => 'Lisensi',
             'attached' => 'Aset yang dipasang',
             'dates' => 'Waktu & audit',
+            'picture' => 'Gambar',
         ],
+        'full_size' => 'Buka ukuran penuh',
         'facts' => [
             'name' => 'Nama',
             'asset_tag' => 'Asset tag',

@@ -44,11 +44,27 @@ final class Rows
     /** The longest text of a cell; Snipe-IT's own page has the rest. */
     private const LONGEST = 200;
 
+    /** The icon of an asset without a picture, by its category. */
+    private const ICONS = [
+        '/\b(ht|radio|repeater|rig)\b/i' => 'radio',
+        '/notebook|laptop/i' => 'device-laptop',
+        '/\bpc\b|desktop|monitor/i' => 'device-desktop',
+        '/cctv|camera|nvr/i' => 'device-cctv',
+        '/printer/i' => 'printer',
+        '/switch|router|access ?point|network/i' => 'router',
+        '/tablet/i' => 'device-tablet',
+        '/phone|mobile/i' => 'device-mobile',
+        '/\bsim/i' => 'device-sim',
+        '/\bups\b|battery/i' => 'battery-charging',
+        '/headset/i' => 'headset',
+    ];
+
     /**
      * @param  array<string, mixed>  $list  Lists::get()
      * @param  array<string, mixed>  $row  a row of the API
-     * @return array{id: int|null, link: string|null, inside: bool, cells: array<string, array{t: ?string, s: ?string, tone: ?string}>}
-     *     link: the page of the row; inside: it is a page of this application (the detail of an asset), not Snipe-IT's
+     * @return array{id: int|null, link: string|null, inside: bool, image?: ?string, icon?: string, cells: array<string, array{t: ?string, s: ?string, tone: ?string}>}
+     *     link: the page of the row; inside: it is a page of this application (the detail of an asset), not Snipe-IT's;
+     *     image and icon (a list with pictures): Snipe-IT's picture of the row, and the icon shown without one
      */
     public static function show(array $list, array $row, ?string $web): array
     {
@@ -62,8 +78,30 @@ final class Rows
             'id' => is_numeric($row['id'] ?? null) ? (int) $row['id'] : null,
             'link' => $link,
             'inside' => $inside,
+            ...(isset($list['image']) ? [
+                'image' => self::image(data_get($row, $list['image'])),
+                'icon' => self::icon(self::text(data_get($row, 'category.name'))),
+            ] : []),
             'cells' => $cells,
         ];
+    }
+
+    /** A picture of Snipe-IT's, only by a web address (the browser loads it from Snipe-IT). */
+    public static function image(mixed $url): ?string
+    {
+        return is_string($url) && preg_match('#^https?://[^\s"\'<>]+$#i', $url) ? $url : null;
+    }
+
+    /** The icon of an asset (a Tabler icon, without "ti-"), by the name of its category. */
+    public static function icon(?string $category): string
+    {
+        foreach (self::ICONS as $pattern => $icon) {
+            if (preg_match($pattern, (string) $category)) {
+                return $icon;
+            }
+        }
+
+        return 'box';
     }
 
     /**
@@ -77,6 +115,10 @@ final class Rows
         $type = $column['type'] ?? 'text';
         $tone = null;
 
+        if ($type === 'open') {
+            // The button to the row's page: no text of its own.
+            return ['t' => null, 's' => null, 'tone' => null];
+        }
         if ($type === 'bool') {
             $yes = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             if ($yes === null) {

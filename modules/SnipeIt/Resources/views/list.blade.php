@@ -22,7 +22,9 @@
 
         #snipeTable td.is-number,
         #snipeTable td.is-date,
-        #snipeTable td.is-badge {
+        #snipeTable td.is-badge,
+        #snipeTable .rm-code,
+        #snipeTable .snipe-asset .rm-strong {
             white-space: nowrap;
         }
 
@@ -34,6 +36,39 @@
 
         .snipe-link:hover {
             color: var(--rm-brand-600);
+        }
+
+        /* An asset: its picture (Snipe-IT's; the icon of its category without one), its tag, its name under it. */
+        .snipe-asset {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .snipe-thumb {
+            position: relative;
+            display: grid;
+            place-items: center;
+            flex: none;
+            width: 40px;
+            height: 40px;
+            overflow: hidden;
+            border: 1px solid var(--rm-gray-200);
+            border-radius: 8px;
+            background: var(--rm-gray-50);
+            color: var(--rm-gray-500);
+            font-size: 18px;
+        }
+
+        .snipe-thumb img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            padding: 2px;
+            background: #fff;
+            object-fit: contain;
         }
     </style>
 @endpush
@@ -96,7 +131,11 @@
                     <thead>
                         <tr>
                             @foreach ($heads as $head)
-                                <th scope="col" data-key="{{ $head['key'] }}" @class(['text-end' => $head['type'] === 'number'])>{{ $head['label'] }}</th>
+                                @if ($head['type'] === 'open')
+                                    <th scope="col" data-key="{{ $head['key'] }}" class="text-end rm-sticky-end"><span class="visually-hidden">{{ $head['label'] }}</span></th>
+                                @else
+                                    <th scope="col" data-key="{{ $head['key'] }}" @class(['text-end' => $head['type'] === 'number'])>{{ $head['label'] }}</th>
+                                @endif
                             @endforeach
                         </tr>
                     </thead>
@@ -149,6 +188,21 @@
             cell(row, head) {
                 const esc = snipeList.esc;
                 const cell = (row.cells || {})[head.key] || {};
+                // The button to the detail of the row (a page here), at the end of the row.
+                if (head.type === 'open') {
+                    return row.link ?
+                        `<div class="rm-acts"><a href="${esc(row.link)}" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${esc(snipeText.open_detail)}" aria-label="${esc(snipeText.open_detail)}"${row.inside ? '' : ' target="_blank" rel="noopener noreferrer"'}><i class="ti ti-eye" aria-hidden="true"></i></a></div>` :
+                        '';
+                }
+                // An asset: Snipe-IT's picture over the icon of its category (the icon stays when the picture cannot be loaded).
+                if (head.type === 'asset') {
+                    const picture = row.image ?
+                        `<img src="${esc(row.image)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+                    const icon = /^[a-z0-9-]+$/.test(row.icon || '') ? row.icon : 'box';
+                    return `<div class="snipe-asset"><span class="snipe-thumb"><i class="ti ti-${icon}" aria-hidden="true"></i>${picture}</span>` +
+                        `<div class="min-w-0"><div class="rm-strong">${cell.t ? esc(cell.t) : '—'}</div>` +
+                        (cell.s ? `<div class="rm-line2">${esc(cell.s)}</div>` : '') + `</div></div>`;
+                }
                 if (cell.t === null || cell.t === undefined || cell.t === '') return '<span class="rm-none">—</span>';
                 const text = esc(cell.t);
                 let html;
@@ -175,7 +229,7 @@
                 return snipeList.heads.map(head => ({
                     key: head.key,
                     sortable: head.sortable,
-                    className: { number: 'text-end is-number', date: 'is-date', badge: 'is-badge', bool: 'is-badge' } [head.type] || '',
+                    className: { number: 'text-end is-number', date: 'is-date', badge: 'is-badge', bool: 'is-badge', open: 'text-end rm-sticky-end' } [head.type] || '',
                     render: row => snipeList.cell(row, head),
                 }));
             },
@@ -194,6 +248,9 @@
                     currentPage: snipeList.page,
                     limit: snipeList.limit,
                     emptyText: snipeList.esc(message),
+                });
+                $('#snipeTable').find('[data-bs-toggle="tooltip"]').tooltip({
+                    trigger: 'hover'
                 });
                 initSorting({
                     container: '#snipeTable',
