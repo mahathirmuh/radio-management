@@ -104,7 +104,9 @@
     --tblr-link-color-rgb: 37, 99, 235;
     --tblr-link-hover-color: #1d4ed8;
     --tblr-link-hover-color-rgb: 29, 78, 216;
-    --tblr-body-bg: #f8fafc;
+    /* The page behind the cards: white, beside the grey sidebar (--rm-sidebar-bg). */
+    --tblr-body-bg: #fff;
+    --tblr-body-bg-rgb: 255, 255, 255;
 }
 
 .rm-mono {

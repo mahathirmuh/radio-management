@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.13.2] - 2026-10-21
+
+### Diubah
+
+- Latar halaman (di belakang kartu, sampai footer) kini putih, bukan abu-abu muda; sidebar tetap abu-abu seperti
+  production, jadi keduanya terlihat terpisah. Halaman login, Stock Opname di HP dan form cetak tidak berubah.
+
+**Deploy:** tanpa migrasi baru, tanpa setting baru.
+
 ## [1.13.1] - 2026-10-21
 
 ### Diubah
@@ -764,6 +773,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.13.2]: https://github.com/mahathirmuh/radio-management/compare/v1.13.1...v1.13.2
 [1.13.1]: https://github.com/mahathirmuh/radio-management/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/mahathirmuh/radio-management/compare/v1.12.3...v1.13.0
 [1.12.3]: https://github.com/mahathirmuh/radio-management/compare/v1.12.2...v1.12.3
