@@ -119,15 +119,48 @@ class RadioManagementTest extends TestCase
         $this->assertSame(['layak', 'rusak', 'belum_dicek'], $slices[2]);
         $this->assertSame([$register . '?condition=layak', $register . '?condition=rusak', $register . '?condition=belum_dicek'], $slices[1]);
         $this->assertSame(['Layak: 3 (60,0%)', 'Rusak: 1 (20,0%)', 'Belum dicek: 1 (20,0%)'], $slices[3]);
-        // The first slice starts at the top (more than half: the long way round); the share is written on each slice that
-        // holds at least a tenth.
+        // The first slice starts at the top (more than half: the long way round); the shares are in the list, not on the
+        // slices.
         $this->assertStringContainsString('<path d="M74 74 L74 1 A73 73 0 1 1 ', $page);
-        preg_match_all('#<text class="viz-pie-label" data-viz-key="([a-z_]+)"[^>]*>([^<]*)</text>#', $page, $labels);
-        $this->assertSame(['layak', 'rusak', 'belum_dicek'], $labels[1]);
-        $this->assertSame(['60,0%', '20,0%', '20,0%'], $labels[2]);
+        $this->assertStringNotContainsString('viz-pie-label', $page);
         // The list keeps every condition, also the one without radios, and lights up with its slice.
         preg_match_all('#class="viz-legend-row"\s+data-viz-key="([a-z_]+)"#', $page, $rows);
         $this->assertSame(['layak', 'perlu_service', 'rusak', 'belum_dicek'], $rows[1]);
+    }
+
+    public function test_the_dashboard_shows_the_companies_as_a_pie_and_the_types_as_columns(): void
+    {
+        $n = 0;
+        foreach (['C1' => 7, 'C2' => 6, 'C3' => 5, 'C4' => 4, 'C5' => 3, 'C6' => 2, 'C7' => 1] as $code => $count) {
+            $company = RadioCompany::create(['code' => $code, 'name' => 'PT ' . $code]);
+            for ($i = 0; $i < $count; $i++, $n++) {
+                Radio::create(['dmr_id' => 100 + $n, 'serial_number' => sprintf('867TZB6%03d', $n), 'user_name' => 'Pengguna ' . $n, 'company_id' => $company->id]);
+            }
+        }
+        $type = RadioType::query()->firstOrFail();
+        Radio::query()->whereIn('dmr_id', [100, 101])->update(['radio_type_id' => $type->id]);
+        $this->actingAs($this->admin());
+        $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
+
+        // The five largest companies and the rest together: a slice and a row each, in that order, each in its colour.
+        preg_match_all('#<g class="viz-slice is-static" data-viz-key="([a-z0-9]+)" data-viz-tip="([^"]*)">#', $page, $slices);
+        $this->assertSame(['c0', 'c1', 'c2', 'c3', 'c4', 'other'], $slices[1]);
+        $this->assertSame(['C1: 7 radio (25,0%)', 'Lainnya: 3 radio (10,7%)'], [$slices[2][0], $slices[2][5]]);
+        preg_match_all('#class="viz-legend-row" tabindex="0" data-viz-key="([a-z0-9]+)"#', $page, $rows);
+        $this->assertSame(['c0', 'c1', 'c2', 'c3', 'c4', 'other'], $rows[1]);
+        $this->assertStringContainsString('<span class="viz-key" style="background: var(--viz-cat-1);"></span>', $page);
+        $this->assertStringContainsString('<span class="viz-key" style="background: var(--viz-other);"></span>', $page);
+        // Who is in "Lainnya" is said under it; the total of the radios is in the middle of the ring.
+        $this->assertStringContainsString('Lainnya<span class="viz-legend-sub">C6 2 · C7 1</span>', $page);
+        $this->assertStringContainsString('<text class="viz-donut-total" x="74" y="68">28</text>', $page);
+        $this->assertStringContainsString('<text class="viz-donut-unit" x="74" y="90">radio</text>', $page);
+        $this->assertStringContainsString('Jumlah unit dan bagiannya dari 28, terbanyak di atas', $page);
+        $this->assertStringContainsString('aria-label="Radio aktif per company pengguna: C1 7, C2 6, C3 5, C4 4, C5 3, Lainnya 3"', $page);
+
+        // The types as columns, tallest first, the value above each and the name under it.
+        preg_match_all('#<span class="viz-col-label">([^<]*)</span>#', $page, $names);
+        $this->assertSame(['(kosong)', str_replace('MotoTrbo XiR ', '', $type->name)], $names[1]);
+        $this->assertStringContainsString('<span class="viz-col-bar" style="height: calc((var(--viz-plot) - 22px) * 1)"></span>', $page);
     }
 
     public function test_create_validates_sn_and_radio_id(): void

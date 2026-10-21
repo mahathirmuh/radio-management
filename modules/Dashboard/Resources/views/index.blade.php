@@ -18,8 +18,38 @@
         'rusak' => ['var' => '--viz-critical', 'icon' => 'ti-circle-x'],
         'belum_dicek' => ['var' => '--viz-neutral', 'icon' => 'ti-help-circle'],
     ];
-    $companyMax = max($byCompany->max() ?? 0, 1);
     $typeMax = max($byType->max() ?? 0, 1);
+    // Per company as a ring: the five largest companies, each in a categorical colour in a fixed order, the radios without
+    // a company in light grey where their number puts them, and the rest of the companies together in grey at the end.
+    $noCompany = __('Dashboard::dashboard.no_name');
+    $companyNamed = $byCompany->except([$noCompany]);
+    $companyTop = $companyNamed->take(5)->keys()->values();
+    $companyRest = $companyNamed->slice(5);
+    $companyEntries = collect();
+    foreach ($byCompany as $company => $count) {
+        $slot = $companyTop->search($company);
+        if ($company === $noCompany || $slot !== false) {
+            $companyEntries->push([
+                'key' => $company === $noCompany ? 'none' : 'c' . $slot,
+                'label' => $company,
+                'count' => (int) $count,
+                'color' => $company === $noCompany ? 'var(--viz-empty)' : 'var(--viz-cat-' . ($slot + 1) . ')',
+                'names' => null,
+            ]);
+        }
+    }
+    if ($companyRest->isNotEmpty()) {
+        $companyEntries->push([
+            'key' => 'other',
+            'label' => __('Dashboard::dashboard.by_company.other'),
+            'count' => (int) $companyRest->sum(),
+            'color' => 'var(--viz-other)',
+            'names' => $companyRest->map(fn ($count, $company) => $company . ' ' . $fmt($count))->implode(' · '),
+        ]);
+    }
+    $companyPie = \Modules\Dashboard\Services\Pie::slices($companyEntries->pluck('count', 'key')->all(), 148);
+    $companyTip = fn (array $entry) => $entry['label'] . ': ' . trans_choice('Dashboard::dashboard.radios', $entry['count'], ['count' => $fmt($entry['count'])])
+        . ' (' . $pct($entry['count'], $totalActive) . ')';
 @endphp
 
 @include('RadioManagement::partials.scripts')
@@ -35,57 +65,90 @@
             --viz-neutral: var(--rm-gray-400);
             --viz-text: var(--rm-gray-900);
             --viz-text-secondary: var(--rm-gray-500);
+            /* Categorical, in this order (validated on white: adjacent CVD ΔE >= 12.6, normal vision >= 16.3; the orange is
+               under 3:1, so every value is also written in the list), and apart from the green of "Layak" (ΔE 15.9).
+               Without a company: light grey; the rest of the companies together: grey. */
+            --viz-cat-1: var(--rm-brand-600);
+            --viz-cat-2: var(--rm-cyan-600);
+            --viz-cat-3: var(--rm-violet-500);
+            --viz-cat-4: var(--rm-orange-500);
+            --viz-cat-5: var(--rm-pink-500);
+            --viz-empty: var(--rm-gray-300);
+            --viz-other: var(--rm-gray-400);
         }
 
-        /* Horizontal bars: one series, one hue, value at the tip. */
-        .viz-bar-row {
-            display: grid;
-            grid-template-columns: 96px 1fr;
+        /* Columns: one series, one hue, the value above each, the name under one baseline. */
+        .viz-cols {
+            --viz-plot: 180px;
+            position: relative;
+            display: flex;
+            gap: 14px;
+        }
+
+        .viz-cols::after {
+            content: "";
+            position: absolute;
+            top: calc(var(--viz-plot) - 1px);
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--rm-gray-200);
+            pointer-events: none;
+        }
+
+        .viz-col {
+            display: flex;
+            flex: 1 1 0;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
-            padding: 5px 0;
+            min-width: 0;
             border-radius: 6px;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .viz-bar-row:hover,
-        .viz-bar-row:focus-visible {
-            background: var(--rm-gray-50);
             outline: none;
         }
 
-        .viz-bar-row:focus-visible {
+        .viz-col:hover,
+        .viz-col:focus-visible {
+            background: var(--rm-gray-50);
+        }
+
+        .viz-col:focus-visible {
             box-shadow: 0 0 0 2px var(--viz-series-1);
         }
 
-        .viz-bar-label {
-            font-size: 13px;
-            color: var(--rm-gray-700);
-            line-height: 1.25;
+        .viz-col-plot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            width: 100%;
+            height: var(--viz-plot);
+        }
+
+        .viz-col-value {
+            color: var(--viz-text);
+            font-size: 12px;
+            line-height: 16px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .viz-col-bar {
+            width: min(40px, 70%);
+            min-height: 2px;
+            border-radius: 4px 4px 0 0;
+            background: var(--viz-series-1);
+        }
+
+        .viz-col-label {
+            padding: 8px 2px 4px;
+            color: var(--rm-gray-500);
+            font-size: 12px;
+            line-height: 16px;
+            text-align: center;
             overflow-wrap: anywhere;
         }
 
-        .viz-bar-track {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-        }
-
-        .viz-bar {
-            height: 14px;
-            min-width: 2px;
-            background: var(--viz-series-1);
-            border-radius: 0 4px 4px 0;
-        }
-
-        .viz-bar-value {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--viz-text);
-            font-variant-numeric: tabular-nums;
-        }
 
         /* Part-to-whole: a pie beside its list (under it where the box is narrow), a 2px gap in the colour of the card
            between the slices. A slice and its row light up together. */
@@ -130,24 +193,40 @@
             transition: opacity .15s ease-out;
         }
 
+        .viz-slice.is-static {
+            cursor: default;
+        }
+
         .viz-pie-empty {
             fill: var(--rm-gray-100);
         }
 
-        /* The share of a large slice, in the ink of the text (dark enough on each of the colours). */
-        .viz-pie-label {
-            fill: var(--viz-text);
-            font-size: 12px;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
+        /* A ring: the hole in the colour of the card, the total and its unit in it. */
+        .viz-donut-hole {
+            fill: #fff;
+            pointer-events: none;
+        }
+
+        .viz-donut-total,
+        .viz-donut-unit {
             text-anchor: middle;
             dominant-baseline: central;
             pointer-events: none;
-            transition: opacity .15s ease-out;
         }
 
-        .viz-cond.has-hot .viz-slice:not(.is-hot),
-        .viz-cond.has-hot .viz-pie-label:not(.is-hot) {
+        .viz-donut-total {
+            fill: var(--viz-text);
+            font-size: 22px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .viz-donut-unit {
+            fill: var(--viz-text-secondary);
+            font-size: 12px;
+        }
+
+        .viz-cond.has-hot .viz-slice:not(.is-hot) {
             opacity: .35;
         }
 
@@ -156,8 +235,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .viz-slice,
-            .viz-pie-label {
+            .viz-slice {
                 transition: none;
             }
         }
@@ -182,6 +260,19 @@
         .viz-legend-row:hover {
             background: var(--rm-gray-50);
             color: var(--viz-text);
+        }
+
+        .viz-legend-row:focus-visible {
+            outline: 2px solid var(--viz-series-1);
+            outline-offset: -2px;
+        }
+
+        /* The companies in "Lainnya", under its name. */
+        .viz-legend-sub {
+            display: block;
+            color: var(--viz-text-secondary);
+            font-size: 12px;
+            line-height: 16px;
         }
 
         .viz-key {
@@ -306,13 +397,6 @@
                                             @endif
                                         </a>
                                     @endforeach
-                                    {{-- The share written on the slices that are large enough to hold it. --}}
-                                    @foreach ($pie as $slice)
-                                        @if ($slice['share'] >= 0.1)
-                                            <text class="viz-pie-label" data-viz-key="{{ $slice['key'] }}" x="{{ $slice['label_x'] }}"
-                                                y="{{ $slice['label_y'] }}">{{ $pct($slice['count'], $totalActive) }}</text>
-                                        @endif
-                                    @endforeach
                                 </svg>
                             <div>
                                 @foreach ($conditions as $condition)
@@ -383,20 +467,42 @@
                         <header class="rm-cardbox-head">
                             <div>
                                 <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.by_company.title') }}</h2>
-                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.by_company.sub') }}</div>
+                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.by_company.sub', ['count' => $fmt($totalActive)]) }}</div>
                             </div>
                         </header>
-                        <div class="rm-cardbox-body" role="list">
-                            @foreach ($byCompany as $company => $count)
-                                <div class="viz-bar-row" role="listitem" tabindex="0"
-                                    data-viz-tip="{{ $company }}: {{ trans_choice('Dashboard::dashboard.radios', $count, ['count' => $fmt($count)]) }} ({{ $pct($count, $totalActive) }})">
-                                    <div class="viz-bar-label">{{ $company }}</div>
-                                    <div class="viz-bar-track">
-                                        <div class="viz-bar" style="width: calc((100% - 3rem) * {{ $count / $companyMax }})"></div>
-                                        <span class="viz-bar-value">{{ $fmt($count) }}</span>
-                                    </div>
+                        <div class="rm-cardbox-body viz-cond-box">
+                            <div class="viz-cond">
+                                {{-- The slices say their number in a tooltip; the rows say every number, and take the keyboard. --}}
+                                <svg class="viz-pie" viewBox="0 0 148 148" role="img"
+                                    aria-label="{{ __('Dashboard::dashboard.by_company.chart', ['parts' => $companyEntries->map(fn ($entry) => $entry['label'] . ' ' . $entry['count'])->implode(', ')]) }}">
+                                    @if ($companyPie === [])
+                                        <circle class="viz-pie-empty" cx="74" cy="74" r="73"></circle>
+                                    @endif
+                                    @foreach ($companyPie as $slice)
+                                        @php($entry = $companyEntries->firstWhere('key', $slice['key']))
+                                        <g class="viz-slice is-static" data-viz-key="{{ $slice['key'] }}" data-viz-tip="{{ $companyTip($entry) }}">
+                                            @if ($slice['full'])
+                                                <circle cx="74" cy="74" r="73" style="fill: {{ $entry['color'] }};"></circle>
+                                            @else
+                                                <path d="{{ $slice['path'] }}" style="fill: {{ $entry['color'] }};"></path>
+                                            @endif
+                                        </g>
+                                    @endforeach
+                                    <circle class="viz-donut-hole" cx="74" cy="74" r="48"></circle>
+                                    <text class="viz-donut-total" x="74" y="68">{{ $fmt($totalActive) }}</text>
+                                    <text class="viz-donut-unit" x="74" y="90">{{ trans_choice('Dashboard::dashboard.by_company.unit', $totalActive) }}</text>
+                                </svg>
+                                <div>
+                                    @foreach ($companyEntries as $entry)
+                                        <div class="viz-legend-row" tabindex="0" data-viz-key="{{ $entry['key'] }}" data-viz-tip="{{ $companyTip($entry) }}">
+                                            <span class="viz-key" style="background: {{ $entry['color'] }};"></span>
+                                            <span class="flex-fill">{{ $entry['label'] }}@if ($entry['names'])<span class="viz-legend-sub">{{ $entry['names'] }}</span>@endif</span>
+                                            <span class="viz-num">{{ $fmt($entry['count']) }}</span>
+                                            <span class="viz-pct">{{ $pct($entry['count'], $totalActive) }}</span>
+                                        </div>
+                                    @endforeach
                                 </div>
-                            @endforeach
+                            </div>
                         </div>
                     </section>
 
@@ -408,17 +514,21 @@
                                 <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.by_type.sub') }}</div>
                             </div>
                         </header>
-                        <div class="rm-cardbox-body" role="list">
-                            @foreach ($byType as $type => $count)
-                                <div class="viz-bar-row" role="listitem" tabindex="0"
-                                    data-viz-tip="{{ $type }}: {{ trans_choice('Dashboard::dashboard.radios', $count, ['count' => $fmt($count)]) }} ({{ $pct($count, $totalActive) }})">
-                                    <div class="viz-bar-label">{{ $type }}</div>
-                                    <div class="viz-bar-track">
-                                        <div class="viz-bar" style="width: calc((100% - 3rem) * {{ $count / $typeMax }})"></div>
-                                        <span class="viz-bar-value">{{ $fmt($count) }}</span>
+                        <div class="rm-cardbox-body">
+                            <div class="viz-cols" role="list">
+                                @foreach ($byType as $type => $count)
+                                    <div class="viz-col" role="listitem" tabindex="0"
+                                        data-viz-tip="{{ $type }}: {{ trans_choice('Dashboard::dashboard.radios', $count, ['count' => $fmt($count)]) }} ({{ $pct($count, $totalActive) }})">
+                                        <div class="viz-col-plot">
+                                            <span class="viz-col-value">{{ $fmt($count) }}</span>
+                                            @if ($count > 0)
+                                                <span class="viz-col-bar" style="height: calc((var(--viz-plot) - 22px) * {{ $count / $typeMax }})"></span>
+                                            @endif
+                                        </div>
+                                        <span class="viz-col-label">{{ $type }}</span>
                                     </div>
-                                </div>
-                            @endforeach
+                                @endforeach
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -487,18 +597,20 @@
                 $(this).attr('data-bs-title', $(this).attr('data-viz-tip'))
                     .tooltip({ trigger: 'hover focus', placement: 'top' });
             });
-            // A slice and its row light up together, under the pointer or (a row) in focus.
-            const conditionChart = $('.viz-cond');
-            const lightUp = key => {
-                conditionChart.toggleClass('has-hot', key !== null);
-                conditionChart.find('[data-viz-key]').each(function() {
-                    $(this).toggleClass('is-hot', this.getAttribute('data-viz-key') === key);
+            // In each pie, a slice and its row light up together, under the pointer or (a row) in focus.
+            $('.viz-cond').each(function() {
+                const chart = $(this);
+                const lightUp = key => {
+                    chart.toggleClass('has-hot', key !== null);
+                    chart.find('[data-viz-key]').each(function() {
+                        $(this).toggleClass('is-hot', this.getAttribute('data-viz-key') === key);
+                    });
+                };
+                chart.on('mouseenter focusin', '[data-viz-key]', function() {
+                    lightUp(this.getAttribute('data-viz-key'));
                 });
-            };
-            conditionChart.on('mouseenter focusin', '[data-viz-key]', function() {
-                lightUp(this.getAttribute('data-viz-key'));
+                chart.on('mouseleave focusout', '[data-viz-key]', () => lightUp(null));
             });
-            conditionChart.on('mouseleave focusout', '[data-viz-key]', () => lightUp(null));
         });
     </script>
 @endpush

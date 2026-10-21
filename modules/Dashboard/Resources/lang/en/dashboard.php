@@ -42,7 +42,11 @@ return [
 
     'by_company' => [
         'title' => 'Active radios per user company',
-        'sub' => 'Number of units, most first',
+        'sub' => 'Units and share of :count, most first',
+        'chart' => 'Active radios per user company: :parts',
+        'other' => 'Other',
+        // Under the total in the middle of the ring.
+        'unit' => '{1} radio|[0,*] radios',
     ],
 
     'by_type' => [

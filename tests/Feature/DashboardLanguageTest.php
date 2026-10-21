@@ -50,8 +50,9 @@ class DashboardLanguageTest extends TestCase
         $this->assertStringContainsString('aria-label="Condition of active radios: Good 3, Needs service 0, Broken 1, Not checked 1"', $page);
         preg_match_all('#class="viz-slice" tabindex="-1"\s+data-viz-key="[a-z_]+"\s+data-viz-tip="([^"]*)">#', $page, $slices);
         $this->assertSame(['Good: 3 (60.0%)', 'Broken: 1 (20.0%)', 'Not checked: 1 (20.0%)'], $slices[1]);
-        preg_match_all('#<text class="viz-pie-label"[^>]*>([^<]*)</text>#', $page, $labels);
-        $this->assertSame(['60.0%', '20.0%', '20.0%'], $labels[1]);
+        // The ring of the companies: the total and its unit in English, the subtitle with the number.
+        $this->assertStringContainsString('<text class="viz-donut-unit" x="74" y="90">radios</text>', $page);
+        $this->assertStringContainsString('Units and share of 5, most first', $page);
         $this->assertStringContainsString('aria-label="Show radios: Good"', $page);
 
         // What needs action, the bars (the radios without a company or a type), the recent activity.
@@ -59,7 +60,8 @@ class DashboardLanguageTest extends TestCase
         $this->assertStringContainsString('<span class="rm-badge orange">Radio type empty</span>', $page);
         $this->assertStringContainsString('class="rm-attn-link">Show</a>', $page);
         $this->assertStringContainsString('data-viz-tip="(none): 5 radios (100.0%)"', $page);
-        $this->assertStringContainsString('<div class="viz-bar-label">(none)</div>', $page);
+        $this->assertStringContainsString('<span class="flex-fill">(none)</span>', $page);
+        $this->assertStringContainsString('<span class="viz-col-label">(none)</span>', $page);
         $this->assertStringContainsString('<h2 class="rm-cardbox-title">Recent activity</h2>', $page);
         $this->assertStringContainsString('<span class="rm-badge blue">Handover</span>', $page);
         $this->assertStringContainsString('<th class="text-end">By</th>', $page);

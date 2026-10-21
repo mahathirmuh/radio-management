@@ -42,7 +42,11 @@ return [
 
     'by_company' => [
         'title' => 'Radio aktif per company pengguna',
-        'sub' => 'Jumlah unit, diurutkan dari terbanyak',
+        'sub' => 'Jumlah unit dan bagiannya dari :count, terbanyak di atas',
+        'chart' => 'Radio aktif per company pengguna: :parts',
+        'other' => 'Lainnya',
+        // Under the total in the middle of the ring.
+        'unit' => 'radio',
     ],
 
     'by_type' => [
