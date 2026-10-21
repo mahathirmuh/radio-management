@@ -8,10 +8,11 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
-## [Unreleased]
+## [1.10.0] - 2026-10-21
 
-Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; rencana dan keputusannya di
-[docs/PLAN.md](docs/PLAN.md). Bagian ini menjadi satu rilis saat branch itu digabung ke `main`.
+Tampilan baru (design refresh) untuk semua halaman, dan kemampuan baru: Perlu Perhatian, Servis & Perbaikan, Stock
+Opname, serah terima dengan tanda tangan, pemilih Radio ID, dan edit baris langsung di ICT Masterlist. Dikerjakan per
+fase di branch `design-refresh`; rencana dan keputusannya di [docs/PLAN.md](docs/PLAN.md).
 
 ### Ditambahkan
 
@@ -212,8 +213,8 @@ Tampilan baru (design refresh), dikerjakan per fase di branch `design-refresh`; 
   nomor urut yang sama dengan Audit Log, sehingga urutan keduanya di sidebar tidak tentu. Sekarang Audit Log dan API
   Tokens tetap di bawah User Management, Approval Management sesudahnya.
 
-**Deploy:** fase 1 sampai 5 tanpa migrasi dan tanpa setting baru. Fase 6 membawa migrasi: `php artisan migrate`, sekali
-per database. Migrasinya:
+**Deploy:** tanpa setting baru. Membawa tujuh migrasi: `php artisan migrate`, sekali per database. Aplikasi tetap jalan
+sebelum migrasinya dijalankan (halaman barunya bilang belum aktif). Migrasinya:
 - `2026_10_20_100000_create_service_tickets_tables` (tabel `service_tickets` dan `service_ticket_events`);
 - `2026_10_20_110000_add_service_menu` (menu Servis & Perbaikan);
 - `2026_10_20_120000_create_radio_check_states_table` (tabel `radio_check_states`: pertama terlihat, penugasan, abaikan);
@@ -499,6 +500,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.0]: https://github.com/mahathirmuh/radio-management/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/mahathirmuh/radio-management/compare/v1.8.4...v1.9.0
 [1.8.4]: https://github.com/mahathirmuh/radio-management/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/mahathirmuh/radio-management/compare/v1.8.2...v1.8.3

@@ -7,9 +7,9 @@ lima kemampuan baru yang butuh backend (fase 6).
 - **Spesifikasi:** `docs/design_handoff_radio_management/README.md` dan `design_files/*.dc.html` (folder lokal, lihat K9).
   Ukuran, warna dan state diambil dari atribut `style="…"`. Tag `<dc-import>`, `<sc-for>`, `<sc-if>` dan `{{ }}` hanya
   kerangka prototipe: komponen, perulangan, kondisi, variabel.
-- **Status:** fase 1–6 selesai (2026-10-20). Semua rekomendasi K1–K13 dan asumsi A1–A15 disetujui pemilik pada
-  2026-10-20 ("oke, eksekusi sekarang"). Migration fase 6 baru dijalankan di LocalDB (tes dan preview): menunggu
-  diperiksa pemilik sebelum dijalankan di database lain. Lihat "Progres".
+- **Status:** selesai dan dirilis sebagai **1.10.0** (2026-10-21, `main`, tag `v1.10.0`). Semua rekomendasi K1–K13 dan
+  asumsi A1–A15 disetujui pemilik pada 2026-10-20 ("oke, eksekusi sekarang"). Migration fase 6 dijalankan pemilik di
+  database live pada 2026-10-21. Lihat "Progres".
 
 ## Cara melanjutkan di sesi baru
 
@@ -956,3 +956,9 @@ Prinsip:
     database yang sudah dipakai) menaruh Approval Management di nomor Audit Log. Sekarang urutannya User Management,
     Audit Log, API Tokens, lalu Approval Management (CHANGELOG, bagian Diperbaiki);
   - suite penuh: 543 lulus.
+- 2026-10-21, rilis:
+  - pemilik menjalankan `php artisan migrate` di database live: ketujuh migration fase 6 (batch 13). Dicek baca-saja:
+    urutan sidebar sama dengan instalasi baru, izin ketiga menu baru sama dengan Register Radio, tabel baru kosong,
+    kolom `direct` ada;
+  - `main` dimajukan (fast-forward) ke `design-refresh`, lalu dirilis sebagai 1.10.0 (K8): `VERSION`, CHANGELOG, tag
+    `v1.10.0`; README menyebut menu-menu baru.

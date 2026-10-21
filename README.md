@@ -15,15 +15,18 @@ Dokumen ada di folder `docs/`, masing-masing untuk versi yang tertulis di sampul
 | Menu | Fungsi |
 | --- | --- |
 | Dashboard | Ringkasan radio aktif, kondisi, hasil cek, per company/tipe, ID bebas berikutnya |
-| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel; **pilih banyak**: verifikasi, arsipkan, hapus, export sekaligus |
-| Detail Radio | Data lengkap, hasil cek, riwayat, data asli Excel |
+| Register Radio | Daftar radio (1 baris = 1 radio fisik / SN), filter, tambah/edit, arsip/pulihkan, cetak form, export Excel; **pilih banyak**: verifikasi, arsipkan, hapus, export sekaligus. Form radio langsung bilang apakah Radio ID bisa dipakai, dan menawarkan penggantinya |
+| Perlu Perhatian | Hasil cek register sebagai inbox: satu item per radio (atau per SN / Radio ID yang dipakai beberapa radio), diperbaiki langsung dari sini, diabaikan dengan alasan, atau ditugaskan ke orang lain; angka merah di sidebar |
+| Servis & Perbaikan | Tiket servis `SRV-0001` untuk radio bermasalah: Dilaporkan → Dikirim ke servis → Dalam perbaikan → Siap diambil → Kembali, dengan board/list, catatan, dan Export Excel |
+| Stock Opname | Halaman untuk ponsel: hitung radio satu department dengan memindai barcode SN (atau mengetik), cek pemegang dan kondisi, lalu kirim hasilnya ke register |
+| Detail Radio | Data lengkap, hasil cek, riwayat, data asli Excel; **serah terima** ke pemegang baru dengan tanda tangan penerima (hanya untuk form yang dicetak, tidak disimpan) |
 | Riwayat Radio | Log serah terima, status, program, verifikasi, arsip (otomatis + manual) |
 | Master Data Radio | Tipe Radio, Perusahaan, Department, Template Channel, dan **E-Sign Master** (tanda tangan tim ICT, lihat [E-Sign Master](#e-sign-master)) |
 | Import Excel | Impor register lama (sheet Form + to Konawe) |
-| COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
-| ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
+| COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form, dengan jumlah file yang tertaut dan yang tidak tertaut ke barisnya di ICT Masterlist (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
+| ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah, dan yang boleh menyetujui (Document Controller, Super Admin) bisa mengubah satu baris langsung (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | Persetujuan Edit | Pengajuan perubahan sel workbook, dan persetujuannya; baru setelah disetujui orang lain workbook di SharePoint berubah (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)) |
-| Audit Log | Jejak audit: siapa login (berhasil, gagal, keluar) dan siapa mengubah apa, dengan nilai sebelum → sesudah (lihat [Audit Log](#audit-log)) |
+| Audit Log | Jejak audit: siapa login (berhasil, gagal, keluar) dan siapa mengubah apa, dengan nilai sebelum → sesudah; filter jenis catatan dan rentang tanggal (lihat [Audit Log](#audit-log)) |
 | API Tokens | Klien API dan token untuk aplikasi lain yang memakai register lewat API `/api/v1`, dokumentasinya di `/docs/api` (lihat [API](#api)) |
 
 Aturan utama:
