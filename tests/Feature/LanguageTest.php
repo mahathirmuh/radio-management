@@ -33,10 +33,13 @@ class LanguageTest extends TestCase
         $this->assertStringContainsString('<html lang="id">', $page);
         $this->assertStringContainsString('<li class="rm-nav-section" role="presentation"><span>Pengaturan</span></li>', $page);
         $this->assertStringContainsString('<i class="ti ti-logout" aria-hidden="true"></i> Keluar', $page);
-        // The switch in the account menu: each language by its own name, the one in use ticked.
-        $this->assertStringContainsString('<form method="POST" action="' . route('language.switch') . '" class="rm-menu-group" id="languageMenu">', $page);
-        $this->assertMatchesRegularExpression('#value="id" lang="id"\s+class="dropdown-item rm-menu-item is-on"\s+aria-describedby="languageMenuLabel" aria-pressed="true">\s*<i class="ti ti-check rm-menu-tick" aria-hidden="true"></i> Bahasa Indonesia#', $page);
-        $this->assertMatchesRegularExpression('#value="en" lang="en"\s+class="dropdown-item rm-menu-item"\s+aria-describedby="languageMenuLabel" aria-pressed="false">\s*<i class="ti ti-check rm-menu-tick" aria-hidden="true"></i> English#', $page);
+        // The switch in the top bar, ID | EN beside the bell: each language named in full for whoever cannot see the
+        // letters, the one in use marked; no longer in the account menu.
+        $this->assertStringContainsString('<form method="POST" action="' . route('language.switch') . '" class="rm-seg rm-topbar-lang" id="languageSwitch"', $page);
+        $this->assertMatchesRegularExpression('#value="id" lang="id" title="Bahasa Indonesia" aria-label="Bahasa Indonesia"\s+aria-pressed="true" class="is-on">ID</button>#', $page);
+        $this->assertMatchesRegularExpression('#value="en" lang="en" title="English" aria-label="English"\s+aria-pressed="false" class="">EN</button>#', $page);
+        $this->assertLessThan(strpos($page, 'class="rm-icon-btn rm-bell"'), strpos($page, 'id="languageSwitch"'));
+        $this->assertStringNotContainsString('languageMenu', $page);
         // On a phone the sidebar offers the other one.
         $this->assertMatchesRegularExpression('#<button type="submit" name="locale" value="en" class="rm-nav-link" lang="en"\s+aria-label="Bahasa: English">#', $page);
     }
@@ -57,7 +60,7 @@ class LanguageTest extends TestCase
         $this->assertStringContainsString('<html lang="en">', $page);
         $this->assertStringContainsString('<span>Settings</span>', $page);
         $this->assertStringContainsString('<i class="ti ti-logout" aria-hidden="true"></i> Sign out', $page);
-        $this->assertMatchesRegularExpression('#value="en" lang="en"\s+class="dropdown-item rm-menu-item is-on"#', $page);
+        $this->assertMatchesRegularExpression('#value="en" lang="en" title="English" aria-label="English"\s+aria-pressed="true" class="is-on">EN</button>#', $page);
     }
 
     public function test_the_choice_of_the_account_wins_over_the_browser_and_the_browser_learns_it(): void

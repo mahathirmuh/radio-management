@@ -316,7 +316,8 @@ Sesi login punya dua batas waktu yang dijaga di server (`App\Services\SessionClo
 
 Aplikasi tersedia dalam **Bahasa Indonesia** (bawaan) dan **English**.
 
-- Ganti bahasa lewat menu akun (kanan atas), di sidebar versi HP, atau "ID | EN" di bawah form login.
+- Ganti bahasa lewat tombol **ID | EN** di topbar (kanan atas, di sebelah lonceng notifikasi), di sidebar versi HP,
+  atau "ID | EN" di bawah form login.
 - Pilihan disimpan **per akun** (kolom `users.locale`, migrasi `2026_10_21_100000_add_locale_to_users`) dan di
   browser (cookie `locale`), jadi ikut ke perangkat lain setelah login. Sebelum migrasinya dijalankan, hanya browser
   yang menyimpan; tidak ada yang gagal. Akun yang belum memilih, dan halaman login, memakai Bahasa Indonesia.

@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.13.1] - 2026-10-21
+
+### Diubah
+
+- Tombol ganti bahasa kini **ID | EN** di topbar, di sebelah kiri lonceng notifikasi, jadi terlihat tanpa membuka menu
+  akun (di 1.13.0 ada di dalam menu akun). Di HP tetap di sidebar, dan di halaman login tetap "ID | EN" di bawah form.
+
+**Deploy:** tanpa migrasi baru, tanpa setting baru (migrasi bahasa dari 1.13.0 tetap perlu dijalankan bila belum).
+
 ## [1.13.0] - 2026-10-21
 
 ### Ditambahkan
@@ -755,6 +764,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.13.1]: https://github.com/mahathirmuh/radio-management/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/mahathirmuh/radio-management/compare/v1.12.3...v1.13.0
 [1.12.3]: https://github.com/mahathirmuh/radio-management/compare/v1.12.2...v1.12.3
 [1.12.2]: https://github.com/mahathirmuh/radio-management/compare/v1.12.1...v1.12.2

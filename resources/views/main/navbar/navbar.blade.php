@@ -31,6 +31,15 @@
         </nav>
         <div class="rm-topbar-end">
             <span class="rm-topbar-company">{{ $me->company?->name }}</span>
+            {{-- The language of the screens (App\Services\Language), as on the login page: ID | EN, the one in use marked. --}}
+            <form method="POST" action="{{ route('language.switch') }}" class="rm-seg rm-topbar-lang" id="languageSwitch"
+                aria-label="{{ __('ui.language.title') }}">
+                @csrf
+                @foreach (\App\Services\Language::NAMES as $code => $name)
+                    <button type="submit" name="locale" value="{{ $code }}" lang="{{ $code }}" title="{{ $name }}" aria-label="{{ $name }}"
+                        aria-pressed="{{ app()->getLocale() === $code ? 'true' : 'false' }}" @class(['is-on' => app()->getLocale() === $code])>{{ strtoupper($code) }}</button>
+                @endforeach
+            </form>
             @include('main.navbar.notifications')
             <div class="dropdown">
                 <button type="button" class="rm-user-btn" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false"
@@ -51,18 +60,7 @@
                     <a href="{{ route('notifications.index') }}" class="dropdown-item rm-menu-item">
                         <i class="ti ti-bell" aria-hidden="true"></i> {{ __('ui.topbar.notifications') }}
                     </a>
-                    {{-- The language of the screens (App\Services\Language): the one in use is ticked. --}}
-                    <form method="POST" action="{{ route('language.switch') }}" class="rm-menu-group" id="languageMenu">
-                        @csrf
-                        <div class="rm-menu-label" id="languageMenuLabel">{{ __('ui.language.title') }}</div>
-                        @foreach (\App\Services\Language::NAMES as $code => $name)
-                            <button type="submit" name="locale" value="{{ $code }}" lang="{{ $code }}"
-                                class="dropdown-item rm-menu-item{{ app()->getLocale() === $code ? ' is-on' : '' }}"
-                                aria-describedby="languageMenuLabel" aria-pressed="{{ app()->getLocale() === $code ? 'true' : 'false' }}">
-                                <i class="ti ti-check rm-menu-tick" aria-hidden="true"></i> {{ $name }}
-                            </button>
-                        @endforeach
-                    </form>
+
                     <a href="{{ route('logout') }}" class="dropdown-item rm-menu-item is-danger"
                         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="ti ti-logout" aria-hidden="true"></i> {{ __('ui.topbar.sign_out') }}
