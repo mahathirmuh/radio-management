@@ -8,6 +8,21 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.13] - 2026-10-21
+
+### Diubah
+
+- Menu di sidebar diletakkan seperti production:
+  - sidebar 240 px (sebelumnya 248); baris menu setinggi 36 px setiap 40 px, mulai 18 px di bawah logo; ikon 20 px dan
+    nama menu 13 px di posisi yang sama dengan production;
+  - judul seksi (RADIO, DOKUMEN, USER, SETTINGS) 10 px dan sedikit lebih gelap, 18 px di bawah baris di atasnya;
+  - sub-menu (misalnya isi Master Data Radio) 0,8rem dengan jarak dan indentasi seperti production;
+  - sidebar disembunyikan (deretan ikon): ikon 22 px setiap 48 px, dan dua tanda logo sejajar di tengahnya.
+
+  Warnanya (latar putih, menu aktif biru muda) tetap dari desain baru.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.12] - 2026-10-21
 
 ### Diubah
@@ -627,6 +642,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.13]: https://github.com/mahathirmuh/radio-management/compare/v1.10.12...v1.10.13
 [1.10.12]: https://github.com/mahathirmuh/radio-management/compare/v1.10.11...v1.10.12
 [1.10.11]: https://github.com/mahathirmuh/radio-management/compare/v1.10.10...v1.10.11
 [1.10.10]: https://github.com/mahathirmuh/radio-management/compare/v1.10.9...v1.10.10

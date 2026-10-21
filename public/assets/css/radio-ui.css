@@ -82,7 +82,7 @@
     --rm-press: rgba(15, 23, 42, .09);
     --rm-mono: ui-monospace, "IBM Plex Mono", Menlo, monospace;
 
-    --rm-sidebar: 248px;
+    --rm-sidebar: 240px;
     --rm-rail: 80px;
 }
 
@@ -122,7 +122,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 5px;
     height: 56px;
     margin: 0;
     padding: 0 8px;
@@ -139,10 +139,12 @@
     display: none !important;
 }
 
+/* The list where production puts it: the first row 18px under the logos, rows 36 high every 40px and 12px in from both
+   sides, the icon 16px into its row and the name 8px after it; a section's name 18px under the row above it. */
 .rm-nav.navbar-nav {
-    gap: 2px;
+    gap: 4px;
     margin: 0;
-    padding: 8px 12px 16px;
+    padding: 18px 12px 16px;
     position: relative;
     z-index: 1;
 }
@@ -155,15 +157,15 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
-    padding: 8px 10px;
+    padding: 8px 16px;
     border: 0;
     border-radius: 8px;
     background: transparent;
     color: var(--rm-gray-700);
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 13px;
+    line-height: 1.4286;
     font-weight: 400;
     text-align: left;
     text-decoration: none;
@@ -199,12 +201,12 @@
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
 }
 
 .rm-nav-icon .ti {
-    font-size: 16px;
+    font-size: 1.15rem;
     line-height: 1;
 }
 
@@ -237,9 +239,11 @@
     background: var(--rm-brand-600);
 }
 
+/* 3px into the padding: where production's arrow is. */
 .rm-nav-chevron {
     display: inline-flex;
     flex: none;
+    margin-right: -3px;
     color: var(--rm-gray-400);
     font-size: 14px;
     transition: transform .22s ease-out;
@@ -272,32 +276,34 @@
 }
 
 .rm-nav-group.is-open > .rm-nav-kids .rm-nav-kids-inner {
-    padding-top: 2px;
+    padding-top: 4px;
 }
 
+/* A page of a group: its name 32px into the row (in line with production's), in 0.8rem, rows 31 high every 33px. */
 .rm-nav-link.rm-nav-kid {
-    padding: 7px 10px 7px 36px;
+    padding: 6.4px 16px 6.4px 32px;
+    font-size: .8rem;
 }
 
 .rm-nav-subhead {
-    padding: 8px 10px 4px 36px;
-    font-size: 11px;
+    padding: 8px 16px 4px 32px;
+    font-size: 10px;
     line-height: 16px;
     font-weight: 600;
-    letter-spacing: .06em;
+    letter-spacing: .04em;
     text-transform: uppercase;
-    color: var(--rm-gray-400);
+    color: var(--rm-gray-500);
 }
 
 .rm-nav-section {
     list-style: none;
-    padding: 16px 10px 6px;
-    font-size: 11px;
+    padding: 14px 4px 2px;
+    font-size: 10px;
     line-height: 16px;
     font-weight: 600;
-    letter-spacing: .06em;
+    letter-spacing: .04em;
     text-transform: uppercase;
-    color: var(--rm-gray-400);
+    color: var(--rm-gray-500);
 }
 
 /* The mark at the foot of the sidebar: under the menu, never in the way. */
@@ -391,7 +397,8 @@
 
     html.rm-rail .rm-sidebar .rm-brand {
         justify-content: center;
-        padding: 0;
+        align-items: flex-start;
+        padding: 12px 0 0;
     }
 
     html.rm-rail .rm-sidebar .rm-brand-full {
@@ -399,11 +406,11 @@
     }
 
     /* The two marks as production shows them in the rail: Merdeka Copper Gold 20 high, Merdeka Battery Materials 24,
-       standing on one line. */
+       side by side with their middles in line, 12px from the top. */
     html.rm-rail .rm-sidebar .rm-brand-rail {
         display: flex !important;
-        align-items: flex-end;
-        gap: 4px;
+        align-items: center;
+        gap: 5px;
     }
 
     html.rm-rail .rm-sidebar .rm-brand-rail img:first-child {
@@ -414,9 +421,19 @@
         height: 24px;
     }
 
+    /* The rail as production has it: icons of 22px in rows 36 high every 48px, the first 66px from the top. */
+    html.rm-rail .rm-nav.navbar-nav {
+        gap: 12px;
+        padding-top: 10px;
+    }
+
     html.rm-rail .rm-nav-link {
         justify-content: center;
         padding: 8px 0;
+    }
+
+    html.rm-rail .rm-nav-icon .ti {
+        font-size: 1.375rem;
     }
 
     html.rm-rail .rm-nav-label,
@@ -445,7 +462,7 @@
 
     html.rm-rail .rm-nav-section {
         height: 1px;
-        margin: 10px 8px 6px;
+        margin: 7px 8px 8px;
         padding: 0;
         background: var(--rm-gray-200);
     }
