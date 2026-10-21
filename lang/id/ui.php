@@ -40,11 +40,25 @@ return [
     'changelog' => [
         'open' => 'Lihat perubahan tiap versi',
         'title' => 'Riwayat versi',
-        'sub' => 'Versi yang berjalan: v:version. Yang terbaru di atas.',
+        'sub' => 'Versi yang berjalan: v:version.',
         'loading' => 'Memuat riwayat versi…',
         'failed' => 'Riwayat versi tidak bisa dimuat. Tutup lalu buka lagi untuk mencoba sekali lagi.',
         'empty' => 'Belum ada catatan perubahan.',
         'current' => 'Versi ini',
+        // The timeline: the kinds of release, the band where a major version begins, and the kinds of change (the headings
+        // of CHANGELOG.md) in the legend.
+        'minor' => 'Rilis minor',
+        'patch' => 'Rilis patch',
+        'major' => 'Rilis mayor',
+        'era' => 'Versi :major',
+        'kinds' => [
+            'added' => 'Ditambahkan',
+            'changed' => 'Diubah',
+            'fixed' => 'Diperbaiki',
+            'removed' => 'Dihapus',
+            'security' => 'Keamanan',
+            'deprecated' => 'Ditinggalkan',
+        ],
     ],
 
     'table' => [

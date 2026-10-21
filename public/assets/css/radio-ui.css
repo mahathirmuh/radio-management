@@ -17,6 +17,8 @@
     --rm-brand-100: #dbeafe;
     --rm-brand-200: #bfdbfe;
     --rm-brand-300: #93c5fd;
+    /* The line of the version history beside a version that changed something, and the ring of its patches. */
+    --rm-brand-400: #60a5fa;
     --rm-brand-500: #3b82f6;
     --rm-brand-600: #2563eb;
     --rm-brand-700: #1d4ed8;
@@ -43,6 +45,9 @@
     --rm-error-50: #fff1f2;
     --rm-error-100: #ffe4e6;
     --rm-error-200: #fecdd3;
+    /* The version history: the line beside a version that removed something, its dots. */
+    --rm-error-400: #fb7185;
+    --rm-error-500: #f43f5e;
     --rm-error-600: #e11d48;
     --rm-error-700: #be123c;
 
@@ -56,6 +61,8 @@
     --rm-orange-50: #fff7ed;
     --rm-orange-100: #ffedd5;
     --rm-orange-200: #fed7aa;
+    /* The version history: the line beside a version that fixed something. */
+    --rm-orange-400: #fb923c;
     --rm-orange-500: #f97316;
     --rm-orange-600: #ea580c;
     --rm-orange-700: #c2410c;
@@ -69,6 +76,10 @@
     /* The purple of the faded badge (README .rm-badge.purple). */
     --rm-violet-100: #ede9fe;
     --rm-violet-600: #7c3aed;
+    /* The version history: a version with a security change (node fill, line, notes). */
+    --rm-violet-50: #f5f3ff;
+    --rm-violet-400: #a78bfa;
+    --rm-violet-700: #6d28d9;
 
     /* Green (not the success emerald): the tint and the edge of the column "Siap diambil" on the service board. */
     --rm-green-50: #f0fdf4;
@@ -862,10 +873,12 @@
     outline-offset: 2px;
 }
 
-/* What changed in each version: one block per version, its number and date above its changes. */
-.rm-changelog {
+/* What changed in each version (the design's ChangelogDialog): a timeline of CHANGELOG.md, newest first. A series ("1.14")
+   is a node with its minor release, its patches hang below it as branches; every version takes the colour of its strongest
+   kind of change, for its node, its notes and the stretch of line beside it. */
+.rm-dialog-body.rm-changelog {
     gap: 0;
-    padding-top: 4px;
+    padding: 16px 24px 24px;
 }
 
 .rm-changelog-note {
@@ -876,38 +889,322 @@
     text-align: center;
 }
 
-.rm-release {
-    padding: 16px 0;
-    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+/* The colours of a kind of change: Added, Changed, Fixed, Removed, Security, Deprecated (and any other heading: grey). */
+.rm-cl-kind-added {
+    --rm-cl-50: var(--rm-success-50);
+    --rm-cl-100: var(--rm-success-100);
+    --rm-cl-400: var(--rm-success-400);
+    --rm-cl-500: var(--rm-success-500);
+    --rm-cl-600: var(--rm-success-600);
+    --rm-cl-700: var(--rm-success-700);
 }
 
-.rm-release:first-child {
-    box-shadow: none;
+.rm-cl-kind-changed {
+    --rm-cl-50: var(--rm-brand-50);
+    --rm-cl-100: var(--rm-brand-100);
+    --rm-cl-400: var(--rm-brand-400);
+    --rm-cl-500: var(--rm-brand-500);
+    --rm-cl-600: var(--rm-brand-600);
+    --rm-cl-700: var(--rm-brand-700);
 }
 
-.rm-release-head {
+.rm-cl-kind-fixed {
+    --rm-cl-50: var(--rm-orange-50);
+    --rm-cl-100: var(--rm-orange-100);
+    --rm-cl-400: var(--rm-orange-400);
+    --rm-cl-500: var(--rm-orange-500);
+    --rm-cl-600: var(--rm-orange-600);
+    --rm-cl-700: var(--rm-orange-700);
+}
+
+.rm-cl-kind-removed {
+    --rm-cl-50: var(--rm-error-50);
+    --rm-cl-100: var(--rm-error-100);
+    --rm-cl-400: var(--rm-error-400);
+    --rm-cl-500: var(--rm-error-500);
+    --rm-cl-600: var(--rm-error-600);
+    --rm-cl-700: var(--rm-error-700);
+}
+
+.rm-cl-kind-security {
+    --rm-cl-50: var(--rm-violet-50);
+    --rm-cl-100: var(--rm-violet-100);
+    --rm-cl-400: var(--rm-violet-400);
+    --rm-cl-500: var(--rm-violet-500);
+    --rm-cl-600: var(--rm-violet-600);
+    --rm-cl-700: var(--rm-violet-700);
+}
+
+.rm-cl-kind-deprecated,
+.rm-cl-kind-other {
+    --rm-cl-50: var(--rm-gray-50);
+    --rm-cl-100: var(--rm-gray-100);
+    --rm-cl-400: var(--rm-gray-400);
+    --rm-cl-500: var(--rm-gray-500);
+    --rm-cl-600: var(--rm-gray-600);
+    --rm-cl-700: var(--rm-gray-700);
+}
+
+/* The legend: a minor and a patch release, then the kinds of change the file has. */
+.rm-cl-legend {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    margin-bottom: 16px;
+    color: var(--rm-gray-500);
+    font-size: 12px;
+    line-height: 16px;
+    animation: rm-rise .3s cubic-bezier(.2, .8, .2, 1) backwards;
+}
+
+.rm-cl-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rm-cl-key-minor {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--rm-brand-50);
+    box-shadow: inset 0 0 0 2px var(--rm-brand-600);
+}
+
+.rm-cl-key-patch {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+}
+
+.rm-cl-key-patch > span {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px var(--rm-brand-400);
+}
+
+.rm-cl-key-rule {
+    width: 1px;
+    height: 14px;
+    background: var(--rm-gray-200);
+}
+
+.rm-cl-key-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--rm-cl-500);
+}
+
+/* A version: the rail (36px; a patch 64px, its node on a branch) beside its number, date and notes. */
+.rm-cl-release {
+    animation: rm-rise .34s cubic-bezier(.2, .8, .2, 1) var(--rm-cl-delay, 0ms) backwards;
+}
+
+.rm-cl-row,
+.rm-cl-era {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: 14px;
+}
+
+.rm-cl-release.is-patch .rm-cl-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.rm-cl-rail {
+    position: relative;
+}
+
+.rm-cl-line,
+.rm-cl-era-line {
+    position: absolute;
+    left: 17px;
+    border-left: 2px solid var(--rm-cl-400);
+}
+
+.rm-cl-line {
+    transform-origin: top;
+    animation: rm-grow-y .34s cubic-bezier(.2, .8, .2, 1) var(--rm-cl-delay, 0ms) backwards;
+}
+
+.rm-cl-line.is-top {
+    top: 0;
+    height: 16px;
+}
+
+.rm-cl-line.is-bottom,
+.rm-cl-era-line {
+    top: 16px;
+    bottom: 0;
+}
+
+.rm-cl-era-line {
+    top: 0;
+}
+
+.rm-cl-elbow {
+    position: absolute;
+    top: 15px;
+    left: 19px;
+    width: 21px;
+    border-top: 2px solid var(--rm-cl-400);
+}
+
+.rm-cl-node,
+.rm-cl-ping {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+}
+
+.rm-cl-node {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    background: var(--rm-cl-50);
+    box-shadow: inset 0 0 0 2px var(--rm-cl-600);
+    color: var(--rm-cl-700);
+    font-size: 10px;
+    line-height: 12px;
+    font-weight: 600;
+    animation: rm-check .3s cubic-bezier(.2, .8, .2, 1) calc(var(--rm-cl-delay, 0ms) + 110ms) backwards;
+}
+
+/* A major release (x.0.0): a filled violet node with a halo, its number larger, and a badge. */
+.rm-cl-release.is-major .rm-cl-node,
+.rm-cl-release.is-major .rm-cl-ping {
+    top: -2px;
+    left: 0;
+    width: 36px;
+    height: 36px;
+}
+
+.rm-cl-release.is-major .rm-cl-node {
+    background: var(--rm-violet-600);
+    box-shadow: 0 0 0 4px var(--rm-violet-100);
+    color: #fff;
+}
+
+.rm-cl-release.is-patch .rm-cl-node,
+.rm-cl-release.is-patch .rm-cl-ping {
+    top: 10px;
+    left: 40px;
+    width: 12px;
+    height: 12px;
+}
+
+.rm-cl-release.is-patch .rm-cl-node {
+    background: #fff;
+    box-shadow: inset 0 0 0 2px var(--rm-cl-500);
+}
+
+.rm-cl-release.is-patch.is-current .rm-cl-node {
+    background: var(--rm-cl-600);
+    box-shadow: 0 0 0 3px var(--rm-cl-100);
+}
+
+/* The version this server runs: its node pings. */
+.rm-cl-ping {
+    background: var(--rm-cl-600);
+    animation: rm-ping 1.9s ease-out .7s infinite;
+}
+
+.rm-cl-content {
+    min-width: 0;
+}
+
+.rm-cl-release.has-next .rm-cl-content {
+    padding-bottom: 16px;
+}
+
+.rm-cl-release.is-patch.has-next .rm-cl-content {
+    padding-bottom: 14px;
+}
+
+.rm-cl-head {
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    margin-bottom: 8px;
+    min-height: 32px;
+    margin-bottom: 4px;
 }
 
-.rm-release-version {
+.rm-cl-version {
     color: var(--rm-gray-900);
     font-size: 15px;
     line-height: 22px;
     font-weight: 600;
 }
 
-.rm-release-date {
+.rm-cl-release.is-patch .rm-cl-version {
+    font-size: 14px;
+}
+
+.rm-cl-release.is-major .rm-cl-version {
+    font-size: 17px;
+}
+
+.rm-cl-date {
     color: var(--rm-gray-500);
     font-size: 13px;
     line-height: 20px;
 }
 
-.rm-release-body h3 {
-    margin: 12px 0 6px;
+.rm-badge.rm-cl-major {
+    background: var(--rm-violet-600);
+    color: #fff;
+}
+
+/* Where a major version begins: "VERSI 1" and a hairline, the line of the timeline running through it. */
+.rm-cl-era-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 0 12px;
     color: var(--rm-gray-500);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.rm-cl-legend + .rm-cl-release .rm-cl-era-label {
+    padding-top: 0;
+}
+
+.rm-cl-hair {
+    flex: 1;
+    height: 1px;
+    background: var(--rm-gray-200);
+}
+
+/* The notes (in Indonesian, as CHANGELOG.md writes them): a pill per kind of change, the bullets in its colour. */
+.rm-cl-section {
+    margin: 12px 0 6px;
+}
+
+.rm-cl-notes > .rm-cl-section:first-child {
+    margin-top: 0;
+}
+
+.rm-cl-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--rm-cl-100);
+    color: var(--rm-cl-700);
     font-size: 11px;
     line-height: 16px;
     font-weight: 600;
@@ -915,37 +1212,72 @@
     text-transform: uppercase;
 }
 
-.rm-release-body h3:first-child {
-    margin-top: 0;
+.rm-cl-pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--rm-cl-500);
 }
 
-.rm-release-body p,
-.rm-release-body ul {
-    margin: 0 0 8px;
+.rm-cl-text {
     color: var(--rm-gray-700);
     font-size: 13px;
     line-height: 20px;
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
 }
 
-.rm-release-body ul {
+.rm-cl-text p,
+.rm-cl-text ul,
+.rm-cl-text ol {
+    margin: 0;
+    padding: 0;
+}
+
+.rm-cl-text ul {
+    list-style: none;
+}
+
+.rm-cl-text ol {
     padding-left: 18px;
 }
 
-.rm-release-body li + li,
-.rm-release-body li > * + * {
+.rm-cl-text ul > li {
+    position: relative;
+    padding-left: 18px;
+}
+
+.rm-cl-text ul > li::before {
+    content: "•";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    color: var(--rm-cl-500);
+    font-weight: 700;
+    text-align: center;
+}
+
+.rm-cl-text li li::before {
+    content: "–";
+    color: var(--rm-gray-400);
+}
+
+.rm-cl-text > * + *,
+.rm-cl-text li + li,
+.rm-cl-text li > * + *,
+.rm-cl-text li > ul,
+.rm-cl-text li > ol {
     margin-top: 4px;
 }
 
-.rm-release-body li > ul,
-.rm-release-body li > p {
-    margin-bottom: 0;
+.rm-cl-text strong {
+    color: var(--rm-gray-900);
+    font-weight: 600;
 }
 
-.rm-release-body > :last-child {
-    margin-bottom: 0;
-}
-
-.rm-release-body code {
+.rm-cl-text code {
     padding: 0 4px;
     border-radius: 4px;
     background: var(--rm-gray-100);
@@ -7292,6 +7624,8 @@ button.rm-phone-session:focus-visible {
 @keyframes rm-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes rm-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes rm-check { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes rm-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes rm-ping { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(2.8); opacity: 0; } }
 @keyframes rm-spin { to { transform: rotate(360deg); } }
 @keyframes rm-pulse { from { box-shadow: 0 0 0 0 rgba(37, 99, 235, .45); } to { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); } }
 @keyframes rm-slide-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
@@ -7305,5 +7639,10 @@ button.rm-phone-session:focus-visible {
         animation-delay: 0s !important;
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
+    }
+
+    /* The running version does not ping. */
+    .rm-cl-ping {
+        display: none;
     }
 }

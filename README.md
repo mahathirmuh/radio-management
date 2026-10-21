@@ -234,7 +234,10 @@ itu tampil di footer setiap halaman, di dokumentasi API (`/docs/api`) dan di `ph
 `docker compose exec app php artisan about --only=environment`). Jadi versi yang sedang jalan di sebuah server
 terlihat di footer-nya. Apa yang berubah di tiap versi, dan apa yang perlu dilakukan saat deploy (migrasi, setting
 baru), ada di [CHANGELOG.md](CHANGELOG.md). Nomor versi di footer bisa diklik: dialog **Riwayat versi** menampilkan isi
-CHANGELOG.md tanpa baris Deploy, yang terbaru di atas, untuk semua akun yang login.
+CHANGELOG.md tanpa baris Deploy, untuk semua akun yang login. Bentuknya garis waktu, yang terbaru di atas: setiap seri
+(`1.19`, `1.18`, …) satu simpul, rilis patch-nya bercabang di bawahnya, dan setiap versi berwarna menurut jenis
+perubahannya, yaitu judul bagiannya di CHANGELOG.md. Judulnya salah satu dari enam judul Keep a Changelog:
+`Ditambahkan`, `Diubah`, `Diperbaiki`, `Dihapus`, `Keamanan`, `Ditinggalkan`; judul lain tampil abu-abu.
 
 "API publik" aplikasi ini, yaitu yang dipakai pihak lain dan bisa rusak tanpa mereka tahu, ada tiga:
 
@@ -254,7 +257,8 @@ Perubahan yang hanya menyentuh README atau test tidak menaikkan versi; ikut ke v
 masih 1.x.y, API tetap `/api/v1` dan hanya bertambah.
 
 Merilis sebuah versi: satu commit yang menaikkan `VERSION` dan menambah bagiannya paling atas di `CHANGELOG.md`
-(`VersionTest` memastikan keduanya sama), lalu tag git beranotasi dengan nomor itu, di-push bersama commit-nya:
+(`VersionTest` memastikan keduanya sama, `ChangelogDialogTest` bahwa setiap judul bagiannya salah satu dari enam judul
+di atas), lalu tag git beranotasi dengan nomor itu, di-push bersama commit-nya:
 
 ```bash
 git tag -a v1.6.0 -m "v1.6.0: <ringkasan>"

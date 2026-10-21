@@ -8,6 +8,23 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.20.0] - 2026-10-21
+
+### Diubah
+
+- Dialog **Riwayat versi** (nomor versi di footer) kini mengikuti desain handoff: garis waktu, yang terbaru di atas.
+  - Setiap seri (`1.20`, `1.19`, …) satu simpul berlabel nomor serinya, di rilis minornya (`.0`); rilis patch-nya
+    bercabang di bawahnya dengan titik kecil.
+  - Setiap versi berwarna menurut jenis perubahannya yang terkuat: Dihapus merah, Keamanan ungu, Ditambahkan hijau,
+    Diperbaiki oranye, Diubah biru, Ditinggalkan abu-abu. Setiap bagian catatannya diawali label jenisnya dalam warna
+    yang sama.
+  - Legenda di atas: rilis minor, rilis patch, dan jenis perubahan yang ada.
+  - Pita **Versi 1** di tempat sebuah versi mayor dimulai, dan label **Rilis mayor** di versi `N.0.0`-nya.
+  - Versi yang sedang berjalan bertanda **Versi ini**, dan simpulnya berdenyut pelan (kecuali bila sistem meminta
+    animasi dikurangi).
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.19.1] - 2026-10-21
 
 ### Diperbaiki
@@ -968,6 +985,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.20.0]: https://github.com/mahathirmuh/radio-management/compare/v1.19.1...v1.20.0
 [1.19.1]: https://github.com/mahathirmuh/radio-management/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mahathirmuh/radio-management/compare/v1.18.0...v1.19.0
 [1.18.0]: https://github.com/mahathirmuh/radio-management/compare/v1.17.0...v1.18.0

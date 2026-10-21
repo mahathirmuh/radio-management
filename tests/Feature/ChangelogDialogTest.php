@@ -38,10 +38,18 @@ class ChangelogDialogTest extends TestCase
         $this->assertSame([0], array_keys(array_filter(array_column($answer['releases'], 'current'))));
         foreach ($answer['releases'] as $release) {
             $this->assertMatchesRegularExpression('/^\d{1,2} \p{L}{3} \d{4}$/u', (string) $release['date_label'], $release['version']);
-            $this->assertNotSame('', $release['html'], $release['version']);
-            $this->assertStringNotContainsString('Deploy:', $release['html'], $release['version']);
-            $this->assertStringNotContainsString('<a ', $release['html'], $release['version']);
+            $this->assertNotSame([], $release['sections'], $release['version']);
+            foreach ($release['sections'] as $section) {
+                $this->assertSame(['heading', 'kind', 'html'], array_keys($section), $release['version']);
+                $this->assertContains($section['kind'], [null, 'added', 'changed', 'fixed', 'removed', 'security', 'deprecated'], $release['version']);
+                $this->assertNotSame('', $section['html'], $release['version']);
+                $this->assertStringNotContainsString('Deploy:', $section['html'], $release['version']);
+                $this->assertStringNotContainsString('<a ', $section['html'], $release['version']);
+            }
         }
+        // Every heading of the file is a kind the dialog colours: a new heading would come out grey.
+        $headings = array_filter(array_merge(...array_map(fn (array $release) => array_column($release['sections'], 'heading'), $answer['releases'])));
+        $this->assertSame([], array_values(array_unique(array_filter($headings, fn (string $heading) => ! isset(\App\Services\Changelog::KINDS[mb_strtolower($heading)])))));
     }
 
     public function test_the_footer_has_the_version_as_a_button_and_the_dialog_it_opens(): void
@@ -56,6 +64,6 @@ class ChangelogDialogTest extends TestCase
 
     public function test_the_script_of_the_dialog(): void
     {
-        $this->checkPageScript(route('dashboard.index'), 'tests/tools/changelog-behaviour.mjs', 5);
+        $this->checkPageScript(route('dashboard.index'), 'tests/tools/changelog-behaviour.mjs', 8);
     }
 }

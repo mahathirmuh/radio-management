@@ -40,11 +40,25 @@ return [
     'changelog' => [
         'open' => 'See what changed in each version',
         'title' => 'Version history',
-        'sub' => 'Running version: v:version. Newest first; the notes are written in Indonesian.',
+        'sub' => 'Running version: v:version.',
         'loading' => 'Loading the version history…',
         'failed' => 'The version history could not be loaded. Close it and open it again to try once more.',
         'empty' => 'No release notes yet.',
         'current' => 'This version',
+        // The timeline: the kinds of release, the band where a major version begins, and the kinds of change (the headings
+        // of CHANGELOG.md) in the legend.
+        'minor' => 'Minor release',
+        'patch' => 'Patch release',
+        'major' => 'Major release',
+        'era' => 'Version :major',
+        'kinds' => [
+            'added' => 'Added',
+            'changed' => 'Changed',
+            'fixed' => 'Fixed',
+            'removed' => 'Removed',
+            'security' => 'Security',
+            'deprecated' => 'Deprecated',
+        ],
     ],
 
     'table' => [

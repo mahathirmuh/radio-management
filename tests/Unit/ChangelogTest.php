@@ -25,7 +25,7 @@ class ChangelogTest extends TestCase
         parent::tearDown();
     }
 
-    /** @return list<array{version: string, date: ?string, html: string}> */
+    /** @return list<array{version: string, date: ?string, sections: list<array{heading: ?string, kind: ?string, html: string}>}> */
     private function read(string $text): array
     {
         file_put_contents($this->file, $text);
@@ -69,35 +69,89 @@ class ChangelogTest extends TestCase
         $this->assertSame(['1.2.0', '1.1.0'], array_column($releases, 'version'));
         $this->assertSame(['2026-10-21', '2026-10-17'], array_column($releases, 'date'));
 
-        $newest = $releases[0]['html'];
-        $this->assertStringContainsString('<h3>Ditambahkan</h3>', $newest);
-        $this->assertStringContainsString('<li>A dialog, see the README.', $newest);
-        $this->assertStringContainsString('<code>code</code>', $newest);
-        foreach ([$newest, $releases[1]['html']] as $html) {
+        // The changes by their heading: the kind it names, the notes as markup (the heading itself is no part of them).
+        [$added] = $releases[0]['sections'];
+        $this->assertSame(['Ditambahkan', 'added'], [$added['heading'], $added['kind']]);
+        $this->assertStringStartsWith('<ul>', $added['html']);
+        $this->assertStringContainsString('<li>A dialog, see the README.', $added['html']);
+        $this->assertStringContainsString('<code>code</code>', $added['html']);
+        $this->assertSame([['heading' => 'Diperbaiki', 'kind' => 'fixed', 'html' => "<ul>\n<li>Something.</li>\n</ul>"]], $releases[1]['sections']);
+        foreach ([$added['html'], $releases[1]['sections'][0]['html']] as $html) {
             // Neither the note for the server, nor a link (they point into the repository), nor the opening of the file.
             $this->assertStringNotContainsString('Deploy', $html);
             $this->assertStringNotContainsString('migrat', $html);
             $this->assertStringNotContainsString('<a ', $html);
             $this->assertStringNotContainsString('github.com', $html);
             $this->assertStringNotContainsString('Keep a Changelog', $html);
+            $this->assertStringNotContainsString('<h3>', $html);
         }
-        $this->assertSame("<h3>Diperbaiki</h3>\n<ul>\n<li>Something.</li>\n</ul>", $releases[1]['html']);
+    }
+
+    public function test_every_heading_names_its_kind_of_change_and_one_without_notes_is_left_out(): void
+    {
+        $releases = $this->read(<<<'MD'
+            ## [2.0.0] - 2026-11-01
+
+            Notes before any heading.
+
+            ### Dihapus
+
+            - Old page.
+
+            ### Keamanan
+
+            - Tokens.
+
+            ### Ditinggalkan
+
+            - An old setting.
+
+            ### Security
+
+            - In English too.
+
+            ### Catatan
+
+            - A heading of another kind.
+
+            ### Diubah
+
+            ### Diperbaiki
+
+            - A fix.
+            MD);
+
+        $this->assertSame([
+            [null, null],
+            ['Dihapus', 'removed'],
+            ['Keamanan', 'security'],
+            ['Ditinggalkan', 'deprecated'],
+            ['Security', 'security'],
+            ['Catatan', null],
+            ['Diperbaiki', 'fixed'],
+        ], array_map(fn (array $section) => [$section['heading'], $section['kind']], $releases[0]['sections']));
+        $this->assertSame('<p>Notes before any heading.</p>', $releases[0]['sections'][0]['html']);
     }
 
     public function test_html_in_the_file_is_not_passed_on(): void
     {
         $releases = $this->read("## [1.0.0] - 2026-10-01\n\n- Fine <script>alert(1)</script> <img src=x onerror=alert(1)>\n");
 
-        $this->assertStringNotContainsString('<script', $releases[0]['html']);
-        $this->assertStringNotContainsString('<img', $releases[0]['html']);
-        $this->assertStringContainsString('<li>Fine', $releases[0]['html']);
+        $html = $releases[0]['sections'][0]['html'];
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringNotContainsString('<img', $html);
+        $this->assertStringContainsString('<li>Fine', $html);
+
+        // Nor in a heading: its words are text (the dialog escapes them).
+        $heading = $this->read("## [1.0.0] - 2026-10-01\n\n### Diubah <b>now</b>\n\n- Fine.\n")[0]['sections'][0]['heading'];
+        $this->assertSame('Diubah now', $heading);
     }
 
     public function test_a_version_without_a_date_and_a_missing_file(): void
     {
-        $this->assertSame([['version' => '1.0.0', 'date' => null, 'html' => '<ul>
+        $this->assertSame([['version' => '1.0.0', 'date' => null, 'sections' => [['heading' => null, 'kind' => null, 'html' => '<ul>
 <li>First.</li>
-</ul>']], $this->read("## [1.0.0]\n\n- First.\n"));
+</ul>']]]], $this->read("## [1.0.0]\n\n- First.\n"));
 
         $this->assertSame([], (new Changelog($this->file . '-gone'))->releases());
     }
