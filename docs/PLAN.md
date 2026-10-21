@@ -498,6 +498,7 @@ Users (`modules/UserManagement/Resources/views/user-registered/*`):
 Roles (`modules/UserManagement/Resources/views/role-permission/*`):
 - [x] Judul dan subjudul; cari langsung 320px; Reset sebagai tombol teks; Add Role.
 - [x] Tabel: No, Name, Total user (badge pudar), Action. View ada di semua role; Edit dan Delete tidak ada di Super Admin.
+  Sejak 1.10.12 (permintaan pemilik) Edit ada lagi di Super Admin bagi Super Admin, seperti production; Delete tetap tidak.
 - [x] Dialog 800px. Tabel izin: 80px + 4×72px, header sticky, baris grup gray-50, anak menjorok 36px, kotak nonaktif.
 - [x] Perbaiki bug: di mode View, kotak izin bisa diklik setelah role termuat.
 
@@ -769,7 +770,7 @@ Prinsip:
   - Roles:
     - dialog 800 (kolom label 150, tabel izin 80 + 4×72, header sticky);
     - bug View diperbaiki di `syncMenuPermissionRowState` (mode `Preview`);
-    - Edit/Delete disembunyikan untuk Super Admin (id 1) di tampilan; server tidak diubah.
+    - Edit/Delete disembunyikan untuk Super Admin (id 1) di tampilan; server tidak diubah. Sejak 1.10.12 Edit tampil lagi.
   - Notifikasi:
     - baris lonceng dibuat sebagai HTML yang di-escape (`notifBell.entry`), warna per jenis di `notifBell.tones`;
     - halaman dikelompokkan per hari; "Tandai semua dibaca" lewat AJAX, form lamanya tetap jalan tanpa JS.

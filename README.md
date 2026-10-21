@@ -427,7 +427,9 @@ Untuk role buatan sendiri (halaman Role & Permission), izin per menu berarti:
 
 Impor dengan **"Hapus semua data radio & riwayat"** membutuhkan Create pada Import Excel **dan**
 Delete pada Register Radio. Role Super Admin hanya bisa diberikan atau dicabut oleh Super Admin,
-dan tidak ada yang bisa menghapus akunnya sendiri.
+dan tidak ada yang bisa menghapus akunnya sendiri. Role Super Admin sendiri hanya bisa diedit oleh Super Admin dan tidak
+bisa dihapus. Apa pun yang dicentang di sana, Super Admin tetap bisa membuka semua halaman, tetapi sidebar-nya hanya
+menampilkan menu yang dicentang Access.
 
 User dengan role yang dibatasi ke perusahaan tertentu (tipe HO / SITE / COMPANY):
 

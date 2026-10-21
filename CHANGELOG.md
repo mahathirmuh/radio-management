@@ -8,6 +8,16 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.12] - 2026-10-21
+
+### Diubah
+
+- Role & Permission: Super Admin bisa mengedit role Super Admin sendiri lagi (nama, home page, menu dan izinnya), seperti
+  di production. Baris itu tetap tanpa tombol Delete, karena role Super Admin tidak bisa dihapus. Pengelola role yang
+  bukan Super Admin tetap tidak melihat dan tidak bisa mengubah role ini.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.11] - 2026-10-21
 
 ### Diubah
@@ -617,6 +627,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.12]: https://github.com/mahathirmuh/radio-management/compare/v1.10.11...v1.10.12
 [1.10.11]: https://github.com/mahathirmuh/radio-management/compare/v1.10.10...v1.10.11
 [1.10.10]: https://github.com/mahathirmuh/radio-management/compare/v1.10.9...v1.10.10
 [1.10.9]: https://github.com/mahathirmuh/radio-management/compare/v1.10.8...v1.10.9

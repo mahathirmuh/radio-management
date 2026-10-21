@@ -36,8 +36,9 @@ check('a row: its number across the pages, the name as text, how many users hold
     const titles = item => [...render(p, 'actions', item).matchAll(/data-bs-title="([^"]+)"/g)].map(match => match[1]);
     assert.deepEqual(titles(role(2)), ['View', 'Edit', 'Delete']);
     assert.deepEqual(titles(role(3, { action: { is_active: false } })), ['View']);
-    // Super Admin: View only, even where the server would let it be changed.
-    assert.deepEqual(titles(role(1)), ['View']);
+    // Super Admin: a Super Admin may edit it (the server says so), nobody deletes it.
+    assert.deepEqual(titles(role(1)), ['View', 'Edit']);
+    assert.deepEqual(titles(role(1, { action: { is_active: false } })), ['View']);
     const buttons = render(p, 'actions', role(2));
     assertWellFormed(buttons, 'the buttons');
     assert.match(buttons, /<button type="button" class="rm-act" data-id="2" onclick="formRoleModal\('formRoleModal','Preview', 2\)"/);

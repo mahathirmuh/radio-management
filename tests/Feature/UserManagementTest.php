@@ -1023,6 +1023,34 @@ class UserManagementTest extends TestCase
         $this->assertNotNull(User::find($admin->id));
     }
 
+    public function test_the_super_admin_role_is_edited_by_a_super_admin_only_and_never_deleted(): void
+    {
+        $admin = $this->admin();
+        $manager = $this->user('manager@merdekabattery.com', $this->role('Admin Role', ['user-management.role-permission']));
+        $home = (int) DB::table('menu')->where('route', 'dashboard.index')->value('id');
+        $ticked = DB::table('menu_role')->where('role_id', 1)->pluck('menu_id')->map(fn ($id) => (int) $id)->all();
+        $form = ['role_name' => 'Super Admin', 'home_page' => (string) $home, 'menu_list' => $ticked];
+
+        // Who manages roles without being a Super Admin does not see it, and cannot change or delete it.
+        $this->actingAs($manager);
+        $this->assertNotContains(1, collect($this->getJson(route('user-management.role-permission.list'))->assertOk()->json('data'))->pluck('id')->all());
+        $this->getJson(route('user-management.role-permission.show', 1))->assertForbidden();
+        $this->putJson(route('user-management.role-permission.update', 1), ['role_name' => 'Bukan Super Admin'] + $form)->assertForbidden();
+        $this->deleteJson(route('user-management.role-permission.destroy', 1))->assertForbidden();
+
+        // A Super Admin may edit it: the list says so (the page shows Edit on its row), and the change is kept ...
+        $this->actingAs($admin);
+        $row = collect($this->getJson(route('user-management.role-permission.list'))->assertOk()->json('data'))->firstWhere('id', 1);
+        $this->assertSame(1, $row['action']['is_active']);
+        $this->putJson(route('user-management.role-permission.update', 1), $form)->assertOk();
+        $this->assertSame(['Super Admin', (string) $home], [DB::table('roles')->where('id', 1)->value('name'), (string) DB::table('roles')->where('id', 1)->value('home_page')]);
+        $this->assertEqualsCanonicalizing($ticked, DB::table('menu_role')->where('role_id', 1)->pluck('menu_id')->map(fn ($id) => (int) $id)->all());
+
+        // ... but cannot delete it: it is held, by this Super Admin at least.
+        $this->deleteJson(route('user-management.role-permission.destroy', 1))->assertStatus(500);
+        $this->assertTrue(DB::table('roles')->where('id', 1)->exists());
+    }
+
     public function test_a_role_limited_to_one_company_only_manages_users_of_that_company(): void
     {
         $mti = (int) DB::table('companies')->where('company_orangehr_code', 'MTI')->value('id');

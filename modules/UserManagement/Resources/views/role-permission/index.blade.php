@@ -130,16 +130,16 @@
             {
                 key: 'actions',
                 className: 'role-actions',
-                // View for every role; Edit and Delete where the role may be changed and the menu allows. Never on Super Admin
-                // (id 1): it has full access whatever its boxes say, and without it nobody manages the rest.
+                // View for every role; Edit and Delete where the role may be changed (the server says so: Super Admin only for
+                // its own role, id 1) and the menu allows. Super Admin is never deleted: without it nobody manages the rest.
                 render: function(data) {
                     const id = Number(data.id);
                     const act = (icon, title, call, danger = false) =>
                         `<button type="button" class="rm-act${danger ? ' is-danger' : ''}" data-id="${id}" onclick="${call}" data-bs-toggle="tooltip" data-bs-title="${title}" aria-label="${title}"><i class="ti ti-${icon}"></i></button>`;
                     let buttons = act('eye', 'View', `formRoleModal('formRoleModal','Preview', ${id})`);
-                    if (data.action && data.action.is_active && id !== 1) {
+                    if (data.action && data.action.is_active) {
                         if (roleMay.update) buttons += act('edit', 'Edit', `formRoleModal('formRoleModal','Edit', ${id})`);
-                        if (roleMay.delete) buttons += act('trash', 'Delete', `formRoleDelete(${id})`, true);
+                        if (roleMay.delete && id !== 1) buttons += act('trash', 'Delete', `formRoleDelete(${id})`, true);
                     }
                     return `<span class="rm-acts">${buttons}</span>`;
                 }
