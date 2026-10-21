@@ -14,6 +14,11 @@ tertulis di sampulnya:
 - **Design Document**, untuk tim IT dan pengembang yang merawat aplikasi (arsitektur, modul, model data, integrasi,
   keamanan, deployment): [ID](docs/Design-Document-MTI-Radio-Management-ID.pdf) ·
   [EN](docs/Design-Document-MTI-Radio-Management-EN.pdf)
+- **Form UAT** (User Acceptance Test), untuk pengujian oleh pengguna sebelum sebuah versi diterima: 118 skenario untuk
+  semua menu dan hak akses per role, daftar temuan, ringkasan, dan lembar persetujuan (penguji, IT, atasan). PDF untuk
+  dicetak: [ID](docs/UAT-Form-MTI-Radio-Management-ID.pdf) · [EN](docs/UAT-Form-MTI-Radio-Management-EN.pdf); Excel
+  untuk diisi di komputer (status Lulus/Gagal/N/A, ringkasan otomatis):
+  [ID](docs/UAT-Scenarios-MTI-Radio-Management-ID.xlsx) · [EN](docs/UAT-Scenarios-MTI-Radio-Management-EN.xlsx)
 
 ## Isi aplikasi
 
