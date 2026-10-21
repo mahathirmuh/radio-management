@@ -41,10 +41,18 @@ at a time. Every change is in *Riwayat Radio* and in the *Audit Log*, with the t
 
 **Answers.** JSON. Lists come a page at a time (`page`, `per_page` up to 100) with `meta` and `links`. Errors:
 `401` no or a wrong token, `403` not allowed, `404` not found, `409` the radio was changed since you read it (send its
-`version`) or the register is busy, `422` refused (`errors` by field), `429` too many requests (60 a minute per token;
-import and export of Excel 10 a minute; what is read from SharePoint 30 a minute, approving a change 10), `503` the API
-(or the audit log) is not switched on yet, or SharePoint cannot be reached. Messages of the register are in Indonesian,
-as on the pages.
+`version`) or the register is busy, `422` refused (`errors` by field), `429` too many requests (120 a minute per
+address; 60 a minute per token; import and export of Excel 10 a minute; what is read from SharePoint 30 a minute,
+approving a change 10), `503` the API (or the audit log) is not switched on yet, SharePoint cannot be reached, or (for
+`/health`) the website is down.
+
+**Language.** Messages are in English; send `Accept-Language: id` for Indonesian. The data stays as it is stored, in
+Indonesian: the labels of placement and condition, the results of the checks, the history.
+
+**Health.** `GET /health` needs no token: whether the website works down to its database (`ok`, or `down` with 503),
+with its four essential checks. With any token of the API it also checks everything the application depends on
+(`degraded` when one of them fails or needs a look). `GET /up`, outside `/api/v1`, only says that the application
+answers: the health check of its container.
 
 **SharePoint.** The folder of scans and the workbook are read with the application's own Microsoft identity, as on
 their pages, and kept for some minutes (`stale: true`: SharePoint could not be reached, this is what was kept). An error

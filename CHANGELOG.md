@@ -11,6 +11,19 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
 sedang dalam English. Setiap versi ditulis di kedua file.
 
+## [1.21.4] - 2026-10-21
+
+### Diperbaiki
+
+- Dokumentasi API di aplikasi (`/docs/api`):
+  - teks pembukanya tidak lagi menulis bahwa pesan API dalam Bahasa Indonesia. Sejak 1.13.0 pesannya English, dan
+    Bahasa Indonesia untuk klien yang mengirim `Accept-Language: id`; datanya tetap seperti tersimpan;
+  - teks pembukanya kini menjelaskan health check (`GET /api/v1/health` tanpa token, detail dengan token, dan `/up`)
+    serta batas 120 request per menit per alamat;
+  - keterangan impor menyebut bahwa `fresh=1` ditolak selama masih ada tiket servis atau sesi stock opname yang terbuka.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.21.3] - 2026-10-21
 
 ### Diperbaiki
@@ -1047,6 +1060,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.21.4]: https://github.com/mahathirmuh/radio-management/compare/v1.21.3...v1.21.4
 [1.21.3]: https://github.com/mahathirmuh/radio-management/compare/v1.21.2...v1.21.3
 [1.21.2]: https://github.com/mahathirmuh/radio-management/compare/v1.21.1...v1.21.2
 [1.21.1]: https://github.com/mahathirmuh/radio-management/compare/v1.21.0...v1.21.1

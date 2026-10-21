@@ -4,6 +4,17 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.21.4] - 2026-10-21
+
+### Fixed
+
+- The API documentation in the app (`/docs/api`):
+  - its opening no longer says that the messages of the API are in Indonesian. Since 1.13.0 they are in English, and in
+    Indonesian for clients that send `Accept-Language: id`; the data stays as it is stored;
+  - its opening now explains the health check (`GET /api/v1/health` without a token, the details with a token, and
+    `/up`) and the limit of 120 requests a minute per address;
+  - the import says that `fresh=1` is refused while a service ticket or a stock opname session is open.
+
 ## [1.21.3] - 2026-10-21
 
 ### Fixed

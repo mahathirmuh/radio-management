@@ -39,9 +39,10 @@ class ImportController extends ApiController
      *
      * Send the .xlsx file as multipart: `file` (up to 20 MB). An import fills an EMPTY register: while the register
      * holds radios it is refused (422) unless `fresh=1`, which deletes the register and its history first and also
-     * needs Delete on "Register Radio". `konawe=0` leaves out the sheet "to Konawe" (radios handed over to Konawe,
-     * imported as archived). The answer is the report of the import. 10 a minute per token; an import runs one at a
-     * time (409 while another runs or a radio is being saved).
+     * needs Delete on "Register Radio"; `fresh=1` is refused (422) too while a service ticket or a stock opname session
+     * is open (menus "Servis & Perbaikan" and "Stock Opname"). `konawe=0` leaves out the sheet "to Konawe" (radios
+     * handed over to Konawe, imported as archived). The answer is the report of the import. 10 a minute per token; an
+     * import runs one at a time (409 while another runs or a radio is being saved).
      */
     public function store(Request $request): JsonResponse
     {

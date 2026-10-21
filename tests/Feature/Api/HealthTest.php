@@ -226,5 +226,8 @@ class HealthTest extends TestCase
         $this->assertArrayHasKey('/health', $spec['paths']);
         $this->assertSame([], $spec['paths']['/health']['get']['security'] ?? null);
         $this->assertSame('Health of the application', $spec['paths']['/health']['get']['summary'] ?? null);
+        // And the opening of the documentation tells of it, and of /up.
+        $this->assertStringContainsString('`GET /health` needs no token', $spec['info']['description']);
+        $this->assertStringContainsString('`GET /up`', $spec['info']['description']);
     }
 }

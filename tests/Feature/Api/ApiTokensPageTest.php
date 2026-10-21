@@ -182,6 +182,9 @@ class ApiTokensPageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $this->get('/docs/api')->assertOk()->assertSee('MTI Radio Management API');
         $spec = $this->get('/docs/api.json')->assertOk()->json();
+        // The language of the answers (English; Indonesian on request), as the API gives them since 1.13.0.
+        $this->assertStringContainsString('send `Accept-Language: id` for Indonesian', $spec['info']['description']);
+        $this->assertStringNotContainsString('Messages of the register are in Indonesian', $spec['info']['description']);
         $this->assertArrayHasKey('/radios', $spec['paths']);
         $this->assertArrayHasKey('/radios/{radio}/archive', $spec['paths']);
         foreach (['/radios/export', '/radios/{radio}/checkout-form', '/import', '/users', '/users/{user}', '/roles', '/roles/{role}', '/audit-log',
