@@ -36,6 +36,14 @@ class UserNotification extends Model
     /** The week's figures of the register that need somebody to act. */
     public const REGISTER_WEEKLY = 'register_weekly';
 
+    /** The tab of the page "Notifikasi" each kind is listed under, and the word beside its title: Radio, Dokumen, Sistem. */
+    public const CATEGORIES = [
+        self::REGISTER_WEEKLY => 'radio',
+        self::EDIT_REQUESTED => 'documents',
+        self::EDIT_DECIDED => 'documents',
+        self::TOKEN_EXPIRING => 'system',
+    ];
+
     /** The icon of each kind (Tabler icons), as the bell and the page show it. */
     public const ICONS = [
         self::EDIT_REQUESTED => 'ti-file-pencil',
@@ -75,5 +83,17 @@ class UserNotification extends Model
     public function icon(): string
     {
         return self::ICONS[$this->kind] ?? 'ti-bell';
+    }
+
+    /** radio, documents or system (a kind added later without a place: system). */
+    public function category(): string
+    {
+        return self::CATEGORIES[$this->kind] ?? 'system';
+    }
+
+    /** @return list<string> the kinds listed under $category */
+    public static function kindsOf(string $category): array
+    {
+        return array_keys(array_filter(self::CATEGORIES, fn (string $one) => $one === $category));
     }
 }

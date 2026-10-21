@@ -85,7 +85,8 @@ check('on the page, "Tandai semua dibaca" marks everything read without leaving 
     assert.equal(p.node('#notifPageReadAllButton').props.disabled, true);
     p.answer(sent, { unread: 0 });
     assert.equal(p.node('#notifPageList .rm-notif-item').classes.has('is-unread'), false);
-    assert.equal(p.node('#notifPageList .rm-notif-dot').removed, 1);
+    assert.equal(p.node('#notifPageList .rm-notif-mark').removed, 1);
+    assert.equal(p.node('#notifPageCount').text, '0');
     assert.equal(p.node('#notifPageReadAll').removed, 1);
 
     assert.equal(p.dialogs.at(-1).options.toast, true);
@@ -93,6 +94,25 @@ check('on the page, "Tandai semua dibaca" marks everything read without leaving 
     assert.match(p.requests.at(-1).url, /\/notifications\/summary$/);
     // On "Semua" the rows stay.
     assert.equal(p.node('#notifPageList').writes, 0);
+});
+
+check('"Tandai dibaca" of one row marks it read without leaving the page, and the count of the unread follows', () => {
+    const p = open();
+    p.answer(p.requests[0], { ready: true, unread: 2, items: [] });
+    Object.assign(p.node('(object)'), { attrs: { action: '/notifications/7/read' }, data: { id: 7, group: 'today' } });
+    let left = false;
+    p.fire('#notifPageList', 'submit .rm-notif-mark', { preventDefault() { left = true; } });
+    assert.equal(left, true, 'the form is not sent the old way');
+    const sent = p.requests.at(-1);
+    assert.match(sent.url, /\/notifications\/7\/read$/);
+    assert.equal(sent.type, 'POST');
+    p.answer(sent, { unread: 1 });
+    assert.equal(p.node('#notif-7').classes.has('is-unread'), false);
+    assert.equal(p.node('#notifPageCount').text, '1');
+    // On "Semua" the row stays, and "Tandai semua dibaca" too while some are unread; the bell is asked again.
+    assert.equal(p.node('#notif-7').removed, 0);
+    assert.equal(p.node('#notifPageReadAll').removed, 0);
+    assert.match(p.requests.at(-1).url, /\/notifications\/summary$/);
 });
 
 check('a refusal is said in a toast, and the button can be used again', () => {

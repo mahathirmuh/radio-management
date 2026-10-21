@@ -12,5 +12,6 @@ Route::middleware(['web', 'auth'])->prefix('notifications')->name('notifications
         Route::get('/', 'index')->name('index');
         Route::get('summary', 'summary')->name('summary');
         Route::get('{notification}/open', 'open')->whereNumber('notification')->name('open');
+        Route::post('{notification}/read', 'read')->whereNumber('notification')->name('read');
         Route::post('read-all', 'readAll')->name('read-all');
     });

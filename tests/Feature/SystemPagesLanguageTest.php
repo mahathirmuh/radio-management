@@ -118,8 +118,8 @@ class SystemPagesLanguageTest extends TestCase
         $this->actingAs($me);
 
         $page = (string) $this->get(route('notifications.index'))->assertOk()->getContent();
-        foreach (['<h1 class="rm-title">Notifikasi</h1>', '>Semua</a>', 'Tandai semua dibaca',
-            'Hari ini', '<span class="badge bg-secondary-lt">Persetujuan</span>', '2 menit yang lalu'] as $part) {
+        foreach (['<h1 class="rm-title">Notifikasi</h1>', 'Semua', 'Belum dibaca', '>Dokumen', 'Tandai semua dibaca', 'Tandai dibaca',
+            'Hari ini', '<span class="rm-badge gray">Dokumen</span>', '2 menit yang lalu'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
         $this->getJson(route('notifications.summary'))->assertOk()->assertJsonPath('items.0.when', '2 menit yang lalu');
@@ -127,12 +127,12 @@ class SystemPagesLanguageTest extends TestCase
         // The browser chose English: the page, its script and what the bell is told.
         $this->useEnglish();
         $page = (string) $this->get(route('notifications.index'))->assertOk()->getContent();
-        foreach (['<h1 class="rm-title">Notifications</h1>', '>All</a>', 'Mark all as read',
-            'aria-label="Notifications shown"', 'Today', '<span class="badge bg-secondary-lt">Approval</span>', '2 minutes ago',
+        foreach (['<h1 class="rm-title">Notifications</h1>', 'Unread', '>Documents', 'Mark all as read', '>Mark as read</button>',
+            'aria-label="Notifications shown"', 'Today', '<span class="rm-badge gray">Documents</span>', '2 minutes ago',
             '"marked":"All notifications marked as read."'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
-        foreach (['belum dibaca', 'Hari ini', 'Tandai semua dibaca', 'Persetujuan', 'menit yang lalu', 'Pengajuan perubahan'] as $indonesian) {
+        foreach (['belum dibaca', 'Hari ini', 'Tandai semua dibaca', 'Tandai dibaca', 'Dokumen', 'menit yang lalu', 'Pengajuan perubahan'] as $indonesian) {
             $this->assertStringNotContainsString($indonesian, $page, $indonesian);
         }
         $this->getJson(route('notifications.summary'))->assertOk()->assertJsonPath('items.0.when', '2 minutes ago');

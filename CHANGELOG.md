@@ -8,6 +8,23 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.14.0] - 2026-10-21
+
+### Ditambahkan
+
+- Halaman Notifikasi mengikuti desain handoff (NotificationsPage), tanpa subjudul:
+  - tab Semua, Belum dibaca, Radio, Dokumen dan Sistem, masing-masing dengan jumlahnya (Radio: ringkasan mingguan
+    register; Dokumen: pengajuan dan hasil perubahan sel ICT Masterlist; Sistem: token API yang hampir berakhir);
+  - **Tandai dibaca** di setiap baris yang belum dibaca, tanpa membuka notifikasinya (juga jalan tanpa JavaScript);
+  - di samping judul tampil kategorinya; waktunya "12 menit yang lalu" untuk hari ini, "Kemarin, 16:40", dan
+    "17 Okt, 08:00" untuk yang lebih lama (tanggal dan jam lengkap di tooltip).
+
+### Diubah
+
+- Judul Dashboard kini "Selamat datang di Radio Management System" (English: "Welcome to Radio Management System").
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.13.3] - 2026-10-21
 
 ### Diubah
@@ -787,6 +804,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.14.0]: https://github.com/mahathirmuh/radio-management/compare/v1.13.3...v1.14.0
 [1.13.3]: https://github.com/mahathirmuh/radio-management/compare/v1.13.2...v1.13.3
 [1.13.2]: https://github.com/mahathirmuh/radio-management/compare/v1.13.1...v1.13.2
 [1.13.1]: https://github.com/mahathirmuh/radio-management/compare/v1.13.0...v1.13.1

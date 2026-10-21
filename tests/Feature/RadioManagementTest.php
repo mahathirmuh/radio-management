@@ -97,7 +97,7 @@ class RadioManagementTest extends TestCase
         $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
 
         // The register is in the sidebar: no button for it next to the title.
-        $this->assertStringContainsString('Dashboard Radio', $page);
+        $this->assertStringContainsString('<h1 class="rm-title">Selamat datang di Radio Management System</h1>', $page);
         $this->assertDoesNotMatchRegularExpression('#<a[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*>(?:(?!</a>).)*?Register Radio#s', $page);
         // The figures still lead to it.
         $this->assertStringContainsString(route('radio-management.radio.index') . '?scope=archived', $page);

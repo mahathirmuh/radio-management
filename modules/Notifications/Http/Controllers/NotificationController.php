@@ -21,11 +21,25 @@ class NotificationController extends Controller
 
     private const PER_PAGE = 25;
 
+    /** The tabs of the page besides "Semua" (all): the unread ones, and each category (UserNotification::CATEGORIES). */
+    private const SHOWS = ['unread', 'radio', 'documents', 'system'];
+
     public function index(Request $request)
     {
         $user = $request->user();
         $ready = UserNotification::ready();
-        $unreadOnly = $request->query('show') === 'unread';
+        $show = in_array($request->query('show'), self::SHOWS, true) ? $request->query('show') : 'all';
+
+        // How many each tab holds, from one count per kind.
+        $byKind = $ready
+            ? UserNotification::query()->of($user)
+                ->selectRaw('kind, count(*) as total, sum(case when read_at is null then 1 else 0 end) as unread')
+                ->groupBy('kind')->get()
+            : collect();
+        $tabs = ['all' => (int) $byKind->sum('total'), 'unread' => (int) $byKind->sum('unread')];
+        foreach (array_slice(self::SHOWS, 1) as $category) {
+            $tabs[$category] = (int) $byKind->whereIn('kind', UserNotification::kindsOf($category))->sum('total');
+        }
 
         return view('Notifications::index', [
             'pageTitle' => 'Notifikasi',
@@ -34,10 +48,13 @@ class NotificationController extends Controller
                 ['url' => '/notifications', 'label' => 'Notifikasi', 'active' => true],
             ],
             'ready' => $ready,
-            'unreadOnly' => $unreadOnly,
-            'unread' => $ready ? UserNotification::query()->of($user)->unread()->count() : 0,
+            'show' => $show,
+            'tabs' => $tabs,
+            'unread' => $tabs['unread'],
             'notifications' => $ready
-                ? UserNotification::query()->of($user)->when($unreadOnly, fn ($query) => $query->unread())
+                ? UserNotification::query()->of($user)
+                    ->when($show === 'unread', fn ($query) => $query->unread())
+                    ->when(! in_array($show, ['all', 'unread'], true), fn ($query) => $query->whereIn('kind', UserNotification::kindsOf($show)))
                     ->latest('id')->paginate(self::PER_PAGE)->withQueryString()
                 : null,
         ]);
@@ -80,7 +97,27 @@ class NotificationController extends Controller
 
         return $request->expectsJson()
             ? response()->json(['unread' => 0])
-            : redirect()->route('notifications.index', array_filter(['show' => $request->input('show')]));
+            : redirect()->route('notifications.index', self::tab($request));
+    }
+
+    /** "Tandai dibaca" of a row of the page: marks it read without opening it. Only ever one of the person's own. */
+    public function read(Request $request, int $notification): JsonResponse|RedirectResponse
+    {
+        abort_unless(UserNotification::ready(), 404);
+        $found = UserNotification::query()->of($request->user())->findOrFail($notification);
+        if ($found->read_at === null) {
+            $found->forceFill(['read_at' => now()])->save();
+        }
+
+        return $request->expectsJson()
+            ? response()->json(['unread' => UserNotification::query()->of($request->user())->unread()->count()])
+            : redirect()->route('notifications.index', self::tab($request));
+    }
+
+    /** @return array{show?: string} the tab of the page a form was sent from, to go back to it */
+    private static function tab(Request $request): array
+    {
+        return in_array($request->input('show'), self::SHOWS, true) ? ['show' => $request->input('show')] : [];
     }
 
     /** One notification as the bell shows it (texts as they are: the page puts them in as text, never as markup). */

@@ -40,7 +40,7 @@ class DashboardLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('<h1 class="rm-title">Radio Dashboard</h1>', $page);
+        $this->assertStringContainsString('<h1 class="rm-title">Welcome to Radio Management System</h1>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">Active radios</span>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">With user</span>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">Archived</span>', $page);
@@ -67,7 +67,7 @@ class DashboardLanguageTest extends TestCase
         // What people wrote stays as it was written.
         $this->assertStringContainsString('Diserahkan ke Budi', $page);
 
-        foreach (['Dashboard Radio', 'Radio aktif', 'Kondisi radio aktif', 'Radio ID bebas berikutnya', 'Perlu tindakan', 'Buka inbox',
+        foreach (['Selamat datang di Radio Management System', 'Radio aktif', 'Kondisi radio aktif', 'Radio ID bebas berikutnya', 'Perlu tindakan', 'Buka inbox',
             'Aktivitas terbaru', 'Semua riwayat', 'Lihat radio', '>Lihat<', '(kosong)', '60,0%', 'rm-badge blue">Serah Terima<',
             'radio-muted">Sistem<', 'Tipe radio kosong'] as $indonesian) {
             $this->assertStringNotContainsString($indonesian, $page);
@@ -80,7 +80,7 @@ class DashboardLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('<h1 class="rm-title">Dashboard Radio</h1>', $page);
+        $this->assertStringContainsString('<h1 class="rm-title">Selamat datang di Radio Management System</h1>', $page);
         $this->assertStringContainsString('<div class="rm-cardbox-sub">5 radio, menurut kondisi terakhir yang tercatat</div>', $page);
         $this->assertStringContainsString('aria-label="Lihat radio Layak"', $page);
         $this->assertStringContainsString('<span class="rm-badge orange">Tipe radio kosong</span>', $page);

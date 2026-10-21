@@ -146,6 +146,69 @@ class NotificationsTest extends TestCase
             ->assertSee('Semua notifikasi sudah dibaca')->assertDontSee('id="notifPageReadAll"', false);
     }
 
+    public function test_the_tabs_count_what_they_hold_and_show_only_that(): void
+    {
+        $me = $this->person('Saya Sendiri');
+        $send = fn (string $kind, string $title) => app(Notifier::class)->send($me, $kind, $title, 'Isinya', '/dashboard');
+        $send(UserNotification::REGISTER_WEEKLY, 'Ringkasan minggu ini');
+        $send(UserNotification::EDIT_REQUESTED, 'Menunggu persetujuan');
+        $send(UserNotification::EDIT_DECIDED, 'Sudah diputuskan');
+        $send(UserNotification::TOKEN_EXPIRING, 'Token hampir berakhir');
+        UserNotification::query()->of($me)->where('kind', UserNotification::EDIT_DECIDED)->update(['read_at' => now()]);
+        // Somebody else's are not counted.
+        app(Notifier::class)->send($this->person('Orang Lain'), UserNotification::REGISTER_WEEKLY, 'Bukan punya saya', 'Isinya', '/dashboard');
+        $this->actingAs($me);
+
+        $page = (string) $this->get(route('notifications.index'))->assertOk()->getContent();
+        foreach (['all' => 4, 'unread' => 3, 'radio' => 1, 'documents' => 2, 'system' => 1] as $tab => $count) {
+            $href = route('notifications.index', $tab === 'all' ? [] : ['show' => $tab]);
+            $this->assertMatchesRegularExpression('#<a href="' . preg_quote($href, '#') . '"[^>]*>\s*[^<]+<span class="rm-tab-count"[^>]*>' . $count . '</span>#', $page, $tab);
+        }
+        $this->assertStringContainsString('<span class="rm-badge gray">Radio</span>', $page);
+        $this->assertStringContainsString('<span class="rm-badge gray">Dokumen</span>', $page);
+        $this->assertStringContainsString('<span class="rm-badge gray">Sistem</span>', $page);
+        $this->assertStringNotContainsString('Bukan punya saya', $page);
+
+        $documents = (string) $this->get(route('notifications.index', ['show' => 'documents']))->assertOk()->getContent();
+        $this->assertStringContainsString('Menunggu persetujuan', $documents);
+        $this->assertStringContainsString('Sudah diputuskan', $documents);
+        $this->assertStringNotContainsString('Ringkasan minggu ini', $documents);
+        $this->assertStringNotContainsString('Token hampir berakhir', $documents);
+        // A read one has no "Tandai dibaca"; an unread one has.
+        $this->assertSame(1, substr_count($documents, 'class="rm-notif-mark"'));
+
+        // A tab with nothing in it says so; an unknown one is "Semua".
+        UserNotification::query()->of($me)->where('kind', UserNotification::TOKEN_EXPIRING)->delete();
+        $this->get(route('notifications.index', ['show' => 'system']))->assertOk()->assertSee('Belum ada di sini');
+        $this->get(route('notifications.index', ['show' => 'nope']))->assertOk()->assertSee('Ringkasan minggu ini')->assertSee('Menunggu persetujuan');
+    }
+
+    public function test_one_is_marked_read_from_its_row_without_opening_it(): void
+    {
+        $me = $this->person('Saya Sendiri');
+        $other = $this->person('Orang Lain');
+        $this->notify($me, 'Pertama');
+        $this->notify($me, 'Kedua', '/dashboard', 'kedua');
+        $this->notify($other, 'Punya orang lain');
+        $id = fn (User $who, string $title) => (int) UserNotification::query()->of($who)->where('title', $title)->value('id');
+        [$mine, $theirs] = [$id($me, 'Pertama'), $id($other, 'Punya orang lain')];
+        $this->actingAs($me);
+
+        $this->postJson(route('notifications.read', $mine))->assertOk()->assertExactJson(['unread' => 1]);
+        $this->assertNotNull(UserNotification::query()->find($mine)->read_at);
+        // Again: nothing changes.
+        $this->postJson(route('notifications.read', $mine))->assertOk()->assertExactJson(['unread' => 1]);
+        // Another person's is not found, and stays unread.
+        $this->postJson(route('notifications.read', $theirs))->assertNotFound();
+        $this->assertNull(UserNotification::query()->find($theirs)->read_at);
+
+        // Without the script: back to the tab it was sent from (an unknown tab is "Semua").
+        $second = UserNotification::query()->of($me)->unread()->value('id');
+        $this->post(route('notifications.read', $second), ['show' => 'unread'])->assertRedirect(route('notifications.index', ['show' => 'unread']));
+        $this->post(route('notifications.read', $second), ['show' => 'nope'])->assertRedirect(route('notifications.index'));
+        $this->assertSame(0, UserNotification::query()->of($me)->unread()->count());
+    }
+
     public function test_every_page_has_the_bell(): void
     {
         $this->actingAs($this->superAdmin());
@@ -284,6 +347,6 @@ class NotificationsTest extends TestCase
     {
         $this->notify($this->superAdmin(), 'Satu');
         $this->notify($this->superAdmin(), 'Dua');
-        $this->checkPageScript(route('notifications.index'), 'tests/tools/notifications-behaviour.mjs', 7);
+        $this->checkPageScript(route('notifications.index'), 'tests/tools/notifications-behaviour.mjs', 8);
     }
 }

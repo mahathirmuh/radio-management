@@ -5,7 +5,7 @@
 // checks and kinds of history lines come from the RadioManagement module.
 
 return [
-    'title' => 'Dashboard Radio',
+    'title' => 'Selamat datang di Radio Management System',
     'radios' => ':count radio',
     // The group of the radios without a company or a type.
     'no_name' => '(kosong)',

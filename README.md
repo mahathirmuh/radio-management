@@ -526,7 +526,8 @@ Lonceng di header menampilkan notifikasi untuk orang yang sedang login (modul `m
 
 - angka merah = jumlah yang belum dibaca, diperbarui tiap menit selama halaman terbuka (tanpa reload);
 - klik lonceng: 8 notifikasi terbaru; klik satu menandainya dibaca dan membuka halamannya; **Tandai semua dibaca**;
-- **Lihat semua notifikasi** (`/notifications`): daftar lengkap, tab Semua / Belum dibaca.
+- **Lihat semua notifikasi** (`/notifications`): daftar lengkap per hari, dengan tab Semua / Belum dibaca / Radio /
+  Dokumen / Sistem (ringkasan mingguan register; pengajuan perubahan sel; token API) dan **Tandai dibaca** per baris.
 
 | Kejadian | Yang menerima | Tautan |
 | --- | --- | --- |
