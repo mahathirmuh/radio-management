@@ -57,7 +57,7 @@ class TrustedProxiesTest extends TestCase
         $this->app->getProvider(AppServiceProvider::class)->boot($this->app['request']);
 
         $page = (string) $this->withServerVariables(['REMOTE_ADDR' => '192.168.48.1'])
-            ->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-For' => '10.60.1.2'])
+            ->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-For' => '203.0.113.7'])
             ->get('http://radio.example.test/login')->assertOk()->getContent();
 
         // The assets and the forms are linked the way the visitor opened the page ...
