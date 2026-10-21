@@ -84,6 +84,8 @@
 
     --rm-sidebar: 240px;
     --rm-rail: 80px;
+    /* The sidebar's background, as production's (mdka-bg-gray-50). */
+    --rm-sidebar-bg: var(--rm-gray-50);
 }
 
 /* 2. Tabler ---------------------------------------------------------------------------------------------------------- */
@@ -113,7 +115,7 @@
 
 /* Sidebar (main.sidebar.sidebar). Below 992px it is Tabler's folding menu at the top of the page. */
 .rm-sidebar.navbar {
-    background: #fff;
+    background: var(--rm-sidebar-bg);
     border: 0;
 }
 
@@ -228,7 +230,7 @@
     height: 8px;
     border-radius: 999px;
     background: var(--rm-gray-400);
-    box-shadow: 0 0 0 2px #fff;
+    box-shadow: 0 0 0 2px var(--rm-sidebar-bg);
 }
 
 .rm-nav-dot.red {
