@@ -8,6 +8,18 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.8] - 2026-10-21
+
+### Diubah
+
+- Logo di atas sidebar seperti production:
+  - sidebar terbuka: logo Merdeka Copper Gold dan Merdeka Battery Materials setinggi 32 px (sebelumnya 28 px),
+    berdampingan di tengah;
+  - sidebar disembunyikan (deretan ikon): dua tanda kecil berdampingan, Merdeka Copper Gold 20 px dan Merdeka Battery
+    Materials 24 px. Sebelumnya hanya tanda Merdeka Battery Materials.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.7] - 2026-10-21
 
 ### Diubah
@@ -574,6 +586,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.8]: https://github.com/mahathirmuh/radio-management/compare/v1.10.7...v1.10.8
 [1.10.7]: https://github.com/mahathirmuh/radio-management/compare/v1.10.6...v1.10.7
 [1.10.6]: https://github.com/mahathirmuh/radio-management/compare/v1.10.5...v1.10.6
 [1.10.5]: https://github.com/mahathirmuh/radio-management/compare/v1.10.4...v1.10.5

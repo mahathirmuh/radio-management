@@ -117,19 +117,21 @@
     border: 0;
 }
 
+/* The two logos as production shows them: 32 high, side by side in the middle. */
 .rm-sidebar .rm-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 4px;
     height: 56px;
     margin: 0;
-    padding: 0 16px;
+    padding: 0 8px;
     flex: none;
 }
 
 .rm-sidebar .rm-brand img {
     display: block;
-    height: 28px;
+    height: 32px;
     width: auto;
 }
 
@@ -396,8 +398,20 @@
         display: none !important;
     }
 
+    /* The two marks as production shows them in the rail: Merdeka Copper Gold 20 high, Merdeka Battery Materials 24,
+       standing on one line. */
     html.rm-rail .rm-sidebar .rm-brand-rail {
-        display: block !important;
+        display: flex !important;
+        align-items: flex-end;
+        gap: 4px;
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand-rail img:first-child {
+        height: 20px;
+    }
+
+    html.rm-rail .rm-sidebar .rm-brand-rail img:last-child {
+        height: 24px;
     }
 
     html.rm-rail .rm-nav-link {

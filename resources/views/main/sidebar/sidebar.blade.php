@@ -8,7 +8,11 @@
         <a href="/" class="rm-brand" aria-label="{{ config('app.name') }}">
             <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" alt="Merdeka Copper Gold" class="rm-brand-full">
             <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" alt="Merdeka Battery Materials" class="rm-brand-full">
-            <img src="{{ asset('assets/img/branding/mbm-logo-small.png') }}" alt="Merdeka Battery Materials" class="rm-brand-rail">
+            {{-- In the icon rail: the two marks side by side, as before the design refresh. --}}
+            <span class="rm-brand-rail">
+                <img src="{{ asset('assets/img/branding/favicon.ico') }}" alt="Merdeka Copper Gold">
+                <img src="{{ asset('assets/img/branding/mbm-logo-small.png') }}" alt="Merdeka Battery Materials">
+            </span>
         </a>
         <div class="collapse navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav rm-nav">
