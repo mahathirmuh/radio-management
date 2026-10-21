@@ -8,6 +8,18 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.20.1] - 2026-10-21
+
+### Dihapus
+
+- Sisa template Base-Apps-Merdeka yang tidak pernah dipakai aplikasi ini. Tampilan dan fungsi aplikasi tidak berubah.
+  - Semua komponen Blade `x-global` kecuali `btn-detail` dan `summary-card` (18 file).
+  - Library `tinymce`, `bootstrap` dan `list.js` di `public/assets/libs/` (sekitar 9 MB).
+  - Model `mSafe` dan `orangeHR`, beserta koneksi database `orangeHr` dan `mSafe` di `config/database.php`. Setting
+    `DB_*_ORANGEHR` dan `DB_*_MSAFE` tidak dibaca lagi; keduanya memang tidak pernah ada di `.env.example`.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.20.0] - 2026-10-21
 
 ### Diubah
@@ -985,6 +997,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.20.1]: https://github.com/mahathirmuh/radio-management/compare/v1.20.0...v1.20.1
 [1.20.0]: https://github.com/mahathirmuh/radio-management/compare/v1.19.1...v1.20.0
 [1.19.1]: https://github.com/mahathirmuh/radio-management/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mahathirmuh/radio-management/compare/v1.18.0...v1.19.0

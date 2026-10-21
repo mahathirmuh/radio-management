@@ -124,37 +124,6 @@ return [
             ]) : [],
         ],
 
-        'orangeHr' => [
-            'driver' => 'sqlsrv',
-            'host' => env('DB_HOST_ORANGEHR', '127.0.0.1'),
-            'port' => env('DB_PORT_ORANGEHR', '1433'),
-            'database' => env('DB_DATABASE_ORANGEHR', 'forge'),
-            'username' => env('DB_USERNAME_ORANGEHR', 'forge'),
-            'password' => env('DB_PASSWORD_ORANGEHR', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'strict' => true,
-            'options' => [
-                'ApplicationIntent' => 'ReadWrite',
-                'MultipleActiveResultSets' => false,
-            ],
-        ],
-        'mSafe' => [
-            'driver' => 'sqlsrv',
-            'host' => env('DB_HOST_MSAFE', '127.0.0.1'),
-            'port' => env('DB_PORT_MSAFE', '1433'),
-            'database' => env('DB_DATABASE_MSAFE', 'forge'),
-            'username' => env('DB_USERNAME_MSAFE', 'forge'),
-            'password' => env('DB_PASSWORD_MSAFE', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'strict' => true,
-            'options' => [
-                'ApplicationIntent' => 'ReadWrite',
-                'MultipleActiveResultSets' => false,
-            ],
-        ],
-
         'mdka' => [
             'driver' => 'mysql',
             'url' => env('DATABASE_URL'),
