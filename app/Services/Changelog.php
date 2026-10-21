@@ -8,10 +8,14 @@ use Illuminate\Support\Str;
  * What changed in each version, as CHANGELOG.md tells it: the dialog that the version in the footer opens. Only the
  * changes are shown, by the kind of change each heading of a version names ("### Ditambahkan"). The opening of the file,
  * the lines for whoever runs the server ("**Deploy:** ...") and the links of the headings stay in the file; a link in an
- * entry keeps its words (it points into the repository, not into the app).
+ * entry keeps its words (it points into the repository, not into the app). The file is written in Indonesian; the same
+ * notes in another language are in a file beside it (CHANGELOG.en.md).
  */
 final class Changelog
 {
+    /** The language of the file. Its notes in another language are in CHANGELOG.<language>.md beside it. */
+    public const LANGUAGE = 'id';
+
     /** The kind of change a heading names (Keep a Changelog, in Indonesian as the file writes it, or in English). */
     public const KINDS = [
         'ditambahkan' => 'added',
@@ -70,6 +74,26 @@ final class Changelog
         }
 
         return $releases;
+    }
+
+    /**
+     * The versions with their notes in a language: for each version, the notes of the file in that language when it has
+     * the version, else those of this file. The versions and their dates are always this file's.
+     *
+     * @return list<array{version: string, date: ?string, sections: list<array{heading: ?string, kind: ?string, html: string}>, language: string}>
+     *     language: the language the notes of the version are written in
+     */
+    public function releasesIn(string $language): array
+    {
+        $translated = [];
+        if ($language !== self::LANGUAGE && preg_match('/^[a-z]{2}$/', $language)) {
+            $translation = new self(preg_replace('/\.md$/', '', $this->file) . ".$language.md");
+            $translated = array_column($translation->releases(), 'sections', 'version');
+        }
+
+        return array_map(fn (array $release) => isset($translated[$release['version']])
+            ? array_replace($release, ['sections' => $translated[$release['version']]]) + ['language' => $language]
+            : $release + ['language' => self::LANGUAGE], $this->releases());
     }
 
     /**

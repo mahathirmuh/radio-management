@@ -16,6 +16,7 @@
 !VERSION
 # What changed in each version: the version in the footer opens it.
 !CHANGELOG.md
+!CHANGELOG.en.md
 
 # Inside what is let in, out again.
 # Accounts of real people: git ignores these seeders too.

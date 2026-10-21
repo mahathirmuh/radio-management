@@ -237,7 +237,10 @@ baru), ada di [CHANGELOG.md](CHANGELOG.md). Nomor versi di footer bisa diklik: d
 CHANGELOG.md tanpa baris Deploy, untuk semua akun yang login. Bentuknya garis waktu, yang terbaru di atas: setiap seri
 (`1.19`, `1.18`, …) satu simpul, rilis patch-nya bercabang di bawahnya, dan setiap versi berwarna menurut jenis
 perubahannya, yaitu judul bagiannya di CHANGELOG.md. Judulnya salah satu dari enam judul Keep a Changelog:
-`Ditambahkan`, `Diubah`, `Diperbaiki`, `Dihapus`, `Keamanan`, `Ditinggalkan`; judul lain tampil abu-abu.
+`Ditambahkan`, `Diubah`, `Diperbaiki`, `Dihapus`, `Keamanan`, `Ditinggalkan`; judul lain tampil abu-abu. Dialog ini
+mengikuti bahasa yang dipilih: dalam English, catatannya diambil dari [CHANGELOG.en.md](CHANGELOG.en.md), terjemahan
+English dari CHANGELOG.md (judulnya `Added`, `Changed`, `Fixed`, `Removed`, `Security`, `Deprecated`; tanpa baris
+Deploy). Versi yang belum ada di sana tampil dengan catatan Bahasa Indonesia.
 
 "API publik" aplikasi ini, yaitu yang dipakai pihak lain dan bisa rusak tanpa mereka tahu, ada tiga:
 
@@ -256,9 +259,10 @@ Tampilan halaman tidak termasuk.
 Perubahan yang hanya menyentuh README atau test tidak menaikkan versi; ikut ke versi berikutnya. Selama aplikasi
 masih 1.x.y, API tetap `/api/v1` dan hanya bertambah.
 
-Merilis sebuah versi: satu commit yang menaikkan `VERSION` dan menambah bagiannya paling atas di `CHANGELOG.md`
-(`VersionTest` memastikan keduanya sama, `ChangelogDialogTest` bahwa setiap judul bagiannya salah satu dari enam judul
-di atas), lalu tag git beranotasi dengan nomor itu, di-push bersama commit-nya:
+Merilis sebuah versi: satu commit yang menaikkan `VERSION` dan menambah bagiannya paling atas di `CHANGELOG.md` dan,
+dalam English, di `CHANGELOG.en.md`. `VersionTest` memastikan `VERSION` dan CHANGELOG.md sama; `ChangelogDialogTest`
+memastikan setiap judul bagian salah satu dari enam judul di atas, dan CHANGELOG.en.md punya setiap versi CHANGELOG.md
+dengan jenis perubahan yang sama. Lalu tag git beranotasi dengan nomor itu, di-push bersama commit-nya:
 
 ```bash
 git tag -a v1.6.0 -m "v1.6.0: <ringkasan>"

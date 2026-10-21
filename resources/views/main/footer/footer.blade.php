@@ -77,7 +77,7 @@
                  * The versions as a timeline, newest first: a legend, then each series ("1.14") as a node with its minor release
                  * (1.14.0, else its oldest) and its patches below it as branches, newest first; a band "Versi N" where a major
                  * version begins; every version in the colour of its strongest kind of change. The changes are the server's
-                 * markup, under a pill per kind.
+                 * markup, in the language of the page where the server has them in it, under a pill per kind.
                  */
                 render(data) {
                     const releases = Array.isArray(data?.releases) ? data.releases : [];
@@ -143,8 +143,10 @@
                         (release.current ? `<span class="rm-badge blue">${esc(words.current)}</span>` : '');
                     const notes = (release.sections || []).map(section => {
                         const kind = rmChangelog.kind(section.kind);
+                        // A known kind by its name in the language of the page, like the legend; another heading as written.
+                        const label = words.kinds[section.kind] || section.heading;
 
-                        return (section.heading ? `<div class="rm-cl-section rm-cl-kind-${kind}"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"></span>${esc(section.heading)}</span></div>` : '') +
+                        return (section.heading ? `<div class="rm-cl-section rm-cl-kind-${kind}"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"></span>${esc(label)}</span></div>` : '') +
                             `<div class="rm-cl-text rm-cl-kind-${kind}">${String(section.html ?? '')}</div>`;
                     }).join('');
 
@@ -152,7 +154,7 @@
                         `<div class="rm-cl-row"><div class="rm-cl-rail" aria-hidden="true">${rail}</div>` +
                         `<div class="rm-cl-content"><div class="rm-cl-head"><span class="rm-cl-version">v${esc(release.version)}</span>` +
                         (release.date_label ? `<span class="rm-cl-date">${esc(release.date_label)}</span>` : '') + badges + `</div>` +
-                        `<div class="rm-cl-notes" lang="id">${notes}</div></div></div></div>`;
+                        `<div class="rm-cl-notes" lang="${esc(release.language || 'id')}">${notes}</div></div></div></div>`;
                 },
             };
             $('#rmVersion').on('click', () => rmChangelog.open());

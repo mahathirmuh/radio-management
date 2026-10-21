@@ -8,6 +8,25 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
+sedang dalam English. Setiap versi ditulis di kedua file.
+
+## [1.21.0] - 2026-10-21
+
+### Diubah
+
+- **Riwayat versi** mengikuti bahasa yang dipilih: dalam English, catatan setiap versi juga tampil dalam English.
+  Catatannya diambil dari file baru `CHANGELOG.en.md`, terjemahan English dari `CHANGELOG.md` untuk semua versi; setiap
+  rilis berikutnya ditulis di kedua file.
+
+### Diperbaiki
+
+- Label jenis perubahan di atas catatan setiap versi (misalnya **DIUBAH**) tampil dalam bahasa halaman, sama seperti
+  legendanya. Sebelumnya label itu selalu dalam Bahasa Indonesia.
+
+**Deploy:** tanpa migrasi, tanpa setting baru. Image Docker ikut membawa `CHANGELOG.en.md`, jadi build ulang seperti
+biasa (`docker compose up -d --build`).
+
 ## [1.20.1] - 2026-10-21
 
 ### Dihapus
@@ -997,6 +1016,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.21.0]: https://github.com/mahathirmuh/radio-management/compare/v1.20.1...v1.21.0
 [1.20.1]: https://github.com/mahathirmuh/radio-management/compare/v1.20.0...v1.20.1
 [1.20.0]: https://github.com/mahathirmuh/radio-management/compare/v1.19.1...v1.20.0
 [1.19.1]: https://github.com/mahathirmuh/radio-management/compare/v1.19.0...v1.19.1

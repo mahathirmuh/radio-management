@@ -155,4 +155,28 @@ class ChangelogTest extends TestCase
 
         $this->assertSame([], (new Changelog($this->file . '-gone'))->releases());
     }
+
+    public function test_in_another_language_each_version_has_the_notes_of_the_file_in_that_language_where_it_has_them(): void
+    {
+        file_put_contents($this->file, "## [1.2.0] - 2026-10-21\n\n### Diubah\n\n- Diubah.\n\n## [1.1.0] - 2026-10-17\n\n### Ditambahkan\n\n- Baru.\n");
+        // The translation lies beside the file (CHANGELOG.md, CHANGELOG.en.md); its dates and its other versions count for nothing.
+        file_put_contents($this->file . '.en.md', "# Changelog (English)\n\n## [1.2.0] - 2030-01-01\n\n### Changed\n\n- Changed.\n\n## [9.9.9]\n\n### Added\n\n- Never.\n");
+
+        try {
+            $releases = (new Changelog($this->file))->releasesIn('en');
+            $this->assertSame(['1.2.0', '1.1.0'], array_column($releases, 'version'));
+            $this->assertSame(['2026-10-21', '2026-10-17'], array_column($releases, 'date'));
+            $this->assertSame([[['heading' => 'Changed', 'kind' => 'changed', 'html' => "<ul>\n<li>Changed.</li>\n</ul>"]], [['heading' => 'Ditambahkan', 'kind' => 'added', 'html' => "<ul>\n<li>Baru.</li>\n</ul>"]]],
+                array_column($releases, 'sections'));
+            // A version the translation does not have keeps the notes of the file, and says so.
+            $this->assertSame(['en', 'id'], array_column($releases, 'language'));
+
+            // The language of the file itself, a language without its file, a name that is no language: the notes of the file.
+            foreach (['id', 'fr', '../en', 'EN'] as $language) {
+                $this->assertSame(['id', 'id'], array_column((new Changelog($this->file))->releasesIn($language), 'language'), $language);
+            }
+        } finally {
+            @unlink($this->file . '.en.md');
+        }
+    }
 }

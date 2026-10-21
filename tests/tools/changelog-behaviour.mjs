@@ -108,18 +108,21 @@ check('a second major version opens with its band, the line running through it i
     assert.match(html, /<span class="rm-cl-node">2\.0<\/span>/);
 });
 
-check('the notes: a pill per kind of change in its colour, then the markup of the server; every text of the answer escaped', () => {
-    const html = shown([release('1.2.<b>0</b>', [section('fixed', 'Diperbaiki <img src=x onerror=alert(1)>'), section('mystery', 'Lain')],
-        { current: true, date_label: '<i>21</i> Okt' })]).body();
+check('the notes: a pill per kind of change, named as in the legend, then the markup of the server; every text of the answer escaped', () => {
+    const html = shown([release('1.2.<b>0</b>', [section('fixed', 'Fixed'), section('mystery', 'Lain <img src=x onerror=alert(1)>')],
+        { current: true, date_label: '<i>21</i> Okt', language: 'en' })]).body();
     assertWellFormed(html, 'the timeline');
     assert.doesNotMatch(html, /<img|<b>0|<i>21/);
     assert.match(html, /<span class="rm-cl-version">v1\.2\.&lt;b&gt;0&lt;\/b&gt;<\/span><span class="rm-cl-date">&lt;i&gt;21&lt;\/i&gt; Okt<\/span>/);
-    assert.match(html, /<div class="rm-cl-notes" lang="id"><div class="rm-cl-section rm-cl-kind-fixed"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Diperbaiki &lt;img src=x onerror=alert\(1\)&gt;<\/span><\/div><div class="rm-cl-text rm-cl-kind-fixed"><ul>\n<li>A change\.<\/li>\n<\/ul><\/div>/);
-    // A kind the dialog does not know is grey.
-    assert.match(html, /<div class="rm-cl-section rm-cl-kind-other"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Lain<\/span><\/div><div class="rm-cl-text rm-cl-kind-other">/);
-    // Notes without a heading: no pill.
+    // A kind the dialog knows by its name in the language of the page (Indonesian here), whatever the heading in the file;
+    // the notes marked with the language the server says they are written in.
+    assert.match(html, /<div class="rm-cl-notes" lang="en"><div class="rm-cl-section rm-cl-kind-fixed"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Diperbaiki<\/span><\/div><div class="rm-cl-text rm-cl-kind-fixed"><ul>\n<li>A change\.<\/li>\n<\/ul><\/div>/);
+    // A kind the dialog does not know: grey, with the heading as the file writes it.
+    assert.match(html, /<div class="rm-cl-section rm-cl-kind-other"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Lain &lt;img src=x onerror=alert\(1\)&gt;<\/span><\/div><div class="rm-cl-text rm-cl-kind-other">/);
+    // Notes without a heading: no pill. No language from the server: that of CHANGELOG.md, Indonesian.
     const first = shown().body().split('<span class="rm-cl-version">v1.0.0</span>')[1];
     assert.match(first, /<div class="rm-cl-notes" lang="id"><div class="rm-cl-text rm-cl-kind-other"><p>The first\.<\/p><\/div><\/div>/);
+    assert.match(shown([release('1.0.0', [section('added', 'Added')], { language: '"><b>x' })]).body(), /<div class="rm-cl-notes" lang="&quot;&gt;&lt;b&gt;x">/);
 });
 
 check('once shown, opening it again shows the same without asking again', () => {
