@@ -8,6 +8,18 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.12.1] - 2026-10-21
+
+### Diubah
+
+- Dashboard:
+  - panel baris atas (Kondisi radio aktif dan Radio ID bebas di kiri, Perlu tindakan di kanan) sekarang sama lebar
+    dengan panel baris bawah (per company dan per tipe), dua kolom sama besar, jadi tepi panelnya sejajar;
+  - di layar 1366 px pie chart kondisi kini muat di samping daftarnya;
+  - teks "Register radio HT & rig · data per …" di bawah judul Dashboard Radio dihapus.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.12.0] - 2026-10-21
 
 ### Ditambahkan
@@ -696,6 +708,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.12.1]: https://github.com/mahathirmuh/radio-management/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/mahathirmuh/radio-management/compare/v1.11.2...v1.12.0
 [1.11.2]: https://github.com/mahathirmuh/radio-management/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/mahathirmuh/radio-management/compare/v1.11.0...v1.11.1

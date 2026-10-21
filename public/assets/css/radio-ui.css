@@ -3780,9 +3780,10 @@ a:focus-visible > .rm-kpi {
     color: inherit;
 }
 
+/* The two rows of panels of the dashboard share their columns: two halves, so that the edges line up. */
 .rm-dash-split {
     display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 16px;
 }
