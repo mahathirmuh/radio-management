@@ -3,8 +3,14 @@
 namespace Modules\Api\Services;
 
 use App\Services\Directory\LdapAuthenticator;
+use App\Services\Language;
+use Illuminate\Auth\AuthManager;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Facade;
+use Illuminate\Session\SessionManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Modules\SharePointDocs\Services\GraphClient;
@@ -15,11 +21,12 @@ use Modules\SnipeIt\Services\SnipeItUnavailable;
 use Throwable;
 
 /**
- * How the application is (GET /api/v1/health): the database and the storage, without which it does not work, and, for a
- * client with a token, everything it depends on: the cache, the migrations, Snipe-IT, Microsoft, Active Directory, the HR
- * database. Every check says ok, warn (works, but needs a look), fail or skipped (not set up here), how long it took, and
- * why it is not ok as a word (a reason) and a sentence in the client's language. Nothing names a server, a path or an
- * error of the server: those are in the log.
+ * How the application is (GET /api/v1/health): whether the website works, down to its database (the login page served as
+ * to a browser, the database with the application's own tables, the storage, the sessions), and, for a client with a
+ * token, everything it depends on: the cache, the migrations, Snipe-IT, Microsoft, Active Directory, the HR database.
+ * Every check says ok, warn (works, but needs a look), fail or skipped (not set up here), how long it took, and why it is
+ * not ok as a word (a reason) and a sentence in the client's language. Nothing names a server, a path or an error of the
+ * server: those are in the log.
  */
 final class Health
 {
@@ -31,8 +38,11 @@ final class Health
 
     public const SKIPPED = 'skipped';
 
-    /** The checks without which the application does not work: one failing is "down". */
-    private const ESSENTIAL = ['database', 'storage'];
+    /** The checks without which the website does not work: one failing is "down". They are run without a token too. */
+    private const ESSENTIAL = ['web', 'database', 'storage', 'session'];
+
+    /** The application's own tables that the database check reads: the accounts, the sidebar, the register. */
+    private const TABLES = ['users', 'menu', 'radios'];
 
     /** Seconds Microsoft may take to sign the application in. */
     private const MICROSOFT_SECONDS = 8.0;
@@ -45,12 +55,13 @@ final class Health
     }
 
     /**
-     * @return array{status: string, version: ?string, time: string, checks?: array<string, array<string, mixed>>}
-     *     status: ok; degraded (something it depends on fails or needs a look); down (the database or the storage fails)
+     * @return array{status: string, version: ?string, time: string, checks: array<string, array<string, mixed>>}
+     *     status: ok; degraded (something it depends on fails or needs a look); down (the website or its database fails);
+     *     checks: without $detail only the status of each essential check
      */
     public function report(bool $detail): array
     {
-        $checks = ['database' => $this->database(), 'storage' => $this->storage()];
+        $checks = ['web' => $this->web(), 'database' => $this->database(), 'storage' => $this->storage(), 'session' => $this->session()];
         if ($detail) {
             $checks += [
                 'cache' => $this->cache(),
@@ -69,17 +80,96 @@ final class Health
             default => 'ok',
         };
 
-        return ['status' => $status, 'version' => config('app.version'), 'time' => now()->toIso8601String()]
-            + ($detail ? ['checks' => $checks] : []);
+        return [
+            'status' => $status,
+            'version' => config('app.version'),
+            'time' => now()->toIso8601String(),
+            'checks' => $detail ? $checks : array_map(fn (array $check) => ['status' => $check['status']], $checks),
+        ];
     }
 
+    /**
+     * The login page, asked of the application as a browser asks for it: GET /login through everything a page goes through
+     * (the session, the language, the templates), given back whole with its form. As a browser of its own: no account and
+     * no session of this request (they are put back afterwards). Nothing is written: the activity log keeps no GET, and the
+     * session the page was given is taken away again.
+     */
+    private function web(): array
+    {
+        $main = app('request');
+        $locale = app()->getLocale();
+        $kept = ['auth' => app('auth'), 'session' => app('session'), 'session.store' => app('session.store')];
+
+        return $this->timed('web', function () use ($main, $locale, $kept) {
+            $sessions = new SessionManager(app());
+            app()->instance('session', $sessions);
+            app()->instance('session.store', $sessions->driver());
+            app()->instance('auth', new AuthManager(app()));
+            foreach (['auth', 'session'] as $facade) {
+                Facade::clearResolvedInstance($facade);
+            }
+            $page = Request::create('/login', 'GET', [], [], [], ['HTTP_ACCEPT' => 'text/html', 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'health-check']);
+            try {
+                $response = app(HttpKernel::class)->handle($page);
+            } finally {
+                // The page was a request of its own: this one is the request again, with its account, its session and its language.
+                if ($page->hasSession()) {
+                    $page->session()->getHandler()->destroy($page->session()->getId());
+                }
+                foreach ($kept as $name => $instance) {
+                    app()->instance($name, $instance);
+                }
+                app()->instance('request', $main);
+                foreach (['auth', 'session', 'request'] as $facade) {
+                    Facade::clearResolvedInstance($facade);
+                }
+                Language::use($locale);
+            }
+            if ($response->getStatusCode() !== 200 || ! str_contains((string) $response->getContent(), 'id="loginForm"')) {
+                Log::warning('Health check web: the login page was not served.', ['status' => $response->getStatusCode()]);
+
+                return ['status' => self::FAIL, 'reason' => 'not_working'];
+            }
+
+            return [];
+        }, 'not_working');
+    }
+
+    /** The database answers, and the application's own tables can be read (only read: nothing is written). */
     private function database(): array
     {
         return $this->timed('database', function () {
             DB::connection()->select('select 1 as up');
+            foreach (self::TABLES as $table) {
+                try {
+                    DB::table($table)->exists();
+                } catch (Throwable $unreadable) {
+                    Log::warning("Health check database: the table {$table} cannot be read.", ['error' => get_class($unreadable)]);
+
+                    return ['status' => self::FAIL, 'reason' => 'tables'];
+                }
+            }
 
             return [];
         }, 'unreachable');
+    }
+
+    /** A session is written, read back and taken away again, where the sessions of the pages are kept. */
+    private function session(): array
+    {
+        return $this->timed('session', function () {
+            $handler = app('session')->driver()->getHandler();
+            $id = Str::random(40);
+            $written = serialize(['health' => Str::random(16)]);
+            $handler->write($id, $written);
+            $read = $handler->read($id);
+            $handler->destroy($id);
+            if ($read !== $written) {
+                throw new \RuntimeException('The sessions do not give back what was written.');
+            }
+
+            return ['driver' => (string) config('session.driver')];
+        }, 'not_writable');
     }
 
     /** A file is written, read back and taken away again where the application keeps its own (sessions, views, cache). */

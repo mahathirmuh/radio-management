@@ -31,6 +31,8 @@ return [
         'not_found' => 'Not found.',
         'not_writable' => 'Cannot be written.',
         'no_table' => 'The table of the migrations is missing.',
+        'not_working' => 'The login page is not served as it should be.',
+        'tables' => 'The tables of the application cannot be read.',
         'pending' => '{1} :count migration has not been run on this database yet.|[2,*] :count migrations have not been run on this database yet.',
         'database' => 'Not checked: the database does not answer.',
     ],

@@ -611,7 +611,7 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 | `422` | ditolak aturan, `errors` per field (pesan dalam English; `Accept-Language: id` untuk Bahasa Indonesia, lihat [Bahasa](#bahasa)) |
 | `429` | terlalu banyak request: 60/menit per token; import dan export Excel 10/menit; yang dibaca dari SharePoint 30/menit, menyetujui perubahan sel 10/menit (120/menit per alamat sebelum token diperiksa) |
 | `502`, `504` | SharePoint menjawab salah atau terlalu lambat (ada `reason`) |
-| `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`); di `GET health`: database atau storage tidak bisa dipakai (`status: down`) |
+| `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`); di `GET health`: website atau database-nya tidak jalan (`status: down`) |
 
 - Daftar: `?page=` dan `?per_page=` (maks. 100), dengan `meta` dan `links`. Filter bernilai banyak: `type[]=1&type[]=2`
   atau `type=1,2`.
@@ -638,16 +638,23 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 - **Health check**<a id="health-check"></a> untuk pemantauan (Uptime Kuma, Zabbix, Docker):
   - **`GET /up`**: aplikasi menjawab `{"status":"up"}`. Tidak bertanya ke database, tanpa sesi, tanpa token: untuk
     healthcheck container, yang me-restart container bila ini gagal (restart tidak menghidupkan database).
-  - **`GET /api/v1/health`** tanpa token: `status` (`ok`, atau `down` dengan HTTP 503 bila database atau storage tidak
-    bisa dipakai), `version`, dan `time`.
-  - Dengan token API (token apa pun, tanpa hak menu tertentu) ada juga `checks`: `database`, `storage`, `cache`,
-    `migrations` (jumlah dan nama migrasi yang belum dijalankan), `snipe_it` (dengan versinya), `microsoft` (aplikasi bisa
-    masuk ke Microsoft: login Microsoft dan SharePoint), `ldap` (Active Directory), `hr_database`. Tiap cek punya `status`
-    (`ok`, `warn`, `fail`, atau `skipped` bila tidak diatur di sini), `ms`, dan bila tidak ok `reason` dan `message`
-    (dalam bahasa klien). `status` keseluruhan menjadi `degraded` (HTTP 200) bila ada yang `fail` atau `warn` selain
-    database dan storage.
+  - **`GET /api/v1/health`** tanpa token: apakah website jalan normal sampai ke database-nya. `status` (`ok`, atau `down`
+    dengan HTTP 503), `version`, `time`, dan status empat cek wajib:
+    - `web`: aplikasi membuka halaman login seperti browser membukanya (routing, sesi, bahasa, template) dan halaman itu
+      tampil lengkap dengan form-nya;
+    - `database`: database menjawab, dan tabel aplikasi (`users`, `menu`, `radios`) bisa dibaca;
+    - `storage`: folder penyimpanan aplikasi bisa ditulisi;
+    - `session`: sesi bisa disimpan dan dibaca lagi.
+  - Dengan token API (token apa pun, tanpa hak menu tertentu) tiap cek lengkap dengan `ms`, ditambah `cache`, `migrations`
+    (jumlah dan nama migrasi yang belum dijalankan), `snipe_it` (dengan versinya), `microsoft` (aplikasi bisa masuk ke
+    Microsoft: login Microsoft dan SharePoint), `ldap` (Active Directory), `hr_database`. Tiap cek punya `status` (`ok`,
+    `warn`, `fail`, atau `skipped` bila tidak diatur di sini), `ms`, dan bila tidak ok `reason` dan `message` (dalam
+    bahasa klien). `status` keseluruhan menjadi `degraded` (HTTP 200) bila ada yang `fail` atau `warn` selain empat cek
+    wajib.
   - Jawabannya tidak pernah menyebut nama server, alamat, atau pesan error dari server (semua itu ada di log aplikasi).
-    Batasnya sama dengan API lain (120/menit per alamat). Semua cek hanya membaca.
+    Batasnya sama dengan API lain (120/menit per alamat). Semua cek hanya membaca: yang ditulis (file, kunci cache, sesi
+    sementara, termasuk sesi halaman login yang dibuka) langsung dihapus lagi, dan membuka halaman login tidak tercatat di
+    log aktivitas.
 - Butuh empat migrasi: `2026_10_17_120000_create_personal_access_tokens_table`,
   `2026_10_17_130000_add_api_client_to_users_table`, `2026_10_17_140000_add_via_to_audit_logs_table`,
   `2026_10_17_150000_add_api_tokens_menu` (menu di bawah Audit Log). Sebelum dijalankan, API menjawab 503 dan halaman

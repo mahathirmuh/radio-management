@@ -31,6 +31,8 @@ return [
         'not_found' => 'Tidak ditemukan.',
         'not_writable' => 'Tidak bisa ditulisi.',
         'no_table' => 'Tabel migrasi tidak ada.',
+        'not_working' => 'Halaman login tidak tampil sebagaimana mestinya.',
+        'tables' => 'Tabel aplikasi tidak bisa dibaca.',
         'pending' => '{1} :count migrasi belum dijalankan di database ini.|[2,*] :count migrasi belum dijalankan di database ini.',
         'database' => 'Tidak dicek: database tidak menjawab.',
     ],

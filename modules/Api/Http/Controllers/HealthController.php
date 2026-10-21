@@ -12,7 +12,7 @@ use Throwable;
 
 /**
  * Whether the application is up, for whatever watches it: /up (Docker's health check: the application answers, nothing
- * else is asked) and /api/v1/health (the database and the storage; with a token, everything it depends on).
+ * else is asked) and /api/v1/health (the website down to its database; with a token, everything it depends on).
  */
 class HealthController extends Controller
 {
@@ -28,9 +28,11 @@ class HealthController extends Controller
     /**
      * Health of the application
      *
-     * Without a token: whether it works (its database and its storage), with its version; 503 when it does not. With a
-     * token (any token of the API): every check, each with `status` (ok, warn, fail, skipped: not set up here), `ms`, and
-     * when it is not ok a `reason` and a `message`: the database, the storage, the cache, the migrations not run yet,
+     * Without a token: whether the website works down to its database, with the status of each essential check: `web`
+     * (the login page is served as to a browser, through the session, the language and the templates), `database` (it
+     * answers and the application's tables can be read), `storage`, `session`. 503 when one of them fails ("down").
+     * With a token (any token of the API): every check, each with `status` (ok, warn, fail, skipped: not set up here),
+     * `ms`, and when it is not ok a `reason` and a `message`: the essential ones, the cache, the migrations not run yet,
      * Snipe-IT, Microsoft (sign-in and SharePoint), Active Directory, the HR database. `status` of the whole is then
      * "degraded" when something it depends on fails or needs a look. Nothing in it names a server or an error of the server.
      *

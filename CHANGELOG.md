@@ -8,6 +8,22 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.19.0] - 2026-10-21
+
+### Diubah
+
+- `GET /api/v1/health` kini mengecek apakah website jalan normal sampai ke database-nya, juga tanpa token:
+  - `web`: halaman login dibuka seperti oleh browser, lewat routing, sesi, bahasa, dan template, lalu dipastikan tampil
+    dengan form-nya;
+  - `database`: database menjawab, dan tabel aplikasi (`users`, `menu`, `radios`) bisa dibaca;
+  - `storage`;
+  - `session`: sesi bisa disimpan dan dibaca.
+
+  Status keempatnya ikut ditampilkan di jawaban tanpa token, dan satu saja yang gagal berarti `down` (HTTP 503). Dengan
+  token, tiap cek tampil lengkap seperti sebelumnya.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.18.0] - 2026-10-21
 
 ### Ditambahkan
@@ -943,6 +959,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.19.0]: https://github.com/mahathirmuh/radio-management/compare/v1.18.0...v1.19.0
 [1.18.0]: https://github.com/mahathirmuh/radio-management/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/mahathirmuh/radio-management/compare/v1.16.0...v1.17.0
 [1.16.0]: https://github.com/mahathirmuh/radio-management/compare/v1.15.0...v1.16.0

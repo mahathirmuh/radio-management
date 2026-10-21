@@ -12,9 +12,10 @@ use Modules\Api\Http\Middleware\LimitAddresses;
 | /up: the application answers, for the health check of the container (docker-compose.yml). No middleware group: no
 | session, no database, no token.
 |
-| /api/v1/health: the database and the storage without a token; everything the application depends on with one (any token
-| of the API, not a permission of a menu). Like the rest of the API: JSON, the client's language, 120 requests a minute per
-| address. Not the API's own checks (ApiReady, auth:sanctum): the answer has to come when the database does not.
+| /api/v1/health: the website down to its database without a token (the login page served as to a browser, the tables of
+| the application, the storage, the sessions); everything the application depends on with one (any token of the API, not a
+| permission of a menu). Like the rest of the API: JSON, the client's language, 120 requests a minute per address. Not the
+| API's own checks (ApiReady, auth:sanctum): the answer has to come when the database does not.
 */
 Route::get('up', [HealthController::class, 'up'])->name('health.up');
 
