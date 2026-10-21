@@ -103,7 +103,25 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             height: 56px;
+        }
+
+        /* Merdeka Tsingshan Indonesia in the middle, between the two group logos: 28 high where the panel is wide, 24 where
+           it is narrower (a 1366 wide screen), so that the three keep some room between them. On a very small phone it
+           shrinks whole instead of being squeezed. */
+        .rm-login-logos .rm-login-logo-mti {
+            display: block;
+            height: 24px;
+            width: auto;
+            min-width: 0;
+            object-fit: contain;
+        }
+
+        @media (min-width: 1400px) {
+            .rm-login-logos .rm-login-logo-mti {
+                height: 28px;
+            }
         }
 
         .rm-login-body {
@@ -383,9 +401,12 @@
             </div>
 
             <div class="rm-login-side">
-                {{-- The logos as production has them: Merdeka Copper Gold 38 high, the square Merdeka Battery Materials 56. --}}
+                {{-- The logos as production has them: Merdeka Copper Gold 38 high, the square Merdeka Battery Materials 56; Merdeka
+                     Tsingshan Indonesia between them. --}}
                 <div class="rm-login-logos">
                     <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="38" alt="Merdeka Copper Gold">
+                    <img src="{{ asset('assets/img/branding/mti-corporate.svg') }}" class="rm-login-logo-mti" height="24"
+                        alt="Merdeka Tsingshan Indonesia">
                     <img src="{{ asset('assets/img/branding/mbm-logo.jpg') }}" height="56" alt="Merdeka Battery Materials">
                 </div>
 

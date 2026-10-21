@@ -45,6 +45,14 @@ class ShellTest extends TestCase
         $this->assertStringNotContainsString('googleApis-publicSans.css', $page);
     }
 
+    public function test_the_sign_in_page_shows_merdeka_tsingshan_indonesia_between_the_group_logos(): void
+    {
+        $page = (string) $this->get(route('login'))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('#<div class="rm-login-logos">\s*<img src="[^"]*/branding/mcg-logo\.png"[^>]*>\s*<img src="[^"]*/branding/mti-corporate\.svg" class="rm-login-logo-mti"[^>]*alt="Merdeka Tsingshan Indonesia">\s*<img src="[^"]*/branding/mbm-logo\.jpg"#', $page);
+        $this->assertFileExists(public_path('assets/img/branding/mti-corporate.svg'));
+    }
+
     public function test_the_sidebar_shows_its_sections_marks_the_page_and_opens_its_group(): void
     {
         $page = (string) $this->actingAs($this->superAdmin())->get(route('radio-management.radio-type.index'))->assertOk()->getContent();

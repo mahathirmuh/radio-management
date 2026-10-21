@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.11.1] - 2026-10-21
+
+### Diubah
+
+- Halaman login menampilkan logo Merdeka Tsingshan Indonesia di antara logo Merdeka Copper Gold dan Merdeka Battery
+  Materials: setinggi 28 px di layar lebar, 24 px di layar 1366 px supaya ketiganya tetap berjarak.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.11.0] - 2026-10-21
 
 ### Ditambahkan
@@ -657,6 +666,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.11.1]: https://github.com/mahathirmuh/radio-management/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/mahathirmuh/radio-management/compare/v1.10.13...v1.11.0
 [1.10.13]: https://github.com/mahathirmuh/radio-management/compare/v1.10.12...v1.10.13
 [1.10.12]: https://github.com/mahathirmuh/radio-management/compare/v1.10.11...v1.10.12
