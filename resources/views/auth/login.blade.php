@@ -1,8 +1,9 @@
 @extends('auth.main.app')
 @push('style')
     <style>
-        /* The card on the darkened photo (the photo is the body's, auth.components.style): 1180 wide, the photos at the
-           left (7fr), the sign-in at the right (5fr). */
+        /* The card on the darkened photo (the photo is the body's, auth.components.style): the photos at the left, the
+           sign-in at the right, as large as the card was before the design refresh (538.88 + 382.77 wide, 687.98 high);
+           a narrower window shrinks both in that proportion. */
         .rm-login {
             display: flex;
             align-items: center;
@@ -13,9 +14,10 @@
 
         .rm-login-card {
             display: grid;
-            grid-template-columns: 7fr 5fr;
-            width: 1180px;
+            grid-template-columns: minmax(0, 538.88fr) minmax(0, 382.77fr);
+            width: 921.65px;
             max-width: 100%;
+            min-height: 687.98px;
             overflow: hidden;
             border-radius: 20px;
             background: #fff;
@@ -25,7 +27,7 @@
         /* Four photos that fade one into the next (24 s for all four). */
         .rm-login-photos {
             position: relative;
-            min-height: 760px;
+            min-height: 687.98px;
             overflow: hidden;
             background: var(--rm-gray-200);
         }
@@ -71,8 +73,8 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            gap: 24px;
-            padding: 36px 44px 16px;
+            gap: 20px;
+            padding: 32px 44px 16px;
         }
 
         .rm-login-logos {
@@ -313,7 +315,7 @@
                 </div>
 
                 <div class="rm-login-form">
-                    <h1 class="rm-login-title">{{ config('app.name') }}</h1>
+                    <h1 class="rm-login-title">Radio Management System</h1>
                     <div class="rm-login-rule"></div>
                     <div class="rm-login-hint">Sign in with SSO</div>
                     <div class="d-flex justify-content-center">

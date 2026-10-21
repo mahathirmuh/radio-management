@@ -8,6 +8,17 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.3] - 2026-10-21
+
+### Diubah
+
+- Halaman login:
+  - kartunya kembali seukuran sebelum tampilan baru: foto 538,88 × 687,98 px dan panel masuk 382,77 × 687,98 px. Di
+    jendela yang lebih sempit keduanya mengecil dengan perbandingan yang sama;
+  - judulnya "Radio Management System". Judul tab browser dan halaman lain tetap memakai nama aplikasi.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.2] - 2026-10-21
 
 ### Diubah
@@ -519,6 +530,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.3]: https://github.com/mahathirmuh/radio-management/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/mahathirmuh/radio-management/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/mahathirmuh/radio-management/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/mahathirmuh/radio-management/compare/v1.9.0...v1.10.0
