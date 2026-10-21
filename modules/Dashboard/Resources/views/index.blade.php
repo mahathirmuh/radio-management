@@ -86,29 +86,79 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* Part-to-whole: one stacked bar, 2px gaps between segments. */
-        .viz-stack {
-            display: flex;
-            gap: 2px;
-            height: 20px;
+        /* Part-to-whole: a pie beside its list (under it where the box is narrow), a 2px gap in the colour of the card
+           between the slices. A slice and its row light up together. */
+        .viz-cond-box {
+            container: viz-cond / inline-size;
         }
 
-        .viz-seg {
-            min-width: 4px;
+        .viz-cond {
+            display: grid;
+            grid-template-columns: 148px minmax(0, 1fr);
+            align-items: center;
+            gap: 24px;
         }
 
-        .viz-seg:first-child {
-            border-radius: 4px 0 0 4px;
+        @container viz-cond (max-width: 459.98px) {
+            .viz-cond {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .viz-pie {
+                justify-self: center;
+            }
         }
 
-        .viz-seg:last-child {
-            border-radius: 0 4px 4px 0;
+        .viz-pie {
+            display: block;
+            width: 148px;
+            height: 148px;
+            overflow: visible;
         }
 
-        .viz-seg:hover,
-        .viz-seg:focus-visible {
-            filter: brightness(1.1);
-            outline: none;
+        .viz-slice > path,
+        .viz-slice > circle {
+            stroke: #fff;
+            stroke-width: 2;
+            stroke-linejoin: round;
+        }
+
+        .viz-slice {
+            cursor: pointer;
+            transition: opacity .15s ease-out;
+        }
+
+        .viz-pie-empty {
+            fill: var(--rm-gray-100);
+        }
+
+        /* The share of a large slice, in the ink of the text (dark enough on each of the colours). */
+        .viz-pie-label {
+            fill: var(--viz-text);
+            font-size: 12px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            transition: opacity .15s ease-out;
+        }
+
+        .viz-cond.has-hot .viz-slice:not(.is-hot),
+        .viz-cond.has-hot .viz-pie-label:not(.is-hot) {
+            opacity: .35;
+        }
+
+        .viz-cond.has-hot .viz-legend-row.is-hot {
+            background: var(--rm-gray-50);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .viz-slice,
+            .viz-pie-label {
+                transition: none;
+            }
         }
 
         .viz-legend-row {
@@ -230,24 +280,44 @@
                                 <div class="rm-cardbox-sub">{{ $fmt($totalActive) }} radio, menurut kondisi terakhir yang tercatat</div>
                             </div>
                         </header>
-                        <div class="rm-cardbox-body d-flex flex-column gap-3">
+                        <div class="rm-cardbox-body viz-cond-box">
                             @php
                                 $ariaParts = $conditions->map(fn ($c) => $c['label'] . ' ' . $c['count'])->implode(', ');
+                                $byCondition = $conditions->keyBy('value');
+                                // The pie: a slice per condition that has radios, clockwise from the top in the order of the list.
+                                $pie = \Modules\Dashboard\Services\Pie::slices($conditions->pluck('count', 'value')->all(), 148);
                             @endphp
-                            <div class="viz-stack" role="img" aria-label="Kondisi radio aktif: {{ $ariaParts }}">
-                                @foreach ($conditions as $condition)
-                                    @if ($condition['count'] > 0)
-                                        <div class="viz-seg" tabindex="0"
-                                            style="flex-grow: {{ $condition['count'] }}; background: var({{ $conditionStyle[$condition['value']]['var'] }});"
-                                            data-viz-tip="{{ $condition['label'] }}: {{ $fmt($condition['count']) }} ({{ $pct($condition['count'], $totalActive) }})">
-                                        </div>
+                            <div class="viz-cond">
+                                {{-- For the pointer: each slice leads where its row does. The rows are the way in for the keyboard
+                                     and say every number, so the slices are left out of the tab order. --}}
+                                <svg class="viz-pie" viewBox="0 0 148 148" role="img" aria-label="Kondisi radio aktif: {{ $ariaParts }}">
+                                    @if ($pie === [])
+                                        <circle class="viz-pie-empty" cx="74" cy="74" r="73"></circle>
                                     @endif
-                                @endforeach
-                            </div>
+                                    @foreach ($pie as $slice)
+                                        @php($condition = $byCondition[$slice['key']])
+                                        <a href="{{ $radioUrl }}?condition={{ $slice['key'] }}" class="viz-slice" tabindex="-1"
+                                            data-viz-key="{{ $slice['key'] }}"
+                                            data-viz-tip="{{ $condition['label'] }}: {{ $fmt($condition['count']) }} ({{ $pct($condition['count'], $totalActive) }})">
+                                            @if ($slice['full'])
+                                                <circle cx="74" cy="74" r="73" style="fill: var({{ $conditionStyle[$slice['key']]['var'] }});"></circle>
+                                            @else
+                                                <path d="{{ $slice['path'] }}" style="fill: var({{ $conditionStyle[$slice['key']]['var'] }});"></path>
+                                            @endif
+                                        </a>
+                                    @endforeach
+                                    {{-- The share written on the slices that are large enough to hold it. --}}
+                                    @foreach ($pie as $slice)
+                                        @if ($slice['share'] >= 0.1)
+                                            <text class="viz-pie-label" data-viz-key="{{ $slice['key'] }}" x="{{ $slice['label_x'] }}"
+                                                y="{{ $slice['label_y'] }}">{{ $pct($slice['count'], $totalActive) }}</text>
+                                        @endif
+                                    @endforeach
+                                </svg>
                             <div>
                                 @foreach ($conditions as $condition)
                                     <a href="{{ $radioUrl }}?condition={{ $condition['value'] }}" class="viz-legend-row"
-                                        aria-label="Lihat radio {{ $condition['label'] }}">
+                                        data-viz-key="{{ $condition['value'] }}" aria-label="Lihat radio {{ $condition['label'] }}">
                                         <span class="viz-key" style="background: var({{ $conditionStyle[$condition['value']]['var'] }});"></span>
                                         <i class="ti {{ $conditionStyle[$condition['value']]['icon'] }} viz-icon" aria-hidden="true"></i>
                                         <span class="flex-fill">{{ $condition['label'] }}</span>
@@ -256,6 +326,7 @@
                                         <i class="ti ti-chevron-right viz-go" aria-hidden="true"></i>
                                     </a>
                                 @endforeach
+                            </div>
                             </div>
                         </div>
                     </section>
@@ -417,6 +488,18 @@
                 $(this).attr('data-bs-title', $(this).attr('data-viz-tip'))
                     .tooltip({ trigger: 'hover focus', placement: 'top' });
             });
+            // A slice and its row light up together, under the pointer or (a row) in focus.
+            const conditionChart = $('.viz-cond');
+            const lightUp = key => {
+                conditionChart.toggleClass('has-hot', key !== null);
+                conditionChart.find('[data-viz-key]').each(function() {
+                    $(this).toggleClass('is-hot', this.getAttribute('data-viz-key') === key);
+                });
+            };
+            conditionChart.on('mouseenter focusin', '[data-viz-key]', function() {
+                lightUp(this.getAttribute('data-viz-key'));
+            });
+            conditionChart.on('mouseleave focusout', '[data-viz-key]', () => lightUp(null));
         });
     </script>
 @endpush

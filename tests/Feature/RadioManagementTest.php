@@ -103,6 +103,33 @@ class RadioManagementTest extends TestCase
         $this->assertStringContainsString(route('radio-management.radio.index') . '?scope=archived', $page);
     }
 
+    public function test_the_dashboard_shows_the_conditions_as_a_pie_beside_their_list(): void
+    {
+        foreach (['layak', 'layak', 'layak', 'rusak', 'belum_dicek'] as $i => $condition) {
+            Radio::create(['dmr_id' => 30 + $i, 'serial_number' => '867TZB540' . $i, 'user_name' => 'Pengguna ' . $i, 'condition' => $condition]);
+        }
+        $this->actingAs($this->admin());
+        $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
+        $register = route('radio-management.radio.index');
+
+        $this->assertStringNotContainsString('viz-stack', $page);
+        $this->assertStringContainsString('<svg class="viz-pie" viewBox="0 0 148 148" role="img" aria-label="Kondisi radio aktif: Layak 3, Perlu Service 0, Rusak 1, Belum dicek 1">', $page);
+        // A slice per condition that has radios, in the order of the list, each leading where its row does; none for 0.
+        preg_match_all('#<a href="([^"]*)" class="viz-slice" tabindex="-1"\s+data-viz-key="([a-z_]+)"\s+data-viz-tip="([^"]*)">#', $page, $slices);
+        $this->assertSame(['layak', 'rusak', 'belum_dicek'], $slices[2]);
+        $this->assertSame([$register . '?condition=layak', $register . '?condition=rusak', $register . '?condition=belum_dicek'], $slices[1]);
+        $this->assertSame(['Layak: 3 (60,0%)', 'Rusak: 1 (20,0%)', 'Belum dicek: 1 (20,0%)'], $slices[3]);
+        // The first slice starts at the top (more than half: the long way round); the share is written on each slice that
+        // holds at least a tenth.
+        $this->assertStringContainsString('<path d="M74 74 L74 1 A73 73 0 1 1 ', $page);
+        preg_match_all('#<text class="viz-pie-label" data-viz-key="([a-z_]+)"[^>]*>([^<]*)</text>#', $page, $labels);
+        $this->assertSame(['layak', 'rusak', 'belum_dicek'], $labels[1]);
+        $this->assertSame(['60,0%', '20,0%', '20,0%'], $labels[2]);
+        // The list keeps every condition, also the one without radios, and lights up with its slice.
+        preg_match_all('#class="viz-legend-row"\s+data-viz-key="([a-z_]+)"#', $page, $rows);
+        $this->assertSame(['layak', 'perlu_service', 'rusak', 'belum_dicek'], $rows[1]);
+    }
+
     public function test_create_validates_sn_and_radio_id(): void
     {
         $this->actingAs($this->admin());
