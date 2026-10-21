@@ -122,15 +122,6 @@
             text-align: center;
         }
 
-        /* On a narrower card the title (longer than production's) stays on one line, so the side keeps production's
-           height. */
-        @media (max-width: 1399.98px) {
-            .rm-login-title {
-                font-size: 23px;
-                white-space: nowrap;
-            }
-        }
-
         .rm-login-rule {
             height: 1px;
             margin-top: 16px;
@@ -399,7 +390,7 @@
                 </div>
 
                 <div class="rm-login-body">
-                    <h1 class="rm-login-title">Radio Management System</h1>
+                    <h1 class="rm-login-title">MTI Radio Monitoring</h1>
                     <div class="rm-login-rule"></div>
                     <div class="rm-login-hint">Sign in with SSO</div>
                     <div class="rm-login-sso">
