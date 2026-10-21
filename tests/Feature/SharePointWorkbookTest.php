@@ -839,9 +839,10 @@ class SharePointWorkbookTest extends TestCase
 
     public function test_the_menu_is_added_below_cof_scan_and_makes_room_for_itself(): void
     {
-        // A database from before the menus "Stock Opname", "Perlu Perhatian", "Servis & Perbaikan", "API Tokens", "Audit Log" and
-        // "Persetujuan Edit" (they have their own tests): those migrations rolled back, the latest first. The last also takes
-        // away the right to change the masterlist that Admin Radio and the Document Controller were given with it.
+        // A database from before the menus "Snipe-IT", "Stock Opname", "Perlu Perhatian", "Servis & Perbaikan", "API Tokens",
+        // "Audit Log" and "Persetujuan Edit" (they have their own tests): those migrations rolled back, the latest first. The
+        // last also takes away the right to change the masterlist that Admin Radio and the Document Controller were given with it.
+        (require database_path('migrations/2026_10_21_110000_add_snipe_it_menu.php'))->down();
         (require database_path('migrations/2026_10_20_150000_add_opname_menu.php'))->down();
         (require database_path('migrations/2026_10_20_130000_add_attention_menu.php'))->down();
         (require database_path('migrations/2026_10_20_110000_add_service_menu.php'))->down();

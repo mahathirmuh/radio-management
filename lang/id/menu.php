@@ -22,6 +22,12 @@ return [
         'documents.edit-approvals.index' => 'Persetujuan Edit',
         'user-management.user-registered.index' => 'User Terdaftar',
         'user-management.role-permission.index' => 'Role & Hak Akses',
+        'snipe-it.overview.index' => 'Ringkasan',
+        'snipe-it.assets.index' => 'Aset',
+        'snipe-it.catalog.index' => 'Katalog',
+        'snipe-it.people.index' => 'Orang & Organisasi',
+        'snipe-it.stock.index' => 'Lisensi & Stok',
+        'snipe-it.history.index' => 'Riwayat',
         'audit-log.index' => 'Audit Log',
         'api-tokens.index' => 'API Tokens',
         // Hidden from every role (HideApprovalMenus): the module of the template keeps its English names.
@@ -33,6 +39,7 @@ return [
 
     'groups' => [
         'Master Data Radio' => 'Master Data Radio',
+        'Snipe-IT' => 'Snipe-IT',
         'User Management' => 'User Management',
         'Approval Management' => 'Approval Management',
     ],
@@ -40,6 +47,7 @@ return [
     'sections' => [
         'Radio' => 'Radio',
         'Dokumen' => 'Dokumen',
+        'Aset IT' => 'Aset IT',
         'User' => 'User',
         'Settings' => 'Pengaturan',
     ],

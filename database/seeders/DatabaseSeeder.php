@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             $this->call(AttentionMenuSeeder::class);
             $this->call(ServiceMenuSeeder::class);
             $this->call(OpnameMenuSeeder::class);
+            $this->call(SnipeItMenuSeeder::class);
 
             return;
         }
@@ -69,6 +70,8 @@ class DatabaseSeeder extends Seeder
         $this->call(AuditLogMenuSeeder::class);
         // The clients and tokens of the API (below "Audit Log").
         $this->call(ApiTokensMenuSeeder::class);
+        // What is in Snipe-IT, read only (the group "Snipe-IT", right after the section "Dokumen").
+        $this->call(SnipeItMenuSeeder::class);
         // The base approval module does not work here: its menus are seeded above but not shown.
         // (Only on a new install: on a database in use the owner's later choice is left alone.)
         $this->call(HideApprovalMenusSeeder::class);

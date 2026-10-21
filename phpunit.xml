@@ -40,6 +40,9 @@
         <env name="MS_GRAPH_CLIENT_SECRET" value=""/>
         <env name="SHAREPOINT_COF_SCAN_URL" value=""/>
         <env name="SHAREPOINT_ICT_MASTERLIST_URL" value=""/>
+        <!-- Nor to Snipe-IT. -->
+        <env name="SNIPEIT_URL" value=""/>
+        <env name="SNIPEIT_TOKEN" value=""/>
         <!-- Nor to the HR database or Active Directory, whatever .env holds for them. -->
         <env name="HR_DB_HOST" value=""/>
         <env name="HR_DB_DATABASE" value=""/>

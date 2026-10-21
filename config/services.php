@@ -46,4 +46,13 @@ return [
         'proxy' => env('PROXY')  // optionally
     ],
 
+    'snipeit' => [
+        // Snipe-IT (the menu "Snipe-IT"), read only: the address of its API ("http://host/api/v1") and an API token. The
+        // pages only ever ask (GET); best a token of a Snipe-IT account that may only view.
+        'url' => env('SNIPEIT_URL'),
+        'token' => env('SNIPEIT_TOKEN'),
+        // Minutes an answer of Snipe-IT is kept before it is asked again (the button "Refresh" asks at once); 0 keeps none.
+        'cache_minutes' => (int) env('SNIPEIT_CACHE_MINUTES', 5),
+    ],
+
 ];

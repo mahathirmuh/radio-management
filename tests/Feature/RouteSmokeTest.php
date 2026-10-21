@@ -57,7 +57,10 @@ class RouteSmokeTest extends TestCase
                 'id' => 'BOOK1', 'name' => "{$workbook}.xlsx", 'file' => ['mimeType' => 'application/vnd.ms-excel'], 'parentReference' => ['driveId' => 'b!drive-1'],
             ]);
         }
+        // Snipe-IT: a pretend one, with nothing in it.
+        config(['services.snipeit.url' => 'https://snipeit.test/api/v1', 'services.snipeit.token' => 'snipe-token-1']);
         Http::fake($workbooks + [
+            'snipeit.test/api/v1/*' => Http::response(['total' => 0, 'rows' => []]),
             'login.microsoftonline.com/*' => Http::response(['access_token' => 'token-1', 'expires_in' => 3599]),
             'graph.microsoft.com/v1.0/shares/*' => Http::response(['id' => 'ROOT1', 'name' => 'Scans', 'folder' => ['childCount' => 0], 'parentReference' => ['driveId' => 'b!drive-1']]),
             'graph.microsoft.com/v1.0/drives/b!drive-1/items/BOOK1/content' => Http::response(self::xlsx(['Sheet1' => [['No', 'Nama'], ['1', 'Contoh']]])),

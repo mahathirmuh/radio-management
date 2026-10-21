@@ -22,6 +22,12 @@ return [
         'documents.edit-approvals.index' => 'Edit Approvals',
         'user-management.user-registered.index' => 'Registered Users',
         'user-management.role-permission.index' => 'Role & Permission',
+        'snipe-it.overview.index' => 'Overview',
+        'snipe-it.assets.index' => 'Assets',
+        'snipe-it.catalog.index' => 'Catalog',
+        'snipe-it.people.index' => 'People & Organization',
+        'snipe-it.stock.index' => 'Licenses & Stock',
+        'snipe-it.history.index' => 'History',
         'audit-log.index' => 'Audit Log',
         'api-tokens.index' => 'API Tokens',
         // Hidden from every role (HideApprovalMenus): the module of the template keeps its English names.
@@ -33,6 +39,7 @@ return [
 
     'groups' => [
         'Master Data Radio' => 'Radio Master Data',
+        'Snipe-IT' => 'Snipe-IT',
         'User Management' => 'User Management',
         'Approval Management' => 'Approval Management',
     ],
@@ -40,6 +47,7 @@ return [
     'sections' => [
         'Radio' => 'Radio',
         'Dokumen' => 'Documents',
+        'Aset IT' => 'IT Assets',
         'User' => 'User',
         'Settings' => 'Settings',
     ],

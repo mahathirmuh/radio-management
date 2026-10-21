@@ -8,6 +8,30 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.15.0] - 2026-10-21
+
+### Ditambahkan
+
+- Menu baru **Snipe-IT** di sidebar (bagian "Aset IT"), untuk melihat isi Snipe-IT tanpa membukanya, dengan submenu:
+  - **Ringkasan**: jumlah setiap daftar di Snipe-IT, aset per status, dan aset per kategori;
+  - **Aset**: semua aset (asset tag, SN, model, kategori, status, pemegang, lokasi), dengan filter kategori dan status;
+  - **Katalog**: model, kategori, manufaktur, status, supplier, custom field, fieldset, depresiasi;
+  - **Orang & Organisasi**: user, departemen, lokasi, company, grup;
+  - **Lisensi & Stok**: lisensi, aksesori, consumable, komponen, kit;
+  - **Riwayat**: log aktivitas (checkout, checkin, perubahan) dan maintenance.
+
+  Setiap daftar bisa dicari, diurutkan, dan dibuka per halaman; tiap baris punya link ke halamannya di Snipe-IT.
+  Menu ini hanya untuk Super Admin; role lain bisa diberi di Role & Permission.
+
+### Keamanan
+
+- Menu Snipe-IT hanya membaca: aplikasi tidak pernah mengirim apa pun selain GET ke Snipe-IT, dan hanya kolom
+  daftar yang sampai ke browser (kunci lisensi, telepon, alamat, dan harga tidak). Token Snipe-IT tidak pernah keluar
+  dari server. Disarankan memakai token dari akun Snipe-IT yang hanya boleh melihat.
+
+**Deploy:** jalankan migrasi `2026_10_21_110000_add_snipe_it_menu`. Setting baru di `.env`: `SNIPEIT_URL` (alamat API
+Snipe-IT, berakhiran `/api/v1`), `SNIPEIT_TOKEN`, dan opsional `SNIPEIT_CACHE_MINUTES` (bawaan 5).
+
 ## [1.14.5] - 2026-10-21
 
 ### Diubah
@@ -858,6 +882,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.15.0]: https://github.com/mahathirmuh/radio-management/compare/v1.14.5...v1.15.0
 [1.14.5]: https://github.com/mahathirmuh/radio-management/compare/v1.14.4...v1.14.5
 [1.14.4]: https://github.com/mahathirmuh/radio-management/compare/v1.14.3...v1.14.4
 [1.14.3]: https://github.com/mahathirmuh/radio-management/compare/v1.14.2...v1.14.3

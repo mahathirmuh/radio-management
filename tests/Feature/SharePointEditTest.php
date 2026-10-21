@@ -793,11 +793,12 @@ class SharePointEditTest extends TestCase
         $import = (int) DB::table('menu')->where('route', 'radio-management.import.index')->value('order');
         $this->assertSame(['Persetujuan Edit', 'Dokumen', null, $import + 3], [$menu->title, $menu->section, $menu->parent_id, (int) $menu->order]);
         // (Since 2026-10-17 "Audit Log" and "API Tokens" come right after "User Management", before the hidden "Approval
-        // Management": AuditLogTest, ApiTokensPageTest.)
+        // Management": AuditLogTest, ApiTokensPageTest. Since 2026-10-21 the group "Snipe-IT" comes right after the section
+        // "Dokumen": SnipeItTest.)
         $this->assertSame(
-            ['COF Scan' => $import + 1, 'ICT Masterlist' => $import + 2, 'Persetujuan Edit' => $import + 3, 'User Management' => $import + 4,
-                'Audit Log' => $import + 5, 'API Tokens' => $import + 6, 'Approval Management' => $import + 7],
-            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'User Management', 'Audit Log', 'API Tokens', 'Approval Management'])
+            ['COF Scan' => $import + 1, 'ICT Masterlist' => $import + 2, 'Persetujuan Edit' => $import + 3, 'Snipe-IT' => $import + 4,
+                'User Management' => $import + 5, 'Audit Log' => $import + 6, 'API Tokens' => $import + 7, 'Approval Management' => $import + 8],
+            DB::table('menu')->whereNull('parent_id')->whereIn('title', ['COF Scan', 'ICT Masterlist', 'Persetujuan Edit', 'Snipe-IT', 'User Management', 'Audit Log', 'API Tokens', 'Approval Management'])
                 ->orderBy('order')->pluck('order', 'title')->map(fn ($place) => (int) $place)->all()
         );
         $this->assertSame('/documents/edit-approvals', route(EditApprovalsMenuSeeder::ROUTE, [], false));
@@ -928,8 +929,9 @@ class SharePointEditTest extends TestCase
 
     public function test_the_migration_adds_it_to_a_database_in_use_and_takes_it_away_again(): void
     {
-        // The database as it was when this migration was new: without the later "Stock Opname", "Perlu Perhatian", "Servis &
-        // Perbaikan", "API Tokens" and "Audit Log" (rolled back, the latest first).
+        // The database as it was when this migration was new: without the later "Snipe-IT", "Stock Opname", "Perlu Perhatian",
+        // "Servis & Perbaikan", "API Tokens" and "Audit Log" (rolled back, the latest first).
+        (require database_path('migrations/2026_10_21_110000_add_snipe_it_menu.php'))->down();
         (require database_path('migrations/2026_10_20_150000_add_opname_menu.php'))->down();
         (require database_path('migrations/2026_10_20_130000_add_attention_menu.php'))->down();
         (require database_path('migrations/2026_10_20_110000_add_service_menu.php'))->down();

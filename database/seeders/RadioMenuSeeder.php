@@ -45,9 +45,14 @@ class RadioMenuSeeder extends Seeder
         $import = $this->menu('radio-management.import.index', 'Import Excel', 'file-import', $order + 2);
 
         // Keep the base sections below the radio section (3-6, and one more for each page above) and the "Dokumen"
-        // entries (7-9, moved down as far): User Management, then the entries of "Settings" that took the place of
-        // Approval Management after it (Audit Log, API Tokens: when they are there), then Approval Management.
+        // entries (7-9, moved down as far): the group "Snipe-IT" (when it is there), User Management, then the entries of
+        // "Settings" that took the place of Approval Management after it (Audit Log, API Tokens: when they are there),
+        // then Approval Management.
         $order = 10 + count($sectionPages);
+        $snipeIt = DB::table('menu')->whereNull('parent_id')->whereNull('route')->where('title', SnipeItMenuSeeder::TITLE);
+        if ($snipeIt->exists()) {
+            $snipeIt->update(['order' => $order++]);
+        }
         DB::table('menu')->whereNull('parent_id')->where('title', 'User Management')->update(['order' => $order]);
         foreach ([AuditLogMenuSeeder::ROUTE, ApiTokensMenuSeeder::ROUTE] as $route) {
             $entry = DB::table('menu')->whereNull('parent_id')->where('route', $route);
