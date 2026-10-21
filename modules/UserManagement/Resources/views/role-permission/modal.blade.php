@@ -1,19 +1,96 @@
 @push('style')
     <style>
+        /* The dialog in the sizes of production (1.9.0): 720 wide in the middle of the screen, 21 around what is in
+           it, the title 16px, the names 0.7rem in a column of 100, fields 29 high with text of 0.65rem, the menus in
+           rows of 27 under headers of 10px, the buttons 26 high. */
         #formRoleModal .modal-dialog {
-            max-width: 800px;
+            display: flex;
+            align-items: center;
+            max-width: 720px;
+            min-height: calc(100% - var(--tblr-modal-margin) * 2);
+            margin-top: var(--tblr-modal-margin);
+        }
+
+        #formRoleModal .rm-dialog-head {
+            position: relative;
+            padding: 21px 56px 0 21px;
+        }
+
+        #formRoleModal .rm-dialog-title {
+            font-size: 16px;
+            line-height: 1.4286;
+        }
+
+        #formRoleModal .rm-dialog-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
         }
 
         #formRoleModal .rm-dialog-body {
-            padding: 8px 24px 4px;
+            padding: 8px 21px 0 25px;
+        }
+
+        #formRoleModal .rm-form-rows {
+            gap: 8px;
         }
 
         #formRoleModal .rm-form-row {
-            grid-template-columns: 150px minmax(0, 1fr);
+            grid-template-columns: 100px minmax(0, 1fr);
+        }
+
+        #formRoleModal .rm-form-row > .rm-form-label {
+            font-size: .7rem;
+            line-height: 16px;
+        }
+
+        /* Beside its field, a name stands 6px under the field's top, "Menu & Permission" too. */
+        @media (min-width: 768px) {
+            #formRoleModal .rm-form-row > .rm-form-label,
+            #formRoleModal .rm-form-row > .rm-form-label.pt-0 {
+                padding-top: 6px !important;
+            }
         }
 
         #formRoleModal .role-half {
-            width: 50%;
+            width: calc(50% - 8px);
+        }
+
+        #formRoleModal .rm-field .form-control {
+            height: auto;
+            padding: 7px 12px;
+            font-size: .65rem;
+            line-height: 1.4286;
+        }
+
+        #formRoleModal .rm-field .select2-container--bootstrap-5 .select2-selection {
+            min-height: 28px;
+            padding-top: 7px;
+            padding-bottom: 5px;
+            font-size: .65rem;
+        }
+
+        #formRoleModal .rm-field .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            font-size: .65rem;
+        }
+
+        #formRoleModal .rm-dialog-foot.is-plain {
+            padding: 16px 21px 21px;
+        }
+
+        #formRoleModal .rm-dialog-foot .btn-rm {
+            height: 26px;
+            padding: 4px 8px;
+            font-size: 12px;
+            line-height: 18px;
+        }
+
+        #formRoleModal .rm-dialog-foot .btn-rm .ti {
+            font-size: 12px;
+        }
+
+        #formRoleModal .rm-dialog-foot .rm-link-muted {
+            font-size: 12px;
         }
 
         @media (max-width: 767.98px) {
@@ -31,7 +108,7 @@
             max-height: 340px;
             overflow-y: auto;
             border: 1px solid var(--rm-gray-200);
-            border-radius: 8px;
+            border-radius: 4px;
         }
 
         #menuPermissionTable {
@@ -45,23 +122,23 @@
             position: sticky;
             top: 0;
             z-index: 2;
-            padding: 8px 12px;
+            padding: 8px 4px;
             background: var(--rm-gray-50);
             box-shadow: inset 0 -1px 0 var(--rm-gray-200);
             color: var(--rm-gray-500);
-            font-size: 12px;
+            font-size: 10px;
             line-height: 16px;
             font-weight: 600;
             text-transform: none;
         }
 
         #menuPermissionTable thead th.perm-access {
-            width: 80px;
-            padding: 6px 0;
+            width: 90px;
+            padding: 8px 0;
         }
 
         #menuPermissionTable thead th.perm-kind {
-            width: 72px;
+            width: 90px;
             padding: 8px 0;
         }
 
@@ -69,15 +146,20 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 2.5px;
+        }
+
+        /* Rows of 27 (a name too long for its column takes two lines, as in production). */
+        #menuPermissionTable tbody tr {
+            height: 27px;
         }
 
         #menuPermissionTable tbody td {
-            padding: 7px 12px;
+            padding: 4px 4px 5px;
             box-shadow: inset 0 1px 0 var(--rm-gray-100);
             color: var(--rm-gray-900);
-            font-size: 13px;
-            line-height: 18px;
+            font-size: 12px;
+            line-height: 1.4286;
             vertical-align: middle;
         }
 
@@ -95,9 +177,9 @@
             color: var(--rm-gray-400);
         }
 
-        /* A menu under a group is set in (36 from the edge). */
+        /* A menu under a group is set in (28 from the edge, where production's names under a group start). */
         #menuPermissionTable tr.menu-child-row td:first-child {
-            padding-left: 36px;
+            padding-left: 28px;
         }
 
         /* The boxes: 16px, radius 4; ticked blue, a box that cannot be changed pale. */
