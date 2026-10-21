@@ -4,11 +4,16 @@ Aplikasi register radio HT & rig (MOTOTRBO), pengganti sheet **Form** di
 `Radio Register 07-08-25.xlsx`. Dibangun di atas **Base-Apps-Merdeka**
 (Laravel 12, tema Tabler, modul di `modules/`, RBAC menu/role/permission).
 
-Dokumen ada di folder `docs/`, masing-masing untuk versi yang tertulis di sampulnya:
+Dokumen ada di folder `docs/`, masing-masing dalam Bahasa Indonesia (`-ID`) dan English (`-EN`), untuk versi yang
+tertulis di sampulnya:
 
-- **Panduan Pengguna**, untuk pengguna aplikasi: [docs/Panduan-Pengguna-MTI-Radio-Management.pdf](docs/Panduan-Pengguna-MTI-Radio-Management.pdf)
-- **API Documentation**, untuk pengembang aplikasi lain yang memakai API: [docs/API-Documentation-MTI-Radio-Management.pdf](docs/API-Documentation-MTI-Radio-Management.pdf)
-- **Design Document**, untuk tim IT dan pengembang yang merawat aplikasi (arsitektur, modul, model data, integrasi, keamanan, deployment): [docs/Design-Document-MTI-Radio-Management.pdf](docs/Design-Document-MTI-Radio-Management.pdf)
+- **Panduan Pengguna / User Guide**, untuk pengguna aplikasi:
+  [ID](docs/User-Guide-MTI-Radio-Management-ID.pdf) · [EN](docs/User-Guide-MTI-Radio-Management-EN.pdf)
+- **API Documentation**, untuk pengembang aplikasi lain yang memakai API:
+  [ID](docs/API-Documentation-MTI-Radio-Management-ID.pdf) · [EN](docs/API-Documentation-MTI-Radio-Management-EN.pdf)
+- **Design Document**, untuk tim IT dan pengembang yang merawat aplikasi (arsitektur, modul, model data, integrasi,
+  keamanan, deployment): [ID](docs/Design-Document-MTI-Radio-Management-ID.pdf) ·
+  [EN](docs/Design-Document-MTI-Radio-Management-EN.pdf)
 
 ## Isi aplikasi
 
@@ -565,7 +570,8 @@ Lonceng di header menampilkan notifikasi untuk orang yang sedang login (modul `m
 Aplikasi lain memakai register lewat **API** di `https://<host>/api/v1/...` (JSON). Dokumentasi lengkapnya (setiap
 endpoint, parameter, contoh jawaban, dan tombol "Try it") ada di **`/docs/api`**, dibuat otomatis dari kode (paket
 `dedoc/scramble`), hanya untuk akun yang boleh memegang token. Semua halaman aplikasi ada di API (tahap 1–3, 17-10-2026).
-Versi PDF untuk dibagikan ke pengembang: [docs/API-Documentation-MTI-Radio-Management.pdf](docs/API-Documentation-MTI-Radio-Management.pdf).
+Versi PDF untuk dibagikan ke pengembang: [Bahasa Indonesia](docs/API-Documentation-MTI-Radio-Management-ID.pdf) dan
+[English](docs/API-Documentation-MTI-Radio-Management-EN.pdf).
 
 | Endpoint | Isi | Menu (hak) |
 | --- | --- | --- |
