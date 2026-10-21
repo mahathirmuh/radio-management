@@ -111,7 +111,8 @@ class ShellTest extends TestCase
         $page = (string) $this->actingAs($admin)->get(route('dashboard.index'))->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('#<button id="sidebarControl" type="button" class="rm-icon-btn is-ringed" aria-controls="sidebar-menu"\s+aria-pressed="false"#', $page);
-        $this->assertMatchesRegularExpression('#<div class="rm-topbar-title">\s*Dashboard\s*</div>#', $page);
+        // The path to the page where its title was (BreadcrumbsTest): on the dashboard, the dashboard alone.
+        $this->assertMatchesRegularExpression('#<nav class="rm-topbar-title rm-topbar-crumbs" aria-label="Breadcrumb">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
         $this->assertStringContainsString('<span class="rm-topbar-company">' . e($admin->company->name) . '</span>', $page);
         $this->assertStringContainsString('<div class="dropdown" id="notifBell">', $page);
         $this->assertStringContainsString('<span class="rm-user-role">Super Admin</span>', $page);

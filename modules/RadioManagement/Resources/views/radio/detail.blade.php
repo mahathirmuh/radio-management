@@ -7,6 +7,7 @@
 @include('RadioManagement::partials.scripts')
 
 @section('page-title', 'Detail Radio')
+@section('crumb', 'Radio ' . ($radio->dmr_id ?? ($radio->previous_dmr_id ? 'ex ' . $radio->previous_dmr_id : $radio->serial_number)))
 
 @section('content')
     @php
@@ -44,7 +45,8 @@
     @endphp
 
     <div class="radio-detail">
-        <nav class="rm-crumbs" aria-label="Breadcrumb">
+        {{-- On a phone, where the top bar with the path is not shown. --}}
+        <nav class="rm-crumbs d-lg-none" aria-label="Breadcrumb">
             <a href="{{ route('radio-management.radio.index') }}">Register Radio</a>
             <i class="ti ti-chevron-right" aria-hidden="true"></i>
             <span aria-current="page">Radio {{ $radio->dmr_id ?? ($radio->previous_dmr_id ? 'ex ' . $radio->previous_dmr_id : $radio->serial_number) }}</span>

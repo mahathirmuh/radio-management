@@ -8,6 +8,22 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.12.0] - 2026-10-21
+
+### Ditambahkan
+
+- Breadcrumb di topbar, di tempat judul halaman, misalnya "Dashboard › Master Data Radio › Tipe Radio" atau
+  "Dashboard › Register Radio › Radio 1053":
+  - dibuat otomatis dari menu sidebar halaman itu, jadi setiap halaman punya tanpa diatur satu per satu;
+  - "Dashboard" dan menu di atas halaman detail bisa diklik untuk kembali; nama grup (Master Data Radio, User
+    Management) hanya teks;
+  - "Dashboard" tidak ditampilkan bagi role yang tidak punya akses ke Dashboard;
+  - halaman di luar menu (Notifikasi) tampil sebagai "Dashboard › Notifikasi".
+
+  Di HP topbar tidak tampil; halaman detail radio tetap punya jalur kembali ke Register Radio di atas isinya.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.11.2] - 2026-10-21
 
 ### Diubah
@@ -680,6 +696,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.12.0]: https://github.com/mahathirmuh/radio-management/compare/v1.11.2...v1.12.0
 [1.11.2]: https://github.com/mahathirmuh/radio-management/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/mahathirmuh/radio-management/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/mahathirmuh/radio-management/compare/v1.10.13...v1.11.0

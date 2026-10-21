@@ -504,6 +504,62 @@
     text-overflow: ellipsis;
 }
 
+/* The path to the page in the top bar: "Dashboard › Master Data Radio › Tipe Radio". What comes before the page is grey
+   (a link where it leads somewhere); the page itself is dark, and is cut short with "…" when the bar is too narrow. */
+.rm-topbar-crumbs {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+}
+
+.rm-topbar-crumbs ol {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rm-topbar-crumbs li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    color: var(--rm-gray-500);
+}
+
+.rm-topbar-crumbs li:last-child {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.rm-topbar-crumbs li:last-child > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rm-topbar-crumbs a {
+    color: var(--rm-gray-500);
+    text-decoration: none;
+    transition: color .12s ease-out;
+}
+
+.rm-topbar-crumbs a:hover {
+    color: var(--rm-gray-900);
+}
+
+.rm-topbar-crumbs [aria-current] {
+    color: var(--rm-gray-900);
+    font-weight: 500;
+}
+
+.rm-topbar-crumbs .ti {
+    color: var(--rm-gray-400);
+    font-size: 14px;
+}
+
 .rm-topbar-end {
     display: flex;
     align-items: center;
