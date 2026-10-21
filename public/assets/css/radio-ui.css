@@ -4103,8 +4103,9 @@ a:focus-visible > .rm-kpi {
     gap: 16px;
 }
 
-/* The heading of the page on a phone (the top bar, which has it, is hidden there). */
-.rm-title-phone {
+/* The heading of the page on a phone (the top bar, which has it, is hidden there), and the greeting of the dashboard. */
+.rm-title-phone,
+.rm-welcome {
     margin-bottom: 16px;
 }
 

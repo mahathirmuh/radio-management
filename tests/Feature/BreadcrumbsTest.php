@@ -40,9 +40,12 @@ class BreadcrumbsTest extends TestCase
             : [html_entity_decode($crumb[4]), null, ($crumb[3] ?? '') !== ''], $found);
     }
 
-    public function test_the_dashboard_is_its_own_path(): void
+    public function test_the_dashboard_greets_where_its_path_would_be_itself_alone(): void
     {
-        $this->assertSame([['Dashboard', null, true]], $this->crumbs(route('dashboard.index')));
+        $page = (string) $this->actingAs($this->superAdmin())->get(route('dashboard.index'))->assertOk()->getContent();
+        $this->assertStringNotContainsString('class="rm-crumbbar"', $page);
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Dashboard</h1>', $page);
+        $this->assertStringContainsString('<p class="rm-title rm-welcome">Selamat datang di Radio Management System</p>', $page);
     }
 
     public function test_a_page_of_the_sidebar_comes_after_the_dashboard_and_its_group(): void

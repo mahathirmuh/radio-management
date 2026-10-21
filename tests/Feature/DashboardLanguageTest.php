@@ -40,7 +40,8 @@ class DashboardLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('<h1 class="rm-title">Welcome to Radio Management System</h1>', $page);
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Dashboard</h1>', $page);
+        $this->assertStringContainsString('<p class="rm-title rm-welcome">Welcome to Radio Management System</p>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">Active radios</span>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">With user</span>', $page);
         $this->assertStringContainsString('<span class="rm-kpi-label">Archived</span>', $page);
@@ -82,7 +83,7 @@ class DashboardLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('dashboard.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('<h1 class="rm-title">Selamat datang di Radio Management System</h1>', $page);
+        $this->assertStringContainsString('<p class="rm-title rm-welcome">Selamat datang di Radio Management System</p>', $page);
         $this->assertStringContainsString('<div class="rm-cardbox-sub">5 radio, menurut kondisi terakhir yang tercatat</div>', $page);
         $this->assertStringContainsString('aria-label="Lihat radio Layak"', $page);
         $this->assertStringContainsString('<span class="rm-badge orange">Tipe radio kosong</span>', $page);

@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.14.4] - 2026-10-21
+
+### Diperbaiki
+
+- Dashboard: topbar kini bertuliskan "Dashboard", dan "Selamat datang di Radio Management System" ada di bawahnya
+  (di 1.14.3 keduanya tertukar). Breadcrumb Dashboard, yang hanya berisi dirinya sendiri, tidak ditampilkan.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.14.3] - 2026-10-21
 
 ### Diubah
@@ -839,6 +848,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.14.4]: https://github.com/mahathirmuh/radio-management/compare/v1.14.3...v1.14.4
 [1.14.3]: https://github.com/mahathirmuh/radio-management/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/mahathirmuh/radio-management/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/mahathirmuh/radio-management/compare/v1.14.0...v1.14.1

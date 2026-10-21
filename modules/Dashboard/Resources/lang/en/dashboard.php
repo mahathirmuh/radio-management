@@ -5,7 +5,8 @@
 // checks and kinds of history lines come from the RadioManagement module.
 
 return [
-    'title' => 'Welcome to Radio Management System',
+    // Under the top bar (which says "Dashboard"), where the path of another page is.
+    'welcome' => 'Welcome to Radio Management System',
     'radios' => '{1} :count radio|[2,*] :count radios',
     // The group of the radios without a company or a type.
     'no_name' => '(none)',

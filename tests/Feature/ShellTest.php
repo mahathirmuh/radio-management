@@ -111,12 +111,16 @@ class ShellTest extends TestCase
         $page = (string) $this->actingAs($admin)->get(route('dashboard.index'))->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('#<button id="sidebarControl" type="button" class="rm-icon-btn is-ringed" aria-controls="sidebar-menu"\s+aria-pressed="false"#', $page);
-        // The heading of the page in the bar; the path to the page under it, at the top of the content (BreadcrumbsTest): on
-        // the dashboard, the dashboard alone.
-        $this->assertStringContainsString('<h1 class="rm-topbar-title">Selamat datang di Radio Management System</h1>', $page);
-        $this->assertMatchesRegularExpression('#<main class="page-body rm-main">\s*<div class="container-xl rm-container">\s*<nav class="rm-crumbbar" aria-label="Jalur halaman">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
-        // On a phone the bar is hidden: the heading is above the content there.
-        $this->assertStringContainsString('<div class="rm-title-phone d-lg-none"><h1 class="rm-title">Selamat datang di Radio Management System</h1></div>', $page);
+        // The heading of the page in the bar; under it the path to the page (BreadcrumbsTest), but on the dashboard, whose
+        // path would be itself alone, its greeting.
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Dashboard</h1>', $page);
+        $this->assertMatchesRegularExpression('#<main class="page-body rm-main">\s*<div class="container-xl rm-container">\s*<p class="rm-title rm-welcome">Selamat datang di Radio Management System</p>#', $page);
+        $this->assertStringNotContainsString('class="rm-crumbbar"', $page);
+        // Another page: its title in the bar, the path under it, and on a phone (where the bar is hidden) the title too.
+        $register = (string) $this->get(route('radio-management.radio.index'))->assertOk()->getContent();
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Register Radio</h1>', $register);
+        $this->assertMatchesRegularExpression('#<main class="page-body rm-main">\s*<div class="container-xl rm-container">\s*<nav class="rm-crumbbar" aria-label="Jalur halaman">#', $register);
+        $this->assertStringContainsString('<div class="rm-title-phone d-lg-none"><h1 class="rm-title">Register Radio</h1></div>', $register);
         $this->assertStringContainsString('<span class="rm-topbar-company">' . e($admin->company->name) . '</span>', $page);
         $this->assertStringContainsString('<div class="dropdown" id="notifBell">', $page);
         $this->assertStringContainsString('<span class="rm-user-role">Super Admin</span>', $page);

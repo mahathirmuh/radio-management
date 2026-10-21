@@ -295,7 +295,7 @@
 @endpush
 
 @section('page-title', 'Dashboard')
-@section('heading', __('Dashboard::dashboard.title'))
+@section('welcome', __('Dashboard::dashboard.welcome'))
 @section('content')
     @php
         // The colour of each kind of history entry (as on Riwayat Radio).

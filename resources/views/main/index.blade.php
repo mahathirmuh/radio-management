@@ -52,24 +52,29 @@
             <!--  Main Page -->
             <main class="page-body rm-main">
                 <div class="container-xl rm-container">
-                    <nav class="rm-crumbbar" aria-label="{{ __('ui.topbar.breadcrumb') }}">
-                        <ol>
-                            @foreach ($crumbs as $crumb)
-                                <li>
-                                    @unless ($loop->first)
-                                        <i class="ti ti-chevron-right" aria-hidden="true"></i>
-                                    @endunless
-                                    @if ($crumb['url'] !== null)
-                                        <a href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
-                                    @else
-                                        <span @if ($loop->last) aria-current="page" @endif>{{ $crumb['label'] }}</span>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ol>
-                    </nav>
-                    @if ($heading !== '')
-                        <div class="rm-title-phone d-lg-none"><h1 class="rm-title">{!! $heading !!}</h1></div>
+                    @hasSection('welcome')
+                        {{-- A page that greets (the dashboard, whose path would be itself alone): the greeting where the path is. --}}
+                        <p class="rm-title rm-welcome">@yield('welcome')</p>
+                    @else
+                        <nav class="rm-crumbbar" aria-label="{{ __('ui.topbar.breadcrumb') }}">
+                            <ol>
+                                @foreach ($crumbs as $crumb)
+                                    <li>
+                                        @unless ($loop->first)
+                                            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                                        @endunless
+                                        @if ($crumb['url'] !== null)
+                                            <a href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
+                                        @else
+                                            <span @if ($loop->last) aria-current="page" @endif>{{ $crumb['label'] }}</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ol>
+                        </nav>
+                        @if ($heading !== '')
+                            <div class="rm-title-phone d-lg-none"><h1 class="rm-title">{!! $heading !!}</h1></div>
+                        @endif
                     @endif
                     @yield('content')
                 </div>
