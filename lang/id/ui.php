@@ -46,18 +46,19 @@ return [
         'empty' => 'Belum ada catatan perubahan.',
         'current' => 'Versi ini',
         // The timeline: the kinds of release, the band where a major version begins, and the kinds of change (the headings
-        // of CHANGELOG.md) in the legend.
-        'minor' => 'Rilis minor',
-        'patch' => 'Rilis patch',
-        'major' => 'Rilis mayor',
+        // of CHANGELOG.md) in the legend and on the notes. The kinds of release and of change stay in English, as Semantic
+        // Versioning and Keep a Changelog name them (the owner's choice, 2026-10-21).
+        'minor' => 'Minor release',
+        'patch' => 'Patch release',
+        'major' => 'Major release',
         'era' => 'Versi :major',
         'kinds' => [
-            'added' => 'Ditambahkan',
-            'changed' => 'Diubah',
-            'fixed' => 'Diperbaiki',
-            'removed' => 'Dihapus',
-            'security' => 'Keamanan',
-            'deprecated' => 'Ditinggalkan',
+            'added' => 'Added',
+            'changed' => 'Changed',
+            'fixed' => 'Fixed',
+            'removed' => 'Removed',
+            'security' => 'Security',
+            'deprecated' => 'Deprecated',
         ],
     ],
 

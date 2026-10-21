@@ -11,6 +11,17 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
 sedang dalam English. Setiap versi ditulis di kedua file.
 
+## [1.21.2] - 2026-10-21
+
+### Diubah
+
+- Riwayat versi: legenda (Minor release, Patch release, Added, Changed, Fixed, Removed, Security), label jenis perubahan
+  di catatan setiap versi, dan label **Major release** kini selalu dalam English, juga saat aplikasi dalam Bahasa
+  Indonesia, mengikuti istilah Semantic Versioning dan Keep a Changelog. Selebihnya dialog tetap mengikuti bahasa yang
+  dipilih.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.21.1] - 2026-10-21
 
 ### Diperbaiki
@@ -1025,6 +1036,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.21.2]: https://github.com/mahathirmuh/radio-management/compare/v1.21.1...v1.21.2
 [1.21.1]: https://github.com/mahathirmuh/radio-management/compare/v1.21.0...v1.21.1
 [1.21.0]: https://github.com/mahathirmuh/radio-management/compare/v1.20.1...v1.21.0
 [1.20.1]: https://github.com/mahathirmuh/radio-management/compare/v1.20.0...v1.20.1

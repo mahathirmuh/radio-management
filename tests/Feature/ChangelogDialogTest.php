@@ -92,6 +92,15 @@ class ChangelogDialogTest extends TestCase
         $this->assertStringContainsString('url: "' . str_replace('/', '\/', route('changelog')) . '"', $page);
     }
 
+    public function test_the_kinds_of_release_and_of_change_are_in_english_in_both_languages(): void
+    {
+        // As Semantic Versioning and Keep a Changelog name them: the legend, the labels on the notes, the major release.
+        foreach (['minor', 'patch', 'major', 'kinds'] as $key) {
+            $this->assertSame(__("ui.changelog.$key", [], 'en'), __("ui.changelog.$key", [], 'id'), $key);
+        }
+        $this->assertSame('Changed', __('ui.changelog.kinds.changed', [], 'id'));
+    }
+
     public function test_the_script_of_the_dialog(): void
     {
         $this->checkPageScript(route('dashboard.index'), 'tests/tools/changelog-behaviour.mjs', 8);

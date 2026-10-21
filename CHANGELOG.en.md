@@ -4,6 +4,15 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.21.2] - 2026-10-21
+
+### Changed
+
+- Version history: the legend (Minor release, Patch release, Added, Changed, Fixed, Removed, Security), the labels of
+  the kinds of change on the notes of each version, and the **Major release** label are now always in English, also
+  when the app is in Indonesian, in the terms of Semantic Versioning and Keep a Changelog. The rest of the dialog still
+  follows the chosen language.
+
 ## [1.21.1] - 2026-10-21
 
 ### Fixed

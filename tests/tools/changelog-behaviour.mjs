@@ -55,13 +55,13 @@ check('the version in the footer opens the dialog and asks the server what chang
     assert.equal(p.asked().length, 1);
 });
 
-check('a legend: a minor and a patch release, then the kinds of change the versions have, in their order', () => {
+check('a legend: a minor and a patch release, then the kinds of change the versions have, in their order, in English on an Indonesian page too', () => {
     const html = shown().body();
     assertWellFormed(html, 'the timeline');
     const legend = html.match(/<div class="rm-cl-legend">([\s\S]*?)<\/div>/)[1];
-    assert.equal(textOf(legend), 'Rilis minorRilis patchDitambahkanDiubahDiperbaikiKeamanan');
-    assert.match(legend, /<span class="rm-cl-key rm-cl-kind-added"><span class="rm-cl-key-dot" aria-hidden="true"><\/span>Ditambahkan<\/span>/);
-    assert.doesNotMatch(legend, /Dihapus|Ditinggalkan/, 'only the kinds there are');
+    assert.equal(textOf(legend), 'Minor releasePatch releaseAddedChangedFixedSecurity');
+    assert.match(legend, /<span class="rm-cl-key rm-cl-kind-added"><span class="rm-cl-key-dot" aria-hidden="true"><\/span>Added<\/span>/);
+    assert.doesNotMatch(legend, /Removed|Deprecated/, 'only the kinds there are');
 });
 
 check('each series is its minor release with its patches below it, newest first; a series without its .0 hangs on its oldest', () => {
@@ -91,10 +91,10 @@ check('the nodes: the series on a minor release, nothing on a patch (which hangs
     assert.equal(html.match(/rm-cl-ping/g).length, 1);
 });
 
-check('the head of a version: its number, its date, "Rilis mayor" on a major release, "Versi ini" on the running one', () => {
+check('the head of a version: its number, its date, "Major release" on a major release, "Versi ini" on the running one', () => {
     const html = shown().body();
     assert.match(html, /<div class="rm-cl-head"><span class="rm-cl-version">v1\.3\.0<\/span><span class="rm-cl-date">21 Okt 2026<\/span><span class="rm-badge blue">Versi ini<\/span><\/div>/);
-    assert.match(html, /<div class="rm-cl-head"><span class="rm-cl-version">v1\.0\.0<\/span><span class="rm-badge rm-cl-major">Rilis mayor<\/span><\/div>/, 'no date: none shown');
+    assert.match(html, /<div class="rm-cl-head"><span class="rm-cl-version">v1\.0\.0<\/span><span class="rm-badge rm-cl-major">Major release<\/span><\/div>/, 'no date: none shown');
     assert.equal(html.match(/Versi ini/g).length, 1);
     // A band where a major version begins: here only one, "Versi 1", above the first version, without a line through it.
     assert.deepEqual([...html.matchAll(/<div class="rm-cl-era( [^"]*)?">/g)].map(match => match[1] ?? ''), ['']);
@@ -109,14 +109,14 @@ check('a second major version opens with its band, the line running through it i
 });
 
 check('the notes: a pill per kind of change, named as in the legend, then the markup of the server; every text of the answer escaped', () => {
-    const html = shown([release('1.2.<b>0</b>', [section('fixed', 'Fixed'), section('mystery', 'Lain <img src=x onerror=alert(1)>')],
+    const html = shown([release('1.2.<b>0</b>', [section('fixed', 'Diperbaiki'), section('mystery', 'Lain <img src=x onerror=alert(1)>')],
         { current: true, date_label: '<i>21</i> Okt', language: 'en' })]).body();
     assertWellFormed(html, 'the timeline');
     assert.doesNotMatch(html, /<img|<b>0|<i>21/);
     assert.match(html, /<span class="rm-cl-version">v1\.2\.&lt;b&gt;0&lt;\/b&gt;<\/span><span class="rm-cl-date">&lt;i&gt;21&lt;\/i&gt; Okt<\/span>/);
-    // A kind the dialog knows by its name in the language of the page (Indonesian here), whatever the heading in the file;
-    // the notes marked with the language the server says they are written in.
-    assert.match(html, /<div class="rm-cl-notes" lang="en"><div class="rm-cl-section rm-cl-kind-fixed"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Diperbaiki<\/span><\/div><div class="rm-cl-text rm-cl-kind-fixed"><ul>\n<li>A change\.<\/li>\n<\/ul><\/div>/);
+    // A kind the dialog knows by its name in the legend, whatever the heading in the file; the notes marked with the
+    // language the server says they are written in.
+    assert.match(html, /<div class="rm-cl-notes" lang="en"><div class="rm-cl-section rm-cl-kind-fixed"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Fixed<\/span><\/div><div class="rm-cl-text rm-cl-kind-fixed"><ul>\n<li>A change\.<\/li>\n<\/ul><\/div>/);
     // A kind the dialog does not know: grey, with the heading as the file writes it.
     assert.match(html, /<div class="rm-cl-section rm-cl-kind-other"><span class="rm-cl-pill"><span class="rm-cl-pill-dot"><\/span>Lain &lt;img src=x onerror=alert\(1\)&gt;<\/span><\/div><div class="rm-cl-text rm-cl-kind-other">/);
     // Notes without a heading: no pill. No language from the server: that of CHANGELOG.md, Indonesian.
