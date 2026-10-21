@@ -83,59 +83,88 @@
             }
         }
 
+        /* The sign-in side as it was before the design refresh: the font, the sizes and the places of production (measured
+           there, element by element). From the top: the logos, the title, Microsoft, the account form, the guide; the
+           footer at the foot. The font is the system one, Tabler's own stack: the login page of production does not load
+           the Inter of fonts.css, which puts Inter first in --tblr-font-sans-serif. */
         .rm-login-side {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 32px 44px 16px;
+            padding: 32px 48px 8px;
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        }
+
+        .rm-login-side .form-control,
+        .rm-login-side .btn-rm {
+            font-family: inherit;
         }
 
         .rm-login-logos {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            height: 56px;
         }
 
-        .rm-login-form {
+        .rm-login-body {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            margin-top: 56px;
         }
 
         /* The colour of the title as before the design refresh (Tabler's text-secondary). */
         .rm-login-title {
             margin: 0;
             color: var(--tblr-secondary);
-            font-size: 26px;
-            line-height: 34px;
+            font-size: 24px;
+            line-height: 32px;
             font-weight: 600;
             text-align: center;
         }
 
+        /* On a narrower card the title (longer than production's) stays on one line, so the side keeps production's
+           height. */
+        @media (max-width: 1399.98px) {
+            .rm-login-title {
+                font-size: 23px;
+                white-space: nowrap;
+            }
+        }
+
         .rm-login-rule {
             height: 1px;
+            margin-top: 16px;
             background: var(--rm-gray-200);
         }
 
         .rm-login-hint {
-            color: var(--rm-gray-500);
-            font-size: 14px;
+            margin-top: 16px;
+            color: var(--tblr-secondary);
+            font-size: 15px;
+            line-height: 21.43px;
             text-align: center;
+        }
+
+        .rm-login-sso {
+            display: flex;
+            justify-content: center;
+            margin-top: 16px;
         }
 
         .rm-ms-button {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            height: 48px;
-            padding: 0 20px;
+            justify-content: center;
+            gap: 8px;
+            width: 120px;
+            height: 58px;
             border-radius: 8px;
             background: #fff;
             box-shadow: inset 0 0 0 1px var(--rm-gray-300);
             color: var(--rm-gray-900);
-            font-size: 16px;
-            font-weight: 500;
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 600;
             text-decoration: none;
             transition: background-color .12s ease-out, box-shadow .12s ease-out;
         }
@@ -191,8 +220,13 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            color: var(--rm-gray-400);
-            font-size: 12px;
+            margin-top: 16.5px;
+            color: var(--tblr-secondary);
+            font-size: 10px;
+            line-height: 16px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
         }
 
         .rm-login-or::before,
@@ -203,26 +237,56 @@
             background: var(--rm-gray-200);
         }
 
+        .rm-login-or + .rm-login-hint {
+            margin-top: 16.5px;
+        }
+
+        /* The account form, 16px narrower than the rest at either side. */
+        #loginForm {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 0 16px;
+        }
+
+        #loginForm .form-label {
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 20px;
+            font-weight: 500;
+        }
+
+        #loginForm .form-control {
+            height: 36px;
+            font-size: 14px;
+        }
+
         .rm-login-submit {
             width: 100%;
-            height: 44px;
+            height: 36px;
+            font-size: 14px;
         }
 
         .rm-login-guide {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 4px;
+            margin-top: 36px;
             color: var(--rm-gray-700);
-            font-size: 13px;
+            font-size: 14px;
+            line-height: 24px;
         }
 
         .rm-login-guide button {
-            padding: 4px 10px;
+            padding: 3px 4px;
             border: 0;
-            border-radius: 6px;
+            border-radius: 4px;
             background: var(--rm-sky-100);
             color: var(--rm-sky-700);
+            font-size: 12px;
+            line-height: 18px;
             font-weight: 500;
             transition: background-color .12s ease-out;
         }
@@ -231,9 +295,13 @@
             background: #bae6fd;
         }
 
+        /* At the foot of the side, 16px below the guide at the least. */
         .rm-login-foot {
-            color: var(--rm-gray-500);
+            margin-top: auto;
+            padding-top: 16px;
+            color: var(--tblr-secondary);
             font-size: 12px;
+            line-height: 17.14px;
             text-align: center;
         }
 
@@ -324,25 +392,26 @@
             </div>
 
             <div class="rm-login-side">
+                {{-- The logos as production has them: Merdeka Copper Gold 38 high, the square Merdeka Battery Materials 56. --}}
                 <div class="rm-login-logos">
-                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="36" alt="Merdeka Copper Gold">
-                    <img src="{{ asset('assets/img/branding/mbm-logo.png') }}" height="40" alt="Merdeka Battery Materials">
+                    <img src="{{ asset('assets/img/branding/mcg-logo.png') }}" height="38" alt="Merdeka Copper Gold">
+                    <img src="{{ asset('assets/img/branding/mbm-logo.jpg') }}" height="56" alt="Merdeka Battery Materials">
                 </div>
 
-                <div class="rm-login-form">
+                <div class="rm-login-body">
                     <h1 class="rm-login-title">Radio Management System</h1>
                     <div class="rm-login-rule"></div>
                     <div class="rm-login-hint">Sign in with SSO</div>
-                    <div class="d-flex justify-content-center">
+                    <div class="rm-login-sso">
                         <a href="{{ route('sso-login-mirosoft') }}" class="rm-ms-button">
-                            <span class="rm-ms-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+                            <img src="{{ asset('assets/img/logo/microsoft.png') }}" width="24" height="24" alt="">
                             Microsoft
                         </a>
                     </div>
                     <div class="rm-login-or">Or</div>
                     <div class="rm-login-hint">Sign in with Merdeka Account</div>
 
-                    <form id="loginForm" class="rm-login-form" method="POST" action="{{ route('login') }}">
+                    <form id="loginForm" method="POST" action="{{ route('login') }}">
                         @csrf
                         <div class="rm-field">
                             {{-- Not type="email": an account that signs in with its Active Directory password may be named

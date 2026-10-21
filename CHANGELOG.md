@@ -8,6 +8,21 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.6] - 2026-10-21
+
+### Diubah
+
+- Halaman login: font, ukuran teks, logo dan jarak di panel masuk sama dengan production (diukur per elemen di sana):
+  - font sistem, seperti production (halaman login production tidak memuat Inter);
+  - logo Merdeka Copper Gold setinggi 38 px dan logo Merdeka Battery Materials bertumpuk setinggi 56 px;
+  - tombol Microsoft 120 × 58 px dengan logo gambar 24 px;
+  - judul 24 px (23 px di layar di bawah 1400 px, supaya tetap satu baris), teks 15, 14 dan 12 px;
+  - isian dan tombol Login setinggi 36 px.
+
+  Warna dan bentuk tombol tetap memakai gaya baru.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.5] - 2026-10-21
 
 ### Diubah
@@ -550,6 +565,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.6]: https://github.com/mahathirmuh/radio-management/compare/v1.10.5...v1.10.6
 [1.10.5]: https://github.com/mahathirmuh/radio-management/compare/v1.10.4...v1.10.5
 [1.10.4]: https://github.com/mahathirmuh/radio-management/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/mahathirmuh/radio-management/compare/v1.10.2...v1.10.3
