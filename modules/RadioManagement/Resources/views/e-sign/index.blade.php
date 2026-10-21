@@ -10,7 +10,7 @@
         .esign-preview {
             display: inline-block;
             width: 150px;
-            height: 48px;
+            height: 56px;
             border-radius: 6px;
             background: #fff;
             box-shadow: inset 0 0 0 1px var(--rm-gray-200);
@@ -22,14 +22,77 @@
             object-fit: contain;
         }
 
+        /* A real border: a ring drawn inside a frame is covered by the page in it. */
         #esignPadHost iframe {
             display: block;
             width: 100%;
             height: 480px;
-            border: 0;
+            border: 1px solid var(--rm-gray-200);
             border-radius: 8px;
             background: #fff;
-            box-shadow: inset 0 0 0 1px var(--rm-gray-200);
+        }
+
+        /* The dialog in the sizes of production (1.9.0): 720 wide in the middle of the screen, 16 around it, the title
+           16px, fields 29 high with text of 0.65rem, buttons 28 high. */
+        #esignModal .modal-dialog {
+            max-width: 720px;
+            margin-top: var(--tblr-modal-margin);
+        }
+
+        #esignModal .rm-dialog-head {
+            position: relative;
+            padding: 16px 48px 0 16px;
+        }
+
+        #esignModal .rm-dialog-title {
+            font-size: 16px;
+            line-height: 1.4286;
+        }
+
+        #esignModal .rm-dialog-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        #esignModal .rm-dialog-body.is-form {
+            padding: 16px 16px 0;
+        }
+
+        #esignModal .rm-field .form-label {
+            margin-bottom: 8px;
+            font-size: .7rem;
+        }
+
+        #esignModal .rm-field .form-control,
+        #esignModal .rm-field .form-select {
+            height: auto;
+            padding-top: 7px;
+            padding-bottom: 7px;
+            font-size: .65rem;
+            line-height: 1.4286;
+        }
+
+        #esignModal .rm-field .rm-hint {
+            margin-top: 8px;
+            font-size: 13px;
+            line-height: 1.4286;
+        }
+
+        #esignModal .form-check-label {
+            padding-top: .175rem;
+            font-size: .65rem;
+            line-height: 1.4286;
+        }
+
+        #esignModal .rm-dialog-foot {
+            padding: 8px 16px 16px;
+            box-shadow: none;
+        }
+
+        /* While saving, the turning circle takes the place of the icon. */
+        #esignModal .btn-rm.is-busy .ti {
+            display: none;
         }
     </style>
 @endpush
@@ -104,20 +167,19 @@
     </div>
 
     {{-- Registers a signature, or changes one. Static: what was signed is lost when the dialog closes. --}}
-    <div class="modal fade rm-modal wide" data-bs-backdrop="static" data-bs-keyboard="false" id="esignModal" aria-hidden="true"
+    <div class="modal fade rm-modal" data-bs-backdrop="static" data-bs-keyboard="false" id="esignModal" aria-hidden="true"
         aria-labelledby="esignTitle">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="rm-dialog-head is-ruled">
+                <div class="rm-dialog-head">
                     <div class="rm-dialog-titles">
                         <h3 class="rm-dialog-title modal-title" id="esignTitle">Daftarkan tanda tangan</h3>
-                        <p class="rm-dialog-sub">Tanda tangan ini hanya muncul di form yang dibuka dengan akun pemiliknya.</p>
                     </div>
                     <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
                             class="ti ti-x"></i></button>
                 </div>
                 <div class="rm-dialog-body is-form">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-6 rm-field">
                             <label for="esign_user" class="form-label required">Akun pemilik</label>
                             <select id="esign_user" class="form-select"></select>
@@ -135,11 +197,11 @@
                             </label>
                         </div>
                         <div class="col-12 rm-field d-none" id="esignCurrentWrap">
-                            <span class="form-label">Tanda tangan sekarang</span>
+                            <span class="form-label mb-1">Tanda tangan sekarang</span>
                             <span class="esign-preview" id="esignCurrent"></span>
                         </div>
                         <div class="col-12 rm-field">
-                            <span class="form-label" id="esignPadLabel">Tanda tangan</span>
+                            <span class="form-label mb-1" id="esignPadLabel">Tanda tangan</span>
                             <div id="esignPadHost"></div>
                         </div>
                         <div class="col-12" role="alert">
@@ -148,8 +210,9 @@
                     </div>
                 </div>
                 <div class="rm-dialog-foot">
-                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn-rm primary" id="esignSave" onclick="esignForm.submit()">Simpan</button>
+                    <button type="button" class="btn-rm sm secondary" data-bs-dismiss="modal"><i class="ti ti-x" aria-hidden="true"></i>Batal</button>
+                    <button type="button" class="btn-rm sm primary" id="esignSave" onclick="esignForm.submit()"><i class="ti ti-device-floppy"
+                            aria-hidden="true"></i>Simpan</button>
                 </div>
             </div>
         </div>

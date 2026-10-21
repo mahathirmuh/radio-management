@@ -8,6 +8,18 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.11] - 2026-10-21
+
+### Diubah
+
+- Dialog "Daftarkan tanda tangan" / "Edit tanda tangan" di E-Sign Master berukuran seperti production: lebar 720 px di
+  tengah layar, judul 16 px, field setinggi 29 px, tombol Batal dan Simpan 28 px dengan ikonnya. Kotak tanda tangan
+  kembali berbingkai, dan kalimat di bawah judul tidak ada lagi, sama seperti production.
+- Tanda * pada field wajib berjarak 4 px dari namanya, seperti production. Sebelumnya ada spasi tambahan, jadi
+  jaraknya hampir dua kali lipat.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.10] - 2026-10-21
 
 ### Diubah
@@ -605,6 +617,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.11]: https://github.com/mahathirmuh/radio-management/compare/v1.10.10...v1.10.11
 [1.10.10]: https://github.com/mahathirmuh/radio-management/compare/v1.10.9...v1.10.10
 [1.10.9]: https://github.com/mahathirmuh/radio-management/compare/v1.10.8...v1.10.9
 [1.10.8]: https://github.com/mahathirmuh/radio-management/compare/v1.10.7...v1.10.8

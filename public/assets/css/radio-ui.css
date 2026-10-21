@@ -1472,9 +1472,11 @@ a:focus {
     min-width: 0;
 }
 
+/* The mark of a field that must be filled: 4px from its name, as in production (Tabler's own). */
 .rm-field .form-label.required::after,
 .rm-field label.required::after {
-    content: " *";
+    content: "*";
+    margin-left: .25rem;
     color: var(--rm-error-600);
 }
 
@@ -4890,7 +4892,8 @@ a:focus-visible > .rm-kpi {
 }
 
 .rm-form-row > .rm-form-label.required::after {
-    content: " *";
+    content: "*";
+    margin-left: .25rem;
     color: var(--rm-error-600);
 }
 
