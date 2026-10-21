@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Modules\Api\Http\Resources\AuditLogResource;
-use Modules\AuditLog\Http\Controllers\AuditLogController as AuditLogPage;
+
 
 /**
  * The audit trail of the page "Audit Log", read only: nothing changes or deletes an entry.
@@ -41,7 +41,7 @@ class AuditLogController extends ApiController
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
         if (! AuditLog::ready()) {
-            return response()->json(['message' => AuditLogPage::NOT_READY], 503);
+            return response()->json(['message' => __('Api::api.audit_not_ready')], 503);
         }
 
         return AuditLogResource::collection($entries->build(

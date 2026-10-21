@@ -2,7 +2,7 @@
 
 @include('RadioManagement::partials.scripts')
 
-@section('page-title', 'Servis & Perbaikan')
+@section('page-title', __('RadioManagement::service.title'))
 
 @php
     // What the role may do on "Servis & Perbaikan" (the server checks again).
@@ -10,13 +10,18 @@
         'create' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.service', 'Create'),
         'update' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.service', 'Update'),
     ];
+    // The next step of a ticket: the drawer's button, the dialog it opens (its words: RadioManagement::service.next).
+    $serviceSteps = [];
+    foreach (['sent' => 'truck-delivery', 'in_repair' => 'tool', 'ready' => 'package', 'returned' => 'arrow-back-up'] as $step => $icon) {
+        $serviceSteps[$step] = __('RadioManagement::service.next.' . $step) + ['icon' => $icon];
+    }
 @endphp
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">Servis & Perbaikan</h1>
-            <p class="rm-sub">Radio yang dikirim ke pusat servis, dan sudah berapa lama di sana.</p>
+            <h1 class="rm-title">{{ __('RadioManagement::service.title') }}</h1>
+            <p class="rm-sub">{{ __('RadioManagement::service.sub') }}</p>
         </div>
     </div>
 
@@ -24,12 +29,12 @@
         @unless ($ready)
             <div class="rm-alert warning" id="serviceNotReady">
                 <i class="ti ti-database-off" aria-hidden="true"></i>
-                <span>{{ \Modules\RadioManagement\Http\Controllers\ServiceTicketController::NOT_READY }}</span>
+                <span>{{ \Modules\RadioManagement\Http\Controllers\ServiceTicketController::notReadyText() }}</span>
             </div>
         @endunless
 
         <div class="rm-svc-stats" id="serviceStats" aria-live="polite">
-            @foreach (['Tiket terbuka', 'Rata-rata lama servis', 'Terlambat', 'Biaya kuartal ini'] as $label)
+            @foreach (__('RadioManagement::service.board.stats') as $label)
                 <div class="rm-svc-stat">
                     <div class="rm-svc-stat-label">{{ $label }}</div>
                     <div class="rm-svc-stat-value">—</div>
@@ -39,30 +44,30 @@
         </div>
 
         <div class="rm-toolbar">
-            <div class="rm-seg" role="radiogroup" aria-label="Tampilan">
+            <div class="rm-seg" role="radiogroup" aria-label="{{ __('RadioManagement::service.toolbar.view') }}">
                 <input type="radio" class="btn-check" name="serviceView" id="serviceViewBoard" value="board" checked>
-                <label for="serviceViewBoard"><i class="ti ti-layout-kanban" aria-hidden="true"></i> Board</label>
+                <label for="serviceViewBoard"><i class="ti ti-layout-kanban" aria-hidden="true"></i> {{ __('RadioManagement::service.toolbar.board') }}</label>
                 <input type="radio" class="btn-check" name="serviceView" id="serviceViewList" value="list">
-                <label for="serviceViewList"><i class="ti ti-list" aria-hidden="true"></i> List</label>
+                <label for="serviceViewList"><i class="ti ti-list" aria-hidden="true"></i> {{ __('RadioManagement::service.toolbar.list') }}</label>
             </div>
             <label class="rm-search rm-svc-search" for="serviceSearch">
                 <i class="ti ti-search" aria-hidden="true"></i>
-                <input type="search" id="serviceSearch" autocomplete="off" maxlength="100" placeholder="Radio ID, SN atau masalah"
-                    aria-label="Cari Radio ID, SN atau masalah" />
+                <input type="search" id="serviceSearch" autocomplete="off" maxlength="100" placeholder="{{ __('RadioManagement::service.toolbar.search') }}"
+                    aria-label="{{ __('RadioManagement::service.toolbar.search_label') }}" />
             </label>
             <div class="rm-field rm-svc-center">
-                <select id="serviceCenter" class="form-select" aria-label="Pusat servis">
-                    <option value="">Semua pusat servis</option>
+                <select id="serviceCenter" class="form-select" aria-label="{{ __('RadioManagement::service.toolbar.center') }}">
+                    <option value="">{{ __('RadioManagement::service.board.all_centers') }}</option>
                 </select>
             </div>
-            <button type="button" class="rm-svc-clear d-none" id="serviceClear">Hapus filter</button>
+            <button type="button" class="rm-svc-clear d-none" id="serviceClear">{{ __('RadioManagement::service.toolbar.clear') }}</button>
             <div class="rm-end">
                 <a class="btn-rm secondary" id="serviceExport" href="{{ route('radio-management.service.export') }}">
-                    <i class="ti ti-download" aria-hidden="true"></i> Export
+                    <i class="ti ti-download" aria-hidden="true"></i> {{ __('RadioManagement::service.toolbar.export') }}
                 </a>
                 @if ($serviceMay['create'])
                     <button type="button" class="btn-rm primary" id="serviceNew"@disabled(! $ready)>
-                        <i class="ti ti-plus" aria-hidden="true"></i> Tiket baru
+                        <i class="ti ti-plus" aria-hidden="true"></i> {{ __('RadioManagement::service.toolbar.new') }}
                     </button>
                 @endif
             </div>
@@ -76,13 +81,13 @@
                     <table class="rm-table rm-svc-table" id="serviceTable">
                         <thead>
                             <tr>
-                                <th width="120">Tiket</th>
-                                <th width="130">Radio</th>
-                                <th>Masalah</th>
-                                <th>Dilaporkan oleh</th>
-                                <th width="190">Pusat servis</th>
-                                <th width="140">Status</th>
-                                <th width="100" class="text-end">Lama</th>
+                                <th width="120">{{ __('RadioManagement::service.columns.ticket') }}</th>
+                                <th width="130">{{ __('RadioManagement::service.columns.radio') }}</th>
+                                <th>{{ __('RadioManagement::service.columns.issue') }}</th>
+                                <th>{{ __('RadioManagement::service.columns.reported_by') }}</th>
+                                <th width="190">{{ __('RadioManagement::service.columns.center') }}</th>
+                                <th width="140">{{ __('RadioManagement::service.columns.status') }}</th>
+                                <th width="100" class="text-end">{{ __('RadioManagement::service.columns.days') }}</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -98,15 +103,15 @@
         <div class="rm-drawer-head">
             <div class="rm-drawer-titles">
                 <div class="rm-drawer-no" id="serviceDrawerNo"></div>
-                <h2 class="rm-drawer-title" id="serviceDrawerTitle">Tiket servis</h2>
+                <h2 class="rm-drawer-title" id="serviceDrawerTitle">{{ __('RadioManagement::service.drawer.title') }}</h2>
                 <div class="rm-drawer-sub" id="serviceDrawerSub"></div>
             </div>
-            <button type="button" class="rm-drawer-close" data-bs-dismiss="offcanvas" aria-label="Tutup"><i class="ti ti-x"></i></button>
+            <button type="button" class="rm-drawer-close" data-bs-dismiss="offcanvas" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i class="ti ti-x"></i></button>
         </div>
         <div class="rm-drawer-body" id="serviceDrawerBody"></div>
         @if ($serviceMay['update'])
             <div class="rm-drawer-foot">
-                <button type="button" class="btn-rm secondary" id="serviceNoteButton"><i class="ti ti-note" aria-hidden="true"></i> Tambah catatan</button>
+                <button type="button" class="btn-rm secondary" id="serviceNoteButton"><i class="ti ti-note" aria-hidden="true"></i> {{ __('RadioManagement::service.drawer.add_note') }}</button>
                 <button type="button" class="btn-rm primary ms-auto d-none" id="serviceNextButton"></button>
             </div>
         @endif
@@ -121,29 +126,29 @@
                     <div class="rm-dialog-head is-ruled">
                         <span class="rm-dialog-icon"><i class="ti ti-tool" aria-hidden="true"></i></span>
                         <div class="rm-dialog-titles">
-                            <h3 class="rm-dialog-title modal-title" id="serviceNewTitle">Tiket servis baru</h3>
-                            <p class="rm-dialog-sub">Catat radio yang bermasalah; pengiriman ke pusat servis dicatat di langkah berikutnya.</p>
+                            <h3 class="rm-dialog-title modal-title" id="serviceNewTitle">{{ __('RadioManagement::service.new.title') }}</h3>
+                            <p class="rm-dialog-sub">{{ __('RadioManagement::service.new.sub') }}</p>
                         </div>
-                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i class="ti ti-x"></i></button>
+                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i class="ti ti-x"></i></button>
                     </div>
                     <div class="rm-dialog-body is-form">
                         <div class="rm-field">
-                            <label for="serviceRadioSearch" class="form-label required">Radio</label>
+                            <label for="serviceRadioSearch" class="form-label required">{{ __('RadioManagement::service.new.radio') }}</label>
                             <div class="rm-search w-100" id="serviceRadioSearchWrap">
                                 <i class="ti ti-search" aria-hidden="true"></i>
-                                <input type="search" id="serviceRadioSearch" maxlength="60" autocomplete="off" placeholder="Radio ID, SN atau nama user">
+                                <input type="search" id="serviceRadioSearch" maxlength="60" autocomplete="off" placeholder="{{ __('RadioManagement::service.new.radio_hint') }}">
                             </div>
                             <div id="serviceRadioMatches" aria-live="polite"></div>
                             <div class="rm-svc-picked d-none" id="serviceRadioPicked"></div>
                         </div>
                         <div class="rm-field">
-                            <label for="serviceIssue" class="form-label required">Masalah</label>
-                            <textarea id="serviceIssue" class="form-control" rows="3" maxlength="500" placeholder="Contoh: layar retak setelah jatuh"></textarea>
+                            <label for="serviceIssue" class="form-label required">{{ __('RadioManagement::service.new.issue') }}</label>
+                            <textarea id="serviceIssue" class="form-control" rows="3" maxlength="500" placeholder="{{ __('RadioManagement::service.new.issue_hint') }}"></textarea>
                         </div>
                         <div class="rm-field">
-                            <label for="serviceReporter" class="form-label">Dilaporkan oleh</label>
-                            <input type="text" id="serviceReporter" class="form-control" maxlength="150" autocomplete="off" placeholder="Nama atau unit · department">
-                            <div class="rm-hint">Terisi dari pemegang radio; boleh diubah.</div>
+                            <label for="serviceReporter" class="form-label">{{ __('RadioManagement::service.new.reporter') }}</label>
+                            <input type="text" id="serviceReporter" class="form-control" maxlength="150" autocomplete="off" placeholder="{{ __('RadioManagement::service.new.reporter_hint') }}">
+                            <div class="rm-hint">{{ __('RadioManagement::service.new.reporter_help') }}</div>
                         </div>
                         <div role="alert">
                             <div class="rm-alert danger d-none" id="serviceNewError">
@@ -153,8 +158,8 @@
                         </div>
                     </div>
                     <div class="rm-dialog-foot">
-                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="button" class="btn-rm primary" id="serviceNewSave" disabled><i class="ti ti-check" aria-hidden="true"></i> Buat tiket</button>
+                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::common.ui.cancel') }}</button>
+                        <button type="button" class="btn-rm primary" id="serviceNewSave" disabled><i class="ti ti-check" aria-hidden="true"></i> {{ __('RadioManagement::service.new.save') }}</button>
                     </div>
                 </div>
             </div>
@@ -170,41 +175,41 @@
                     <div class="rm-dialog-head is-ruled">
                         <span class="rm-dialog-icon" id="serviceMoveIcon"><i class="ti ti-truck-delivery" aria-hidden="true"></i></span>
                         <div class="rm-dialog-titles">
-                            <h3 class="rm-dialog-title modal-title" id="serviceMoveTitle">Kirim ke servis</h3>
+                            <h3 class="rm-dialog-title modal-title" id="serviceMoveTitle">{{ __('RadioManagement::service.move.title') }}</h3>
                             <p class="rm-dialog-sub" id="serviceMoveSub"></p>
                         </div>
-                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i class="ti ti-x"></i></button>
+                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i class="ti ti-x"></i></button>
                     </div>
                     <div class="rm-dialog-body is-form">
                         <div class="row g-3">
                             <div class="col-12 rm-field svc-field svc-for-sent">
-                                <label for="serviceCenterInput" class="form-label required">Pusat servis</label>
+                                <label for="serviceCenterInput" class="form-label required">{{ __('RadioManagement::service.move.center') }}</label>
                                 <input type="text" id="serviceCenterInput" class="form-control" maxlength="150" autocomplete="off" list="serviceCenterList"
-                                    placeholder="Nama pusat servis">
+                                    placeholder="{{ __('RadioManagement::service.move.center_hint') }}">
                                 <datalist id="serviceCenterList"></datalist>
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-sent">
-                                <label for="serviceSentAt" class="form-label">Tanggal kirim</label>
+                                <label for="serviceSentAt" class="form-label">{{ __('RadioManagement::service.move.sent_at') }}</label>
                                 <input type="hidden" id="serviceSentAt">
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-sent">
-                                <label for="serviceBa" class="form-label">No. BA</label>
+                                <label for="serviceBa" class="form-label">{{ __('RadioManagement::service.move.ba') }}</label>
                                 <input type="text" id="serviceBa" class="form-control radio-mono" maxlength="60" autocomplete="off" placeholder="BA2300418">
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-returned">
-                                <label for="serviceReturnedAt" class="form-label">Tanggal kembali</label>
+                                <label for="serviceReturnedAt" class="form-label">{{ __('RadioManagement::service.move.returned_at') }}</label>
                                 <input type="hidden" id="serviceReturnedAt">
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-sent svc-for-in_repair">
-                                <label for="serviceExpected" class="form-label">Perkiraan kembali</label>
+                                <label for="serviceExpected" class="form-label">{{ __('RadioManagement::service.move.expected') }}</label>
                                 <input type="hidden" id="serviceExpected">
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-sent svc-for-in_repair">
-                                <label for="serviceQuote" class="form-label">Penawaran (Rp)</label>
+                                <label for="serviceQuote" class="form-label">{{ __('RadioManagement::service.move.quote') }}</label>
                                 <input type="number" id="serviceQuote" class="form-control" min="0" step="1000" inputmode="numeric" placeholder="0">
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-returned">
-                                <label for="servicePlacement" class="form-label required">Lokasi radio sesudahnya</label>
+                                <label for="servicePlacement" class="form-label required">{{ __('RadioManagement::service.move.placement') }}</label>
                                 <select id="servicePlacement" class="form-select">
                                     @foreach ($placements as $placement)
                                         <option value="{{ $placement['value'] }}">{{ $placement['label'] }}</option>
@@ -212,7 +217,7 @@
                                 </select>
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-returned">
-                                <label for="serviceCondition" class="form-label required">Kondisi saat kembali</label>
+                                <label for="serviceCondition" class="form-label required">{{ __('RadioManagement::service.move.condition') }}</label>
                                 <select id="serviceCondition" class="form-select">
                                     @foreach ($conditions as $condition)
                                         <option value="{{ $condition['value'] }}">{{ $condition['label'] }}</option>
@@ -220,19 +225,19 @@
                                 </select>
                             </div>
                             <div class="col-sm-6 rm-field svc-field svc-for-ready svc-for-returned">
-                                <label for="serviceCost" class="form-label">Biaya (Rp)</label>
+                                <label for="serviceCost" class="form-label">{{ __('RadioManagement::service.move.cost') }}</label>
                                 <input type="number" id="serviceCost" class="form-control" min="0" step="1000" inputmode="numeric" placeholder="0">
                             </div>
                             <div class="col-12 svc-field svc-for-sent">
                                 <div class="rm-alert">
                                     <i class="ti ti-info-circle" aria-hidden="true"></i>
-                                    <span>Lokasi radio di register menjadi <b>Service</b>, dan riwayatnya mencatat pengiriman ini.</span>
+                                    <span>{!! __('RadioManagement::service.move.sent_note') !!}</span>
                                 </div>
                             </div>
                             <div class="col-12 svc-field svc-for-returned">
                                 <div class="rm-alert">
                                     <i class="ti ti-info-circle" aria-hidden="true"></i>
-                                    <span>Lokasi dan kondisi radio di register diubah, dan riwayatnya mencatat kepulangan ini.</span>
+                                    <span>{{ __('RadioManagement::service.move.returned_note') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -244,8 +249,8 @@
                         </div>
                     </div>
                     <div class="rm-dialog-foot">
-                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="button" class="btn-rm primary" id="serviceMoveSave"><i class="ti ti-check" aria-hidden="true"></i> Simpan</button>
+                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::common.ui.cancel') }}</button>
+                        <button type="button" class="btn-rm primary" id="serviceMoveSave"><i class="ti ti-check" aria-hidden="true"></i> {{ __('RadioManagement::common.ui.save') }}</button>
                     </div>
                 </div>
             </div>
@@ -259,15 +264,15 @@
                     <div class="rm-dialog-head is-ruled">
                         <span class="rm-dialog-icon"><i class="ti ti-note" aria-hidden="true"></i></span>
                         <div class="rm-dialog-titles">
-                            <h3 class="rm-dialog-title modal-title" id="serviceNoteTitle">Tambah catatan</h3>
+                            <h3 class="rm-dialog-title modal-title" id="serviceNoteTitle">{{ __('RadioManagement::service.note.title') }}</h3>
                             <p class="rm-dialog-sub" id="serviceNoteSub"></p>
                         </div>
-                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i class="ti ti-x"></i></button>
+                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i class="ti ti-x"></i></button>
                     </div>
                     <div class="rm-dialog-body is-form">
                         <div class="rm-field">
-                            <label for="serviceNoteText" class="form-label required">Catatan</label>
-                            <textarea id="serviceNoteText" class="form-control" rows="4" maxlength="1000" placeholder="Contoh: pusat servis menunggu suku cadang"></textarea>
+                            <label for="serviceNoteText" class="form-label required">{{ __('RadioManagement::service.note.note') }}</label>
+                            <textarea id="serviceNoteText" class="form-control" rows="4" maxlength="1000" placeholder="{{ __('RadioManagement::service.note.note_hint') }}"></textarea>
                         </div>
                         <div role="alert">
                             <div class="rm-alert danger d-none" id="serviceNoteError">
@@ -277,8 +282,8 @@
                         </div>
                     </div>
                     <div class="rm-dialog-foot">
-                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="button" class="btn-rm primary" id="serviceNoteSave" disabled><i class="ti ti-check" aria-hidden="true"></i> Simpan catatan</button>
+                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::common.ui.cancel') }}</button>
+                        <button type="button" class="btn-rm primary" id="serviceNoteSave" disabled><i class="ti ti-check" aria-hidden="true"></i> {{ __('RadioManagement::service.note.save') }}</button>
                     </div>
                 </div>
             </div>
@@ -300,20 +305,17 @@
             },
             ready: @js($ready),
             may: @js($serviceMay),
+            /** What the script writes, in the language of the page (RadioManagement::service.board). */
+            words: @json(__('RadioManagement::service.board')),
             /** The steps, in their order, as the server names them; the board has a column for each but the last. */
             statuses: @js($statuses),
             overdueDays: @js($overdueDays),
             /** The steps in the stepper of the drawer: short words. */
-            stepWords: { reported: 'Dilaporkan', sent: 'Dikirim', in_repair: 'Diperbaiki', ready: 'Siap', returned: 'Kembali' },
+            stepWords: @json(__('RadioManagement::service.steps')),
             tones: { reported: 'gray', sent: 'blue', in_repair: 'orange', ready: 'green', returned: 'gray' },
             /** The next step: the drawer's button, and the dialog it opens. */
-            steps: {
-                sent: { button: 'Kirim ke servis', title: 'Kirim ke servis', icon: 'truck-delivery', save: 'Kirim' },
-                in_repair: { button: 'Tandai dalam perbaikan', title: 'Mulai diperbaiki', icon: 'tool', save: 'Simpan' },
-                ready: { button: 'Tandai siap diambil', title: 'Siap diambil', icon: 'package', save: 'Simpan' },
-                returned: { button: 'Tandai sudah kembali', title: 'Radio kembali', icon: 'arrow-back-up', save: 'Simpan' },
-            },
-            /** Cards a column shows before "N lagi". */
+            steps: @js($serviceSteps),
+            /** Cards a column shows before "N more". */
             LIMIT: 3,
 
             rows: [],
@@ -322,7 +324,7 @@
             view: 'board',
             search: '',
             center: '',
-            /** The columns opened with "N lagi". */
+            /** The columns opened with "N more". */
             expanded: {},
             /** The keyframe the content faded in with last: the other one starts the animation again. */
             flip: 'a',
@@ -416,7 +418,7 @@
                     .some(value => value !== null && value !== undefined && String(value).toLowerCase().includes(typed));
             },
 
-            /** Draws the board or the list; `fade`: the view was switched; `rising`: the column just opened with "N lagi". */
+            /** Draws the board or the list; `fade`: the view was switched; `rising`: the column just opened with "N more". */
             draw(fade = false, rising = null) {
                 const shown = serviceBoard.rows.filter(serviceBoard.matches);
                 const list = serviceBoard.view === 'list';
@@ -437,6 +439,7 @@
 
             drawBoard(shown, rising) {
                 const esc = serviceBoard.esc;
+                const words = serviceBoard.words;
                 const filtering = serviceBoard.filtering();
                 const columns = Object.keys(serviceBoard.statuses).filter(status => status !== 'returned');
                 $('#serviceBoard').html(columns.map(status => {
@@ -445,11 +448,11 @@
                     const cards = filtering || open ? all : all.slice(0, serviceBoard.LIMIT);
                     const rest = all.length - serviceBoard.LIMIT;
                     const more = !filtering && rest > 0 ?
-                        `<button type="button" class="rm-svc-more" data-more="${status}" aria-expanded="${open}">${open ? 'Sembunyikan' : `${rest} lagi`}` +
+                        `<button type="button" class="rm-svc-more" data-more="${status}" aria-expanded="${open}">${esc(open ? words.hide : RadioUi.fill(words.more, { count: rest }))}` +
                         `<i class="ti ti-chevron-${open ? 'up' : 'down'}" aria-hidden="true"></i></button>` : '';
                     const body = cards.length ?
                         cards.map((row, index) => serviceBoard.card(row, rising === status && index >= serviceBoard.LIMIT ? index - serviceBoard.LIMIT : null)).join('') :
-                        `<div class="rm-svc-none">${filtering ? 'Tidak ada yang cocok' : 'Tidak ada tiket'}</div>`;
+                        `<div class="rm-svc-none">${esc(filtering ? words.no_match : words.no_tickets)}</div>`;
                     return `<div class="rm-svc-col" data-status="${status}">` +
                         `<div class="rm-svc-col-head"><span class="rm-svc-dot" aria-hidden="true"></span>` +
                         `<span class="rm-svc-col-title">${esc(serviceBoard.statuses[status])}</span><span class="rm-svc-count">${all.length}</span></div>` +
@@ -457,7 +460,7 @@
                 }).join(''));
             },
 
-            /** A ticket on the board; `extra`: its place among the cards that "N lagi" has just shown (they rise in turn). */
+            /** A ticket on the board; `extra`: its place among the cards that "N more" has just shown (they rise in turn). */
             card(row, extra = null) {
                 const esc = serviceBoard.esc;
                 const late = !!row.overdue;
@@ -466,38 +469,41 @@
                     `${row.type ? `<span class="rm-badge gray">${esc(row.type)}</span>` : ''}</span>` +
                     `<span class="rm-svc-issue">${esc(row.issue)}</span>` +
                     `<span class="rm-svc-who">${esc(row.reported_by || '—')}</span>` +
-                    `<span class="rm-svc-foot"><span class="rm-svc-vendor">${esc(row.service_center || 'Belum dikirim')}</span>` +
+                    `<span class="rm-svc-foot"><span class="rm-svc-vendor">${esc(row.service_center || serviceBoard.words.not_sent)}</span>` +
                     `<span class="rm-svc-days${late ? ' is-late' : ''}">${serviceBoard.days(row.days)}</span></span>` +
                     '</button>';
             },
 
             drawList(shown) {
                 const esc = serviceBoard.esc;
+                const words = serviceBoard.words;
                 const rows = shown.map(row => `<tr data-ticket="${Number(row.id)}">` +
                     `<td><button type="button" class="rm-svc-rowlink">${esc(row.number)}</button></td>` +
                     `<td class="rm-svc-two"><b>${esc(row.radio)}</b><span>${esc(row.type || '')}</span></td>` +
                     `<td class="rm-svc-issue-cell">${esc(row.issue)}</td>` +
                     `<td>${RadioUi.dash(row.reported_by)}</td>` +
-                    `<td>${row.service_center ? esc(row.service_center) : '<span class="radio-none">Belum dikirim</span>'}</td>` +
+                    `<td>${row.service_center ? esc(row.service_center) : `<span class="radio-none">${esc(words.not_sent)}</span>`}</td>` +
                     `<td>${RadioUi.badge(row.status_label, serviceBoard.tones[row.status] || 'gray')}</td>` +
                     `<td class="text-end"><span class="rm-badge ${row.overdue ? 'red' : 'gray'}">${serviceBoard.days(row.days)}</span></td>` +
                     '</tr>');
                 const filtering = serviceBoard.filtering();
                 $('#serviceTable tbody').html(rows.length ? rows.join('') :
-                    `<tr><td colspan="7" class="text-center radio-none py-4">${filtering ? 'Tidak ada tiket yang cocok.' : 'Tidak ada tiket terbuka.'}</td></tr>`);
-                $('#serviceListFoot').text(!shown.length ? (filtering ? 'Tidak ada tiket yang cocok' : 'Tidak ada tiket terbuka') :
-                    (filtering ? `${shown.length} tiket cocok` : `Semua ${serviceBoard.rows.length} tiket terbuka`));
+                    `<tr><td colspan="7" class="text-center radio-none py-4">${esc(filtering ? words.list_no_match : words.list_none)}</td></tr>`);
+                $('#serviceListFoot').text(!shown.length ? (filtering ? words.foot_no_match : words.foot_none) :
+                    (filtering ? RadioUi.choice(words.foot_matches, shown.length) : RadioUi.choice(words.foot_all, serviceBoard.rows.length)));
             },
 
             drawStats() {
                 const esc = serviceBoard.esc;
+                const words = serviceBoard.words;
                 const stats = serviceBoard.stats || {};
                 const count = value => rmMotion.number(value || 0);
                 const cells = [
-                    ['Tiket terbuka', count(stats.open), `${count(stats.reported)} dilaporkan, ${count(stats.away)} di pusat servis`, false],
-                    ['Rata-rata lama servis', stats.turnaround === null || stats.turnaround === undefined ? '—' : `${count(stats.turnaround)} hari`, '90 hari terakhir', false],
-                    ['Terlambat', count(stats.overdue), `Lebih dari ${serviceBoard.overdueDays} hari di servis`, Number(stats.overdue) > 0],
-                    ['Biaya kuartal ini', serviceBoard.money(stats.cost), `${count(stats.closed)} tiket selesai`, false],
+                    [words.stats.open, count(stats.open), RadioUi.fill(words.open_hint, { reported: count(stats.reported), away: count(stats.away) }), false],
+                    [words.stats.turnaround, stats.turnaround === null || stats.turnaround === undefined ? '—' :
+                        RadioUi.choice(words.days, stats.turnaround, { count: count(stats.turnaround) }), words.turnaround_hint, false],
+                    [words.stats.overdue, count(stats.overdue), RadioUi.fill(words.overdue_hint, { days: serviceBoard.overdueDays }), Number(stats.overdue) > 0],
+                    [words.stats.cost, serviceBoard.money(stats.cost), RadioUi.choice(words.closed_hint, stats.closed || 0, { count: count(stats.closed) }), false],
                 ];
                 $('#serviceStats').html(cells.map(([label, value, hint, red]) => '<div class="rm-svc-stat">' +
                     `<div class="rm-svc-stat-label">${esc(label)}</div><div class="rm-svc-stat-value${red ? ' is-red' : ''}">${esc(value)}</div>` +
@@ -508,7 +514,7 @@
             drawCenters() {
                 const esc = serviceBoard.esc;
                 if (!serviceBoard.centers.includes(serviceBoard.center)) serviceBoard.center = '';
-                $('#serviceCenter').html(['<option value="">Semua pusat servis</option>']
+                $('#serviceCenter').html([`<option value="">${esc(serviceBoard.words.all_centers)}</option>`]
                     .concat(serviceBoard.centers.map(center => `<option value="${esc(center)}">${esc(center)}</option>`)).join(''))
                     .val(serviceBoard.center);
                 $('#serviceCenterList').html(serviceBoard.centers.map(center => `<option value="${esc(center)}"></option>`).join(''));
@@ -549,19 +555,20 @@
             },
 
             days(value) {
-                return `${Number(value) || 0} hari`;
+                return RadioUi.choice(serviceBoard.words.days, Number(value) || 0);
             },
 
             rupiah(value) {
                 return `Rp ${rmMotion.number(value)}`;
             },
 
-            /** "Rp 14,2 jt", "Rp 1,2 M", "Rp 850.000". */
+            /** "Rp 14,2 jt", "Rp 1,2 M", "Rp 850.000" (in English "Rp 14.2M", "Rp 1.2B", "Rp 850,000"). */
             money(value) {
+                const words = serviceBoard.words;
                 const amount = Number(value) || 0;
-                const short = (number, unit) => `Rp ${String(Math.round(number * 10) / 10).replace('.', ',')} ${unit}`;
-                if (amount >= 1e9) return short(amount / 1e9, 'M');
-                if (amount >= 1e6) return short(amount / 1e6, 'jt');
+                const short = (number, unit) => RadioUi.fill(words.money, { amount: String(Math.round(number * 10) / 10).replace('.', words.decimal), unit });
+                if (amount >= 1e9) return short(amount / 1e9, words.billion);
+                if (amount >= 1e6) return short(amount / 1e6, words.million);
                 return serviceBoard.rupiah(amount);
             },
 
@@ -576,8 +583,8 @@
                 const body = xhr.responseJSON || {};
                 if (Array.isArray(body.errors)) return body.errors.join(' ');
                 if (body.errors && typeof body.errors === 'object') return Object.values(body.errors).flat().join(' ');
-                if (xhr.status === 403) return 'Anda tidak memiliki izin untuk aksi ini.';
-                return body.message || 'Terjadi kesalahan, coba lagi.';
+                if (xhr.status === 403) return RadioUi.words.no_permission;
+                return body.message || RadioUi.words.error;
             },
 
             /**
@@ -601,12 +608,13 @@
                     serviceBoard.remember();
                 }).fail(xhr => {
                     if (mine !== serviceBoard.askedTicket) return;
-                    rmFeedback.toast(xhr.status === 404 ? 'Tiket itu tidak ditemukan.' : serviceBoard.plain(xhr), 'error');
+                    rmFeedback.toast(xhr.status === 404 ? serviceBoard.words.not_found : serviceBoard.plain(xhr), 'error');
                 });
             },
 
             drawTicket() {
                 const esc = serviceBoard.esc;
+                const words = serviceBoard.words;
                 const ticket = serviceBoard.ticket;
                 if (!ticket) return;
                 $('#serviceDrawerNo').text(ticket.number);
@@ -628,30 +636,30 @@
                 const date = iso => (iso ? esc(rmPickers.label(iso)) : none);
                 const fact = (name, value, mono = false) => `<dt>${esc(name)}</dt><dd${mono ? ' class="is-mono"' : ''}>${value}</dd>`;
                 const radio = ticket.radio_now;
-                const radioState = !radio ? 'Tidak ada di register' : (radio.gone ? 'Sudah dihapus dari register' :
-                    `Lokasi: ${radio.placement || '—'} · Kondisi: ${radio.condition || '—'}${radio.archived ? ' (diarsipkan)' : ''}`);
+                const radioState = !radio ? words.not_in_register : (radio.gone ? words.deleted :
+                    RadioUi.fill(words.radio_state, { placement: radio.placement || '—', condition: radio.condition || '—' }) + (radio.archived ? ` ${words.archived}` : ''));
                 const facts = [
-                    fact('Masalah', esc(ticket.issue)),
-                    fact('Dilaporkan', `${date(ticket.created_at)}${ticket.reported_by ? ` · ${esc(ticket.reported_by)}` : ''}`),
-                    fact('Pusat servis', ticket.service_center ? esc(ticket.service_center) : '<span class="radio-none">Belum dikirim</span>'),
-                    fact('Dikirim', ticket.sent_at ? `${date(ticket.sent_at)}${ticket.document_no ? ` · ${esc(ticket.document_no)}` : ''}` : none, !!ticket.sent_at),
-                    fact('Perkiraan kembali', date(ticket.expected_at)),
-                    fact('Penawaran', ticket.quote !== null && ticket.quote !== undefined ? esc(serviceBoard.rupiah(ticket.quote)) : none),
-                    ...(ticket.cost !== null && ticket.cost !== undefined ? [fact('Biaya', esc(serviceBoard.rupiah(ticket.cost)))] : []),
-                    ...(ticket.returned_at ? [fact('Kembali', date(ticket.returned_at))] : []),
-                    fact('Status radio', esc(radioState) + (radio && radio.url ? ` · <a href="${esc(radio.url)}">Buka radio</a>` : '')),
+                    fact(words.issue, esc(ticket.issue)),
+                    fact(words.reported, `${date(ticket.created_at)}${ticket.reported_by ? ` · ${esc(ticket.reported_by)}` : ''}`),
+                    fact(words.center, ticket.service_center ? esc(ticket.service_center) : `<span class="radio-none">${esc(words.not_sent)}</span>`),
+                    fact(words.sent, ticket.sent_at ? `${date(ticket.sent_at)}${ticket.document_no ? ` · ${esc(ticket.document_no)}` : ''}` : none, !!ticket.sent_at),
+                    fact(words.expected, date(ticket.expected_at)),
+                    fact(words.quote, ticket.quote !== null && ticket.quote !== undefined ? esc(serviceBoard.rupiah(ticket.quote)) : none),
+                    ...(ticket.cost !== null && ticket.cost !== undefined ? [fact(words.cost, esc(serviceBoard.rupiah(ticket.cost)))] : []),
+                    ...(ticket.returned_at ? [fact(words.returned, date(ticket.returned_at))] : []),
+                    fact(words.radio_status, esc(radioState) + (radio && radio.url ? ` · <a href="${esc(radio.url)}">${esc(words.open_radio)}</a>` : '')),
                 ].join('');
 
                 const events = (Array.isArray(ticket.events) ? ticket.events : []).map(event => {
                     const note = event.kind === 'note';
-                    const meta = [note ? 'Catatan' : '', serviceBoard.when(event.at), event.user || ''].filter(Boolean).join(' · ');
+                    const meta = [note ? words.note : '', serviceBoard.when(event.at), event.user || ''].filter(Boolean).join(' · ');
                     return `<div class="rm-svc-act"><span class="rm-svc-act-dot is-${note ? 'note' : esc(event.status)}" aria-hidden="true"></span>` +
                         `<div class="rm-svc-act-text"><div class="rm-svc-act-title${note ? ' is-note' : ''}">${esc(event.note || serviceBoard.statuses[event.status] || '')}</div>` +
                         `<div class="rm-svc-act-meta">${esc(meta)}</div></div></div>`;
                 }).join('');
 
                 $('#serviceDrawerBody').html(`<div class="rm-steps">${stepper}</div><dl class="rm-svc-facts">${facts}</dl>` +
-                    `<div><div class="rm-svc-acts-title">Aktivitas</div>${events || '<div class="radio-none">Belum ada aktivitas.</div>'}</div>`);
+                    `<div><div class="rm-svc-acts-title">${esc(words.activity)}</div>${events || `<div class="radio-none">${esc(words.no_activity)}</div>`}</div>`);
 
                 const next = ticket.next && serviceBoard.steps[ticket.next];
                 $('#serviceNextButton').toggleClass('d-none', !next)
@@ -691,12 +699,12 @@
 
             /** "ID 751 · P8668i"; a radio without a Radio ID by its SN. */
             name(radio) {
-                return [radio.dmr_id ? `ID ${radio.dmr_id}` : (radio.sn ? `SN ${radio.sn}` : 'Radio tanpa ID'), radio.type].filter(Boolean).join(' · ');
+                return [radio.dmr_id ? `ID ${radio.dmr_id}` : (radio.sn ? `SN ${radio.sn}` : serviceBoard.words.no_id), radio.type].filter(Boolean).join(' · ');
             },
 
             /** Its SN (when the name is its ID) and who has it. */
             line(radio) {
-                return [radio.dmr_id ? (radio.sn ? `SN ${radio.sn}` : 'tanpa SN') : '', radio.holder].filter(Boolean).join(' · ');
+                return [radio.dmr_id ? (radio.sn ? `SN ${radio.sn}` : serviceBoard.words.no_sn) : '', radio.holder].filter(Boolean).join(' · ');
             },
 
             lookup() {
@@ -714,8 +722,8 @@
                         `<button type="button" class="rm-match" data-pick="${index}"${radio.open ? ' disabled' : ''}>` +
                         `<span class="rm-match-name">${esc(serviceForm.name(radio))}</span>` +
                         `<span class="rm-match-line">${esc(serviceForm.line(radio))}</span>` +
-                        `<span class="rm-match-id">${esc(radio.open ? `Tiket ${radio.open} masih terbuka` : (radio.placement || ''))}</span></button>`
-                    ).join('')}</div>` : '<div class="rm-hint mt-2">Tidak ada radio aktif yang cocok.</div>');
+                        `<span class="rm-match-id">${esc(radio.open ? RadioUi.fill(serviceBoard.words.still_open, { number: radio.open }) : (radio.placement || ''))}</span></button>`
+                    ).join('')}</div>` : `<div class="rm-hint mt-2">${esc(serviceBoard.words.no_radio)}</div>`);
                 }).fail(xhr => {
                     if (mine !== serviceForm.asked) return;
                     $('#serviceRadioMatches').html(`<div class="rm-hint mt-2">${serviceBoard.esc(serviceBoard.plain(xhr))}</div>`);
@@ -732,7 +740,7 @@
                 $('#serviceRadioPicked').removeClass('d-none').html(
                     `<div><span class="rm-match-name">${esc(serviceForm.name(radio))}</span>` +
                     `<span class="rm-match-line">${esc(serviceForm.line(radio))}</span></div>` +
-                    '<button type="button" class="btn-rm sm secondary" data-change="1">Ganti</button>');
+                    `<button type="button" class="btn-rm sm secondary" data-change="1">${esc(serviceBoard.words.change)}</button>`);
                 if (String($('#serviceReporter').val() || '').trim() === '') $('#serviceReporter').val(radio.holder || '');
                 serviceForm.ready();
                 $('#serviceIssue').trigger('focus');
@@ -812,7 +820,7 @@
                 const status = serviceMove.status;
                 if (!ticket || !status) return;
                 if (status === 'sent' && String($('#serviceCenterInput').val() || '').trim() === '') {
-                    serviceMove.error('Isi pusat servis tujuan.');
+                    serviceMove.error(serviceBoard.words.center_needed);
                     return;
                 }
                 const values = { _method: 'PUT', status };
@@ -909,17 +917,17 @@
             $('#serviceNewSave').on('click', () => serviceForm.save());
 
             rmPickers.date('#serviceSentAt', {
-                empty: 'Hari ini',
+                empty: serviceBoard.words.today,
                 min: () => (serviceBoard.ticket ? serviceBoard.ticket.created_at : null),
                 max: () => rmPickers.iso(new Date()),
             });
             rmPickers.date('#serviceExpected', {
-                empty: 'Belum tahu',
+                empty: serviceBoard.words.unknown,
                 min: () => (serviceMove.status === 'sent' ? $('#serviceSentAt').val() : (serviceBoard.ticket && serviceBoard.ticket.sent_at)) || null,
                 max: () => null,
             });
             rmPickers.date('#serviceReturnedAt', {
-                empty: 'Hari ini',
+                empty: serviceBoard.words.today,
                 min: () => (serviceBoard.ticket ? serviceBoard.ticket.sent_at : null),
                 max: () => rmPickers.iso(new Date()),
             });

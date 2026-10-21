@@ -29,32 +29,26 @@ use Modules\SharePointDocs\Services\MenuAccess;
  */
 class ServiceTicketController extends Controller
 {
-    public const NOT_READY = 'Tabel tiket servis belum dibuat di database. Jalankan "php artisan migrate" dulu.';
-
-    /** The page is in Indonesian: so are its messages (the application's own are English). */
-    private const MESSAGES = [
-        'required' => ':attribute wajib diisi.',
-        'in' => 'Pilihan :attribute tidak dikenal.',
-        'integer' => ':attribute harus angka bulat.',
-        'date_format' => ':attribute harus tanggal yang benar.',
-        'min' => ['numeric' => ':attribute tidak boleh kurang dari :min.'],
-        'max' => ['numeric' => ':attribute terlalu besar.', 'string' => ':attribute paling panjang :max huruf.'],
-    ];
-
     public function __construct(private readonly ServiceTickets $tickets)
     {
+    }
+
+    /** What the page and its answers say while the tables are not there (the migration has not run). */
+    public static function notReadyText(): string
+    {
+        return __('RadioManagement::service.not_ready');
     }
 
     public function index()
     {
         return view('RadioManagement::service.index', [
-            'pageTitle' => 'Servis & Perbaikan',
+            'pageTitle' => __('RadioManagement::service.title'),
             'menuItems' => [
                 ['url' => '/', 'label' => 'Home', 'active' => false],
-                ['url' => route('radio-management.service.index', [], false), 'label' => 'Servis & Perbaikan', 'active' => true],
+                ['url' => route('radio-management.service.index', [], false), 'label' => __('RadioManagement::service.title'), 'active' => true],
             ],
             'ready' => ServiceTicket::ready(),
-            'statuses' => ServiceTicket::STATUSES,
+            'statuses' => ServiceTicket::statusNames(),
             'placements' => array_values(array_filter(Placement::options(), fn (array $option) => in_array($option['value'], [Placement::DiUser->value, Placement::StokIt->value], true))),
             'conditions' => Condition::options(),
             'overdueDays' => ServiceTicket::OVERDUE_DAYS,
@@ -100,14 +94,14 @@ class ServiceTicketController extends Controller
             'radio_now' => $radio === null ? null : [
                 'gone' => $radio->trashed(),
                 'archived' => $radio->isArchived(),
-                'placement' => $radio->placement?->label(),
-                'condition' => $radio->condition?->label(),
+                'placement' => $radio->placement?->display(),
+                'condition' => $radio->condition?->display(),
                 'url' => $mayOpenRadio ? route('radio-management.radio.detail', $radio) : null,
             ],
             'events' => $ticket->events->map(fn (ServiceTicketEvent $event) => [
                 'kind' => $event->kind,
                 'status' => $event->status,
-                'note' => $event->note,
+                'note' => ServiceTickets::eventText($event),
                 'user' => $event->user_name,
                 'at' => $event->created_at?->format('Y-m-d H:i'),
             ])->values(),
@@ -150,7 +144,7 @@ class ServiceTicketController extends Controller
             'sn' => $radio->serial_number,
             'type' => $radio->radioType?->name,
             'holder' => ServiceTickets::holder($radio),
-            'placement' => $radio->placement?->label(),
+            'placement' => $radio->placement?->display(),
             'open' => $open[$radio->id] ?? null,
         ])->values()]);
     }
@@ -177,14 +171,7 @@ class ServiceTicketController extends Controller
             'radio_id' => ['required', 'integer'],
             'issue' => ['required', 'string', 'max:500'],
             'reported_by' => ['nullable', 'string', 'max:150'],
-        ], [
-            'radio_id.required' => 'Pilih radio yang akan diservis.',
-            'issue.required' => 'Tulis masalah radionya.',
-        ] + self::MESSAGES, [
-            'radio_id' => 'Radio',
-            'issue' => 'Masalah',
-            'reported_by' => 'Pelapor',
-        ]);
+        ], self::messages(), self::fields());
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
@@ -193,7 +180,7 @@ class ServiceTicketController extends Controller
             $ticket = $this->tickets->open($validator->validated(), $request->user());
 
             return response()->json([
-                'message' => "Tiket {$ticket->number} dibuat.",
+                'message' => __('RadioManagement::service.messages.created', ['number' => $ticket->number]),
                 'data' => ['id' => $ticket->id, 'number' => $ticket->number],
             ], 201);
         });
@@ -235,24 +222,7 @@ class ServiceTicketController extends Controller
             ],
             default => [],
         };
-        $validator = Validator::make($request->all(), $rules, [
-            'sent_at.before_or_equal' => 'Tanggal kirim tidak boleh lewat dari hari ini.',
-            'sent_at.after_or_equal' => 'Tanggal kirim tidak boleh sebelum tiket dibuat.',
-            'returned_at.before_or_equal' => 'Tanggal kembali tidak boleh lewat dari hari ini.',
-            'returned_at.after_or_equal' => 'Tanggal kembali tidak boleh sebelum tanggal kirim.',
-            'expected_at.after_or_equal' => 'Perkiraan kembali tidak boleh sebelum tanggal kirim.',
-        ] + self::MESSAGES, [
-            'status' => 'Status',
-            'service_center' => 'Pusat servis',
-            'sent_at' => 'Tanggal kirim',
-            'document_no' => 'No. BA',
-            'expected_at' => 'Perkiraan kembali',
-            'quote' => 'Penawaran',
-            'cost' => 'Biaya',
-            'returned_at' => 'Tanggal kembali',
-            'placement' => 'Lokasi radio',
-            'condition' => 'Kondisi radio',
-        ]);
+        $validator = Validator::make($request->all(), $rules, self::messages(), self::fields());
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
@@ -261,7 +231,7 @@ class ServiceTicketController extends Controller
             $ticket = $this->tickets->move($ticket, $status, $validator->validated(), $request->user());
 
             return response()->json([
-                'message' => "Tiket {$ticket->number}: " . mb_strtolower($ticket->label()) . '.',
+                'message' => __('RadioManagement::service.messages.moved', ['number' => $ticket->number, 'status' => mb_strtolower($ticket->display())]),
                 'data' => ['id' => $ticket->id, 'status' => $ticket->status],
             ]);
         });
@@ -275,17 +245,25 @@ class ServiceTicketController extends Controller
         $ticket = ServiceTicket::query()->findOrFail($ticket);
         $validator = Validator::make($request->all(), [
             'note' => ['required', 'string', 'max:1000'],
-        ], [
-            'note.required' => 'Tulis catatannya.',
-        ] + self::MESSAGES, [
-            'note' => 'Catatan',
-        ]);
+        ], self::messages(), self::fields());
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
         $this->tickets->note($ticket, (string) $validator->validated()['note'], $request->user());
 
-        return response()->json(['message' => "Catatan ditambahkan ke {$ticket->number}."]);
+        return response()->json(['message' => __('RadioManagement::service.messages.note_added', ['number' => $ticket->number])]);
+    }
+
+    /** What a field of the forms says when it is not right, in the language of the page (RadioManagement::service). */
+    private static function messages(): array
+    {
+        return __('RadioManagement::service.rules') + __('RadioManagement::service.validation');
+    }
+
+    /** The names of the fields in those messages. */
+    private static function fields(): array
+    {
+        return __('RadioManagement::service.fields');
     }
 
     /** What a card of the board and a row of the list show. */
@@ -303,7 +281,7 @@ class ServiceTicketController extends Controller
             'reported_by' => $ticket->reported_by,
             'service_center' => $ticket->service_center,
             'status' => $ticket->status,
-            'status_label' => $ticket->label(),
+            'status_label' => $ticket->display(),
             'days' => $ticket->daysAway($today),
             'overdue' => $ticket->isOverdue($today),
         ];
@@ -321,19 +299,19 @@ class ServiceTicketController extends Controller
             return $this->invalid($e->validator->errors()->all());
         } catch (LockTimeoutException) {
             return response()->json([
-                'message' => 'Register sedang sibuk',
-                'errors' => ['Data radio lain sedang disimpan, atau impor Excel sedang berjalan. Coba lagi beberapa saat lagi.'],
+                'message' => __('RadioManagement::service.messages.busy'),
+                'errors' => [__('RadioManagement::service.messages.busy_text')],
             ], 409);
         }
     }
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::service.messages.invalid'), 'errors' => $errors], 422);
     }
 
     private function notReady(): JsonResponse
     {
-        return response()->json(['message' => self::NOT_READY, 'errors' => [self::NOT_READY]], 503);
+        return response()->json(['message' => self::notReadyText(), 'errors' => [self::notReadyText()]], 503);
     }
 }

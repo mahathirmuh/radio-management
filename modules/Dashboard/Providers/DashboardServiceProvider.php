@@ -10,6 +10,7 @@ class DashboardServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/Dashboard/Routes/web/dashboard.php'));
         $this->loadViewsFrom(base_path('modules/Dashboard/Resources/views'), 'Dashboard');
+        $this->loadTranslationsFrom(base_path('modules/Dashboard/Resources/lang'), 'Dashboard');
     }
 
     public function register()

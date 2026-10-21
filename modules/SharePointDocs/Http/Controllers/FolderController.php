@@ -3,10 +3,12 @@
 namespace Modules\SharePointDocs\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Language;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Modules\SharePointDocs\Services\ConfigWords;
 use Modules\SharePointDocs\Services\FolderView;
 use Modules\SharePointDocs\Services\GraphException;
 use Modules\SharePointDocs\Services\ScanLinks;
@@ -32,6 +34,7 @@ class FolderController extends Controller
     public function index(Request $request, string $folder)
     {
         $settings = $this->settings($folder);
+        $split = $settings['name_split'];
 
         return view('SharePointDocs::index', [
             'pageTitle' => $settings['title'],
@@ -41,8 +44,11 @@ class FolderController extends Controller
             ],
             'folderKey' => $folder,
             'title' => $settings['title'],
-            'subtitle' => $settings['subtitle'],
-            'split' => $settings['name_split'],
+            'subtitle' => ConfigWords::of("scans.folders.{$folder}.subtitle", $settings['subtitle']),
+            'split' => $split === null ? null : [
+                'code' => ConfigWords::of("scans.folders.{$folder}.code", $split['code']),
+                'label' => ConfigWords::of("scans.folders.{$folder}.label", $split['label']),
+            ] + $split,
             'configured' => $this->folders->configured($folder),
             'sharePointUrl' => $this->folders->link($folder),
             'cacheMinutes' => max(1, (int) config('sharepoint-docs.cache_minutes', 10)),
@@ -62,7 +68,7 @@ class FolderController extends Controller
 
         $path = SharePointFolder::cleanPath($request->query('path'));
         if ($path === null) {
-            return response()->json(['message' => 'Folder tidak dikenali.'], 422);
+            return response()->json(['message' => __('SharePointDocs::scans.folder_unknown')], 422);
         }
 
         try {
@@ -127,7 +133,7 @@ class FolderController extends Controller
         $path = SharePointFolder::cleanPath($request->query('path'));
         $id = self::text($request, 'id');
         if ($path === null || $id === '') {
-            return $this->refuse($request, 422, 'File tidak dikenali.');
+            return $this->refuse($request, 422, __('SharePointDocs::scans.file_unknown'));
         }
 
         try {
@@ -136,9 +142,7 @@ class FolderController extends Controller
             Log::warning('SharePoint file could not be shown.', [
                 'folder' => $folder, 'path' => $path, 'reason' => $e->reason, 'detail' => $e->getMessage(),
             ]);
-            $message = $e->reason === GraphException::NOT_FOUND
-                ? 'File tidak ditemukan di SharePoint. Mungkin sudah dipindahkan atau dihapus; muat ulang daftarnya.'
-                : $e->userMessage();
+            $message = $e->reason === GraphException::NOT_FOUND ? __('SharePointDocs::scans.file_gone') : $e->userMessage();
 
             return $this->refuse($request, $e->httpStatus(), $message, $e->reason);
         }
@@ -271,20 +275,21 @@ class FolderController extends Controller
         return [
             'time' => $at->format('H:i'),
             'day' => match (true) {
-                $at->isSameDay($today) => 'Hari ini',
-                $at->isSameDay($today->copy()->subDay()) => 'Kemarin',
+                $at->isSameDay($today) => __('SharePointDocs::common.today'),
+                $at->isSameDay($today->copy()->subDay()) => __('SharePointDocs::common.yesterday'),
                 default => $at->format('d-m-Y'),
             },
         ];
     }
 
+    /** A size as the language of the page writes numbers: 1,5 MB in Indonesian, 1.5 MB in English. */
     private static function size(int|float $bytes): string
     {
         return match (true) {
             $bytes < 1024 => $bytes . ' B',
-            $bytes < 1024 ** 2 => number_format($bytes / 1024, 0, ',', '.') . ' KB',
-            $bytes < 1024 ** 3 => number_format($bytes / 1024 ** 2, 1, ',', '.') . ' MB',
-            default => number_format($bytes / 1024 ** 3, 2, ',', '.') . ' GB',
+            $bytes < 1024 ** 2 => Language::number($bytes / 1024) . ' KB',
+            $bytes < 1024 ** 3 => Language::number($bytes / 1024 ** 2, 1) . ' MB',
+            default => Language::number($bytes / 1024 ** 3, 2) . ' GB',
         };
     }
 }

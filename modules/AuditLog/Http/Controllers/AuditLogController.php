@@ -4,6 +4,7 @@ namespace Modules\AuditLog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Log\AuditLog;
+use App\Services\Audit\AuditLogger;
 use App\Services\Audit\AuditLogQuery;
 use App\Services\Audit\UserAgent;
 use Carbon\CarbonImmutable;
@@ -13,11 +14,12 @@ use Illuminate\Http\Request;
 /**
  * The audit trail, read only (menu "Audit Log"). There is no action that changes or deletes an entry, by design; the
  * values were redacted when they were written, so nothing shown here can be a secret.
+ *
+ * The page describes an entry in its own language (AuditLog::log): who did it, what, the kind of record, a yes or a no,
+ * the browser. What was written (the action key, the field names and values, the label) is shown as it is.
  */
 class AuditLogController extends Controller
 {
-    /** Said while the table of the trail is not there yet (the code is live before its migration runs). */
-    public const NOT_READY = 'The audit log is not switched on yet: its migration has not been run on this database.';
 
     public const VIEWS = ['table', 'timeline'];
 
@@ -59,9 +61,30 @@ class AuditLogController extends Controller
     private static function entities(): array
     {
         return AuditLog::query()->whereNotNull('entity_type')->distinct()->pluck('entity_type')
-            ->mapWithKeys(fn (string $type) => [$type => AuditLog::entityLabel($type)])
+            ->mapWithKeys(fn (string $type) => [$type => self::word('entities', $type) ?? AuditLog::entityLabel($type)])
             ->sort()
             ->all();
+    }
+
+    /** A name of the page's words (AuditLog::log.<group>), or null when the group has none for $key. */
+    private static function word(string $group, string $key): ?string
+    {
+        $words = __('AuditLog::log.' . $group);
+
+        return is_array($words) && isset($words[$key]) ? (string) $words[$key] : null;
+    }
+
+    /** Who did it: the account, else the address it had; nobody signed in is a guest (a failed sign-in), or the system. */
+    private static function actor(AuditLog $entry): string
+    {
+        return $entry->user?->name ?? $entry->user_email
+            ?? __($entry->user_agent === AuditLogger::CONSOLE ? 'AuditLog::log.actors.system' : 'AuditLog::log.actors.guest');
+    }
+
+    /** A value as one line of text, a yes or a no in the words of the page. */
+    private static function shown(mixed $value): string
+    {
+        return is_bool($value) ? __($value ? 'AuditLog::log.yes' : 'AuditLog::log.no') : AuditLog::shown($value);
     }
 
     /**
@@ -100,7 +123,7 @@ class AuditLogController extends Controller
     public function list(Request $request): JsonResponse
     {
         if (! AuditLog::ready()) {
-            return response()->json(['message' => self::NOT_READY], 503);
+            return response()->json(['message' => __('AuditLog::log.not_ready')], 503);
         }
 
         $limit = min(max((int) $request->input('paginated', 25), 1), 100);
@@ -133,8 +156,8 @@ class AuditLogController extends Controller
         foreach (array_keys($new + $old) as $field) {
             $changes[] = [
                 'field' => (string) $field,
-                'old' => array_key_exists($field, $old) ? AuditLog::shown($old[$field]) : null,
-                'new' => array_key_exists($field, $new) ? AuditLog::shown($new[$field]) : '-',
+                'old' => array_key_exists($field, $old) ? self::shown($old[$field]) : null,
+                'new' => array_key_exists($field, $new) ? self::shown($new[$field]) : '-',
             ];
         }
 
@@ -142,16 +165,16 @@ class AuditLogController extends Controller
             'id' => $entry->id,
             'at' => $entry->created_at?->format('d-m-Y H:i:s'),
             'ago' => $entry->created_at?->diffForHumans(),
-            'user' => $entry->actorName(),
+            'user' => self::actor($entry),
             'email' => $entry->user_email,
             'action' => $entry->action,
-            'activity' => $entry->activityLabel(),
+            'activity' => self::word('activities', (string) $entry->action) ?? $entry->activityLabel(),
             'entity' => $entry->entityName(),
             'label' => $entry->entity_label,
             'changes' => $changes,
             'ip' => $entry->ip_address,
             // "Chrome 141 on Windows", from the User-Agent that was kept.
-            'browser' => UserAgent::describe($entry->user_agent),
+            'browser' => UserAgent::describe($entry->user_agent, __('AuditLog::log.browser.on'), __('AuditLog::log.browser.console')),
             // Through a token of the API ("API · Power BI (#3)"), or nothing: the pages.
             'via' => $entry->getAttribute('via'),
         ];

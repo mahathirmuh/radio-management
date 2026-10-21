@@ -25,28 +25,28 @@ final class SignatureImage
      * @param string $address the picture as a data: address ("data:image/png;base64,...")
      * @return string the picture that is kept, as a data: address
      *
-     * @throws InvalidArgumentException with the words for the page
+     * @throws InvalidArgumentException with the words for the page, in its language (RadioManagement::esign.picture)
      */
     public static function clean(string $address): string
     {
-        $refuse = fn (string $why) => new InvalidArgumentException($why);
+        $refuse = fn (string $why) => new InvalidArgumentException(__('RadioManagement::esign.picture.' . $why));
 
         if (! str_starts_with($address, self::PREFIX) || strlen($address) > self::MAX_CHARACTERS) {
-            throw $refuse('Tanda tangan harus berupa gambar PNG dari kotak tanda tangan.');
+            throw $refuse('not_png');
         }
         $bytes = base64_decode(substr($address, strlen(self::PREFIX)), true);
         if ($bytes === false || ! str_starts_with($bytes, "\x89PNG\r\n\x1a\n")) {
-            throw $refuse('Tanda tangan harus berupa gambar PNG dari kotak tanda tangan.');
+            throw $refuse('not_png');
         }
 
         // The size is read from the header first: a picture that says it is enormous is not built up in memory.
         $size = @getimagesizefromstring($bytes);
         if ($size === false || ($size['mime'] ?? '') !== 'image/png' || $size[0] < 8 || $size[1] < 8 || $size[0] > self::MAX_SIDE || $size[1] > self::MAX_SIDE) {
-            throw $refuse('Ukuran gambar tanda tangan tidak sesuai.');
+            throw $refuse('bad_size');
         }
         $picture = @imagecreatefromstring($bytes);
         if ($picture === false) {
-            throw $refuse('Gambar tanda tangan tidak bisa dibaca.');
+            throw $refuse('unreadable');
         }
 
         try {
@@ -54,7 +54,7 @@ final class SignatureImage
             imagealphablending($picture, false);
             imagesavealpha($picture, true);
             if (! self::hasInk($picture)) {
-                throw $refuse('Tanda tangan masih kosong.');
+                throw $refuse('empty');
             }
 
             ob_start();
@@ -64,7 +64,7 @@ final class SignatureImage
             imagedestroy($picture);
         }
         if ($png === '') {
-            throw $refuse('Gambar tanda tangan tidak bisa disimpan.');
+            throw $refuse('not_saved');
         }
 
         return self::PREFIX . base64_encode($png);

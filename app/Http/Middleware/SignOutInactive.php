@@ -23,7 +23,7 @@ class SignOutInactive
             $request->session()->regenerateToken();
 
             return $request->expectsJson()
-                ? response()->json(['message' => 'This account is inactive.'], 401)
+                ? response()->json(['message' => __('access.inactive')], 401)
                 : redirect()->route('login');
         }
 

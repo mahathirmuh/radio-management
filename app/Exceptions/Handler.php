@@ -4,7 +4,10 @@ namespace App\Exceptions;
 
 use App\Helpers\LogApps;
 use App\Models\Log\LogError;
+use App\Services\Language;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
@@ -52,10 +55,18 @@ class Handler extends ExceptionHandler
         });
 
         // The API says "not found" in its own words: Laravel's would name the class of the model ("No query results for
-        // model [Modules\RadioManagement\Models\Radio] 12").
+        // model [Modules\RadioManagement\Models\Radio] 12"). In the language of the client: an address that is no route
+        // never reached the API's own SetLocale.
         $this->renderable(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/v1', 'api/v1/*')) {
-                return response()->json(['message' => 'Not found.'], 404);
+                return response()->json(['message' => __('Api::api.not_found', [], Language::forApi($request))], 404);
+            }
+        });
+
+        // Too many requests (Laravel's throttle of the API), said as the API says it.
+        $this->renderable(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/v1', 'api/v1/*')) {
+                return response()->json(['message' => __('Api::api.too_many', [], Language::forApi($request))], 429, $e->getHeaders());
             }
         });
 
@@ -68,6 +79,16 @@ class Handler extends ExceptionHandler
                 return redirect()->route('login');
             }
         });
+    }
+
+    /** No token, or one Sanctum does not know: the API says so in the language of the client. */
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        if ($request->is('api/v1', 'api/v1/*')) {
+            return response()->json(['message' => __('Api::api.unauthenticated', [], Language::forApi($request))], 401);
+        }
+
+        return parent::unauthenticated($request, $exception);
     }
 
     private function logError(

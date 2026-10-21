@@ -18,10 +18,10 @@ class EnsureApiAccount
         $user = $request->user();
 
         if ($user === null || ! $user->currentAccessToken() instanceof ApiToken) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            return response()->json(['message' => __('Api::api.unauthenticated')], 401);
         }
         if (! $user->isActive()) {
-            return response()->json(['message' => 'This account is inactive.'], 401);
+            return response()->json(['message' => __('Api::api.inactive')], 401);
         }
 
         return $next($request);

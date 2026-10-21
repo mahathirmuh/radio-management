@@ -155,6 +155,28 @@ class ApiAccessTest extends TestCase
             ->assertJsonPath('message', 'The API is not switched on yet: its migration has not been run on this database.');
     }
 
+    public function test_a_client_that_asks_for_indonesian_gets_the_refusals_in_indonesian(): void
+    {
+        $id = ['Accept-Language' => 'id'];
+        $this->api('GET', '/api/v1/me', headers: $id)->assertStatus(401)->assertExactJson(['message' => 'Tidak terautentikasi.']);
+
+        $reader = $this->tokenFor($this->makeUser('admin.radio@test.local', 'Admin Radio'), write: false);
+        $this->api('POST', '/api/v1/radios', ['serial_number' => '867TZB0001'], $reader, headers: $id)
+            ->assertForbidden()->assertJsonPath('message', 'Token ini hanya boleh membaca.');
+
+        $viewer = $this->tokenFor($this->makeUser('viewer@test.local', 'Viewer Radio'));
+        $this->api('POST', '/api/v1/radios', ['serial_number' => '867TZB0002'], $viewer, headers: $id)->assertForbidden()
+            ->assertJsonPath('message', 'Role akun ini tidak boleh menambah di "Register Radio" (Create).');
+        $controller = $this->tokenFor($this->makeUser('doc.controller@test.local', 'Document Controller'));
+        $this->api('GET', '/api/v1/radios', token: $controller, headers: $id)->assertForbidden()
+            ->assertJsonPath('message', 'Role akun ini tidak punya akses ke "Register Radio".');
+
+        // Also where no route of the API was reached (its own SetLocale never ran).
+        $token = $this->tokenFor($this->superAdmin());
+        $this->api('GET', '/api/v1/radios/999999', token: $token, headers: $id)->assertNotFound()->assertExactJson(['message' => 'Tidak ditemukan.']);
+        $this->api('GET', '/api/v1/nothing-here', token: $token, headers: $id)->assertNotFound()->assertExactJson(['message' => 'Tidak ditemukan.']);
+    }
+
     public function test_an_unknown_record_is_404_without_the_names_of_the_code(): void
     {
         $token = $this->tokenFor($this->superAdmin());

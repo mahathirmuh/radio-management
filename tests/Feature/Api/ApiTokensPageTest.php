@@ -16,6 +16,7 @@ use Modules\Api\Models\ApiToken;
 use Tests\Concerns\MakesUsers;
 use Tests\Concerns\RunsPageChecks;
 use Tests\Concerns\UsesApi;
+use Tests\Concerns\UsesEnglish;
 use Tests\TestCase;
 
 /**
@@ -28,8 +29,16 @@ class ApiTokensPageTest extends TestCase
     use RefreshDatabase;
     use RunsPageChecks;
     use UsesApi;
+    use UsesEnglish;
 
     protected bool $seed = true;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // The page is checked in English (SystemPagesLanguageTest checks it in Indonesian).
+        $this->useEnglish();
+    }
 
     private function viewerRoleId(): int
     {

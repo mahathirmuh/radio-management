@@ -226,7 +226,7 @@ class ApiSharePointTest extends TestCase
         $super = $this->tokenFor($this->superAdmin());
         $own = $this->api('POST', '/api/v1/documents/ict-masterlist/edit-requests', ['sheet' => 1, 'line' => 2, 'column' => 2, 'value' => 'Sudah'], $super)->json('data.id');
         $this->api('POST', "/api/v1/documents/edit-requests/{$own}/approve", token: $super)->assertForbidden()
-            ->assertJsonPath('message', fn ($message) => str_contains($message, 'sendiri'));
+            ->assertJsonPath('message', fn ($message) => str_contains($message, 'your own request'));
 
         // Turned down by a person, with the reason.
         $rejected = $this->api('POST', "/api/v1/documents/edit-requests/{$id}/reject", ['note' => 'Belum perlu'], $this->controller())->assertOk()->json('data');
@@ -245,8 +245,9 @@ class ApiSharePointTest extends TestCase
         $this->spDown = true;
         Cache::flush();
 
+        // In English, the language of the API unless the client asks for Indonesian.
         $this->api('GET', '/api/v1/documents/cof-scan', token: $token)->assertStatus(503)->assertJsonPath('reason', 'unavailable')
-            ->assertJsonPath('message', 'SharePoint sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.');
+            ->assertJsonPath('message', 'SharePoint cannot be reached right now. Try again in a moment.');
         $this->api('GET', '/api/v1/documents/ict-masterlist/rows', token: $token)->assertStatus(503)->assertJsonPath('reason', 'unavailable');
 
         // Not set up at all.

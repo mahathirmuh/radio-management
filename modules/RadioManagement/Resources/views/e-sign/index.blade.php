@@ -104,13 +104,21 @@
         'update' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.e-sign', 'Update'),
         'delete' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.e-sign', 'Delete'),
     ];
+    // What the script of the page says, in the language of the page (RadioManagement::esign).
+    $esignText = [
+        'list' => __('RadioManagement::esign.list'),
+        'dialog' => __('RadioManagement::esign.dialog') + ['pad' => __('RadioManagement::checkout.pad.box')],
+        'delete' => __('RadioManagement::esign.delete'),
+        'uses' => __('RadioManagement::esign.uses'),
+        'messages' => collect(__('RadioManagement::esign.messages'))->only(['choose_owner', 'no_signature'])->all(),
+    ];
 @endphp
 
 @section('content')
     <div class="rm-head">
         <div>
             <h1 class="rm-title">E-Sign Master</h1>
-            <p class="rm-sub">Tanda tangan tim ICT untuk kotak PROCESSED BY di IT Equipment Checkout Form.</p>
+            <p class="rm-sub">{{ __('RadioManagement::esign.sub') }}</p>
         </div>
     </div>
 
@@ -118,28 +126,27 @@
         <div class="rm-toolbar rm-toolbar-tight">
             <label class="rm-search" for="esignSearch">
                 <i class="ti ti-search" aria-hidden="true"></i>
-                <input type="search" id="esignSearch" autocomplete="off" maxlength="100" placeholder="Cari nama atau e-mail…"
-                    aria-label="Cari nama atau e-mail" />
+                <input type="search" id="esignSearch" autocomplete="off" maxlength="100" placeholder="{{ __('RadioManagement::esign.search') }}"
+                    aria-label="{{ __('RadioManagement::esign.search_label') }}" />
             </label>
             <button type="button" class="rm-icon-btn is-ringed rm-icon-btn-lg" id="esignSearchButton" data-bs-toggle="tooltip"
-                data-bs-title="Cari" aria-label="Cari"><i class="ti ti-search"></i></button>
-            <div class="rm-seg ms-auto" role="radiogroup" aria-label="Tampilan">
+                data-bs-title="{{ __('RadioManagement::esign.search_button') }}" aria-label="{{ __('RadioManagement::esign.search_button') }}"><i class="ti ti-search"></i></button>
+            <div class="rm-seg ms-auto" role="radiogroup" aria-label="{{ __('RadioManagement::esign.view') }}">
                 <input type="radio" class="btn-check" name="esignView" id="esignViewGrid" value="grid" checked>
-                <label for="esignViewGrid"><i class="ti ti-layout-grid" aria-hidden="true"></i> Grid</label>
+                <label for="esignViewGrid"><i class="ti ti-layout-grid" aria-hidden="true"></i> {{ __('RadioManagement::esign.view_grid') }}</label>
                 <input type="radio" class="btn-check" name="esignView" id="esignViewList" value="list">
-                <label for="esignViewList"><i class="ti ti-list" aria-hidden="true"></i> List</label>
+                <label for="esignViewList"><i class="ti ti-list" aria-hidden="true"></i> {{ __('RadioManagement::esign.view_list') }}</label>
             </div>
             @if ($esignMay['create'])
                 <button type="button" class="btn-rm primary" id="esignAdd" onclick="esignForm.open()">
-                    <i class="ti ti-plus" aria-hidden="true"></i> Daftarkan tanda tangan
+                    <i class="ti ti-plus" aria-hidden="true"></i> {{ __('RadioManagement::esign.add') }}
                 </button>
             @endif
         </div>
 
         <div class="rm-banner">
             <i class="ti ti-lock" aria-hidden="true"></i>
-            <span>Di form, yang muncul adalah tanda tangan <b>akun yang sedang membuka form itu</b>: tidak ada yang bisa
-                menempelkan tanda tangan orang lain. Setiap pemakaian dicatat (tombol riwayat). Gambar disimpan terenkripsi.</span>
+            <span>{!! __('RadioManagement::esign.banner') !!}</span>
         </div>
         <div id="esignNotice"></div>
 
@@ -150,13 +157,13 @@
                 <table class="rm-table" id="esignTable">
                     <thead>
                         <tr>
-                            <th class="text-center" width="30">No</th>
-                            <th>Akun</th>
-                            <th>Nama tercetak</th>
-                            <th>Tanda tangan</th>
-                            <th class="text-center">Status</th>
-                            <th>Dipakai</th>
-                            <th class="text-end"><span class="visually-hidden">Aksi</span></th>
+                            <th class="text-center" width="30">{{ __('RadioManagement::esign.columns.no') }}</th>
+                            <th>{{ __('RadioManagement::esign.columns.account') }}</th>
+                            <th>{{ __('RadioManagement::esign.columns.name') }}</th>
+                            <th>{{ __('RadioManagement::esign.columns.signature') }}</th>
+                            <th class="text-center">{{ __('RadioManagement::esign.columns.status') }}</th>
+                            <th>{{ __('RadioManagement::esign.columns.uses') }}</th>
+                            <th class="text-end"><span class="visually-hidden">{{ __('RadioManagement::esign.columns.actions') }}</span></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -173,35 +180,35 @@
             <div class="modal-content">
                 <div class="rm-dialog-head">
                     <div class="rm-dialog-titles">
-                        <h3 class="rm-dialog-title modal-title" id="esignTitle">Daftarkan tanda tangan</h3>
+                        <h3 class="rm-dialog-title modal-title" id="esignTitle">{{ __('RadioManagement::esign.dialog.add') }}</h3>
                     </div>
-                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i
                             class="ti ti-x"></i></button>
                 </div>
                 <div class="rm-dialog-body is-form">
                     <div class="row g-2">
                         <div class="col-md-6 rm-field">
-                            <label for="esign_user" class="form-label required">Akun pemilik</label>
+                            <label for="esign_user" class="form-label required">{{ __('RadioManagement::esign.dialog.owner') }}</label>
                             <select id="esign_user" class="form-select"></select>
-                            <div class="rm-hint" id="esignUserHint">Tanda tangan ini hanya muncul di form yang dibuka dengan akun ini.</div>
+                            <div class="rm-hint" id="esignUserHint">{{ __('RadioManagement::esign.dialog.owner_hint') }}</div>
                         </div>
                         <div class="col-md-6 rm-field">
-                            <label for="esign_name" class="form-label">Nama tercetak di bawah tanda tangan</label>
+                            <label for="esign_name" class="form-label">{{ __('RadioManagement::esign.dialog.name') }}</label>
                             <input type="text" id="esign_name" class="form-control" maxlength="150" autocomplete="off"
-                                placeholder="Kosongkan untuk memakai nama akun">
+                                placeholder="{{ __('RadioManagement::esign.dialog.name_hint') }}">
                         </div>
                         <div class="col-12 d-none" id="esignActiveWrap">
                             <label class="form-check form-switch mt-1 mb-0">
                                 <input class="form-check-input" type="checkbox" id="esign_active" checked>
-                                <span class="form-check-label">Aktif (nonaktif: tidak muncul di form, kotaknya ditandatangani di kertas)</span>
+                                <span class="form-check-label">{{ __('RadioManagement::esign.dialog.active') }}</span>
                             </label>
                         </div>
                         <div class="col-12 rm-field d-none" id="esignCurrentWrap">
-                            <span class="form-label mb-1">Tanda tangan sekarang</span>
+                            <span class="form-label mb-1">{{ __('RadioManagement::esign.dialog.current') }}</span>
                             <span class="esign-preview" id="esignCurrent"></span>
                         </div>
                         <div class="col-12 rm-field">
-                            <span class="form-label mb-1" id="esignPadLabel">Tanda tangan</span>
+                            <span class="form-label mb-1" id="esignPadLabel">{{ __('RadioManagement::esign.dialog.signature') }}</span>
                             <div id="esignPadHost"></div>
                         </div>
                         <div class="col-12" role="alert">
@@ -210,9 +217,9 @@
                     </div>
                 </div>
                 <div class="rm-dialog-foot">
-                    <button type="button" class="btn-rm sm secondary" data-bs-dismiss="modal"><i class="ti ti-x" aria-hidden="true"></i>Batal</button>
+                    <button type="button" class="btn-rm sm secondary" data-bs-dismiss="modal"><i class="ti ti-x" aria-hidden="true"></i>{{ __('RadioManagement::common.ui.cancel') }}</button>
                     <button type="button" class="btn-rm sm primary" id="esignSave" onclick="esignForm.submit()"><i class="ti ti-device-floppy"
-                            aria-hidden="true"></i>Simpan</button>
+                            aria-hidden="true"></i>{{ __('RadioManagement::common.ui.save') }}</button>
                 </div>
             </div>
         </div>
@@ -225,10 +232,10 @@
                 <div class="rm-dialog-head">
                     <span class="rm-dialog-icon"><i class="ti ti-history" aria-hidden="true"></i></span>
                     <div class="rm-dialog-titles">
-                        <h3 class="rm-dialog-title" id="esignUsesTitle">Riwayat pemakaian</h3>
+                        <h3 class="rm-dialog-title" id="esignUsesTitle">{{ __('RadioManagement::esign.uses.title') }}</h3>
                         <p class="rm-dialog-sub" id="esignUsesLabel"></p>
                     </div>
-                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i
                             class="ti ti-x"></i></button>
                 </div>
                 <div class="rm-dialog-body">
@@ -242,6 +249,8 @@
 @push('javascript')
     <script>
         const esignMay = @json($esignMay);
+        /** The words of the page in its language (RadioManagement::esign). */
+        const esignText = @json($esignText);
         const esignUrls = {
             list: "{{ route('radio-management.e-sign.list') }}",
             pad: "{{ route('radio-management.e-sign.pad') }}",
@@ -256,9 +265,13 @@
             isPicture(url) {
                 return typeof url === 'string' && /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(url);
             },
+            /** A word of the list (esignText.list), escaped for the HTML it goes into. */
+            say(key) {
+                return RadioUi.esc(esignText.list[key]);
+            },
             preview(url, name) {
                 return esignUi.isPicture(url) ?
-                    `<span class="esign-preview"><img src="${url}" alt="${RadioUi.esc('Tanda tangan ' + (name || ''))}"></span>` :
+                    `<span class="esign-preview"><img src="${url}" alt="${RadioUi.esc(RadioUi.fill(esignText.list.signature_of, { name: name || '' }))}"></span>` :
                     '<span class="radio-muted">-</span>';
             },
         };
@@ -275,7 +288,7 @@
                 'index',
                 {
                     key: 'account',
-                    render: row => `<div>${RadioUi.dash(row.account)}${row.account_gone ? ' ' + RadioUi.badge('Akun dihapus', 'red') : ''}</div>` +
+                    render: row => `<div>${RadioUi.dash(row.account)}${row.account_gone ? ' ' + RadioUi.badge(esignText.list.account_gone, 'red') : ''}</div>` +
                         `<div class="radio-muted">${RadioUi.esc(row.email)}</div>`
                 },
                 {
@@ -289,19 +302,20 @@
                 {
                     key: 'active',
                     className: 'text-center',
-                    render: row => row.active && !row.account_gone ? RadioUi.badge('Aktif', 'green') : RadioUi.badge('Nonaktif', 'secondary')
+                    render: row => row.active && !row.account_gone ? RadioUi.badge(esignText.list.active, 'green') : RadioUi.badge(esignText.list.inactive, 'secondary')
                 },
                 {
                     key: 'uses',
-                    render: row => `<div>${Number(row.uses) || 0} kali</div>` + (row.last_used ? `<div class="radio-muted">terakhir ${RadioUi.esc(row.last_used)}</div>` : '')
+                    render: row => `<div>${RadioUi.esc(RadioUi.choice(esignText.list.times, Number(row.uses) || 0))}</div>` +
+                        (row.last_used ? `<div class="radio-muted">${RadioUi.esc(RadioUi.fill(esignText.list.last, { at: row.last_used }))}</div>` : '')
                 },
                 {
                     key: 'actions',
                     className: 'text-end text-nowrap',
                     render: row => `<div class="rm-acts">
-                        ${esignMay.update ? `<button type="button" class="rm-act" data-action="edit" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Edit" aria-label="Edit"><i class="ti ti-edit"></i></button>` : ''}
-                        <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Riwayat pemakaian" aria-label="Riwayat pemakaian"><i class="ti ti-history"></i></button>
-                        ${esignMay.delete ? `<button type="button" class="rm-act is-danger" data-action="delete" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Hapus" aria-label="Hapus"><i class="ti ti-trash"></i></button>` : ''}
+                        ${esignMay.update ? `<button type="button" class="rm-act" data-action="edit" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="${esignUi.say('edit')}" aria-label="${esignUi.say('edit')}"><i class="ti ti-edit"></i></button>` : ''}
+                        <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="${esignUi.say('uses')}" aria-label="${esignUi.say('uses')}"><i class="ti ti-history"></i></button>
+                        ${esignMay.delete ? `<button type="button" class="rm-act is-danger" data-action="delete" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="${esignUi.say('delete')}" aria-label="${esignUi.say('delete')}"><i class="ti ti-trash"></i></button>` : ''}
                     </div>`
                 },
             ],
@@ -312,7 +326,7 @@
                     columns: esignTable.columns,
                     currentPage: esignTable.page,
                     limit: esignTable.limit,
-                    emptyText: 'Belum ada tanda tangan yang didaftarkan',
+                    emptyText: RadioUi.esc(esignText.list.empty),
                     onPageChange: page => {
                         esignTable.page = page;
                         esignTable.load();
@@ -353,7 +367,7 @@
                     RadioUi.tooltips('#esignTable');
                 }).fail(xhr => {
                     if (request !== esignTable.request) return;
-                    esignTable.render({ emptyText: 'Gagal memuat data.' });
+                    esignTable.render({ emptyText: RadioUi.esc(esignText.list.load_failed) });
                     esignGrid.render([]);
                     $('#esignNotice').html(`<div class="rm-alert danger"><i class="ti ti-alert-triangle"></i><span>${RadioUi.errors(xhr).join('<br>')}</span></div>`);
                 });
@@ -384,23 +398,23 @@
                             <div class="rm-esign-name">${RadioUi.dash(name)}</div>
                             <div class="rm-line2">${RadioUi.esc(row.email || '')}</div>
                         </div>
-                        ${active ? RadioUi.badge('Aktif', 'green') : RadioUi.badge('Nonaktif', 'secondary')}
+                        ${active ? RadioUi.badge(esignText.list.active, 'green') : RadioUi.badge(esignText.list.inactive, 'secondary')}
                     </div>
-                    <div class="rm-esign-sheet">${esignUi.isPicture(row.image) ? `<img src="${row.image}" alt="${RadioUi.esc('Tanda tangan ' + name)}">` : '<span class="radio-muted">Tidak ada gambar</span>'}</div>
+                    <div class="rm-esign-sheet">${esignUi.isPicture(row.image) ? `<img src="${row.image}" alt="${RadioUi.esc(RadioUi.fill(esignText.list.signature_of, { name }))}">` : `<span class="radio-muted">${esignUi.say('no_picture')}</span>`}</div>
                     <div class="rm-esign-foot">
-                        <span class="rm-line2">Diperbarui ${RadioUi.esc(row.updated_at || '-')} · ${Number(row.uses) || 0} kali dipakai</span>
+                        <span class="rm-line2">${RadioUi.esc(RadioUi.choice(esignText.list.updated, Number(row.uses) || 0, { at: row.updated_at || '-' }))}</span>
                         <span class="rm-acts">
-                            <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="Riwayat pemakaian" aria-label="Riwayat pemakaian"><i class="ti ti-history"></i></button>
-                            ${esignMay.update ? `<button type="button" class="btn-rm sm secondary" data-action="edit" data-id="${Number(row.id)}">Ganti</button>` : ''}
-                            ${esignMay.delete ? `<button type="button" class="btn-rm sm secondary rm-text-danger" data-action="delete" data-id="${Number(row.id)}">Hapus</button>` : ''}
+                            <button type="button" class="rm-act" data-action="uses" data-id="${Number(row.id)}" data-bs-toggle="tooltip" data-bs-title="${esignUi.say('uses')}" aria-label="${esignUi.say('uses')}"><i class="ti ti-history"></i></button>
+                            ${esignMay.update ? `<button type="button" class="btn-rm sm secondary" data-action="edit" data-id="${Number(row.id)}">${esignUi.say('change')}</button>` : ''}
+                            ${esignMay.delete ? `<button type="button" class="btn-rm sm secondary rm-text-danger" data-action="delete" data-id="${Number(row.id)}">${esignUi.say('delete')}</button>` : ''}
                         </span>
                     </div>
                 </div>`;
             },
             render(rows) {
                 const cards = (rows || []).map(esignGrid.card).join('');
-                const add = esignMay.create ? `<button type="button" class="rm-esign-add" onclick="esignForm.open()"><i class="ti ti-plus"></i><span>Daftarkan tanda tangan</span></button>` : '';
-                $('#esignGrid').html(cards + add || '<div class="radio-muted">Belum ada tanda tangan yang didaftarkan</div>');
+                const add = esignMay.create ? `<button type="button" class="rm-esign-add" onclick="esignForm.open()"><i class="ti ti-plus"></i><span>${RadioUi.esc(esignText.dialog.add)}</span></button>` : '';
+                $('#esignGrid').html(cards + add || `<div class="radio-muted">${esignUi.say('empty')}</div>`);
                 // (Once: the next time the cards are drawn nothing is new.)
                 esignGrid.fresh = null;
                 RadioUi.tooltips('#esignGrid');
@@ -437,30 +451,30 @@
 
             open(row = null) {
                 esignForm.id = row ? row.id : null;
-                $('#esignTitle').text(row ? 'Edit tanda tangan' : 'Daftarkan tanda tangan');
+                const words = esignText.dialog;
+                $('#esignTitle').text(row ? words.edit : words.add);
                 const select = $('#esign_user');
                 if (row) {
                     // The owner of a signature is not changed: another account gets a signature of its own.
-                    select.html(`<option value="${Number(row.user_id)}">${RadioUi.esc(row.account || '(akun dihapus)')}${row.email ? ' · ' + RadioUi.esc(row.email) : ''}</option>`);
+                    select.html(`<option value="${Number(row.user_id)}">${RadioUi.esc(row.account || words.account_gone)}${row.email ? ' · ' + RadioUi.esc(row.email) : ''}</option>`);
                 } else {
-                    select.html('<option value="">Pilih akun…</option>' + esignTable.candidates.map(user =>
+                    select.html(`<option value="">${RadioUi.esc(words.choose)}</option>` + esignTable.candidates.map(user =>
                         `<option value="${Number(user.id)}">${RadioUi.esc(user.name)} · ${RadioUi.esc(user.email)}</option>`).join(''));
                 }
                 select.prop('disabled', !!row);
-                $('#esignUserHint').text(row ? 'Pemilik tanda tangan tidak bisa diganti. Untuk akun lain, daftarkan tanda tangan baru.' :
-                    'Tanda tangan ini hanya muncul di form yang dibuka dengan akun ini.');
+                $('#esignUserHint').text(row ? words.owner_fixed : words.owner_hint);
                 $('#esign_name').val(row ? (row.display_name ?? '') : '');
                 $('#esign_active').prop('checked', row ? !!row.active : true);
                 $('#esignActiveWrap').toggleClass('d-none', !row);
                 $('#esignCurrentWrap').toggleClass('d-none', !row);
-                $('#esignCurrent').html(row && esignUi.isPicture(row.image) ? `<img src="${row.image}" alt="Tanda tangan sekarang">` : '');
-                $('#esignPadLabel').text(row ? 'Tanda tangan baru (biarkan kosong bila tidak diganti)' : 'Tanda tangan');
+                $('#esignCurrent').html(row && esignUi.isPicture(row.image) ? `<img src="${row.image}" alt="${RadioUi.esc(words.current)}">` : '');
+                $('#esignPadLabel').text(row ? words.signature_new : words.signature);
                 esignForm.error('');
                 // A pad of its own for every time the dialog opens: nothing of the signature before is left in it.
                 $('#esignPadFrame').remove();
                 const frame = document.createElement('iframe');
                 frame.id = 'esignPadFrame';
-                frame.title = 'Kotak tanda tangan';
+                frame.title = words.pad;
                 frame.src = esignUrls.pad;
                 document.getElementById('esignPadHost').appendChild(frame);
                 $('#esignModal').modal('show');
@@ -487,15 +501,15 @@
             submit() {
                 const pad = esignForm.pad();
                 if (pad.open) {
-                    esignForm.error('Tanda tangan belum dipakai. Tekan "Pakai tanda tangan" atau "Batal" di kotaknya dulu.');
+                    esignForm.error(esignText.dialog.pad_open);
                     return;
                 }
                 if (!esignForm.id && !$('#esign_user').val()) {
-                    esignForm.error('Pilih akun pemilik tanda tangan.');
+                    esignForm.error(esignText.messages.choose_owner);
                     return;
                 }
                 if (!esignForm.id && pad.image === null) {
-                    esignForm.error('Tanda tangan belum ada. Klik kotaknya untuk tanda tangan di layar, atau unggah file gambarnya.');
+                    esignForm.error(esignText.messages.no_signature);
                     return;
                 }
                 esignForm.error('');
@@ -525,18 +539,18 @@
                 const body = xhr.responseJSON || {};
                 if (Array.isArray(body.errors)) return body.errors.map(String);
                 if (body.errors && typeof body.errors === 'object') return Object.values(body.errors).flat().map(String);
-                if (xhr.status === 401 || xhr.status === 419) return ['Sesi Anda sudah berakhir. Muat ulang halaman untuk masuk lagi.'];
-                if (xhr.status === 403) return ['Anda tidak memiliki izin untuk aksi ini.'];
-                return [typeof body.message === 'string' && body.message ? body.message : 'Terjadi kesalahan, coba lagi.'];
+                if (xhr.status === 401 || xhr.status === 419) return [esignText.dialog.session];
+                if (xhr.status === 403) return [RadioUi.words.no_permission];
+                return [typeof body.message === 'string' && body.message ? body.message : RadioUi.words.error];
             },
 
             remove(row) {
                 rmDialog.confirm({
                     tone: 'red',
                     icon: 'trash',
-                    title: 'Hapus tanda tangan ini?',
-                    html: `${RadioUi.esc(row.display_name)}<br><span class="text-muted small">Tanda tangan tidak lagi muncul di form. Riwayat pemakaiannya tetap tersimpan.</span>`,
-                    confirmText: 'Hapus',
+                    title: esignText.delete.title,
+                    html: `${RadioUi.esc(row.display_name)}<br><span class="text-muted small">${RadioUi.esc(esignText.delete.text)}</span>`,
+                    confirmText: esignText.delete.confirm,
                     confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;
@@ -554,15 +568,19 @@
 
             uses(row) {
                 $('#esignUsesLabel').text(row.display_name || '');
-                $('#esignUsesList').html('<div class="radio-muted">Memuat…</div>');
+                const words = esignText.uses;
+                $('#esignUsesList').html(`<div class="radio-muted">${RadioUi.esc(RadioUi.words.loading)}</div>`);
                 $('#esignUsesModal').modal('show');
                 $.getJSON(esignUrls.uses.replace(':id', row.id)).done(response => {
                     const lines = response.data.map(use =>
                         `<tr><td class="text-nowrap">${RadioUi.esc(use.at)}</td><td>${RadioUi.dash(use.radio)}</td><td>${RadioUi.dash(use.user)}</td></tr>`).join('');
+                    const total = Number(response.total) || 0;
+                    const counted = total > response.data.length ?
+                        RadioUi.fill(words.total_shown, { count: total, shown: response.data.length }) : RadioUi.choice(words.total, total);
                     $('#esignUsesList').html(response.data.length ?
-                        `<div class="rm-box mb-2"><table class="rm-table compact"><thead><tr><th>Waktu</th><th>Form radio</th><th>Dibuka oleh</th></tr></thead><tbody>${lines}</tbody></table></div>` +
-                        `<div class="radio-muted">${Number(response.total) || 0} kali dipakai${Number(response.total) > response.data.length ? ', ditampilkan ' + response.data.length + ' terakhir' : ''}.</div>` :
-                        '<div class="radio-muted">Belum pernah dipakai di form.</div>');
+                        `<div class="rm-box mb-2"><table class="rm-table compact"><thead><tr><th>${RadioUi.esc(words.at)}</th><th>${RadioUi.esc(words.radio)}</th><th>${RadioUi.esc(words.user)}</th></tr></thead><tbody>${lines}</tbody></table></div>` +
+                        `<div class="radio-muted">${RadioUi.esc(counted)}</div>` :
+                        `<div class="radio-muted">${RadioUi.esc(words.never)}</div>`);
                 }).fail(xhr => {
                     $('#esignUsesList').html(`<div class="rm-alert danger"><i class="ti ti-alert-triangle"></i><span>${RadioUi.errors(xhr).join('<br>')}</span></div>`);
                 });

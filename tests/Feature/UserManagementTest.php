@@ -547,8 +547,8 @@ class UserManagementTest extends TestCase
         // LDAP first, then Microsoft, each with what it means.
         preg_match_all('#type="radio" name="sign_in_method"\s+value="([^"]+)"#', $full, $methods);
         $this->assertSame(['LDAP', 'Microsoft'], $methods[1]);
-        $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['LDAP']), $full);
-        $this->assertStringContainsString(e(User::SIGN_IN_MEANINGS['Microsoft']), $full);
+        $this->assertStringContainsString(e(__('UserManagement::users.sign_in_meanings.LDAP')), $full);
+        $this->assertStringContainsString(e(__('UserManagement::users.sign_in_meanings.Microsoft')), $full);
         // The order of the form: how they get in first (it decides where "Find employee" searches), then who (and the directory
         // username, with LDAP), then what they may do.
         $order = array_map(fn (string $part) => strpos($full, $part), ['type="radio" name="sign_in_method"', 'id="employeeLookup"', 'id="name"', 'id="email"', 'id="ldapUsername"', 'id="roleSelect"', 'id="statusSelect"', 'id="userModalSubmitButton"']);

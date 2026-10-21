@@ -296,6 +296,7 @@ return [
         'none_chosen' => 'No radio has been chosen.',
         'too_many' => 'Too many radios (:count); at most :max at once. Narrow the selection or the filter.',
         'busy_reason' => 'the register is busy, try again',
+        'skipped_archived' => 'archived already',
         'refused' => 'refused',
     ],
 ];

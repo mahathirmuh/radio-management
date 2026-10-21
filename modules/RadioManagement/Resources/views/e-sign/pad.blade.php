@@ -5,14 +5,22 @@
     file with it (dropped on the box, or chosen), of which the ink is taken and the paper left out. This page sends nothing and
     keeps nothing: the page around the frame reads the picture out of the box when "Simpan" is pressed there.
 --}}
+@php
+    // Who signs here, and what this page says of it in its language (the pad's own words are RadioManagement::checkout.pad).
+    $padWho = 'ICT Person';
+    $padWords = __('RadioManagement::esign.pad') + [
+        'picture' => __('RadioManagement::checkout.pad.picture', ['who' => $padWho]),
+        'change' => __('RadioManagement::checkout.pad.change', ['who' => $padWho]),
+    ];
+@endphp
 <!DOCTYPE html>
-<html lang="id">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>Tanda tangan ICT Person</title>
+    <title>{{ __('RadioManagement::checkout.pad.title', ['who' => $padWho]) }}</title>
     <style>
         html,
         body {
@@ -157,25 +165,25 @@
 
 <body>
     <main class="sheet">
-        <p class="hint">Dua cara: <b>klik kotak</b> untuk tanda tangan di layar (pena, jari, atau mouse), atau <b>seret &amp; lepas / unggah file</b> gambar tanda tangan.</p>
+        <p class="hint">{!! $padWords['hint'] !!}</p>
         <table class="grid">
             <tr>
                 <td class="sign" id="signCell" data-today="{{ $today }}">
-                    <button type="button" class="sig-open" id="signOpen" aria-label="Tanda tangan ICT Person di layar">Klik untuk tanda tangan<small>atau seret &amp; lepas file gambar tanda tangan ke sini</small></button>
-                    <button type="button" class="sig-remove" id="signRemove" aria-label="Hapus tanda tangan" title="Hapus tanda tangan" hidden>&times;</button>
+                    <button type="button" class="sig-open" id="signOpen" aria-label="{{ __('RadioManagement::checkout.pad.sign', ['who' => $padWho]) }}">{{ __('RadioManagement::checkout.sign_open') }}<small>{{ $padWords['drop'] }}</small></button>
+                    <button type="button" class="sig-remove" id="signRemove" aria-label="{{ __('RadioManagement::checkout.sign_remove') }}" title="{{ __('RadioManagement::checkout.sign_remove') }}" hidden>&times;</button>
                 </td>
             </tr>
         </table>
         <div class="upload">
-            <span>atau</span>
+            <span>{{ $padWords['or'] }}</span>
             <input type="file" id="signFile" accept="image/png,image/jpeg">
-            <label for="signFile">Unggah file tanda tangan</label>
-            <span>PNG atau JPG, tinta gelap di latar putih</span>
+            <label for="signFile">{{ $padWords['upload'] }}</label>
+            <span>{{ $padWords['upload_hint'] }}</span>
         </div>
         <p class="upload-note" id="uploadNote" role="alert" hidden></p>
     </main>
 
-    @include('RadioManagement::radio.checkout-signature', ['signWho' => 'ICT Person'])
+    @include('RadioManagement::radio.checkout-signature', ['signWho' => $padWho])
 
     {{-- The second way: a file with the signature (a scan, a photo, a picture from another program), dropped on the box or chosen. --}}
     <script>
@@ -186,6 +194,8 @@
             const remove = document.getElementById('signRemove');
             const open = document.getElementById('signOpen');
             if (!cell || !input) return;
+            /** What this page says, in its language (RadioManagement::esign.pad, and the picture's words of the pad). */
+            const WORDS = @json($padWords);
 
             /** The longer side of the picture that is kept, as the pad makes it. */
             const PICTURE = 1200;
@@ -205,13 +215,13 @@
                 if (!image) {
                     image = document.createElement('img');
                     image.className = 'sig-img';
-                    image.alt = 'Tanda tangan ICT Person';
+                    image.alt = WORDS.picture;
                     cell.insertBefore(image, cell.firstChild);
                 }
                 image.src = url;
                 cell.classList.add('signed');
                 remove.hidden = false;
-                open.setAttribute('aria-label', 'Ganti tanda tangan ICT Person');
+                open.setAttribute('aria-label', WORDS.change);
             }
 
             /**
@@ -268,28 +278,28 @@
                 say('');
                 if (!file) return;
                 if (!/^image\/(png|jpeg)$/.test(file.type)) {
-                    say('File harus berupa gambar PNG atau JPG.');
+                    say(WORDS.not_image);
                     return;
                 }
                 if (file.size > MOST_BYTES) {
-                    say('File terlalu besar (paling besar 5 MB).');
+                    say(WORDS.too_big);
                     return;
                 }
                 const reader = new FileReader();
                 reader.onerror = () => {
-                    if (mine === latest) say('File itu tidak bisa dibaca.');
+                    if (mine === latest) say(WORDS.unreadable);
                 };
                 reader.onload = () => {
                     if (mine !== latest) return;
                     const picture = document.createElement('img');
                     picture.onerror = () => {
-                        if (mine === latest) say('File itu bukan gambar yang bisa dibaca.');
+                        if (mine === latest) say(WORDS.not_picture);
                     };
                     picture.onload = () => {
                         if (mine !== latest) return;
                         const url = inkOf(picture);
                         if (url === null) {
-                            say('Tidak ada tanda tangan yang terlihat di gambar itu. Tintanya harus gelap di atas latar putih atau terang.');
+                            say(WORDS.no_ink);
                             return;
                         }
                         place(url);

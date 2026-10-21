@@ -61,20 +61,13 @@ class User extends Authenticatable
 
     /**
      * How an account gets in, as User Management shows it (signInMethod()). Told from two facts, never stored: whether
-     * the account has a directory username, and whether it has signed in with Microsoft.
+     * the account has a directory username, and whether it has signed in with Microsoft. Their names on the page, and
+     * what each means, are in the language files of the page (UserManagement::users.methods, .sign_in_meanings).
      */
     public const SIGN_IN_LDAP = 'LDAP';
     public const SIGN_IN_MICROSOFT = 'Microsoft';
     public const SIGN_IN_BOTH = 'Both';
     public const SIGN_IN_PENDING = 'Pending';
-
-    /** What each of them means: the sentence of the form and of the list. */
-    public const SIGN_IN_MEANINGS = [
-        self::SIGN_IN_LDAP => 'Signs in with their Active Directory account. Disabling it in the directory closes this one.',
-        self::SIGN_IN_MICROSOFT => 'Signs in through Microsoft only. No directory username is recorded here.',
-        self::SIGN_IN_BOTH => 'Has an Active Directory account and has signed in through Microsoft: either one gets in.',
-        self::SIGN_IN_PENDING => 'Made for Microsoft sign-in and not used yet. If it stays like this, check that the e-mail is the address Microsoft knows this person by.',
-    ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',

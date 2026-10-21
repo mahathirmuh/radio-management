@@ -9,7 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Modules\Api\Http\Middleware\ApiReady;
 use Modules\Api\Models\ApiToken;
 use Modules\Api\Services\ApiTokens;
 
@@ -18,6 +17,8 @@ use Modules\Api\Services\ApiTokens;
  *
  * Super Admin sees every token and manages the API clients (accounts of applications). Another role that is given the
  * menu sees and makes only tokens of its own, which act as that person, with that person's role.
+ *
+ * What it answers is in the language of the page (Api::tokens.messages).
  */
 class ApiTokenController extends Controller
 {
@@ -78,7 +79,7 @@ class ApiTokenController extends Controller
             'days' => ['required', 'integer', Rule::in(ApiToken::LIFETIMES)],
             // "me", or the id of an API client (Super Admin).
             'owner' => ['required', 'string', 'max:20'],
-        ], [], ['name' => 'Name', 'access' => 'Access', 'days' => 'Expires in', 'owner' => 'Owner']);
+        ], [], self::attributes(['name', 'access', 'days', 'owner']));
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
@@ -86,21 +87,21 @@ class ApiTokenController extends Controller
         $owner = $me;
         if ($request->input('owner') !== 'me') {
             if (! $this->superAdmin($me)) {
-                return $this->invalid(['Only Super Admin makes tokens for API clients.'], 403);
+                return $this->invalid([__('Api::tokens.messages.only_super_admin_tokens')], 403);
             }
             $owner = User::query()->whereKey((int) $request->input('owner'))->where('api_client', true)->first();
             if ($owner === null) {
-                return $this->invalid(['That API client does not exist.']);
+                return $this->invalid([__('Api::tokens.messages.no_client')]);
             }
         }
         if (! $owner->isActive()) {
-            return $this->invalid(['That API client is inactive: its tokens would be refused. Activate it first.']);
+            return $this->invalid([__('Api::tokens.messages.client_inactive')]);
         }
 
         $made = $this->tokens->createToken($owner, trim((string) $request->input('name')), $request->input('access') === 'read_write', (int) $request->input('days'));
 
         return response()->json([
-            'message' => 'Token created.',
+            'message' => __('Api::tokens.messages.token_created'),
             // Shown once: only its hash is kept.
             'token' => $made->plainTextToken,
             'data' => $this->tokenRow($made->accessToken, $owner, $me),
@@ -117,11 +118,11 @@ class ApiTokenController extends Controller
             ->when(! $this->superAdmin($me), fn ($query) => $query->where('tokenable_id', $me->id))
             ->first();
         if ($found === null) {
-            return $this->invalid(['Token not found.'], 404);
+            return $this->invalid([__('Api::tokens.messages.token_missing')], 404);
         }
         $this->tokens->revoke($found);
 
-        return response()->json(['message' => 'Token revoked.']);
+        return response()->json(['message' => __('Api::tokens.messages.token_revoked')]);
     }
 
     public function storeClient(Request $request): JsonResponse
@@ -135,7 +136,7 @@ class ApiTokenController extends Controller
         }
         $client = $this->tokens->createClient($request->user(), trim((string) $request->input('name')), Role::findOrFail($request->integer('role_id')));
 
-        return response()->json(['message' => 'API client created.', 'id' => $client->id], 201);
+        return response()->json(['message' => __('Api::tokens.messages.client_created'), 'id' => $client->id], 201);
     }
 
     public function updateClient(Request $request, int $client): JsonResponse
@@ -145,7 +146,7 @@ class ApiTokenController extends Controller
         }
         $found = User::query()->whereKey($client)->where('api_client', true)->first();
         if ($found === null) {
-            return $this->invalid(['API client not found.'], 404);
+            return $this->invalid([__('Api::tokens.messages.client_missing')], 404);
         }
         $validator = $this->clientValidator($request, true);
         if ($validator->fails()) {
@@ -153,7 +154,7 @@ class ApiTokenController extends Controller
         }
         $this->tokens->updateClient($found, trim((string) $request->input('name')), Role::findOrFail($request->integer('role_id')), $request->boolean('active'));
 
-        return response()->json(['message' => 'API client saved.']);
+        return response()->json(['message' => __('Api::tokens.messages.client_saved')]);
     }
 
     public function destroyClient(Request $request, int $client): JsonResponse
@@ -163,11 +164,11 @@ class ApiTokenController extends Controller
         }
         $found = User::query()->whereKey($client)->where('api_client', true)->first();
         if ($found === null) {
-            return $this->invalid(['API client not found.'], 404);
+            return $this->invalid([__('Api::tokens.messages.client_missing')], 404);
         }
         $this->tokens->deleteClient($found);
 
-        return response()->json(['message' => 'API client deleted, and its tokens revoked.']);
+        return response()->json(['message' => __('Api::tokens.messages.client_deleted')]);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -216,8 +217,19 @@ class ApiTokenController extends Controller
             'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->whereNull('deleted_at'), Rule::notIn([1])],
             'active' => $changing ? ['required', 'boolean'] : ['nullable', 'boolean'],
         ], [
-            'role_id.not_in' => 'An API client cannot hold Super Admin.',
-        ], ['name' => 'Name', 'role_id' => 'Role', 'active' => 'Status']);
+            'role_id.not_in' => __('Api::tokens.messages.no_super_admin'),
+        ], self::attributes(['name', 'role_id', 'active']));
+    }
+
+    /**
+     * The names of these fields in a validation message, in the language of the page.
+     *
+     * @param list<string> $fields
+     * @return array<string, string>
+     */
+    private static function attributes(array $fields): array
+    {
+        return collect($fields)->mapWithKeys(fn (string $field) => [$field => __('Api::tokens.attributes.' . $field)])->all();
     }
 
     private function superAdmin(User $user): bool
@@ -227,16 +239,17 @@ class ApiTokenController extends Controller
 
     private function onlySuperAdmin(Request $request): ?JsonResponse
     {
-        return $this->superAdmin($request->user()) ? null : $this->invalid(['Only Super Admin manages API clients.'], 403);
+        return $this->superAdmin($request->user()) ? null : $this->invalid([__('Api::tokens.messages.only_super_admin_clients')], 403);
     }
 
+    /** The answer while the API is not switched on (ApiReady says the same to the API, in English). */
     private function notReady(): ?JsonResponse
     {
-        return ApiToken::ready() && User::apiClientReady() ? null : response()->json(['message' => ApiReady::NOT_READY], 503);
+        return ApiToken::ready() && User::apiClientReady() ? null : response()->json(['message' => __('Api::tokens.messages.not_ready')], 503);
     }
 
     private function invalid(array $errors, int $status = 422): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], $status);
+        return response()->json(['message' => __('Api::tokens.messages.invalid'), 'errors' => $errors], $status);
     }
 }

@@ -22,7 +22,7 @@ class RequireMenu
         abort_unless(
             $request->user()?->roles->contains('id', 1) || CheckMenuPermission::menuForRoute($routeName) !== null,
             Response::HTTP_FORBIDDEN,
-            'This page has not been added to the menu yet.'
+            __('SharePointDocs::common.not_in_menu')
         );
 
         return $next($request);

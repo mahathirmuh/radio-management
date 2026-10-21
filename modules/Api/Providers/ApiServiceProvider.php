@@ -40,6 +40,7 @@ class ApiServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(base_path('modules/Api/Routes/api/v1.php'));
         $this->loadRoutesFrom(base_path('modules/Api/Routes/web/api-tokens.php'));
         $this->loadViewsFrom(base_path('modules/Api/Resources/views'), 'Api');
+        $this->loadTranslationsFrom(base_path('modules/Api/Resources/lang'), 'Api');
 
         $token = fn (Request $request) => $request->user()?->currentAccessToken()?->getKey() ?? $request->ip();
         RateLimiter::for('api-v1', fn (Request $request) => Limit::perMinute(self::PER_TOKEN)->by('api-token:' . $token($request)));

@@ -24,10 +24,14 @@ class RadioImports
     /** The report of the last import, shown on the page and by the API. */
     public const REPORT_CACHE_KEY = 'radio_import_last_report';
 
-    public const REPLACE_REFUSED = 'Menghapus data lama membutuhkan izin Delete pada menu Register Radio.';
-
     public function __construct(private RadioImportService $importer)
     {
+    }
+
+    /** Why "fresh" was refused, in the language of the request. */
+    public static function replaceRefused(): string
+    {
+        return __('RadioManagement::import.messages.replace_refused');
     }
 
     /** What is checked of the request, with the messages of the page. */
@@ -43,9 +47,9 @@ class RadioImports
     public static function messages(): array
     {
         return [
-            'required' => 'Pilih file Excel (.xlsx) terlebih dahulu.',
-            'mimes' => 'File harus berformat .xlsx.',
-            'max' => 'Ukuran file maksimal 20 MB.',
+            'required' => __('RadioManagement::import.messages.file_required'),
+            'mimes' => __('RadioManagement::import.messages.file_type'),
+            'max' => __('RadioManagement::import.messages.file_size'),
         ];
     }
 
@@ -90,13 +94,13 @@ class RadioImports
             // would show the raw SQL to the user and skip the log.
             Log::error('Radio import failed', ['exception' => $e]);
 
-            throw ImportProblem::failed('Terjadi kesalahan database saat impor, tidak ada data yang berubah. Detailnya ada di log aplikasi.');
+            throw ImportProblem::failed(__('RadioManagement::import.messages.database'));
         } catch (RuntimeException $e) {
             throw ImportProblem::refused($e->getMessage());
         } catch (Throwable $e) {
             Log::error('Radio import failed', ['exception' => $e]);
 
-            throw ImportProblem::failed('Terjadi kesalahan saat impor: ' . $e->getMessage());
+            throw ImportProblem::failed(__('RadioManagement::import.messages.error', ['error' => $e->getMessage()]));
         }
 
         $report['at'] = now()->format('d-m-Y H:i');

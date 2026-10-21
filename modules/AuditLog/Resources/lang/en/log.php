@@ -1,0 +1,186 @@
+<?php
+
+// The page "Audit Log" (AuditLog::index and its list): the filters, the table, Log activity, the details of an entry and
+// the calendar of "Custom range…", and the words the page describes an entry with (who did it, what, the kind of record,
+// the browser). The entries themselves (action keys, field names, values, labels) stay as they were written.
+
+return [
+    'page_title' => 'Audit Log',
+    'title' => 'Audit log',
+    'sub' => 'Every create, update, delete, sign-in and import, with who did it and from where.',
+    // The answer of the list while the table of the trail is not there yet.
+    'not_ready' => 'The audit log is not switched on yet: its migration has not been run on this database.',
+    'not_ready_page' => 'The audit log is not switched on yet: its migration has not been run on this database (<code>php artisan migrate</code>). Nothing is recorded until then.',
+    'view' => 'View',
+    'table' => 'Table',
+    'timeline' => 'Log activity',
+    'newest_first' => 'Newest first',
+    'details' => 'Event details',
+    'close_details' => 'Close the details',
+
+    'filters' => [
+        'search' => 'User email',
+        'search_hint' => 'Search by email',
+        'action' => 'Action',
+        'all_actions' => 'All actions',
+        'entity' => 'Entity',
+        'all_entities' => 'All entities',
+        'range' => 'Date range',
+        'ranges' => [
+            'today' => 'Today',
+            'yesterday' => 'Yesterday',
+            '7d' => 'Last 7 days',
+            '30d' => 'Last 30 days',
+            'all' => 'All time',
+        ],
+        'pick' => 'Custom range…',
+        'calendar' => 'Custom range',
+    ],
+
+    'columns' => [
+        'time' => 'Time',
+        'user' => 'User',
+        'action' => 'Action',
+        'entity' => 'Entity',
+        'summary' => 'Summary',
+        'ip' => 'IP',
+    ],
+
+    // Who did it when no account is known: a command of the server, or nobody signed in (a failed sign-in).
+    'actors' => [
+        'system' => 'System',
+        'guest' => 'Guest',
+    ],
+    // A value that is a yes or a no.
+    'yes' => 'Yes',
+    'no' => 'No',
+    // The "Browser" line: "Chrome 141 on Windows"; the command line of the server.
+    'browser' => [
+        'on' => 'on',
+        'console' => 'Command line',
+    ],
+
+    // What was done, as words that go between the actor and the record: "Budi updated radio ID 4021 · SN 867TZB5309".
+    'activities' => [
+        'auth.login' => 'signed in',
+        'auth.login_failed' => 'failed to sign in',
+        'auth.logout' => 'signed out',
+        'auth.session_expired' => 'was signed out: session expired',
+        'user.created' => 'created account',
+        'user.updated' => 'updated account',
+        'user.status_changed' => 'changed the status of',
+        'user.password_reset' => 'set the password for',
+        'user.deleted' => 'deleted account',
+        'role.created' => 'created role',
+        'role.updated' => 'updated role',
+        'role.deleted' => 'deleted role',
+        'radio.created' => 'registered radio',
+        'radio.updated' => 'updated radio',
+        'radio.archived' => 'archived radio',
+        'radio.restored' => 'restored radio',
+        'radio.deleted' => 'deleted radio',
+        'radio.history_added' => 'added a history entry to radio',
+        'radio.handed_over' => 'handed over radio',
+        'radio.imported' => 'imported radios from Excel',
+        'radio.opname_submitted' => 'sent the stock opname',
+        'service.created' => 'opened service ticket',
+        'service.status_changed' => 'moved service ticket',
+        'service.note_added' => 'added a note to service ticket',
+        'attention.assigned' => 'assigned the check',
+        'attention.dismissed' => 'set aside the check',
+        'master_data.created' => 'added',
+        'master_data.updated' => 'updated',
+        'master_data.deleted' => 'deleted',
+        'esign.created' => 'registered the signature of',
+        'esign.updated' => 'updated the signature of',
+        'esign.deleted' => 'removed the signature of',
+        'esign.used' => 'put their signature on the checkout form of',
+        'document.edit_requested' => 'asked to change',
+        'document.edit_approved' => 'approved the change of',
+        'document.edit_rejected' => 'turned down the change of',
+        'document.edited_directly' => 'changed directly',
+        'api.client_created' => 'created API client',
+        'api.client_updated' => 'updated API client',
+        'api.client_deleted' => 'deleted API client',
+        'api.token_created' => 'created API token',
+        'api.token_revoked' => 'revoked API token',
+    ],
+
+    // What the page calls the records of a kind (the entity type as it is stored => its name).
+    'entities' => [
+        'User' => 'Account',
+        'Role' => 'Role',
+        'Radio' => 'Radio',
+        'RadioType' => 'Radio type',
+        'RadioCompany' => 'Radio company',
+        'RadioDepartment' => 'Radio department',
+        'ChannelTemplate' => 'Channel template',
+        'RadioCheckState' => 'Check',
+        'RadioOpnameSession' => 'Stock opname',
+        'ServiceTicket' => 'Service ticket',
+        'ItSignature' => 'E-signature',
+        'EditRequest' => 'Cell edit',
+        'ApiToken' => 'API token',
+        'PersonalAccessToken' => 'API token',
+    ],
+
+    // The words of the page's script.
+    'script' => [
+        'states' => [
+            'loading' => 'Loading...',
+            'failed' => 'The audit log could not be loaded.',
+            'off' => 'The audit log is not switched on yet.',
+            'empty' => 'No audit entries yet.',
+        ],
+        // An action for the eye (its key stays in the tooltip and the details).
+        'kinds' => [
+            'auth.login' => 'Signed in',
+            'auth.login_failed' => 'Sign-in failed',
+            'auth.logout' => 'Signed out',
+            'auth.session_expired' => 'Session expired',
+            'user.status_changed' => 'Status changed',
+            'user.password_reset' => 'Password set',
+            'radio.history_added' => 'Created',
+            'radio.handed_over' => 'Handed over',
+            'radio.imported' => 'Imported',
+            'radio.opname_submitted' => 'Counted',
+            'radio.archived' => 'Archived',
+            'radio.restored' => 'Restored',
+            'service.status_changed' => 'Moved',
+            'service.note_added' => 'Note',
+            'attention.assigned' => 'Assigned',
+            'attention.dismissed' => 'Dismissed',
+            'esign.used' => 'Signed',
+            'document.edit_requested' => 'Requested',
+            'document.edit_approved' => 'Approved',
+            'document.edit_rejected' => 'Rejected',
+            'document.edited_directly' => 'Edited',
+            'api.token_revoked' => 'Revoked',
+        ],
+        // Any other action that ends in "created", "updated" or "deleted".
+        'generic' => [
+            'created' => 'Created',
+            'updated' => 'Updated',
+            'deleted' => 'Deleted',
+        ],
+        'via' => 'via :name',
+        'from' => 'from :ip',
+        // The lines of the details of an entry.
+        'meta' => [
+            'time' => 'Time',
+            'user' => 'User',
+            'action' => 'Action',
+            'entity' => 'Entity',
+            'record' => 'Record',
+            'ip' => 'IP',
+            'browser' => 'Browser',
+            'via' => 'Via',
+        ],
+        'no_change' => 'No field was changed.',
+        // The calendar of "Custom range…".
+        'pick_start' => 'Select a start date',
+        'pick_end' => ':first – select an end date',
+        'cancel' => 'Cancel',
+        'apply' => 'Apply',
+    ],
+];

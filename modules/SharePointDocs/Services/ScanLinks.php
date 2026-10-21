@@ -116,12 +116,12 @@ class ScanLinks
             try {
                 $listing = $this->listing($folder, $refresh, $started, (bool) ($book['stale'] ?? false));
             } catch (GraphException $e) {
-                $scans[$index] = ['unavailable' => 'Kolom ' . self::COLUMN . ' belum bisa ditampilkan. ' . $e->userMessage()];
+                $scans[$index] = ['unavailable' => __('SharePointDocs::links.column_failed', ['column' => self::COLUMN, 'why' => $e->userMessage()])];
 
                 continue;
             }
             if ($listing['truncated']) {
-                $scans[$index] = ['unavailable' => 'Kolom ' . self::COLUMN . ' belum bisa ditampilkan: isi folder ' . self::folderTitle($folder) . ' terlalu banyak untuk dibaca seluruhnya, jadi status filenya tidak bisa dihitung.'];
+                $scans[$index] = ['unavailable' => __('SharePointDocs::links.column_too_many', ['column' => self::COLUMN, 'folder' => self::folderTitle($folder)])];
 
                 continue;
             }
@@ -129,7 +129,7 @@ class ScanLinks
             $files = array_values(array_filter($listing['items'], fn (array $item) => ! $item['folder']));
             $result = ScanRegister::checkRows($book['sheets'][$index], $files, $settings, self::separator($folder));
             if ($result === null) {
-                $scans[$index] = ['unavailable' => "Kolom \"{$settings['link']}\" tidak ditemukan di sheet {$title}, jadi status file scan tidak bisa dihitung."];
+                $scans[$index] = ['unavailable' => __('SharePointDocs::links.column_no_link', ['link' => $settings['link'], 'sheet' => $title])];
 
                 continue;
             }
@@ -199,21 +199,21 @@ class ScanLinks
         try {
             $book = $this->book($workbook, $refresh, $started, $firstStale);
         } catch (GraphException $e) {
-            return $offered + ['unavailable' => 'Kolom Masterlist dan Catatan belum bisa ditampilkan. ' . $e->workbookMessage()];
+            return $offered + ['unavailable' => __('SharePointDocs::links.register_failed', ['why' => $e->workbookMessage()])];
         }
 
         $index = self::sheetNamed($book['sheets'], $settings['sheet']);
         if ($index === null) {
-            return $offered + ['unavailable' => "Sheet {$settings['sheet']} tidak ada di workbook {$offered['title']}, jadi kolom Masterlist dan Catatan tidak bisa ditampilkan."];
+            return $offered + ['unavailable' => __('SharePointDocs::links.register_no_sheet', ['sheet' => $settings['sheet'], 'workbook' => $offered['title']])];
         }
         if ($book['sheets'][$index]['truncated']) {
-            return $offered + ['unavailable' => "Sheet {$settings['sheet']} terlalu panjang untuk dibaca seluruhnya, jadi kolom Masterlist dan Catatan tidak bisa dihitung."];
+            return $offered + ['unavailable' => __('SharePointDocs::links.register_too_long', ['sheet' => $settings['sheet']])];
         }
 
         $files = array_filter($items, fn (array $item) => ! $item['folder']);
         $result = ScanRegister::checkFiles($book['sheets'][$index], $files, $settings, self::separator($folder));
         if ($result === null) {
-            return $offered + ['unavailable' => "Kolom \"{$settings['link']}\" tidak ditemukan di sheet {$settings['sheet']}, jadi kolom Masterlist dan Catatan tidak bisa ditampilkan."];
+            return $offered + ['unavailable' => __('SharePointDocs::links.register_no_link', ['link' => $settings['link'], 'sheet' => $settings['sheet']])];
         }
 
         return $offered + ['files' => $result, 'fetched_at' => (int) $book['fetched_at'], 'stale' => (bool) $book['stale']];

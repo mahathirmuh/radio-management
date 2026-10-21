@@ -76,7 +76,7 @@ class MasterDataController extends Controller
         }
         $this->masters->create($master, $validator->validated());
 
-        return response()->json(['message' => "{$master['title']} berhasil ditambahkan."]);
+        return response()->json(['message' => __("RadioManagement::master.tables.{$master['key']}.created")]);
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -89,7 +89,7 @@ class MasterDataController extends Controller
         }
         $this->masters->update($master, $item, $validator->validated());
 
-        return response()->json(['message' => "{$master['title']} berhasil disimpan."]);
+        return response()->json(['message' => __("RadioManagement::master.tables.{$master['key']}.saved")]);
     }
 
     public function destroy(Request $request, $id): JsonResponse
@@ -101,8 +101,8 @@ class MasterDataController extends Controller
             $inUse = $this->masters->delete($master, $item);
         } catch (LockTimeoutException) {
             return response()->json([
-                'message' => 'Register sedang sibuk',
-                'errors' => ['Data radio sedang disimpan, atau impor Excel sedang berjalan. Coba lagi beberapa saat lagi.'],
+                'message' => __('RadioManagement::register.messages.busy'),
+                'errors' => [__('RadioManagement::master.messages.busy_text')],
             ], 409);
         }
 
@@ -110,7 +110,7 @@ class MasterDataController extends Controller
             return $this->invalid([MasterData::inUseMessage($inUse)]);
         }
 
-        return response()->json(['message' => "{$master['title']} dihapus."]);
+        return response()->json(['message' => __("RadioManagement::master.tables.{$master['key']}.deleted")]);
     }
 
     private function master(Request $request): array
@@ -123,6 +123,6 @@ class MasterDataController extends Controller
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $errors], 422);
     }
 }

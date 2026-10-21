@@ -27,29 +27,8 @@ use Modules\SharePointDocs\Services\MenuAccess;
  */
 class OpnameController extends Controller
 {
-    public const NOT_READY = 'Tabel stock opname belum dibuat di database. Jalankan "php artisan migrate" dulu.';
-
     /** The conditions a radio is found in (not "Belum dicek": it is being checked). */
     public const CONDITIONS = ['layak', 'perlu_service', 'rusak'];
-
-    /** The page is in Indonesian: so are its messages. */
-    private const MESSAGES = [
-        'required' => ':attribute wajib diisi.',
-        'in' => 'Pilihan :attribute tidak dikenal.',
-        'integer' => ':attribute tidak dikenal.',
-        'exists' => ':attribute tidak ada di master data.',
-        'max' => ['string' => ':attribute paling panjang :max huruf.'],
-    ];
-
-    private const NAMES = [
-        'department_id' => 'Department',
-        'company_id' => 'Company',
-        'radio_id' => 'Radio',
-        'holder' => 'Pemegang',
-        'holder_name' => 'Nama pemegang',
-        'condition' => 'Kondisi',
-        'note' => 'Catatan',
-    ];
 
     public function __construct(private readonly RadioOpnames $opnames)
     {
@@ -127,7 +106,7 @@ class OpnameController extends Controller
         $session = RadioOpnameSession::query()->findOrFail($opname);
         $radio = $this->opnames->find(mb_substr((string) $request->query('q'), 0, 60));
         if ($radio === null) {
-            return response()->json(['message' => 'Radio dengan Radio ID atau SN itu tidak ada di register.'], 404);
+            return response()->json(['message' => __('RadioManagement::opname.messages.not_in_register')], 404);
         }
 
         return response()->json(['data' => $this->opnames->card($session, $radio)]);
@@ -138,7 +117,7 @@ class OpnameController extends Controller
         return $this->found($request, $opname, function (RadioOpnameSession $session, Radio $radio, array $data) use ($request) {
             $this->opnames->scan($session, $radio, $data, $request->user());
 
-            return 'Radio ' . RadioOpnames::name($radio) . ' terverifikasi.';
+            return __('RadioManagement::opname.messages.verified', ['radio' => RadioOpnames::name($radio)]);
         });
     }
 
@@ -146,13 +125,16 @@ class OpnameController extends Controller
     public function report(Request $request, int $opname): JsonResponse
     {
         if (! MenuAccess::allows($request->user(), 'radio-management.service.store', 'Create') || ! ServiceTicket::ready()) {
-            return response()->json(['message' => 'Tidak diizinkan', 'errors' => ['Melaporkan masalah butuh izin membuat tiket di Servis & Perbaikan.']], 403);
+            return response()->json([
+                'message' => __('RadioManagement::opname.messages.not_allowed'),
+                'errors' => [__('RadioManagement::opname.messages.report_needs')],
+            ], 403);
         }
 
         return $this->found($request, $opname, function (RadioOpnameSession $session, Radio $radio, array $data) use ($request) {
             $ticket = $this->opnames->report($session, $radio, $data, $request->user());
 
-            return "Tiket {$ticket->number} dibuat untuk radio " . RadioOpnames::name($radio) . '.';
+            return __('RadioManagement::opname.messages.ticket', ['number' => $ticket->number, 'radio' => RadioOpnames::name($radio)]);
         });
     }
 
@@ -167,7 +149,7 @@ class OpnameController extends Controller
             $summary = $this->opnames->submit($session, $request->user());
 
             return response()->json([
-                'message' => "{$summary['verified']} radio terverifikasi di register.",
+                'message' => trans_choice('RadioManagement::opname.messages.sent', $summary['verified'], ['count' => $summary['verified']]),
                 'data' => $this->opnames->state($session->fresh()),
             ]);
         });
@@ -193,7 +175,7 @@ class OpnameController extends Controller
         $data = $validator->validated();
         $radio = Radio::withTrashed()->find((int) $data['radio_id']);
         if ($radio === null) {
-            return response()->json(['message' => 'Radio itu tidak ada di register.'], 404);
+            return response()->json(['message' => __('RadioManagement::opname.messages.radio_missing')], 404);
         }
 
         return $this->saving(fn () => response()->json([
@@ -210,11 +192,19 @@ class OpnameController extends Controller
         ];
     }
 
+    /** The messages are those of the page, in its language (RadioManagement::opname.rules and .fields). */
     private function validator(array $values, array $rules): \Illuminate\Validation\Validator
     {
+        $say = fn (string $rule) => __('RadioManagement::opname.rules.' . $rule);
+
         return Validator::make($values, $rules, [
-            'department_id.required' => 'Pilih department yang dihitung.',
-        ] + self::MESSAGES, self::NAMES);
+            'department_id.required' => __('RadioManagement::opname.page.pick_counted'),
+            'required' => $say('required'),
+            'in' => $say('in'),
+            'integer' => $say('integer'),
+            'exists' => $say('exists'),
+            'max' => ['string' => $say('max')],
+        ], __('RadioManagement::opname.fields'));
     }
 
     /**
@@ -229,19 +219,21 @@ class OpnameController extends Controller
             return $this->invalid($e->validator->errors()->all());
         } catch (LockTimeoutException) {
             return response()->json([
-                'message' => 'Register sedang sibuk',
-                'errors' => ['Data radio lain sedang disimpan, atau impor Excel sedang berjalan. Coba lagi beberapa saat lagi.'],
+                'message' => __('RadioManagement::register.messages.busy'),
+                'errors' => [__('RadioManagement::register.messages.busy_text')],
             ], 409);
         }
     }
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $errors], 422);
     }
 
     private function notReady(): JsonResponse
     {
-        return response()->json(['message' => self::NOT_READY, 'errors' => [self::NOT_READY]], 503);
+        $text = __('RadioManagement::opname.not_ready');
+
+        return response()->json(['message' => $text, 'errors' => [$text]], 503);
     }
 }

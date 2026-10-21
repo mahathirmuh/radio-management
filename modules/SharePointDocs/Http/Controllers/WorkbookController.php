@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Modules\SharePointDocs\Services\CellEdits;
+use Modules\SharePointDocs\Services\ConfigWords;
 use Modules\SharePointDocs\Services\EditException;
 use Modules\SharePointDocs\Services\GraphException;
 use Modules\SharePointDocs\Services\MenuAccess;
@@ -40,7 +41,7 @@ class WorkbookController extends Controller
             ],
             'workbookKey' => $workbook,
             'title' => $settings['title'],
-            'subtitle' => $settings['subtitle'],
+            'subtitle' => ConfigWords::of("workbook.workbooks.{$workbook}.subtitle", $settings['subtitle']),
             'configured' => $this->workbooks->configured($workbook),
             'cacheMinutes' => max(1, (int) config('sharepoint-docs.cache_minutes', 10)),
         ]);
@@ -75,6 +76,8 @@ class WorkbookController extends Controller
                 'page' => (int) self::text($request, 'page'),
                 // Whether the reader may ask for a change of a cell (Update on the menu).
                 'edit' => CellEdits::enabled($workbook) && MenuAccess::allows($request->user(), "documents.{$workbook}.edit", 'Update'),
+                // What a cell that waits for a decision is to hold, as this page says it.
+                'locale' => app()->getLocale(),
             ]);
         } catch (GraphException $e) {
             Log::warning('SharePoint workbook could not be read.', ['workbook' => $workbook, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
@@ -144,7 +147,7 @@ class WorkbookController extends Controller
         }
 
         return response()->json([
-            'message' => "Pengajuan perubahan sel {$made->cell} dikirim. Isi workbook baru berubah setelah disetujui.",
+            'message' => __('SharePointDocs::workbook.asked', ['cell' => $made->cell]),
             'id' => $made->id,
             'cell' => $made->cell,
             'status' => $made->status,
@@ -168,7 +171,7 @@ class WorkbookController extends Controller
         $values = [];
         foreach ($data['values'] as $column => $value) {
             if (! is_int($column) && ! ctype_digit((string) $column)) {
-                return response()->json(['message' => 'Kolom yang diubah tidak dikenal. Muat ulang halaman.'], 422);
+                return response()->json(['message' => __('SharePointDocs::workbook.column_unknown')], 422);
             }
             $values[(int) $column] = $value === null ? '' : (string) $value;
         }
@@ -186,8 +189,8 @@ class WorkbookController extends Controller
         $line = (int) $data['line'];
 
         return response()->json([
-            'message' => $made === [] ? "Isi baris {$line} di SharePoint sudah seperti itu; tidak ada yang ditulis."
-                : "Baris {$line} tersimpan ke SharePoint (" . count($made) . ' sel).',
+            'message' => $made === [] ? __('SharePointDocs::workbook.row_same', ['line' => $line])
+                : trans_choice('SharePointDocs::workbook.row_saved', count($made), ['line' => $line, 'count' => count($made)]),
             'cells' => array_map(fn ($one) => $one->cell, $made),
         ]);
     }

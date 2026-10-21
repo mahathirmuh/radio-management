@@ -50,9 +50,9 @@
         <div class="modal-content">
             <div class="rm-dialog-head">
                 <div class="rm-dialog-titles">
-                    <h3 class="rm-dialog-title modal-title" id="userModalTitle">Title</h3>
+                    <h3 class="rm-dialog-title modal-title" id="userModalTitle">{{ __('UserManagement::users.form.add_title') }}</h3>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('UserManagement::users.form.close') }}"><i
                         class="ti ti-x"></i></button>
             </div>
             <form id="form" autocomplete="off">
@@ -64,7 +64,7 @@
                                  form checks its password against Active Directory. Microsoft: it has none. Always asked
                                  once the column is there (before its migration there is one method, so no choice). --}}
                             <div class="rm-form-row" role="radiogroup" aria-labelledby="userMethodLabel">
-                                <span class="rm-form-label required pt-0" id="userMethodLabel">Sign-in method</span>
+                                <span class="rm-form-label required pt-0" id="userMethodLabel">{{ __('UserManagement::users.form.method') }}</span>
                                 <div class="rm-radios">
                                     @foreach ($signInMethods as $method)
                                         <label class="rm-radio">
@@ -92,59 +92,46 @@
                                  username): choosing them is surer than typing them. Where it searches follows the method:
                                  Active Directory for LDAP, the employee directory of HR for Microsoft (see lookupSources()). --}}
                             <div class="rm-form-row" id="userLookupRow">
-                                <label for="employeeLookup" class="rm-form-label">Find employee</label>
+                                <label for="employeeLookup" class="rm-form-label">{{ __('UserManagement::users.form.find') }}</label>
                                 <div class="rm-form-field rm-field">
                                     <div class="rm-search w-100">
                                         <i class="ti ti-search" aria-hidden="true"></i>
                                         <input type="search" id="employeeLookup"
-                                            placeholder="Name or work email.." autocomplete="off">
+                                            placeholder="{{ __('UserManagement::users.form.hr.placeholder') }}" autocomplete="off">
                                     </div>
-                                    <div class="rm-hint" id="employeeLookupHint">
-                                        Optional. Choosing somebody fills in their name and work address, which
-                                        is the address Microsoft signs them in with.
-                                    </div>
+                                    <div class="rm-hint" id="employeeLookupHint">{{ __('UserManagement::users.form.hr.hint') }}</div>
                                     <div id="employeeMatches" aria-live="polite"></div>
                                 </div>
                             </div>
                         @endif
 
                         <div class="rm-form-row">
-                            <label for="name" class="rm-form-label required">Name</label>
+                            <label for="name" class="rm-form-label required">{{ __('UserManagement::users.form.name') }}</label>
                             <div class="rm-form-field rm-field">
                                 <input type="text" id="name" class="form-control" name="name"
-                                    placeholder="Name.." autocomplete="off" required>
+                                    placeholder="{{ __('UserManagement::users.form.name_placeholder') }}" autocomplete="off" required>
                             </div>
                         </div>
                         <div class="rm-form-row">
-                            <label for="email" class="rm-form-label required">Email</label>
+                            <label for="email" class="rm-form-label required">{{ __('UserManagement::users.form.email') }}</label>
                             <div class="rm-form-field rm-field">
                                 <input type="email" id="email" class="form-control" name="email"
-                                    placeholder="Email.." autocomplete="off" required>
+                                    placeholder="{{ __('UserManagement::users.form.email_placeholder') }}" autocomplete="off" required>
                             </div>
                         </div>
 
                         @if (count($signInMethods) > 1)
                             <div class="rm-form-row" id="userDirectoryRow">
-                                <label for="ldapUsername" class="rm-form-label">Directory username</label>
+                                <label for="ldapUsername" class="rm-form-label">{{ __('UserManagement::users.form.directory_username') }}</label>
                                 <div class="rm-form-field rm-field">
                                     <input type="text" id="ldapUsername" class="form-control" name="ldap_username"
                                         maxlength="128" autocomplete="off"
-                                        placeholder="Taken from the email if left blank">
-                                    <div class="rm-hint">
-                                        The Active Directory account this person signs in with. Choosing somebody in
-                                        Find employee fills it in; left blank it is taken from the part of the email
-                                        before the &commat;. It is checked against the directory when the account is
-                                        saved. No password is stored here; the one they already use is checked against
-                                        the directory each time.
-                                    </div>
+                                        placeholder="{{ __('UserManagement::users.form.directory_placeholder') }}">
+                                    <div class="rm-hint">{{ __('UserManagement::users.form.directory_hint') }}</div>
                                     @unless ($ldapConfigured)
                                         {{-- Said, instead of the choice going away: a setting that went missing
                                              should show where it is missed. --}}
-                                        <div class="rm-hint text-orange" id="userLdapOffNote">
-                                            Active Directory is not set up on this server (LDAP_URL and LDAP_BIND_DN
-                                            in .env). Until it is, this account cannot sign in with its directory
-                                            password; it can with Microsoft.
-                                        </div>
+                                        <div class="rm-hint text-orange" id="userLdapOffNote">{{ __('UserManagement::users.form.ldap_off') }}</div>
                                     @endunless
                                 </div>
                             </div>
@@ -154,18 +141,16 @@
                                 <span></span>
                                 <div class="rm-alert" role="alert">
                                     <i class="ti ti-info-circle" aria-hidden="true"></i>
-                                    <span>No directory username is recorded for this account. The email above must
-                                        be the address Microsoft knows this person by &mdash; that is how
-                                        Microsoft sign-in finds the account.</span>
+                                    <span>{{ __('UserManagement::users.form.microsoft_note') }}</span>
                                 </div>
                             </div>
                         @endif
 
                         <div class="rm-form-row">
-                            <label for="roleSelect" class="rm-form-label required">Role</label>
+                            <label for="roleSelect" class="rm-form-label required">{{ __('UserManagement::users.form.role') }}</label>
                             <div class="rm-form-field rm-field">
                                 <select id="roleSelect" name="role_id[]" class="form-select" required>
-                                    <option value="">Select role</option>
+                                    <option value="">{{ __('UserManagement::users.form.select_role') }}</option>
                                     @foreach ($roles as $role)
                                         <option value="{{ $role->id }}">{{ $role->name }}</option>
                                     @endforeach
@@ -175,24 +160,24 @@
                         </div>
 
                         <div class="rm-form-row">
-                            <label for="statusSelect" class="rm-form-label required">Status</label>
+                            <label for="statusSelect" class="rm-form-label required">{{ __('UserManagement::users.form.status') }}</label>
                             <div class="rm-form-field rm-field">
                                 <select id="statusSelect" name="active" class="form-select" required>
-                                    <option value="1">Active</option>
-                                    <option value="0">Inactive</option>
+                                    <option value="1">{{ __('UserManagement::users.form.active') }}</option>
+                                    <option value="0">{{ __('UserManagement::users.form.inactive') }}</option>
                                 </select>
-                                <div class="rm-hint d-none" id="userOwnStatusNote">Your own account stays active.</div>
+                                <div class="rm-hint d-none" id="userOwnStatusNote">{{ __('UserManagement::users.form.own_status') }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="rm-dialog-foot is-plain" id="actionButtons">
-                    <a href="#" class="rm-link-muted" data-bs-dismiss="modal" role="button">Cancel</a>
+                    <a href="#" class="rm-link-muted" data-bs-dismiss="modal" role="button">{{ __('UserManagement::users.form.cancel') }}</a>
                     <button type="submit" class="btn-rm update" onclick="userSubmit(event, this)" id="userModalUpdateButton"
-                        data-type="edit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Update</button>
+                        data-type="edit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> {{ __('UserManagement::users.form.update') }}</button>
                     <button type="submit" class="btn-rm primary" onclick="userSubmit(event, this)" id="userModalSubmitButton"
-                        data-type="submit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Submit</button>
+                        data-type="submit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> {{ __('UserManagement::users.form.submit') }}</button>
                 </div>
             </form>
         </div>
@@ -207,31 +192,28 @@
             <div class="rm-dialog-head">
                 <span class="rm-dialog-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
                 <div class="rm-dialog-titles">
-                    <h3 class="rm-dialog-title modal-title" id="userPasswordTitle">Set password</h3>
+                    <h3 class="rm-dialog-title modal-title" id="userPasswordTitle">{{ __('UserManagement::users.password.title') }}</h3>
                     <p class="rm-dialog-sub" id="userPasswordWho"></p>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('UserManagement::users.form.close') }}"><i
                         class="ti ti-x"></i></button>
             </div>
             <div class="rm-dialog-body is-form">
                 <div class="rm-field">
-                    <label for="userPassword" class="form-label required">New password</label>
+                    <label for="userPassword" class="form-label required">{{ __('UserManagement::users.password.new') }}</label>
                     <input type="password" id="userPassword" class="form-control" autocomplete="new-password"
-                        maxlength="72" required placeholder="At least 8 characters, with a letter and a number">
+                        maxlength="72" required placeholder="{{ __('UserManagement::users.password.new_placeholder') }}">
                 </div>
                 <div class="rm-field">
-                    <label for="userPasswordAgain" class="form-label required">Repeat the password</label>
+                    <label for="userPasswordAgain" class="form-label required">{{ __('UserManagement::users.password.again') }}</label>
                     <input type="password" id="userPasswordAgain" class="form-control"
-                        autocomplete="new-password" maxlength="72" required placeholder="Repeat the password">
-                    <div class="rm-hint">
-                        With it the account can sign in through the e-mail + password form, next to Microsoft. It is
-                        not sent to the user: pass it on yourself.
-                    </div>
+                        autocomplete="new-password" maxlength="72" required placeholder="{{ __('UserManagement::users.password.again') }}">
+                    <div class="rm-hint">{{ __('UserManagement::users.password.hint') }}</div>
                 </div>
             </div>
             <div class="rm-dialog-foot">
-                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn-rm primary" id="userPasswordSaveButton">Save</button>
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('UserManagement::users.password.cancel') }}</button>
+                <button type="submit" class="btn-rm primary" id="userPasswordSaveButton">{{ __('UserManagement::users.password.save') }}</button>
             </div>
         </form>
     </div>
@@ -252,6 +234,9 @@
         const userLookupSources = @json($lookupSources);
         // The role a new user starts with (the one that only reads), when this form lists it.
         const userDefaultRole = @json($defaultRoleId ? (string) $defaultRoleId : '');
+        // The words of the form and of setting a password, in the language of the page (UserManagement::users).
+        const userFormText = @json(__('UserManagement::users.form'));
+        const userPasswordText = @json(__('UserManagement::users.password'));
     </script>
 
     {{-- sign-in method --}}
@@ -303,22 +288,10 @@
             const minimum = {{ (int) $directoryMinimum }};
             let asked = 0;
             let source = null;
-            // What the search box says and asks, for each place it can look.
+            // What the search box says and asks, for each place it can look (placeholder, hint, failed, none).
             const sources = {
-                hr: {
-                    url: urlUserEmployees,
-                    placeholder: "Name or work email..",
-                    hint: "Optional. Choosing somebody fills in their name and work address, which is the address Microsoft signs them in with.",
-                    failed: "The employee directory could not be searched just now (the reason is in the application log). Type the name and the address yourself.",
-                    none: "No match in the employee directory. Type the address yourself if you know it.",
-                },
-                directory: {
-                    url: urlUserDirectory,
-                    placeholder: "Name, username or email..",
-                    hint: "Optional. Searches Active Directory: choosing somebody fills in their name, email and directory username as the directory has them.",
-                    failed: "Active Directory could not be searched just now (the reason is in the application log). Type the name, the address and the directory username yourself.",
-                    none: "No match in Active Directory. Check the spelling, or type the details yourself.",
-                },
+                hr: { url: urlUserEmployees, ...userFormText.hr },
+                directory: { url: urlUserDirectory, ...userFormText.directory },
             };
 
             resetEmployeeLookup = () => {
@@ -379,7 +352,7 @@
                 list.appendTo(matches);
                 if (more) {
                     $('<div class="mt-1 user-directory-note text-secondary">')
-                        .text("More people match than are shown: type more of the name.")
+                        .text(userFormText.more)
                         .appendTo(matches);
                 }
             };
@@ -429,11 +402,11 @@
 
             const stateProperty = {
                 'edit': {
-                    'title': 'Edit user',
+                    'title': userFormText.edit_title,
                     'actionButtons': ['edit']
                 },
                 'add': {
-                    'title': 'Add new user',
+                    'title': userFormText.add_title,
                     'actionButtons': ['submit']
                 }
             };
@@ -483,7 +456,7 @@
                     },
                     error: function(xhr, status, error) {
                         const r = xhr.responseJSON || {};
-                        Swal.fire("Error!", r.message || "The user could not be loaded.", "error");
+                        Swal.fire(userFormText.error, r.message || userFormText.load_failed, "error");
                     }
                 });
             } else {
@@ -505,7 +478,7 @@
             modal.data("otherRoles", count);
             modal.find("#userOtherRolesNote")
                 .toggleClass("d-none", count === 0)
-                .text(count + " other role(s) of this user are not listed here because you cannot manage them. They stay as they are.");
+                .text(rmFill(userFormText.other_roles, { count }));
         };
 
         // Nobody sets their own account to inactive (the server refuses it as well): there the choice is shown, not offered.
@@ -569,10 +542,10 @@
                 layout: "center",
                 tone: "sky",
                 icon: "help-circle",
-                title: "Is the data correct?",
-                text: "This action will " + (state === "submit" ? "add" : "update") + " the user!",
-                confirmText: '<i class="ti ti-check"></i> Save',
-                cancelText: '<i class="ti ti-x"></i> Cancel',
+                title: userFormText.confirm_title,
+                text: state === "submit" ? userFormText.confirm_add : userFormText.confirm_update,
+                confirmText: '<i class="ti ti-check"></i> ' + userFormText.save,
+                cancelText: '<i class="ti ti-x"></i> ' + userFormText.cancel,
             }).then((result) => {
                 if (!result.isConfirmed) {
                     return;
@@ -580,16 +553,16 @@
                 let errors = [];
 
                 if (!formData.get("name")) {
-                    errors.push("<strong>Name</strong> cannot be empty");
+                    errors.push(userFormText.name_required);
                 }
 
                 if (!formData.get("email")) {
-                    errors.push("<strong>Email</strong> cannot be empty");
+                    errors.push(userFormText.email_required);
                 }
 
                 const keepsOtherRoles = state !== "submit" && Number(modal.data("otherRoles")) > 0;
                 if (!formData.getAll("role_id[]").length && !keepsOtherRoles) {
-                    errors.push("<strong>Role</strong> must be selected");
+                    errors.push(userFormText.role_required);
                 }
 
                 if (errors.length > 0) {
@@ -605,16 +578,16 @@
                     contentType: false,
                     success: function(response) {
                         modal.modal("hide");
-                        rmFeedback.toast("User data has been saved!");
+                        rmFeedback.toast(userFormText.saved);
                         userRegisteredTable();
                     },
                     error: function(xhr, status, error) {
                         // Show the reason the server gave ("text" is rendered as plain text, never as HTML).
                         const r = xhr.responseJSON || {};
-                        const reasons = [].concat(r.errors || r.message || r.error || "There was a problem saving the user!");
+                        const reasons = [].concat(r.errors || r.message || r.error || userFormText.save_failed);
                         Swal.fire({
                             icon: "error",
-                            title: "Error!",
+                            title: userFormText.error,
                             text: reasons.join(" "),
                         });
                     },
@@ -632,16 +605,14 @@
 
         const userStatus = (id, active) => {
             $('[data-bs-toggle="tooltip"]').tooltip("hide");
-            const name = userRowName(id) || "The user";
+            const name = userRowName(id) || userFormText.the_user;
             rmDialog.confirm({
                 tone: active ? "green" : "orange",
                 icon: active ? "user-check" : "alert-triangle",
-                title: active ? "Activate this user?" : "Deactivate this user?",
-                text: active ?
-                    name + " will be able to sign in again." :
-                    name + " will not be able to sign in, and is signed out. The account and its history stay.",
-                confirmText: active ? "Activate" : "Deactivate",
-                cancelText: "Cancel",
+                title: active ? userFormText.activate_title : userFormText.deactivate_title,
+                text: rmFill(active ? userFormText.activate_text : userFormText.deactivate_text, { name }),
+                confirmText: active ? userFormText.activate : userFormText.deactivate,
+                cancelText: userFormText.cancel,
                 confirmKind: active ? "success" : "primary",
             }).then((result) => {
                 if (!result.isConfirmed) {
@@ -660,8 +631,8 @@
                     error: function(xhr) {
                         Swal.fire({
                             icon: "error",
-                            title: "Error!",
-                            text: userReason(xhr, "The status could not be changed.")
+                            title: userFormText.error,
+                            text: userReason(xhr, userFormText.status_failed)
                         });
                     }
                 });
@@ -695,10 +666,10 @@
 
                 let errors = [];
                 if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-                    errors.push("<strong>Password</strong> needs at least 8 characters, with a letter and a number");
+                    errors.push(userPasswordText.too_weak);
                 }
                 if (password !== again) {
-                    errors.push("The two passwords are <strong>not the same</strong>");
+                    errors.push(userPasswordText.not_same);
                 }
                 if (errors.length > 0) {
                     showError(errors);
@@ -720,8 +691,8 @@
                     error: function(xhr) {
                         Swal.fire({
                             icon: "error",
-                            title: "Error!",
-                            text: userReason(xhr, "The password could not be saved.")
+                            title: userPasswordText.error,
+                            text: userReason(xhr, userPasswordText.failed)
                         });
                     },
                     complete: function() {
@@ -736,10 +707,10 @@
             rmDialog.confirm({
                 tone: "red",
                 icon: "trash",
-                title: "Are you sure?",
-                text: "This action cannot be undone!",
-                confirmText: '<i class="ti ti-trash"></i> Yes, delete it!',
-                cancelText: "Cancel",
+                title: userFormText.delete_title,
+                text: userFormText.delete_text,
+                confirmText: '<i class="ti ti-trash"></i> ' + userFormText.delete_confirm,
+                cancelText: userFormText.cancel,
                 confirmKind: "destructive",
             }).then((result) => {
                 if (!result.isConfirmed) {
@@ -759,11 +730,11 @@
                         userRegisteredTable();
                     },
                     error: function(xhr) {
-                        let errorMessage = "Something went wrong!";
+                        let errorMessage = userFormText.delete_failed;
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMessage = xhr.responseJSON.message;
                         }
-                        Swal.fire("Error!", errorMessage, "error");
+                        Swal.fire(userFormText.error, errorMessage, "error");
                     }
                 });
             });

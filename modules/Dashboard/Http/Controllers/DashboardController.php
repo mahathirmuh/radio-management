@@ -8,9 +8,13 @@ use App\Models\Organization\Company;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Exception;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Modules\RadioManagement\Enums\Condition;
+use Modules\RadioManagement\Enums\Placement;
 use Modules\RadioManagement\Models\RadioHistory;
+use Modules\RadioManagement\Services\RadioCheckService;
 use Modules\RadioManagement\Services\RadioSummary;
 
 class DashboardController extends Controller
@@ -52,10 +56,24 @@ class DashboardController extends Controller
         }
     }
 
-    /** Figures for the radio dashboard (active radios unless stated otherwise; RadioSummary, which the API shows too). */
+    /**
+     * Figures for the radio dashboard (active radios unless stated otherwise; RadioSummary, which the API shows too). The
+     * API keeps the names as they are stored; the page shows them in its language.
+     */
     private function radioSummary(): array
     {
-        return app(RadioSummary::class)->figures() + [
+        $figures = app(RadioSummary::class)->figures();
+        $named = fn (Collection $counts) => $counts->mapWithKeys(
+            fn ($count, $name) => [($name === RadioSummary::NO_NAME ? __('Dashboard::dashboard.no_name') : $name) => $count]
+        );
+
+        return [
+            'placements' => $figures['placements']->map(fn (array $placement) => ['label' => Placement::from($placement['value'])->display()] + $placement),
+            'conditions' => $figures['conditions']->map(fn (array $condition) => ['label' => Condition::from($condition['value'])->display()] + $condition),
+            'issues' => $figures['issues']->map(fn (array $issue) => ['label' => RadioCheckService::label($issue['code'])] + $issue),
+            'byCompany' => $named($figures['byCompany']),
+            'byType' => $named($figures['byType']),
+        ] + $figures + [
             'recentHistory' => RadioHistory::query()->with(['radio', 'user'])
                 ->where('action', '!=', 'Impor')
                 ->orderByDesc('event_date')->orderByDesc('id')

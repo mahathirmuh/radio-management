@@ -10,5 +10,6 @@ class AuditLogServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/AuditLog/Routes/web/audit-log.php'));
         $this->loadViewsFrom(base_path('modules/AuditLog/Resources/views'), 'AuditLog');
+        $this->loadTranslationsFrom(base_path('modules/AuditLog/Resources/lang'), 'AuditLog');
     }
 }

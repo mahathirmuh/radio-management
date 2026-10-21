@@ -21,10 +21,27 @@ use Modules\RadioManagement\Models\ServiceTicketEvent;
  *
  * Opening and moving run one at a time on the register (RegisterLock): the number of a new ticket is the next one, a radio
  * has one open ticket at most, and a step that moves the radio (sent, back) changes the radio and writes its history in
- * the same turn. A refused write is a ValidationException carrying the message to show, as in RadioService.
+ * the same turn. A refused write is a ValidationException carrying the message to show (in the language of the page), as
+ * in RadioService.
+ *
+ * What a ticket writes down (its activity, the radio's history, the audit trail) is in Indonesian, whatever the language
+ * of the page: a step in the activity in the forms of RadioManagement::service.events, which eventText() reads back to
+ * show it in another language.
  */
 class ServiceTickets
 {
+    /** The language what is written down is kept in. */
+    private const KEPT = 'id';
+
+    /** The forms a step is written down in (RadioManagement::service.events), each step's longer one first. */
+    private const EVENT_FORMS = [
+        ServiceTicket::REPORTED => ['reported'],
+        ServiceTicket::SENT => ['sent_ba', 'sent'],
+        ServiceTicket::IN_REPAIR => ['in_repair_quote', 'in_repair'],
+        ServiceTicket::READY => ['ready_cost', 'ready'],
+        ServiceTicket::RETURNED => ['returned'],
+    ];
+
     public function __construct(private RegisterLock $lock, private RadioService $radios)
     {
     }
@@ -37,14 +54,14 @@ class ServiceTickets
         return $this->lock->run(function () use ($data, $user) {
             $radio = Radio::query()->with(['radioType', 'department'])->find($data['radio_id']);
             if ($radio === null) {
-                $this->refuse('Radio itu tidak ada di register.');
+                $this->refuse(__('RadioManagement::service.refusals.not_in_register'));
             }
             if ($radio->isArchived()) {
-                $this->refuse('Radio yang diarsipkan tidak bisa diservis. Pulihkan dulu.');
+                $this->refuse(__('RadioManagement::service.refusals.archived'));
             }
             $open = ServiceTicket::query()->where('radio_id', $radio->id)->whereIn('status', ServiceTicket::OPEN)->value('number');
             if ($open !== null) {
-                $this->refuse("Radio ini masih punya tiket servis yang terbuka: {$open}.");
+                $this->refuse(__('RadioManagement::service.refusals.open', ['number' => $open]));
             }
 
             $ticket = ServiceTicket::create([
@@ -60,7 +77,7 @@ class ServiceTickets
                 'created_by' => $user?->id,
                 'updated_by' => $user?->id,
             ]);
-            $this->event($ticket, ServiceTicketEvent::STATUS, 'Dilaporkan: ' . $ticket->issue, $user, ServiceTicket::REPORTED);
+            $this->event($ticket, ServiceTicketEvent::STATUS, self::written('reported', ['issue' => $ticket->issue]), $user, ServiceTicket::REPORTED);
             $this->audit(AuditLogger::SERVICE_CREATED, $ticket, null, [
                 'Radio' => $ticket->radio_label,
                 'Masalah' => $ticket->issue,
@@ -89,10 +106,10 @@ class ServiceTickets
             $ticket->refresh();
             $next = $ticket->nextStatus();
             if ($next === null) {
-                $this->refuse('Tiket ini sudah selesai: radionya sudah kembali.');
+                $this->refuse(__('RadioManagement::service.refusals.finished'));
             }
             if ($status !== $next) {
-                $this->refuse('Tiket ini sudah dipindah orang lain. Muat ulang halaman.');
+                $this->refuse(__('RadioManagement::service.refusals.moved'));
             }
 
             $before = $this->facts($ticket);
@@ -109,7 +126,9 @@ class ServiceTickets
                         'quote' => self::amount($data['quote'] ?? null),
                         'placement_before' => $radio?->placement?->value,
                     ]);
-                    $words = 'Dikirim ke ' . $ticket->service_center . ($ticket->document_no ? ' · BA ' . $ticket->document_no : '');
+                    $words = $ticket->document_no
+                        ? self::written('sent_ba', ['center' => $ticket->service_center, 'ba' => $ticket->document_no])
+                        : self::written('sent', ['center' => $ticket->service_center]);
                     if ($radio !== null) {
                         $this->radios->serviceStep($radio, ['placement' => Placement::Service->value],
                             "Dikirim ke {$ticket->service_center} ({$ticket->number}): {$ticket->issue}",
@@ -122,12 +141,12 @@ class ServiceTickets
                         'quote' => self::amount($data['quote'] ?? null),
                         'expected_at' => self::date($data['expected_at'] ?? null),
                     ], fn ($value) => $value !== null));
-                    $words = 'Mulai diperbaiki' . ($ticket->quote ? ' · penawaran ' . self::rupiah($ticket->quote) : '');
+                    $words = $ticket->quote ? self::written('in_repair_quote', ['quote' => self::rupiah($ticket->quote)]) : self::written('in_repair');
                     break;
 
                 case ServiceTicket::READY:
                     $ticket->cost = self::amount($data['cost'] ?? null) ?? $ticket->cost;
-                    $words = 'Siap diambil' . ($ticket->cost ? ' · biaya ' . self::rupiah($ticket->cost) : '');
+                    $words = $ticket->cost ? self::written('ready_cost', ['cost' => self::rupiah($ticket->cost)]) : self::written('ready');
                     break;
 
                 default: // returned
@@ -137,7 +156,7 @@ class ServiceTickets
                         'returned_at' => self::date($data['returned_at'] ?? null) ?? $today,
                         'cost' => self::amount($data['cost'] ?? null) ?? $ticket->cost,
                     ]);
-                    $words = "Kembali: {$placement->label()} · {$condition->label()}";
+                    $words = self::written('returned', ['placement' => $placement->label(), 'condition' => $condition->label()]);
                     if ($radio !== null) {
                         $this->radios->serviceStep($radio, ['placement' => $placement->value, 'condition' => $condition->value],
                             "Kembali dari {$ticket->service_center} ({$ticket->number}). Kondisi: {$condition->label()}.",
@@ -241,6 +260,53 @@ class ServiceTickets
         return 'Rp ' . number_format($amount, 0, ',', '.');
     }
 
+    /**
+     * A line of the activity of a ticket as the page shows it, in its language (or in $locale). A note shows as it was
+     * typed. A step shows in the words of that language, with what was written into it (the service center, the BA, an
+     * amount) as it was written, and a location or a condition by its name in that language; a line that is in none of
+     * the forms (written before them) shows as it was written.
+     */
+    public static function eventText(ServiceTicketEvent $event, ?string $locale = null): string
+    {
+        $note = (string) $event->note;
+        $locale ??= app()->getLocale();
+        if ($event->kind !== ServiceTicketEvent::STATUS || $locale === self::KEPT) {
+            return $note;
+        }
+        foreach (self::EVENT_FORMS[$event->status] ?? [] as $form) {
+            $values = self::read(self::written($form), $note);
+            if ($values === null) {
+                continue;
+            }
+            if (isset($values['placement'])) {
+                $values['placement'] = self::named(Placement::cases(), $values['placement'], $locale);
+            }
+            if (isset($values['condition'])) {
+                $values['condition'] = self::named(Condition::cases(), $values['condition'], $locale);
+            }
+
+            return __('RadioManagement::service.events.' . $form, $values, $locale);
+        }
+
+        return $note;
+    }
+
+    /**
+     * A location or a condition written down by the name kept (label()), by its name in $locale; another name stays.
+     *
+     * @param array<int, Placement|Condition> $cases
+     */
+    private static function named(array $cases, string $kept, string $locale): string
+    {
+        foreach ($cases as $case) {
+            if ($case->label() === $kept) {
+                return $case->display($locale);
+            }
+        }
+
+        return $kept;
+    }
+
     /** The ticket as the audit trail shows a change of it. */
     private function facts(ServiceTicket $ticket): array
     {
@@ -267,6 +333,23 @@ class ServiceTickets
         } while (ServiceTicket::query()->where('number', $candidate)->exists());
 
         return $candidate;
+    }
+
+    /** A step in the activity as it is written down: $form of RadioManagement::service.events, in Indonesian. */
+    private static function written(string $form, array $values = []): string
+    {
+        return __('RadioManagement::service.events.' . $form, $values, self::KEPT);
+    }
+
+    /** What $line holds in the places of the :names of $form, or null when it is not written in that form. */
+    private static function read(string $form, string $line): ?array
+    {
+        $pattern = preg_replace('/\\\\:([a-z_]+)/', '(?<$1>.+?)', preg_quote($form, '/'));
+        if (! preg_match('/^' . $pattern . '\z/su', $line, $found)) {
+            return null;
+        }
+
+        return array_filter($found, 'is_string', ARRAY_FILTER_USE_KEY);
     }
 
     private function event(ServiceTicket $ticket, string $kind, string $note, ?User $user, ?string $status = null): ServiceTicketEvent

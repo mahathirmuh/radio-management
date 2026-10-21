@@ -93,7 +93,8 @@ class NotificationController extends Controller
             'title' => $notification->title,
             'body' => $notification->body,
             'read' => $notification->read_at !== null,
-            'when' => $notification->created_at?->locale('id')->diffForHumans(),
+            // In the language of the page ("5 menit yang lalu", "5 minutes ago").
+            'when' => $notification->created_at?->diffForHumans(),
             'at' => $notification->created_at?->format('d-m-Y H:i'),
             'open' => route('notifications.open', $notification->id),
         ];

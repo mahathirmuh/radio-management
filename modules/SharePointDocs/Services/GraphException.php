@@ -6,7 +6,8 @@ use RuntimeException;
 
 /**
  * Why a folder or a file of SharePoint could not be shown. The message is the technical detail
- * for the log; the page shows userMessage(), which never contains anything Microsoft sent back.
+ * for the log; the page shows userMessage(), which never contains anything Microsoft sent back
+ * (SharePointDocs::graph, in the language of the request unless another is asked for).
  */
 class GraphException extends RuntimeException
 {
@@ -63,46 +64,32 @@ class GraphException extends RuntimeException
         parent::__construct($detail);
     }
 
-    public function userMessage(): string
+    public function userMessage(?string $locale = null): string
     {
-        return match ($this->reason) {
-            self::NOT_CONFIGURED => 'Alamat folder SharePoint atau akun aplikasi Microsoft belum diisi di pengaturan (.env).',
-            self::CREDENTIALS => 'Aplikasi tidak bisa masuk ke Microsoft. Periksa tenant, client id dan client secret di pengaturan (client secret mungkin sudah kedaluwarsa).',
-            self::FORBIDDEN => 'Aplikasi tidak punya izin membaca folder ini di SharePoint (perlu izin aplikasi Sites.Read.All dengan admin consent).',
-            self::NOT_FOUND => 'Folder tidak ditemukan di SharePoint. Mungkin sudah dipindahkan atau dihapus, atau alamat di pengaturan keliru.',
-            self::NOT_A_FOLDER => 'Alamat di pengaturan menunjuk ke sebuah file, bukan folder.',
-            self::UNSUPPORTED => 'File ini tidak bisa ditampilkan di sini (hanya PDF dan gambar). Buka di SharePoint.',
-            self::TOO_LARGE => 'File ini terlalu besar untuk ditampilkan di sini. Buka di SharePoint.',
-            self::TOO_SLOW => 'File ini terlalu lama diambil dari SharePoint (koneksi lambat atau file besar). Buka di SharePoint.',
-            self::OUT_OF_TIME => 'Waktu untuk satu permintaan habis sebelum SharePoint sempat ditanya. Muat ulang halaman beberapa saat lagi.',
-            default => 'SharePoint sedang tidak bisa dihubungi. Coba lagi beberapa saat lagi.',
-        };
+        return __('SharePointDocs::graph.user.' . match ($this->reason) {
+            self::NOT_CONFIGURED, self::CREDENTIALS, self::FORBIDDEN, self::NOT_FOUND, self::NOT_A_FOLDER,
+            self::UNSUPPORTED, self::TOO_LARGE, self::TOO_SLOW, self::OUT_OF_TIME => $this->reason,
+            default => self::UNAVAILABLE,
+        }, [], $locale);
     }
 
     /** What the page of a workbook says when the workbook cannot be shown (what Microsoft said goes to the log only). */
-    public function workbookMessage(): string
+    public function workbookMessage(?string $locale = null): string
     {
         return match ($this->reason) {
-            self::NOT_CONFIGURED => 'Alamat workbook atau akun aplikasi Microsoft belum diisi di pengaturan (.env).',
-            self::NOT_FOUND => 'Workbook tidak ditemukan di SharePoint. Mungkin sudah dipindahkan, diganti namanya atau dihapus, atau alamat di pengaturan keliru.',
-            self::FORBIDDEN => 'Aplikasi tidak punya izin membaca workbook ini di SharePoint (perlu izin aplikasi Sites.Read.All dengan admin consent).',
-            self::UNSUPPORTED => 'Alamat di pengaturan bukan workbook Excel (.xlsx) yang bisa dibaca aplikasi (file yang diberi password tidak bisa dibaca).',
-            self::TOO_LARGE => 'Workbook ini terlalu besar untuk ditampilkan di sini.',
-            self::TOO_SLOW => 'Workbook terlalu lama diambil dari SharePoint atau dibaca (koneksi lambat atau workbook sangat besar). Coba lagi beberapa saat lagi.',
-            default => $this->userMessage(),
+            self::NOT_CONFIGURED, self::NOT_FOUND, self::FORBIDDEN, self::UNSUPPORTED, self::TOO_LARGE, self::TOO_SLOW
+                => __('SharePointDocs::graph.workbook.' . $this->reason, [], $locale),
+            default => $this->userMessage($locale),
         };
     }
 
     /** What is said when a change could not be put into the workbook (what Microsoft said goes to the log only). */
-    public function writeMessage(): string
+    public function writeMessage(?string $locale = null): string
     {
         return match ($this->reason) {
-            self::FORBIDDEN => 'Aplikasi belum punya izin menulis ke workbook ini di SharePoint (perlu izin aplikasi Sites.Selected dengan akses write untuk site ini, atau Sites.ReadWrite.All, dengan admin consent).',
-            self::CHANGED => 'Workbook disimpan orang lain di SharePoint ketika perubahan ini sedang diterapkan. Tidak ada yang ditulis; coba setujui lagi.',
-            self::LOCKED => 'Workbook sedang dikunci karena dibuka orang lain di Excel. Tidak ada yang ditulis; coba lagi beberapa saat lagi.',
-            self::NOT_FOUND => 'Workbook tidak ditemukan di SharePoint. Mungkin sudah dipindahkan, diganti namanya atau dihapus.',
-            self::TOO_LARGE, self::UNSUPPORTED, self::NOT_CONFIGURED, self::CREDENTIALS => $this->workbookMessage(),
-            default => 'SharePoint sedang tidak bisa dihubungi atau terlalu lambat menjawab. Tidak ada yang ditulis; coba lagi beberapa saat lagi.',
+            self::FORBIDDEN, self::CHANGED, self::LOCKED, self::NOT_FOUND => __('SharePointDocs::graph.write.' . $this->reason, [], $locale),
+            self::TOO_LARGE, self::UNSUPPORTED, self::NOT_CONFIGURED, self::CREDENTIALS => $this->workbookMessage($locale),
+            default => __('SharePointDocs::graph.write.' . self::UNAVAILABLE, [], $locale),
         };
     }
 

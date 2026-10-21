@@ -29,7 +29,7 @@ class ESignController extends ApiController
      */
     public function index(Request $request): JsonResponse
     {
-        abort_unless(ItSignature::ready(), 503, ESignPage::NOT_READY);
+        abort_unless(ItSignature::ready(), 503, ESignPage::notReady());
         $request->validate([
             /** In the printed name, and the name and e-mail of the account. */
             'search' => ['nullable', 'string', 'max:100'],
@@ -87,14 +87,14 @@ class ESignController extends ApiController
         $changed = $this->signatures->deactivate($one, $request->user());
 
         return response()->json([
-            'message' => $changed ? "Tanda tangan {$one->display_name} dinonaktifkan." : "Tanda tangan {$one->display_name} memang sudah nonaktif.",
+            'message' => __($changed ? 'RadioManagement::esign.messages.deactivated' : 'RadioManagement::esign.messages.inactive_already', ['name' => $one->display_name]),
             'data' => $this->present($one->fresh('user'), $this->signatures->useCounts([$one->id])[$one->id] ?? null),
         ]);
     }
 
     private function find(int $id): ItSignature
     {
-        abort_unless(ItSignature::ready(), 503, ESignPage::NOT_READY);
+        abort_unless(ItSignature::ready(), 503, ESignPage::notReady());
         $one = ItSignature::query()->with('user:id,name,email,deleted_at')->find($id);
         abort_if($one === null, 404);
 

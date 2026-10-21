@@ -41,10 +41,11 @@ final class WorkbookView
      * One page of the rows of one sheet, and for every sheet how many rows match what is searched for.
      *
      * @param array{refresh?: bool, sheet?: string, tab?: string, search?: string, status?: string, lines?: array<int, int>,
-     *     column?: ?int, descending?: ?bool, per_page?: int, page?: int, edit?: bool} $options
+     *     column?: ?int, descending?: ?bool, per_page?: int, page?: int, edit?: bool, locale?: ?string} $options
      *     sheet: by its name, else by the number it is; tab: by its position (wins). column: the column to sort by, null for
      *     the order of the workbook. edit: whether the reader may ask for a change (it is told which cells hold a formula and
-     *     which wait for a decision).
+     *     which wait for a decision). locale: the language of what a waiting cell is to hold ("(dikosongkan)"), null for
+     *     the words the API keeps.
      * @return array{
      *     book: array, index: int, sheet: array, sheets: array<int, array{index: int, name: string, rows: int, matches: ?int}>,
      *     rows: array<int, array>, total: int, page: int, per_page: int, last_page: int, offset: int,
@@ -104,7 +105,7 @@ final class WorkbookView
 
         // Which cells of these rows already have a request waiting (only for who may ask for a change).
         $edit = (bool) ($options['edit'] ?? false);
-        $waiting = $edit ? self::waiting($workbook, $sheet, array_map(fn (int $at) => $sheet['lines'][$at], $shown)) : [];
+        $waiting = $edit ? self::waiting($workbook, $sheet, array_map(fn (int $at) => $sheet['lines'][$at], $shown), $options['locale'] ?? null) : [];
 
         return [
             'book' => $book,
@@ -189,7 +190,7 @@ final class WorkbookView
      * @param array<int, int> $lines
      * @return array<int, array<int, string>>
      */
-    private static function waiting(string $workbook, array $sheet, array $lines): array
+    private static function waiting(string $workbook, array $sheet, array $lines, ?string $locale): array
     {
         if ($lines === [] || ($sheet['positions'] ?? []) === []) {
             return [];
@@ -201,7 +202,7 @@ final class WorkbookView
         foreach ($requests as $one) {
             $column = array_search(XlsxPatcher::columnNumber((string) preg_replace('/\d+$/', '', $one->cell)), $sheet['positions'], true);
             if ($column !== false) {
-                $found[$one->line][$column] = $one->newShown();
+                $found[$one->line][$column] = $one->newShown($locale);
             }
         }
 

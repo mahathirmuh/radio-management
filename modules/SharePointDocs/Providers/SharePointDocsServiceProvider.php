@@ -10,6 +10,7 @@ class SharePointDocsServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/SharePointDocs/Routes/web/sharepoint-docs.php'));
         $this->loadViewsFrom(base_path('modules/SharePointDocs/Resources/views'), 'SharePointDocs');
+        $this->loadTranslationsFrom(base_path('modules/SharePointDocs/Resources/lang'), 'SharePointDocs');
     }
 
     public function register()

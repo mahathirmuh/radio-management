@@ -48,6 +48,20 @@ class RolePermissionsController extends Controller
         $this->permission = new Permission();
         $this->menu = new Menu();
     }
+
+    /** What this page says, in the language of the request (UserManagement::roles.messages). */
+    private static function say(string $key): string
+    {
+        return __('UserManagement::roles.messages.' . $key);
+    }
+
+    /** The names of the fields in the messages of the validation. */
+    private static function attributes(): array
+    {
+        $names = __('UserManagement::roles.attributes');
+
+        return is_array($names) ? $names : [];
+    }
     /**
      * Display a listing of the resource.
      */
@@ -293,12 +307,12 @@ class RolePermissionsController extends Controller
             // A request that still names a type is held to it, as before.
             'role_type' => 'nullable|string|in:COMPANY,HO,SITE,ALL',
             'home_page' => 'required',
-        ]);
+        ], [], self::attributes());
         if ($validator->fails()) {
             //Validator
             $errors = $validator->errors()->all();
 
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $errors], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $errors], 422);
         } else {
             try {
 
@@ -338,7 +352,7 @@ class RolePermissionsController extends Controller
                 });
                 app(AuditLogger::class)->log(AuditLogger::ROLE_CREATED, $made, new: $this->auditFacts($made), label: $made->name);
 
-                return response()->json(["message" => "Data Updated Succesfully"], 200);
+                return response()->json(["message" => self::say('saved')], 200);
             } catch (Exception $e) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }
@@ -431,11 +445,11 @@ class RolePermissionsController extends Controller
             // Not asked for by the form any more: without it the type of the role, and the companies it is limited to, stay what they are.
             'role_type' => 'nullable|string|in:COMPANY,HO,SITE,ALL',
             'home_page' => 'required',
-        ]);
+        ], [], self::attributes());
         if ($validator->fails()) {
             //Validator
             $errors = $validator->errors()->all();
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $errors], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $errors], 422);
         } else {
             try {
 
@@ -479,7 +493,7 @@ class RolePermissionsController extends Controller
                 $role->refresh();
                 app(AuditLogger::class)->logChanges(AuditLogger::ROLE_UPDATED, $role, $before, $this->auditFacts($role), $role->name);
 
-                return response()->json(["message" => "Data Updated Succesfully"], 200);
+                return response()->json(["message" => self::say('saved')], 200);
             } catch (Exception $e) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }
@@ -498,7 +512,7 @@ class RolePermissionsController extends Controller
             $data = $this->role->with('users')->findOrFail($id);
 
             if ($data->users->isNotEmpty()) {
-                return response()->json(["message" => "Role still assigned to user"], 500);
+                return response()->json(["message" => self::say('in_use')], 500);
             } else {
 
                 $before = $this->auditFacts($data);
@@ -506,7 +520,7 @@ class RolePermissionsController extends Controller
                     $data->delete();
                 });
                 app(AuditLogger::class)->log(AuditLogger::ROLE_DELETED, $data, old: $before, label: $data->name);
-                return response()->json(["message" => "Data Deleted Successfully"], 200);
+                return response()->json(["message" => self::say('deleted')], 200);
             }
         } catch (Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);

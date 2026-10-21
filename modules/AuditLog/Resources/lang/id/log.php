@@ -1,0 +1,186 @@
+<?php
+
+// The page "Audit Log" (AuditLog::index and its list): the filters, the table, Log activity, the details of an entry and
+// the calendar of "Custom range…", and the words the page describes an entry with (who did it, what, the kind of record,
+// the browser). The entries themselves (action keys, field names, values, labels) stay as they were written.
+
+return [
+    'page_title' => 'Audit Log',
+    'title' => 'Audit Log',
+    'sub' => 'Setiap penambahan, perubahan, penghapusan, login, dan import, beserta siapa yang melakukannya dan dari mana.',
+    // The answer of the list while the table of the trail is not there yet.
+    'not_ready' => 'Audit Log belum aktif: migrasinya belum dijalankan di database ini.',
+    'not_ready_page' => 'Audit Log belum aktif: migrasinya belum dijalankan di database ini (<code>php artisan migrate</code>). Sampai saat itu belum ada yang dicatat.',
+    'view' => 'Tampilan',
+    'table' => 'Tabel',
+    'timeline' => 'Log aktivitas',
+    'newest_first' => 'Terbaru di atas',
+    'details' => 'Detail kejadian',
+    'close_details' => 'Tutup detail',
+
+    'filters' => [
+        'search' => 'Email user',
+        'search_hint' => 'Cari menurut email',
+        'action' => 'Aksi',
+        'all_actions' => 'Semua aksi',
+        'entity' => 'Entitas',
+        'all_entities' => 'Semua entitas',
+        'range' => 'Rentang tanggal',
+        'ranges' => [
+            'today' => 'Hari ini',
+            'yesterday' => 'Kemarin',
+            '7d' => '7 hari terakhir',
+            '30d' => '30 hari terakhir',
+            'all' => 'Semua waktu',
+        ],
+        'pick' => 'Pilih tanggal…',
+        'calendar' => 'Pilih rentang tanggal',
+    ],
+
+    'columns' => [
+        'time' => 'Waktu',
+        'user' => 'User',
+        'action' => 'Aksi',
+        'entity' => 'Entitas',
+        'summary' => 'Ringkasan',
+        'ip' => 'IP',
+    ],
+
+    // Who did it when no account is known: a command of the server, or nobody signed in (a failed sign-in).
+    'actors' => [
+        'system' => 'Sistem',
+        'guest' => 'Tamu',
+    ],
+    // A value that is a yes or a no.
+    'yes' => 'Ya',
+    'no' => 'Tidak',
+    // The "Browser" line: "Chrome 141 di Windows"; the command line of the server.
+    'browser' => [
+        'on' => 'di',
+        'console' => 'Baris perintah',
+    ],
+
+    // What was done, as words that go between the actor and the record: "Budi mengubah radio ID 4021 · SN 867TZB5309".
+    'activities' => [
+        'auth.login' => 'masuk',
+        'auth.login_failed' => 'gagal masuk',
+        'auth.logout' => 'keluar',
+        'auth.session_expired' => 'dikeluarkan: sesi berakhir',
+        'user.created' => 'membuat akun',
+        'user.updated' => 'mengubah akun',
+        'user.status_changed' => 'mengubah status',
+        'user.password_reset' => 'mengatur password untuk',
+        'user.deleted' => 'menghapus akun',
+        'role.created' => 'membuat role',
+        'role.updated' => 'mengubah role',
+        'role.deleted' => 'menghapus role',
+        'radio.created' => 'mendaftarkan radio',
+        'radio.updated' => 'mengubah radio',
+        'radio.archived' => 'mengarsipkan radio',
+        'radio.restored' => 'memulihkan radio',
+        'radio.deleted' => 'menghapus radio',
+        'radio.history_added' => 'menambahkan riwayat ke radio',
+        'radio.handed_over' => 'menyerahkan radio',
+        'radio.imported' => 'mengimpor radio dari Excel',
+        'radio.opname_submitted' => 'mengirim stock opname',
+        'service.created' => 'membuka tiket servis',
+        'service.status_changed' => 'memindahkan tiket servis',
+        'service.note_added' => 'menambahkan catatan ke tiket servis',
+        'attention.assigned' => 'menugaskan cek',
+        'attention.dismissed' => 'mengabaikan cek',
+        'master_data.created' => 'menambahkan',
+        'master_data.updated' => 'mengubah',
+        'master_data.deleted' => 'menghapus',
+        'esign.created' => 'mendaftarkan tanda tangan',
+        'esign.updated' => 'mengubah tanda tangan',
+        'esign.deleted' => 'menghapus tanda tangan',
+        'esign.used' => 'membubuhkan tanda tangannya di form checkout',
+        'document.edit_requested' => 'mengajukan perubahan',
+        'document.edit_approved' => 'menyetujui perubahan',
+        'document.edit_rejected' => 'menolak perubahan',
+        'document.edited_directly' => 'langsung mengubah',
+        'api.client_created' => 'membuat API client',
+        'api.client_updated' => 'mengubah API client',
+        'api.client_deleted' => 'menghapus API client',
+        'api.token_created' => 'membuat token API',
+        'api.token_revoked' => 'mencabut token API',
+    ],
+
+    // What the page calls the records of a kind (the entity type as it is stored => its name).
+    'entities' => [
+        'User' => 'Akun',
+        'Role' => 'Role',
+        'Radio' => 'Radio',
+        'RadioType' => 'Tipe radio',
+        'RadioCompany' => 'Perusahaan',
+        'RadioDepartment' => 'Departemen',
+        'ChannelTemplate' => 'Template channel',
+        'RadioCheckState' => 'Cek',
+        'RadioOpnameSession' => 'Stock Opname',
+        'ServiceTicket' => 'Tiket servis',
+        'ItSignature' => 'Tanda tangan E-Sign',
+        'EditRequest' => 'Perubahan sel',
+        'ApiToken' => 'Token API',
+        'PersonalAccessToken' => 'Token API',
+    ],
+
+    // The words of the page's script.
+    'script' => [
+        'states' => [
+            'loading' => 'Memuat...',
+            'failed' => 'Audit Log tidak bisa dimuat.',
+            'off' => 'Audit Log belum aktif.',
+            'empty' => 'Belum ada catatan audit.',
+        ],
+        // An action for the eye (its key stays in the tooltip and the details).
+        'kinds' => [
+            'auth.login' => 'Masuk',
+            'auth.login_failed' => 'Gagal masuk',
+            'auth.logout' => 'Keluar',
+            'auth.session_expired' => 'Sesi berakhir',
+            'user.status_changed' => 'Status diubah',
+            'user.password_reset' => 'Password diatur',
+            'radio.history_added' => 'Ditambahkan',
+            'radio.handed_over' => 'Diserahkan',
+            'radio.imported' => 'Diimpor',
+            'radio.opname_submitted' => 'Dihitung',
+            'radio.archived' => 'Diarsipkan',
+            'radio.restored' => 'Dipulihkan',
+            'service.status_changed' => 'Dipindah',
+            'service.note_added' => 'Catatan',
+            'attention.assigned' => 'Ditugaskan',
+            'attention.dismissed' => 'Diabaikan',
+            'esign.used' => 'Ditandatangani',
+            'document.edit_requested' => 'Diajukan',
+            'document.edit_approved' => 'Disetujui',
+            'document.edit_rejected' => 'Ditolak',
+            'document.edited_directly' => 'Diedit',
+            'api.token_revoked' => 'Dicabut',
+        ],
+        // Any other action that ends in "created", "updated" or "deleted".
+        'generic' => [
+            'created' => 'Dibuat',
+            'updated' => 'Diubah',
+            'deleted' => 'Dihapus',
+        ],
+        'via' => 'lewat :name',
+        'from' => 'dari :ip',
+        // The lines of the details of an entry.
+        'meta' => [
+            'time' => 'Waktu',
+            'user' => 'User',
+            'action' => 'Aksi',
+            'entity' => 'Entitas',
+            'record' => 'Data',
+            'ip' => 'IP',
+            'browser' => 'Browser',
+            'via' => 'Lewat',
+        ],
+        'no_change' => 'Tidak ada isian yang berubah.',
+        // The calendar of "Custom range…".
+        'pick_start' => 'Pilih tanggal awal',
+        'pick_end' => ':first – pilih tanggal akhir',
+        'cancel' => 'Batal',
+        'apply' => 'Terapkan',
+    ],
+];

@@ -49,7 +49,7 @@ class ImportController extends ApiController
         $data = $request->validate(RadioImports::rules(), RadioImports::messages());
 
         if ($request->boolean('fresh') && ! $this->imports->mayReplace($request->user())) {
-            return response()->json(['message' => RadioImports::REPLACE_REFUSED], 403);
+            return response()->json(['message' => RadioImports::replaceRefused()], 403);
         }
 
         try {
@@ -60,6 +60,6 @@ class ImportController extends ApiController
             return response()->json(['message' => $e->title . ': ' . $e->getMessage()] + ($e->status === 422 ? ['errors' => ['file' => [$e->getMessage()]]] : []), $e->status);
         }
 
-        return response()->json(['message' => 'Impor selesai.', 'data' => $report]);
+        return response()->json(['message' => __('RadioManagement::import.messages.done'), 'data' => $report]);
     }
 }

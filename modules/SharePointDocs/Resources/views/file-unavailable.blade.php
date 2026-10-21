@@ -1,12 +1,12 @@
 {{-- Shown inside the file viewer's <iframe> when a file cannot be shown there: a page of its own, without the layout. --}}
 <!DOCTYPE html>
-<html lang="id">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>File tidak bisa ditampilkan</title>
+    <title>{{ __('SharePointDocs::common.file_unavailable') }}</title>
     <style>
         body {
             margin: 0;

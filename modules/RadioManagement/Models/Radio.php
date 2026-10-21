@@ -160,8 +160,17 @@ class Radio extends Model
         return $this->updated_at?->format('YmdHisv');
     }
 
-    /** Short label used in history lists, e.g. "ID 1010 · 867TBF3759". */
+    /**
+     * Short label used in history lists, e.g. "ID 1010 · 867TBF3759". It is data (the API, the audit entries): always
+     * Indonesian; a page shows pageName().
+     */
     public function getDisplayNameAttribute(): string
+    {
+        return $this->pageName('id');
+    }
+
+    /** The same label in the language of the page ("no SN" in English). */
+    public function pageName(?string $locale = null): string
     {
         $parts = [];
         if ($this->dmr_id) {
@@ -169,7 +178,7 @@ class Radio extends Model
         } elseif ($this->previous_dmr_id) {
             $parts[] = 'ex-ID ' . $this->previous_dmr_id;
         }
-        $parts[] = $this->serial_number ?: 'tanpa SN';
+        $parts[] = $this->serial_number ?: __('RadioManagement::detail.no_sn', [], $locale);
 
         return implode(' · ', $parts);
     }

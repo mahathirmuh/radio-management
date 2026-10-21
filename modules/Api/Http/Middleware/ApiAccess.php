@@ -43,7 +43,7 @@ class ApiAccess
 
         $token = $user->currentAccessToken();
         if ($permission !== 'Read' && ! ($token instanceof ApiToken && $token->writes())) {
-            return $this->refuse('This token may only read.');
+            return $this->refuse(__('Api::api.read_only'));
         }
 
         // Super Admin (role id 1) passes every check, as on the pages.
@@ -53,26 +53,18 @@ class ApiAccess
 
         $menu = CheckMenuPermission::menuForKey($menuKey);
         if ($menu === null) {
-            return $this->refuse('This part of the API is closed: its menu is not in this application.');
+            return $this->refuse(__('Api::api.closed'));
         }
         if (! $user->guardRole($menu->id)) {
-            return $this->refuse("The role of this account has no access to \"{$menu->title}\".");
+            return $this->refuse(__('Api::api.no_access', ['menu' => $menu->label()]));
         }
         if (! $user->hasMenuPermission($menu->id, CheckMenuPermission::PERMISSION_IDS[$permission])) {
-            return $this->refuse("The role of this account may not {$this->verb($permission)} on \"{$menu->title}\" ({$permission}).");
+            return $this->refuse(__('Api::api.not_allowed', [
+                'verb' => __('Api::api.verbs.' . $permission), 'menu' => $menu->label(), 'permission' => $permission,
+            ]));
         }
 
         return $next($request);
-    }
-
-    private function verb(string $permission): string
-    {
-        return match ($permission) {
-            'Read' => 'read',
-            'Create' => 'add',
-            'Update' => 'change',
-            'Delete' => 'delete',
-        };
     }
 
     private function refuse(string $message): Response

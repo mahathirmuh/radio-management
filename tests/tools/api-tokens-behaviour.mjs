@@ -10,7 +10,7 @@
 import assert from 'node:assert/strict';
 import { assertWellFormed, checker, loadPage } from './page-sandbox.mjs';
 
-const markers = ['function renderTableWithFeatures(', 'const rmFeedback = {', 'const apiTokens = {'];
+const markers = ['function debounce(', 'function renderTableWithFeatures(', 'const rmFeedback = {', 'const apiTokens = {'];
 const open = () => loadPage(process.argv[2], markers, { href: 'http://localhost/settings/api-tokens' });
 const { check, done } = checker();
 

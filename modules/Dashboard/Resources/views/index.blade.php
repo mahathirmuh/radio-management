@@ -1,7 +1,8 @@
 @extends('main.index')
 @php
-    $fmt = fn ($n) => number_format((int) $n, 0, ',', '.');
-    $pct = fn ($n, $total) => $total > 0 ? number_format($n / $total * 100, 1, ',', '.') . '%' : '0%';
+    // Numbers as the language of the page writes them (1.011 / 1,011).
+    $fmt = fn ($n) => \App\Services\Language::number((int) $n);
+    $pct = fn ($n, $total) => $total > 0 ? \App\Services\Language::number($n / $total * 100, 1) . '%' : '0%';
     $radioUrl = route('radio-management.radio.index');
 
     $placementTiles = [
@@ -230,7 +231,7 @@
         {{-- Title only: the register is in the sidebar, and the figures below lead to it. --}}
         <div class="rm-head">
             <div>
-                <h1 class="rm-title">Dashboard Radio</h1>
+                <h1 class="rm-title">{{ __('Dashboard::dashboard.title') }}</h1>
             </div>
         </div>
 
@@ -238,8 +239,8 @@
             <div class="rm-card">
                 <div class="rm-empty-state">
                     <span class="rm-empty-icon"><i class="ti ti-radio" aria-hidden="true"></i></span>
-                    <div class="rm-empty-title">Belum ada data radio</div>
-                    <div class="rm-empty-text">Impor register lama dari Excel, atau tambah radio satu per satu di Register Radio.</div>
+                    <div class="rm-empty-title">{{ __('Dashboard::dashboard.empty.title') }}</div>
+                    <div class="rm-empty-text">{{ __('Dashboard::dashboard.empty.text') }}</div>
                     <a href="{{ route('radio-management.import.index') }}" class="btn-rm primary">
                         <i class="ti ti-file-import" aria-hidden="true"></i> Import Excel
                     </a>
@@ -250,7 +251,7 @@
                 {{-- KPI row --}}
                 <div class="rm-kpis">
                     <a href="{{ $radioUrl }}" class="rm-kpi-link">
-                        <x-global.summary-card value="{{ $fmt($totalActive) }}" count="{{ $totalActive }}" title="Radio aktif" color="brand">
+                        <x-global.summary-card value="{{ $fmt($totalActive) }}" count="{{ $totalActive }}" title="{{ __('Dashboard::dashboard.kpi.active') }}" color="brand">
                             <x-slot:icon><i class="ti ti-radio"></i></x-slot:icon>
                         </x-global.summary-card>
                     </a>
@@ -263,7 +264,7 @@
                         </a>
                     @endforeach
                     <a href="{{ $radioUrl }}?scope=archived" class="rm-kpi-link">
-                        <x-global.summary-card value="{{ $fmt($totalArchived) }}" count="{{ $totalArchived }}" title="Diarsipkan">
+                        <x-global.summary-card value="{{ $fmt($totalArchived) }}" count="{{ $totalArchived }}" title="{{ __('Dashboard::dashboard.kpi.archived') }}">
                             <x-slot:icon><i class="ti ti-archive"></i></x-slot:icon>
                         </x-global.summary-card>
                     </a>
@@ -275,8 +276,8 @@
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
                             <div>
-                                <h2 class="rm-cardbox-title">Kondisi radio aktif</h2>
-                                <div class="rm-cardbox-sub">{{ $fmt($totalActive) }} radio, menurut kondisi terakhir yang tercatat</div>
+                                <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.conditions.title') }}</h2>
+                                <div class="rm-cardbox-sub">{{ trans_choice('Dashboard::dashboard.conditions.sub', $totalActive, ['count' => $fmt($totalActive)]) }}</div>
                             </div>
                         </header>
                         <div class="rm-cardbox-body viz-cond-box">
@@ -289,7 +290,7 @@
                             <div class="viz-cond">
                                 {{-- For the pointer: each slice leads where its row does. The rows are the way in for the keyboard
                                      and say every number, so the slices are left out of the tab order. --}}
-                                <svg class="viz-pie" viewBox="0 0 148 148" role="img" aria-label="Kondisi radio aktif: {{ $ariaParts }}">
+                                <svg class="viz-pie" viewBox="0 0 148 148" role="img" aria-label="{{ __('Dashboard::dashboard.conditions.chart', ['parts' => $ariaParts]) }}">
                                     @if ($pie === [])
                                         <circle class="viz-pie-empty" cx="74" cy="74" r="73"></circle>
                                     @endif
@@ -316,7 +317,7 @@
                             <div>
                                 @foreach ($conditions as $condition)
                                     <a href="{{ $radioUrl }}?condition={{ $condition['value'] }}" class="viz-legend-row"
-                                        data-viz-key="{{ $condition['value'] }}" aria-label="Lihat radio {{ $condition['label'] }}">
+                                        data-viz-key="{{ $condition['value'] }}" aria-label="{{ __('Dashboard::dashboard.conditions.show', ['condition' => $condition['label']]) }}">
                                         <span class="viz-key" style="background: var({{ $conditionStyle[$condition['value']]['var'] }});"></span>
                                         <i class="ti {{ $conditionStyle[$condition['value']]['icon'] }} viz-icon" aria-hidden="true"></i>
                                         <span class="flex-fill">{{ $condition['label'] }}</span>
@@ -334,8 +335,8 @@
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
                             <div>
-                                <h2 class="rm-cardbox-title">Radio ID bebas berikutnya</h2>
-                                <div class="rm-cardbox-sub">ID yang MDC Code-nya mengandung F otomatis dilewati</div>
+                                <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.next_ids.title') }}</h2>
+                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.next_ids.sub') }}</div>
                             </div>
                         </header>
                         <div class="rm-cardbox-body d-flex flex-wrap gap-2">
@@ -350,17 +351,16 @@
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
                             <div>
-                                <h2 class="rm-cardbox-title">Perlu tindakan</h2>
-                                <div class="rm-cardbox-sub">Hasil cek otomatis di kolom "Cek" pada Register Radio</div>
+                                <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.attention.title') }}</h2>
+                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.attention.sub') }}</div>
                             </div>
                             @if (\Modules\SharePointDocs\Services\MenuAccess::allows(auth()->user(), 'radio-management.attention.index'))
-                                <a href="{{ route('radio-management.attention.index') }}" class="rm-cardbox-link">Buka inbox <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+                                <a href="{{ route('radio-management.attention.index') }}" class="rm-cardbox-link">{{ __('Dashboard::dashboard.attention.open') }} <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
                             @endif
                         </header>
                         <div class="rm-cardbox-body">
                             @if ($issues->isEmpty())
-                                <div class="rm-note"><i class="ti ti-circle-check text-green" aria-hidden="true"></i><span>Tidak ada
-                                        masalah yang terdeteksi.</span></div>
+                                <div class="rm-note"><i class="ti ti-circle-check text-green" aria-hidden="true"></i><span>{{ __('Dashboard::dashboard.attention.none') }}</span></div>
                             @else
                                 <div class="rm-attn">
                                     @foreach ($issues as $issue)
@@ -368,7 +368,7 @@
                                             <span class="flex-fill"><span class="rm-badge {{ $issueTone($issue['color']) }}">{{ $issue['label'] }}</span></span>
                                             <span class="rm-attn-count">{{ $fmt($issue['count']) }}</span>
                                             <a href="{{ $radioUrl }}?issue={{ $issue['code'] }}{{ in_array($issue['code'], ['needs_review', 'sn_duplicate', 'sn_empty', 'sn_format'], true) ? '&scope=all' : '' }}"
-                                                class="rm-attn-link">Lihat</a>
+                                                class="rm-attn-link">{{ __('Dashboard::dashboard.attention.show') }}</a>
                                         </div>
                                     @endforeach
                                 </div>
@@ -382,14 +382,14 @@
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
                             <div>
-                                <h2 class="rm-cardbox-title">Radio aktif per company pengguna</h2>
-                                <div class="rm-cardbox-sub">Jumlah unit, diurutkan dari terbanyak</div>
+                                <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.by_company.title') }}</h2>
+                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.by_company.sub') }}</div>
                             </div>
                         </header>
                         <div class="rm-cardbox-body" role="list">
                             @foreach ($byCompany as $company => $count)
                                 <div class="viz-bar-row" role="listitem" tabindex="0"
-                                    data-viz-tip="{{ $company }}: {{ $fmt($count) }} radio ({{ $pct($count, $totalActive) }})">
+                                    data-viz-tip="{{ $company }}: {{ trans_choice('Dashboard::dashboard.radios', $count, ['count' => $fmt($count)]) }} ({{ $pct($count, $totalActive) }})">
                                     <div class="viz-bar-label">{{ $company }}</div>
                                     <div class="viz-bar-track">
                                         <div class="viz-bar" style="width: calc((100% - 3rem) * {{ $count / $companyMax }})"></div>
@@ -404,14 +404,14 @@
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
                             <div>
-                                <h2 class="rm-cardbox-title">Radio aktif per tipe</h2>
-                                <div class="rm-cardbox-sub">MotoTrbo XiR · jumlah unit</div>
+                                <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.by_type.title') }}</h2>
+                                <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.by_type.sub') }}</div>
                             </div>
                         </header>
                         <div class="rm-cardbox-body" role="list">
                             @foreach ($byType as $type => $count)
                                 <div class="viz-bar-row" role="listitem" tabindex="0"
-                                    data-viz-tip="{{ $type }}: {{ $fmt($count) }} radio ({{ $pct($count, $totalActive) }})">
+                                    data-viz-tip="{{ $type }}: {{ trans_choice('Dashboard::dashboard.radios', $count, ['count' => $fmt($count)]) }} ({{ $pct($count, $totalActive) }})">
                                     <div class="viz-bar-label">{{ $type }}</div>
                                     <div class="viz-bar-track">
                                         <div class="viz-bar" style="width: calc((100% - 3rem) * {{ $count / $typeMax }})"></div>
@@ -427,41 +427,41 @@
                 <section class="rm-cardbox rm-cardbox-flush">
                     <header class="rm-cardbox-head">
                         <div>
-                            <h2 class="rm-cardbox-title">Aktivitas terbaru</h2>
-                            <div class="rm-cardbox-sub">Riwayat terbaru menurut tanggal kejadian (tanpa catatan impor)</div>
+                            <h2 class="rm-cardbox-title">{{ __('Dashboard::dashboard.activity.title') }}</h2>
+                            <div class="rm-cardbox-sub">{{ __('Dashboard::dashboard.activity.sub') }}</div>
                         </div>
-                        <a href="{{ route('radio-management.history.index') }}" class="rm-cardbox-link">Semua riwayat <i
+                        <a href="{{ route('radio-management.history.index') }}" class="rm-cardbox-link">{{ __('Dashboard::dashboard.activity.all') }} <i
                                 class="ti ti-arrow-right"></i></a>
                     </header>
                     <div>
                         @if ($recentHistory->isEmpty())
-                            <div class="rm-cardbox-body radio-muted">Belum ada aktivitas.</div>
+                            <div class="rm-cardbox-body radio-muted">{{ __('Dashboard::dashboard.activity.none') }}</div>
                         @else
                             <div class="table-responsive">
                                 <table class="rm-table">
                                     <thead>
                                         <tr>
-                                            <th>Tanggal</th>
-                                            <th>Jenis</th>
-                                            <th>Radio</th>
-                                            <th>Keterangan</th>
-                                            <th class="text-end">Oleh</th>
+                                            <th>{{ __('Dashboard::dashboard.activity.date') }}</th>
+                                            <th>{{ __('Dashboard::dashboard.activity.kind') }}</th>
+                                            <th>{{ __('Dashboard::dashboard.activity.radio') }}</th>
+                                            <th>{{ __('Dashboard::dashboard.activity.description') }}</th>
+                                            <th class="text-end">{{ __('Dashboard::dashboard.activity.by') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach ($recentHistory as $history)
                                             <tr>
                                                 <td class="text-nowrap">{{ $history->event_date->format('d-m-Y') }}</td>
-                                                <td class="text-nowrap"><span class="rm-badge {{ $historyTone($history->action) }}">{{ $history->action }}</span></td>
+                                                <td class="text-nowrap"><span class="rm-badge {{ $historyTone($history->action) }}">{{ \Modules\RadioManagement\Services\RadioWords::of('history_actions', $history->action) }}</span></td>
                                                 <td class="text-nowrap">
                                                     @if ($history->radio && !$history->radio->trashed())
-                                                        <a href="{{ route('radio-management.radio.detail', $history->radio) }}" class="fw-medium">{{ $history->radio->display_name }}</a>
+                                                        <a href="{{ route('radio-management.radio.detail', $history->radio) }}" class="fw-medium">{{ $history->radio->pageName() }}</a>
                                                     @else
-                                                        {{ $history->radio?->display_name ?? '-' }}
+                                                        {{ $history->radio?->pageName() ?? '-' }}
                                                     @endif
                                                 </td>
                                                 <td class="rm-dash-text">{{ \Illuminate\Support\Str::limit($history->description, 140) }}</td>
-                                                <td class="text-nowrap text-end radio-muted">{{ $history->user?->name ?? 'Sistem' }}</td>
+                                                <td class="text-nowrap text-end radio-muted">{{ $history->user?->name ?? __('RadioManagement::common.ui.system') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

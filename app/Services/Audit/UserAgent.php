@@ -32,21 +32,25 @@ final class UserAgent
     /** At most this many characters of a User-Agent that is shown as it was sent. */
     public const MOST = 120;
 
-    public static function describe(?string $agent): ?string
+    /**
+     * @param string $on      the word between the browser and its system, in the language of the page
+     * @param string $console what the command line of the server is called there
+     */
+    public static function describe(?string $agent, string $on = 'on', string $console = 'Command line'): ?string
     {
         $agent = trim((string) $agent);
         if ($agent === '') {
             return null;
         }
         if ($agent === AuditLogger::CONSOLE) {
-            return 'Command line';
+            return $console;
         }
 
         foreach (self::BROWSERS as [$pattern, $name]) {
             if (preg_match($pattern, $agent, $match)) {
                 $system = self::system($agent);
 
-                return $name . ' ' . $match[1] . ($system === null ? '' : ' on ' . $system);
+                return $name . ' ' . $match[1] . ($system === null ? '' : ' ' . $on . ' ' . $system);
             }
         }
         // A program: by the first name it gives, with the first number of its version ("curl/8.4.0" => "curl 8").

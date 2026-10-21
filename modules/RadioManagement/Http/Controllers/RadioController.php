@@ -156,7 +156,7 @@ class RadioController extends Controller
             $this->radios->handover($radio, Arr::except($validator->validated(), ['signature']), $request->user()?->id);
 
             return response()->json([
-                'message' => __('RadioManagement::register.messages.handed_over', ['radio' => $radio->display_name, 'receiver' => trim((string) $request->input('receiver'))]),
+                'message' => __('RadioManagement::register.messages.handed_over', ['radio' => $radio->pageName(), 'receiver' => trim((string) $request->input('receiver'))]),
                 'checkout_form' => route('radio-management.radio.checkout-form', $radio),
             ]);
         });

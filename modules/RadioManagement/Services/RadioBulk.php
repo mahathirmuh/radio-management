@@ -68,7 +68,7 @@ class RadioBulk
     {
         return $this->each($radios, function (Radio $radio) use ($date, $note, $userId): ?string {
             if ($radio->isArchived()) {
-                return 'sudah diarsipkan';
+                return __('RadioManagement::register.messages.skipped_archived');
             }
             $this->radios->addHistory($radio, ['action' => 'Verifikasi', 'event_date' => $date, 'description' => $note], $userId);
 

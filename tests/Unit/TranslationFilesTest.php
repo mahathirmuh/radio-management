@@ -2,13 +2,17 @@
 
 namespace Tests\Unit;
 
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\NodeFinder;
+use PhpParser\ParserFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Every text of the screens is there in both languages (lang/<code>/, modules/<Module>/Resources/lang/<code>/): the same
- * files, the same keys and the same :placeholders on both sides; and Laravel's own messages are complete in Indonesian
- * (the English ones come with the framework).
+ * files, the same keys and the same :placeholders on both sides, no key written twice; and Laravel's own messages are
+ * complete in Indonesian (the English ones come with the framework).
  */
 class TranslationFilesTest extends TestCase
 {
@@ -44,6 +48,31 @@ class TranslationFilesTest extends TestCase
                 $this->assertNotSame('', trim($text), "{$file}: {$key} is empty");
             }
         }
+    }
+
+    /** A key written twice in one array: PHP keeps the last without a word, and the text of the first is lost. */
+    #[DataProvider('folders')]
+    public function test_no_key_is_written_twice(string $folder): void
+    {
+        $parser = (new ParserFactory())->createForHostVersion();
+        $twice = [];
+        foreach (glob("{$folder}/*/*.php") as $file) {
+            foreach ((new NodeFinder())->findInstanceOf($parser->parse(file_get_contents($file)), Array_::class) as $array) {
+                $lines = [];
+                foreach ($array->items as $item) {
+                    if (! $item?->key instanceof String_) {
+                        continue;
+                    }
+                    $key = $item->key->value;
+                    if (isset($lines[$key])) {
+                        $twice[] = basename(dirname($file)) . '/' . basename($file) . ": '{$key}' on lines {$lines[$key]} and {$item->getStartLine()}";
+                    }
+                    $lines[$key] = $item->getStartLine();
+                }
+            }
+        }
+
+        $this->assertSame([], $twice);
     }
 
     public function test_laravels_own_messages_are_all_there_in_indonesian(): void

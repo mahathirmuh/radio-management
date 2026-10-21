@@ -14,6 +14,9 @@ use Modules\RadioManagement\Models\RadioType;
  */
 class RadioSummary
 {
+    /** The group of the radios without a company or a type, as the API names it (the page names it in its language). */
+    public const NO_NAME = '(kosong)';
+
     public function __construct(private RadioCheckService $checks, private RadioIdService $ids)
     {
     }
@@ -31,12 +34,12 @@ class RadioSummary
 
         $companyNames = RadioCompany::pluck('code', 'id');
         $byCompany = $countBy('company_id')
-            ->mapWithKeys(fn ($count, $id) => [$companyNames[$id] ?? '(kosong)' => $count])
+            ->mapWithKeys(fn ($count, $id) => [$companyNames[$id] ?? self::NO_NAME => $count])
             ->sortDesc();
 
         $typeNames = RadioType::pluck('name', 'id');
         $byType = $countBy('radio_type_id')
-            ->mapWithKeys(fn ($count, $id) => [str_replace('MotoTrbo XiR ', '', $typeNames[$id] ?? '(kosong)') => $count])
+            ->mapWithKeys(fn ($count, $id) => [str_replace('MotoTrbo XiR ', '', $typeNames[$id] ?? self::NO_NAME) => $count])
             ->sortDesc();
 
         $issueCounts = $this->checks->summary();

@@ -2,13 +2,13 @@
 
 @include('RadioManagement::partials.scripts')
 
-@section('page-title', 'Perlu Perhatian')
+@section('page-title', __('RadioManagement::attention.title'))
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">Perlu Perhatian</h1>
-            <p class="rm-sub">Cek otomatis pada register. Betulkan datanya, abaikan dengan alasan, atau tugaskan ke seseorang.</p>
+            <h1 class="rm-title">{{ __('RadioManagement::attention.title') }}</h1>
+            <p class="rm-sub">{{ __('RadioManagement::attention.sub') }}</p>
         </div>
     </div>
 
@@ -17,18 +17,17 @@
             @unless ($ready)
                 <div class="rm-alert warning flex-fill" id="attnNotReady">
                     <i class="ti ti-database-off" aria-hidden="true"></i>
-                    <span>{{ \Modules\RadioManagement\Http\Controllers\AttentionController::NOT_READY }} Sampai saat itu cek tetap tampil,
-                        tanpa penugasan dan tanpa abaikan.</span>
+                    <span>{{ __('RadioManagement::attention.not_ready') }} {{ __('RadioManagement::attention.not_ready_more') }}</span>
                 </div>
             @endunless
             <div class="rm-end">
-                <button type="button" class="btn-rm secondary" id="attnRefresh"><i class="ti ti-refresh" aria-hidden="true"></i> Jalankan cek sekarang</button>
+                <button type="button" class="btn-rm secondary" id="attnRefresh"><i class="ti ti-refresh" aria-hidden="true"></i> {{ __('RadioManagement::attention.refresh') }}</button>
             </div>
         </div>
 
         <div class="rm-inbox-grid">
-            <nav class="rm-inbox-checks" aria-label="Cek">
-                <div class="rm-inbox-checks-head" id="attnChecksHead">Cek</div>
+            <nav class="rm-inbox-checks" aria-label="{{ __('RadioManagement::attention.checks') }}">
+                <div class="rm-inbox-checks-head" id="attnChecksHead">{{ __('RadioManagement::attention.checks') }}</div>
                 <div id="attnChecks"></div>
             </nav>
 
@@ -37,19 +36,19 @@
                     <span class="rm-inbox-items-title" id="attnItemsTitle"></span>
                     <span id="attnItemsCount"></span>
                     <div class="rm-field rm-inbox-who">
-                        <select id="attnWho" class="form-select" aria-label="Ditugaskan ke">
-                            <option value="all">Semua</option>
-                            <option value="mine">Tugas saya</option>
-                            <option value="none">Belum ditugaskan</option>
+                        <select id="attnWho" class="form-select" aria-label="{{ __('RadioManagement::attention.who_label') }}">
+                            <option value="all">{{ __('RadioManagement::attention.who.all') }}</option>
+                            <option value="mine">{{ __('RadioManagement::attention.who.mine') }}</option>
+                            <option value="none">{{ __('RadioManagement::attention.who.none') }}</option>
                         </select>
                     </div>
                 </div>
                 <div class="rm-inbox-items" id="attnItems" aria-live="polite"></div>
-                <button type="button" class="btn-rm secondary sm rm-inbox-more d-none" id="attnMore">Tampilkan lagi</button>
+                <button type="button" class="btn-rm secondary sm rm-inbox-more d-none" id="attnMore">{{ __('RadioManagement::attention.more') }}</button>
             </section>
 
             <section class="rm-inbox-detail" id="attnDetail" aria-live="polite">
-                <div class="rm-inbox-empty">Pilih item di tengah untuk melihat datanya.</div>
+                <div class="rm-inbox-empty">{{ __('RadioManagement::attention.pick') }}</div>
             </section>
         </div>
     </div>
@@ -72,6 +71,8 @@
             checks: @js($checks),
             people: @js($people),
             me: @js(auth()->id()),
+            /** Its words in the language of the page (RadioManagement::attention.page). */
+            words: @json(__('RadioManagement::attention.page')),
 
             check: null,
             who: 'all',
@@ -162,11 +163,11 @@
                         } else {
                             attnPage.subject = null;
                             attnPage.detail = null;
-                            $('#attnDetail').html('<div class="rm-inbox-empty">Tidak ada item di cek ini.</div>');
+                            $('#attnDetail').html(`<div class="rm-inbox-empty">${attnPage.esc(attnPage.words.none_here)}</div>`);
                             attnPage.remember();
                         }
                     }
-                    if (told) rmFeedback.toast('Cek sudah dijalankan ulang.');
+                    if (told) rmFeedback.toast(attnPage.words.refreshed);
                 }).fail(xhr => {
                     if (mine !== attnPage.asked) return;
                     $('#attnItems').html(`<div class="rm-alert danger"><i class="ti ti-alert-triangle" aria-hidden="true"></i><span>${RadioUi.errors(xhr).join('<br>')}</span></div>`);
@@ -178,7 +179,7 @@
             drawChecks() {
                 const esc = attnPage.esc;
                 const total = Object.values(attnPage.counts).reduce((sum, count) => sum + (Number(count) || 0), 0);
-                $('#attnChecksHead').text(`Cek · ${rmMotion.number(total)} terbuka`);
+                $('#attnChecksHead').text(RadioUi.fill(attnPage.words.checks_open, { count: rmMotion.number(total) }));
                 $('#attnChecks').html(Object.entries(attnPage.checks).map(([code, check]) => {
                     const count = Number(attnPage.counts[code]) || 0;
                     const on = code === attnPage.check;
@@ -192,18 +193,19 @@
                 const esc = attnPage.esc;
                 const check = attnPage.checks[attnPage.check] || { label: '', color: 'secondary' };
                 $('#attnItemsTitle').text(check.label);
-                $('#attnItemsCount').html(`<span class="rm-badge ${attnPage.tone(check.color)}">${rmMotion.number(attnPage.total || 0)} item</span>`);
+                const total = attnPage.total || 0;
+                $('#attnItemsCount').html(`<span class="rm-badge ${attnPage.tone(check.color)}">${esc(RadioUi.choice(attnPage.words.items, total, { count: rmMotion.number(total) }))}</span>`);
                 $('#attnItems').html(attnPage.items.length ? attnPage.items.map(item => {
                     const on = item.subject === attnPage.subject;
                     const holder = item.assignee ?
                         `<span class="rm-inbox-av" aria-hidden="true">${esc(attnPage.initials(item.assignee.name))}</span>${esc(item.assignee.name)}` :
-                        'Belum ditugaskan';
+                        esc(attnPage.words.unassigned);
                     return `<button type="button" class="rm-inbox-item${on ? ' is-on' : ''}" data-subject="${esc(item.subject)}"${on ? ' aria-current="true"' : ''}>` +
                         `<span class="rm-inbox-item-top"><span class="rm-inbox-item-head">${esc(item.head)}</span>` +
                         `<span class="rm-inbox-item-side">${esc(item.side || '')}</span></span>` +
                         `<span class="rm-inbox-item-who">${esc(item.who)}</span>` +
                         `<span class="rm-inbox-item-foot">${holder}</span></button>`;
-                }).join('') : `<div class="rm-inbox-none">${attnPage.who === 'all' ? 'Tidak ada item terbuka di cek ini.' : 'Tidak ada item yang cocok.'}</div>`);
+                }).join('') : `<div class="rm-inbox-none">${esc(attnPage.who === 'all' ? attnPage.words.none_open : attnPage.words.none_match)}</div>`);
                 $('#attnMore').toggleClass('d-none', !attnPage.more);
             },
 
@@ -220,25 +222,28 @@
                     attnPage.drawDetail();
                 }).fail(xhr => {
                     if (mine !== attnPage.askedItem) return;
-                    $('#attnDetail').html(`<div class="rm-inbox-empty">${attnPage.esc(xhr.status === 404 ? 'Item ini sudah tidak ada: datanya sudah dibetulkan atau berubah.' : attnPage.plain(xhr))}</div>`);
+                    $('#attnDetail').html(`<div class="rm-inbox-empty">${attnPage.esc(xhr.status === 404 ? attnPage.words.gone : attnPage.plain(xhr))}</div>`);
                 });
             },
 
             drawDetail() {
                 const esc = attnPage.esc;
+                const words = attnPage.words;
                 const item = attnPage.detail;
                 if (!item) return;
-                const seen = item.first_seen ? `Terlihat pertama ${rmPickers.label(item.first_seen)}` : 'Hasil cek otomatis register';
+                const seen = item.first_seen ? RadioUi.fill(words.first_seen, { date: rmPickers.label(item.first_seen) }) : words.automatic;
                 const records = (item.records || []).map(record => `<div class="rm-inbox-record${record.suspect ? ' is-suspect' : ''}">` +
                     `<div class="rm-inbox-record-head">${esc(record.head)}<span class="rm-inbox-record-tag">${esc(record.tag)}</span></div>` +
                     record.rows.map(row => `<div class="rm-inbox-row${row.marked ? ' is-marked' : ''}"><div class="rm-inbox-row-label">${esc(row.label)}</div>` +
                         `<div class="rm-inbox-row-value${row.mono ? ' is-mono' : ''}">${esc(row.value)}</div></div>`).join('') +
                     '</div>').join('');
                 const note = item.note ? `<div class="rm-alert rm-inbox-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>${esc(item.note)}</span></div>` : '';
-                const aside = item.dismissed ? `<div class="rm-alert warning rm-inbox-note"><i class="ti ti-eye-off" aria-hidden="true"></i><span>Diabaikan` +
-                    `${item.dismissed.by ? ` oleh ${esc(item.dismissed.by)}` : ''}: ${esc(item.dismissed.reason || '')}</span></div>` : '';
+                const why = item.dismissed ? (item.dismissed.by ?
+                    RadioUi.fill(words.dismissed_by, { name: item.dismissed.by, reason: item.dismissed.reason || '' }) :
+                    RadioUi.fill(words.dismissed, { reason: item.dismissed.reason || '' })) : '';
+                const aside = item.dismissed ? `<div class="rm-alert warning rm-inbox-note"><i class="ti ti-eye-off" aria-hidden="true"></i><span>${esc(why)}</span></div>` : '';
                 const fixes = (item.options || []).length && attnPage.may.update ?
-                    `<div class="rm-inbox-fixes"><div class="rm-inbox-fixes-title">Saran perbaikan</div>${attnPage.drawFixes()}</div>` : '<div class="pb-3"></div>';
+                    `<div class="rm-inbox-fixes"><div class="rm-inbox-fixes-title">${esc(words.fixes)}</div>${attnPage.drawFixes()}</div>` : '<div class="pb-3"></div>';
 
                 $('#attnDetail').html(`<div class="rm-inbox-detail-head"><div><h2 class="rm-inbox-detail-title">${esc(item.title)}</h2>` +
                     `<div class="rm-inbox-detail-sub">${esc(seen)}</div></div><span class="rm-badge ${attnPage.tone(item.color)}">${esc(item.label)}</span></div>` +
@@ -255,7 +260,7 @@
                     let field = '';
                     if (on && option.field && option.field.kind === 'select') {
                         field = `<div class="rm-field rm-inbox-fix-field"><select class="form-select" id="attnField" aria-label="${esc(option.title)}">` +
-                            '<option value="">Pilih…</option>' +
+                            `<option value="">${esc(RadioUi.words.choose)}</option>` +
                             option.field.choices.map(choice => `<option value="${esc(choice.value)}">${esc(choice.label)}</option>`).join('') + '</select></div>';
                     } else if (on && option.field) {
                         field = `<div class="rm-field rm-inbox-fix-field"><input type="text" class="form-control${option.field.mono ? ' radio-mono' : ''}" id="attnField"` +
@@ -272,25 +277,27 @@
             /** Who has it, and the buttons: for who may change it. */
             drawFoot() {
                 const esc = attnPage.esc;
+                const words = attnPage.words;
                 const item = attnPage.detail;
                 if (!attnPage.may.update) {
-                    return `<div class="rm-inbox-detail-foot">Ditugaskan ke <span class="rm-inbox-holder">${item.assignee ? esc(item.assignee.name) : 'belum ada'}</span></div>`;
+                    return `<div class="rm-inbox-detail-foot">${esc(words.assigned_to)} <span class="rm-inbox-holder">${esc(item.assignee ? item.assignee.name : words.nobody)}</span></div>`;
                 }
                 const current = item.assignee ? item.assignee.id : '';
                 const people = attnPage.people.slice();
                 if (item.assignee && !people.some(person => person.id === item.assignee.id)) people.push(item.assignee);
-                const choices = ['<option value="">Belum ditugaskan</option>'].concat(people.map(person =>
-                    `<option value="${Number(person.id)}"${Number(person.id) === Number(current) ? ' selected' : ''}>${esc(person.name)}${Number(person.id) === Number(attnPage.me) ? ' (saya)' : ''}</option>`));
+                const choices = [`<option value="">${esc(words.unassigned)}</option>`].concat(people.map(person =>
+                    `<option value="${Number(person.id)}"${Number(person.id) === Number(current) ? ' selected' : ''}>` +
+                    `${esc(Number(person.id) === Number(attnPage.me) ? RadioUi.fill(words.me, { name: person.name }) : person.name)}</option>`));
                 const disabled = attnPage.ready ? '' : ' disabled';
                 const option = (item.options || []).find(one => one.id === attnPage.choice);
-                const applyText = option && option.id === 'dismiss' ? 'Abaikan' : 'Terapkan';
+                const applyText = option && option.id === 'dismiss' ? words.dismiss : words.apply;
                 const canApply = (item.options || []).length && (attnPage.may.fix || (option && option.id === 'dismiss'));
-                return '<div class="rm-inbox-detail-foot"><label for="attnAssign" class="mb-0">Ditugaskan ke</label>' +
+                return `<div class="rm-inbox-detail-foot"><label for="attnAssign" class="mb-0">${esc(words.assigned_to)}</label>` +
                     `<div class="rm-field rm-inbox-assign"><select class="form-select" id="attnAssign"${disabled}>${choices.join('')}</select></div>` +
                     '<span class="rm-end">' +
-                    `<button type="button" class="btn-rm secondary" id="attnDismiss"${disabled}>Abaikan</button>` +
-                    `<button type="button" class="btn-rm primary" id="attnApply"${canApply ? '' : ' disabled'}${attnPage.may.fix ? '' : ' title="Memperbaiki data radio butuh izin Update di Register Radio"'}>` +
-                    `<i class="ti ti-check" aria-hidden="true"></i> ${applyText}</button></span></div>`;
+                    `<button type="button" class="btn-rm secondary" id="attnDismiss"${disabled}>${esc(words.dismiss)}</button>` +
+                    `<button type="button" class="btn-rm primary" id="attnApply"${canApply ? '' : ' disabled'}${attnPage.may.fix ? '' : ` title="${esc(words.fix_needs_register)}"`}>` +
+                    `<i class="ti ti-check" aria-hidden="true"></i> ${esc(applyText)}</button></span></div>`;
             },
 
             choose(id) {
@@ -313,8 +320,8 @@
                 const body = xhr.responseJSON || {};
                 if (Array.isArray(body.errors)) return body.errors.join(' ');
                 if (body.errors && typeof body.errors === 'object') return Object.values(body.errors).flat().join(' ');
-                if (xhr.status === 403) return 'Anda tidak memiliki izin untuk aksi ini.';
-                return body.message || 'Terjadi kesalahan, coba lagi.';
+                if (xhr.status === 403) return RadioUi.words.no_permission;
+                return body.message || RadioUi.words.error;
             },
 
             /** The item every change names. */
@@ -346,7 +353,7 @@
                 const value = String($('#attnField').val() ?? '').trim();
                 const option = item.options.find(one => one.id === attnPage.choice);
                 if (option && option.field && value === '') {
-                    rmFeedback.toast(option.field.kind === 'select' ? 'Pilih dulu isiannya.' : 'Isi dulu kolomnya.', 'error');
+                    rmFeedback.toast(option.field.kind === 'select' ? attnPage.words.choose_first : attnPage.words.fill_first, 'error');
                     $('#attnField').trigger('focus');
                     return;
                 }
@@ -359,22 +366,23 @@
                     })
                     .fail(xhr => {
                         rmFeedback.busy('#attnApply', false);
-                        Swal.fire('Tidak diterapkan', attnPage.esc(attnPage.plain(xhr)), 'error');
+                        Swal.fire(attnPage.words.not_applied, attnPage.esc(attnPage.plain(xhr)), 'error');
                     });
             },
 
             dismiss() {
                 if (!attnPage.detail) return;
+                const words = attnPage.words;
                 rmDialog.confirm({
                     tone: 'yellow',
                     icon: 'eye-off',
-                    title: 'Abaikan item ini?',
-                    text: 'Item ini muncul lagi bila data radionya berubah.',
+                    title: words.dismiss_title,
+                    text: words.dismiss_text,
                     input: 'textarea',
-                    inputLabel: 'Alasan',
+                    inputLabel: words.reason,
                     inputAttributes: { maxlength: 500 },
-                    inputValidator: value => (String(value || '').trim() === '' ? 'Tulis alasannya.' : undefined),
-                    confirmText: 'Abaikan',
+                    inputValidator: value => (String(value || '').trim() === '' ? words.reason_needed : undefined),
+                    confirmText: words.dismiss,
                     loader: true,
                     preConfirm: reason => $.ajax({ url: attnPage.urls.dismiss, type: 'POST', dataType: 'json', data: { ...attnPage.target(), reason: String(reason || '').trim() } })
                         .then(response => ({ ok: true, response }), xhr => ({ ok: false, xhr })),
@@ -385,7 +393,7 @@
                         attnPage.subject = null;
                         attnPage.load();
                     } else {
-                        Swal.fire('Tidak diabaikan', attnPage.esc(attnPage.plain(result.value.xhr)), 'error');
+                        Swal.fire(words.not_dismissed, attnPage.esc(attnPage.plain(result.value.xhr)), 'error');
                     }
                 });
             },

@@ -12,6 +12,7 @@ class UserManagementServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/UserManagement/Routes/web/user-management.php'));
         $this->loadViewsFrom(base_path('modules/UserManagement/Resources/views'), 'UserManagement');
+        $this->loadTranslationsFrom(base_path('modules/UserManagement/Resources/lang'), 'UserManagement');
     }
 
     public function register()

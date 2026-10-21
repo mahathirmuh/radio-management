@@ -21,7 +21,6 @@ use Modules\SharePointDocs\Services\MenuAccess;
  */
 class EditRequestController extends ApiController
 {
-    public const NOT_READY = 'Tabel pengajuan belum dibuat di database. Jalankan "php artisan migrate" dulu.';
 
     public function __construct(private readonly CellEdits $edits)
     {
@@ -36,7 +35,7 @@ class EditRequestController extends ApiController
     public function index(Request $request): JsonResponse
     {
         if (! CellEdits::ready()) {
-            return response()->json(['message' => self::NOT_READY], 503);
+            return response()->json(['message' => __('SharePointDocs::edits.not_ready')], 503);
         }
         $request->validate([
             /** pending, processing, applied, rejected, conflict or failed. */
@@ -96,9 +95,9 @@ class EditRequestController extends ApiController
         $data = (new EditRequestResource($done, $this->mayDecide($request)))->resolve($request);
 
         return match ($done->status) {
-            EditRequest::APPLIED => response()->json(['message' => $done->failure ?: "Perubahan sel {$done->cell} sudah ditulis ke SharePoint.", 'data' => $data]),
-            EditRequest::CONFLICT => response()->json(['message' => $done->failure, 'data' => $data], 409),
-            default => response()->json(['message' => $done->failure, 'data' => $data], 502),
+            EditRequest::APPLIED => response()->json(['message' => $done->failureIn() ?: __('SharePointDocs::approvals.applied', ['cell' => $done->cell]), 'data' => $data]),
+            EditRequest::CONFLICT => response()->json(['message' => $done->failureIn(), 'data' => $data], 409),
+            default => response()->json(['message' => $done->failureIn(), 'data' => $data], 502),
         };
     }
 
@@ -122,14 +121,14 @@ class EditRequestController extends ApiController
         }
 
         return response()->json([
-            'message' => "Pengajuan perubahan sel {$done->cell} ditolak.",
+            'message' => __('SharePointDocs::approvals.rejected', ['cell' => $done->cell]),
             'data' => (new EditRequestResource($done, $this->mayDecide($request)))->resolve($request),
         ]);
     }
 
     private function find(int $id): EditRequest
     {
-        abort_unless(CellEdits::ready(), 503, self::NOT_READY);
+        abort_unless(CellEdits::ready(), 503, __('SharePointDocs::edits.not_ready'));
         $one = EditRequest::query()->find($id);
         abort_if($one === null, 404);
 

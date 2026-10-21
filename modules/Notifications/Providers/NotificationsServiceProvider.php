@@ -10,5 +10,6 @@ class NotificationsServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/Notifications/Routes/web/notifications.php'));
         $this->loadViewsFrom(base_path('modules/Notifications/Resources/views'), 'Notifications');
+        $this->loadTranslationsFrom(base_path('modules/Notifications/Resources/lang'), 'Notifications');
     }
 }

@@ -1,6 +1,6 @@
 {{-- The filters of the list, in its toolbar: roles (several may be chosen) and status. Each applies as it is changed. --}}
 <div class="user-role-pick">
-    <label for="roleSelectFilter" class="visually-hidden">Role</label>
+    <label for="roleSelectFilter" class="visually-hidden">{{ __('UserManagement::users.filter.role') }}</label>
     <select id="roleSelectFilter" name="role[]" multiple="multiple">
         @foreach ($roles as $role)
             <option value="{{ $role->id }}">{{ $role->name }}</option>
@@ -8,11 +8,11 @@
     </select>
 </div>
 <div class="user-status-pick rm-field">
-    <label for="statusSelectFilter" class="visually-hidden">Status</label>
+    <label for="statusSelectFilter" class="visually-hidden">{{ __('UserManagement::users.filter.status') }}</label>
     <select id="statusSelectFilter" name="status" class="form-select">
-        <option value="">All statuses</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
+        <option value="">{{ __('UserManagement::users.filter.all_statuses') }}</option>
+        <option value="active">{{ __('UserManagement::users.list.active') }}</option>
+        <option value="inactive">{{ __('UserManagement::users.list.inactive') }}</option>
     </select>
 </div>
 
@@ -42,7 +42,8 @@
     {{-- The roles as a menu of boxes to tick (the design layer's picker). --}}
     <script>
         $(function() {
-            rmPickers.multi('#roleSelectFilter', { all: 'All roles', pickAll: 'Select all', clear: 'Clear' });
+            // "Select all" and "Clear" are the pickers' own (ui.pickers).
+            rmPickers.multi('#roleSelectFilter', { all: @json(__('UserManagement::users.filter.all_roles')) });
         });
     </script>
 @endpush

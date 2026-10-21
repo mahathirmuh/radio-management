@@ -26,10 +26,14 @@ use Modules\RadioManagement\Services\SignatureImage;
  */
 class ESignController extends Controller
 {
-    public const NOT_READY = 'Tabel tanda tangan belum dibuat di database. Jalankan "php artisan migrate" dulu.';
-
     public function __construct(private readonly ESigns $signatures)
     {
+    }
+
+    /** What is said while the tables of the signatures are not there yet (the API says it too). */
+    public static function notReady(): string
+    {
+        return __('RadioManagement::esign.messages.not_ready');
     }
 
     public function index()
@@ -58,7 +62,7 @@ class ESignController extends Controller
     public function list(Request $request): JsonResponse
     {
         if (! ItSignature::ready()) {
-            return response()->json(['message' => self::NOT_READY], 503);
+            return response()->json(['message' => self::notReady()], 503);
         }
 
         $limit = min(max((int) $request->input('paginated', 25), 1), 100);
@@ -114,7 +118,7 @@ class ESignController extends Controller
     public function store(Request $request): JsonResponse
     {
         if (! ItSignature::ready()) {
-            return response()->json(['message' => self::NOT_READY], 503);
+            return response()->json(['message' => self::notReady()], 503);
         }
 
         $validator = Validator::make($request->all(), [
@@ -122,10 +126,10 @@ class ESignController extends Controller
             'display_name' => ['nullable', 'string', 'max:150'],
             'image' => ['required', 'string'],
         ], [
-            'user_id.required' => 'Pilih akun pemilik tanda tangan.',
-            'user_id.exists' => 'Akun itu tidak ditemukan.',
-            'user_id.unique' => 'Akun itu sudah punya tanda tangan. Ganti lewat tombol Edit.',
-            'image.required' => 'Tanda tangan belum ada. Klik kotaknya untuk tanda tangan di layar, atau unggah file gambarnya.',
+            'user_id.required' => __('RadioManagement::esign.messages.choose_owner'),
+            'user_id.exists' => __('RadioManagement::esign.messages.owner_missing'),
+            'user_id.unique' => __('RadioManagement::esign.messages.owner_has_one'),
+            'image.required' => __('RadioManagement::esign.messages.no_signature'),
         ]);
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
@@ -150,7 +154,7 @@ class ESignController extends Controller
         // Never the picture: that one was made, for whom, and the name under it.
         app(AuditLogger::class)->log(AuditLogger::ESIGN_CREATED, $signature, new: $this->signatures->facts($signature, $user), label: $user->email);
 
-        return response()->json(['message' => "Tanda tangan {$name} berhasil didaftarkan."]);
+        return response()->json(['message' => __('RadioManagement::esign.messages.registered', ['name' => $name])]);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -162,7 +166,7 @@ class ESignController extends Controller
             // Only when the signature itself is replaced.
             'image' => ['nullable', 'string'],
         ], [
-            'display_name.required' => 'Nama yang tercetak di bawah tanda tangan harus diisi.',
+            'display_name.required' => __('RadioManagement::esign.messages.name_required'),
         ]);
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
@@ -186,7 +190,7 @@ class ESignController extends Controller
         app(AuditLogger::class)->logChanges(AuditLogger::ESIGN_UPDATED, $signature, $before,
             $this->signatures->facts($signature, $owner) + (isset($changes['image']) ? ['Signature' => 'Replaced'] : []), $owner?->email);
 
-        return response()->json(['message' => "Tanda tangan {$signature->display_name} berhasil disimpan."]);
+        return response()->json(['message' => __('RadioManagement::esign.messages.saved', ['name' => $signature->display_name])]);
     }
 
     /** Removes the signature. The record of where it was put stays. */
@@ -199,11 +203,11 @@ class ESignController extends Controller
         DB::transaction(fn () => $signature->delete());
         app(AuditLogger::class)->log(AuditLogger::ESIGN_DELETED, $signature, old: $before, label: $owner?->email);
 
-        return response()->json(['message' => "Tanda tangan {$name} dihapus."]);
+        return response()->json(['message' => __('RadioManagement::esign.messages.deleted', ['name' => $name])]);
     }
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $errors], 422);
     }
 }

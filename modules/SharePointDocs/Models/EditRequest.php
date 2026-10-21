@@ -2,6 +2,7 @@
 
 namespace Modules\SharePointDocs\Models;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -39,7 +40,7 @@ class EditRequest extends Model
 
     public const KIND_EMPTY = 'empty';
 
-    /** The words of each status, as the pages say them. */
+    /** The words of each status as the audit log and the API keep them (the pages say them in their language: statusName()). */
     public const LABELS = [
         self::PENDING => 'Menunggu',
         self::PROCESSING => 'Diproses',
@@ -48,6 +49,15 @@ class EditRequest extends Model
         self::CONFLICT => 'Konflik',
         self::FAILED => 'Gagal',
     ];
+
+    /**
+     * Why the request that is being decided now was not written (or that it was there already), in any language: set by
+     * CellEdits for the answer and the notification. Null for a request read from the database, which has only what was
+     * stored (in Indonesian).
+     *
+     * @var (Closure(string): string)|null
+     */
+    public ?Closure $failureWords = null;
 
     protected $table = 'sharepoint_edit_requests';
 
@@ -64,15 +74,42 @@ class EditRequest extends Model
         'direct' => 'boolean',
     ];
 
-    /** What the cell is to hold, as the pages show it: the text, or "(dikosongkan)". */
-    public function newShown(): string
+    /**
+     * What the cell is to hold: the text, or "(dikosongkan)". Without $locale as the audit log and the API keep it; a page
+     * gives its language.
+     */
+    public function newShown(?string $locale = null): string
     {
-        return $this->new_kind === self::KIND_EMPTY ? '(dikosongkan)' : (string) $this->new_value;
+        return $this->new_kind === self::KIND_EMPTY ? self::emptyWord('cleared', '(dikosongkan)', $locale) : (string) $this->new_value;
     }
 
-    public function oldShown(): string
+    /** What the cell held when the change was asked for: the text, or "(kosong)" (see newShown()). */
+    public function oldShown(?string $locale = null): string
     {
-        return (string) $this->old_text === '' ? '(kosong)' : (string) $this->old_text;
+        return (string) $this->old_text === '' ? self::emptyWord('empty', '(kosong)', $locale) : (string) $this->old_text;
+    }
+
+    /** Why it was not written (or that it was there already): in $locale when it is known in every language, else as it was stored. */
+    public function failureIn(?string $locale = null): ?string
+    {
+        return $this->failureWords !== null ? ($this->failureWords)($locale ?? app()->getLocale()) : $this->failure;
+    }
+
+    /** The words of a status in the language of the page (or $locale). */
+    public static function statusName(string $status, ?string $locale = null): string
+    {
+        return array_key_exists($status, self::LABELS) ? __('SharePointDocs::approvals.statuses.' . $status, [], $locale) : $status;
+    }
+
+    /** @return array<string, string> every status by its code, with its words in the language of the page */
+    public static function names(): array
+    {
+        return array_combine(array_keys(self::LABELS), array_map(fn (string $status) => self::statusName($status), array_keys(self::LABELS)));
+    }
+
+    private static function emptyWord(string $key, string $stored, ?string $locale): string
+    {
+        return $locale === null ? $stored : __('SharePointDocs::approvals.' . $key, [], $locale);
     }
 
     /** The cell it is about, as the audit trail names it: "ICT Masterlist · COF!B12". */

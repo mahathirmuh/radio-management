@@ -419,8 +419,9 @@ class ServiceTicketTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         $page = (string) $this->get(route('radio-management.service.index'))->assertOk()->getContent();
-        $this->assertStringContainsString(e(ServiceTicketController::NOT_READY), $page);
-        $this->getJson(route('radio-management.service.list'))->assertStatus(503)->assertJsonPath('message', ServiceTicketController::NOT_READY);
+        $this->assertStringContainsString(e(ServiceTicketController::notReadyText()), $page);
+        $this->assertStringContainsString('Tabel tiket servis belum dibuat di database.', ServiceTicketController::notReadyText());
+        $this->getJson(route('radio-management.service.list'))->assertStatus(503)->assertJsonPath('message', ServiceTicketController::notReadyText());
         $this->open($this->radio())->assertStatus(503);
         // Nothing else waits for the tables: a fresh import is not held up by tickets that cannot exist.
         $this->assertSame(0, ServiceTicket::openCount());

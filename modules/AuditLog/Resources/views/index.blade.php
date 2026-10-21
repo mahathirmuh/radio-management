@@ -308,49 +308,48 @@
     </style>
 @endpush
 
-@section('page-title', 'Audit Log')
+@section('page-title', __('AuditLog::log.page_title'))
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">Audit log</h1>
-            <p class="rm-sub">Every create, update, delete, sign-in and import, with who did it and from where.</p>
+            <h1 class="rm-title">{{ __('AuditLog::log.title') }}</h1>
+            <p class="rm-sub">{{ __('AuditLog::log.sub') }}</p>
         </div>
     </div>
 
     @unless ($ready)
         <div class="rm-alert warning mb-3" role="alert" id="auditNotReady">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-            <span>The audit log is not switched on yet: its migration has not been run on this database
-                (<code>php artisan migrate</code>). Nothing is recorded until then.</span>
+            <span>{!! __('AuditLog::log.not_ready_page') !!}</span>
         </div>
     @endunless
 
     <div class="rm-card">
         {{-- The table stays the default: only it shows the record, the change and the address side by side. --}}
         <div class="rm-toolbar rm-toolbar-tight">
-            <div class="rm-seg" role="group" aria-label="View">
+            <div class="rm-seg" role="group" aria-label="{{ __('AuditLog::log.view') }}">
                 <button type="button" @class(['is-on' => $view !== 'timeline']) data-audit-view="table"
                     aria-pressed="{{ $view === 'timeline' ? 'false' : 'true' }}"><i class="ti ti-table me-1"
-                        aria-hidden="true"></i>Table</button>
+                        aria-hidden="true"></i>{{ __('AuditLog::log.table') }}</button>
                 <button type="button" @class(['is-on' => $view === 'timeline']) data-audit-view="timeline"
                     aria-pressed="{{ $view === 'timeline' ? 'true' : 'false' }}"><i class="ti ti-timeline-event me-1"
-                        aria-hidden="true"></i>Log activity</button>
+                        aria-hidden="true"></i>{{ __('AuditLog::log.timeline') }}</button>
             </div>
         </div>
 
         <div class="audit-filters">
             <div class="rm-field">
-                <label class="form-label" for="auditSearch">User email</label>
+                <label class="form-label" for="auditSearch">{{ __('AuditLog::log.filters.search') }}</label>
                 <div class="rm-search">
                     <i class="ti ti-search" aria-hidden="true"></i>
-                    <input id="auditSearch" type="search" value="{{ $search }}" autocomplete="off" placeholder="Search by email">
+                    <input id="auditSearch" type="search" value="{{ $search }}" autocomplete="off" placeholder="{{ __('AuditLog::log.filters.search_hint') }}">
                 </div>
             </div>
             <div class="rm-field">
-                <label class="form-label" for="auditAction">Action</label>
+                <label class="form-label" for="auditAction">{{ __('AuditLog::log.filters.action') }}</label>
                 <select id="auditAction" class="form-select">
-                    <option value="">All actions</option>
+                    <option value="">{{ __('AuditLog::log.filters.all_actions') }}</option>
                     @foreach ($actions as $option)
                         <option value="{{ $option }}" @selected($option === $action)>{{ $option }}</option>
                     @endforeach
@@ -361,9 +360,9 @@
                 </select>
             </div>
             <div class="rm-field">
-                <label class="form-label" for="auditEntity">Entity</label>
+                <label class="form-label" for="auditEntity">{{ __('AuditLog::log.filters.entity') }}</label>
                 <select id="auditEntity" class="form-select">
-                    <option value="">All entities</option>
+                    <option value="">{{ __('AuditLog::log.filters.all_entities') }}</option>
                     @foreach ($entities as $type => $name)
                         <option value="{{ $type }}" @selected($type === $entity)>{{ $name }}</option>
                     @endforeach
@@ -374,16 +373,17 @@
                 </select>
             </div>
             <div class="rm-field audit-range" id="auditRangeField">
-                <label class="form-label" for="auditRange">Date range</label>
+                <label class="form-label" for="auditRange">{{ __('AuditLog::log.filters.range') }}</label>
                 <select id="auditRange" class="form-select">
-                    @foreach (['today' => 'Today', 'yesterday' => 'Yesterday', '7d' => 'Last 7 days', '30d' => 'Last 30 days', 'all' => 'All time'] as $value => $name)
+                    {{-- today, yesterday, 7d, 30d, all --}}
+                    @foreach (__('AuditLog::log.filters.ranges') as $value => $name)
                         <option value="{{ $value }}" @selected($value === $range)>{{ $name }}</option>
                     @endforeach
                     {{-- The days chosen on the calendar, named by them (auditRange.show()). --}}
                     <option value="custom" id="auditRangeCustom" @selected($range === 'custom') @if ($range !== 'custom') hidden disabled @endif></option>
-                    <option value="pick">Custom range…</option>
+                    <option value="pick">{{ __('AuditLog::log.filters.pick') }}</option>
                 </select>
-                <div class="rm-cal" id="auditCal" role="dialog" aria-label="Custom range" hidden></div>
+                <div class="rm-cal" id="auditCal" role="dialog" aria-label="{{ __('AuditLog::log.filters.calendar') }}" hidden></div>
             </div>
         </div>
 
@@ -395,12 +395,12 @@
                             <table class="rm-table" id="auditTable">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Time</th>
-                                        <th scope="col">User</th>
-                                        <th scope="col" width="120">Action</th>
-                                        <th scope="col">Entity</th>
-                                        <th scope="col">Summary</th>
-                                        <th scope="col" class="text-end">IP</th>
+                                        <th scope="col">{{ __('AuditLog::log.columns.time') }}</th>
+                                        <th scope="col">{{ __('AuditLog::log.columns.user') }}</th>
+                                        <th scope="col" width="120">{{ __('AuditLog::log.columns.action') }}</th>
+                                        <th scope="col">{{ __('AuditLog::log.columns.entity') }}</th>
+                                        <th scope="col">{{ __('AuditLog::log.columns.summary') }}</th>
+                                        <th scope="col" class="text-end">{{ __('AuditLog::log.columns.ip') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -414,8 +414,8 @@
                 <div id="auditTimelineView" @class(['d-none' => $view !== 'timeline'])>
                     <div class="rm-cardbox" id="auditTimelineBox">
                         <div class="rm-cardbox-head align-items-baseline">
-                            <h2 class="rm-cardbox-title">Log activity</h2>
-                            <span class="rm-cardbox-sub mt-0">Newest first</span>
+                            <h2 class="rm-cardbox-title">{{ __('AuditLog::log.timeline') }}</h2>
+                            <span class="rm-cardbox-sub mt-0">{{ __('AuditLog::log.newest_first') }}</span>
                         </div>
                         <ol class="audit-timeline" id="auditTimeline"></ol>
                     </div>
@@ -425,10 +425,10 @@
             <aside class="rm-cardbox audit-details d-none" id="auditDetails" aria-labelledby="auditDetailsTitle">
                 <div class="rm-cardbox-head">
                     <div class="min-w-0">
-                        <h2 class="rm-cardbox-title" id="auditDetailsTitle">Event details</h2>
+                        <h2 class="rm-cardbox-title" id="auditDetailsTitle">{{ __('AuditLog::log.details') }}</h2>
                         <div class="rm-cardbox-sub" id="auditDetailsSub"></div>
                     </div>
-                    <button type="button" class="rm-dialog-close ms-auto" id="auditDetailsClose" aria-label="Close the details"><i
+                    <button type="button" class="rm-dialog-close ms-auto" id="auditDetailsClose" aria-label="{{ __('AuditLog::log.close_details') }}"><i
                             class="ti ti-x" aria-hidden="true"></i></button>
                 </div>
                 <div class="rm-cardbox-body">
@@ -442,6 +442,9 @@
 
 @push('javascript')
     <script>
+        /** The words of the page's script in the language of the page (AuditLog::log.script). */
+        const auditText = @json(__('AuditLog::log.script'));
+
         const auditLog = {
             url: @json(route('audit-log.list')),
             ready: @json($ready),
@@ -470,41 +473,44 @@
                 })[c]);
             },
 
-            /** An action for the eye: a word, a colour and an icon. The key itself is in the tooltip and the details. */
+            /**
+             * An action for the eye: a word (auditText.kinds), a colour and an icon. The key itself is in the tooltip and the
+             * details.
+             */
             kinds: {
-                'auth.login': ['Signed in', 'blue', 'login'],
-                'auth.login_failed': ['Sign-in failed', 'red', 'lock'],
-                'auth.logout': ['Signed out', 'gray', 'logout'],
-                'auth.session_expired': ['Session expired', 'yellow', 'clock'],
-                'user.status_changed': ['Status changed', 'orange', 'user-check'],
-                'user.password_reset': ['Password set', 'orange', 'key'],
-                'radio.history_added': ['Created', 'green', 'plus'],
-                'radio.handed_over': ['Handed over', 'blue', 'user-check'],
-                'radio.imported': ['Imported', 'purple', 'upload'],
-                'radio.opname_submitted': ['Counted', 'green', 'barcode'],
-                'radio.archived': ['Archived', 'gray', 'archive'],
-                'radio.restored': ['Restored', 'green', 'restore'],
-                'service.status_changed': ['Moved', 'orange', 'tool'],
-                'service.note_added': ['Note', 'blue', 'notes'],
-                'attention.assigned': ['Assigned', 'blue', 'user-plus'],
-                'attention.dismissed': ['Dismissed', 'gray', 'eye-off'],
-                'esign.used': ['Signed', 'blue', 'signature'],
-                'document.edit_requested': ['Requested', 'yellow', 'send'],
-                'document.edit_approved': ['Approved', 'green', 'check'],
-                'document.edit_rejected': ['Rejected', 'red', 'x'],
-                'document.edited_directly': ['Edited', 'orange', 'edit'],
-                'api.token_revoked': ['Revoked', 'red', 'ban'],
+                'auth.login': ['blue', 'login'],
+                'auth.login_failed': ['red', 'lock'],
+                'auth.logout': ['gray', 'logout'],
+                'auth.session_expired': ['yellow', 'clock'],
+                'user.status_changed': ['orange', 'user-check'],
+                'user.password_reset': ['orange', 'key'],
+                'radio.history_added': ['green', 'plus'],
+                'radio.handed_over': ['blue', 'user-check'],
+                'radio.imported': ['purple', 'upload'],
+                'radio.opname_submitted': ['green', 'barcode'],
+                'radio.archived': ['gray', 'archive'],
+                'radio.restored': ['green', 'restore'],
+                'service.status_changed': ['orange', 'tool'],
+                'service.note_added': ['blue', 'notes'],
+                'attention.assigned': ['blue', 'user-plus'],
+                'attention.dismissed': ['gray', 'eye-off'],
+                'esign.used': ['blue', 'signature'],
+                'document.edit_requested': ['yellow', 'send'],
+                'document.edit_approved': ['green', 'check'],
+                'document.edit_rejected': ['red', 'x'],
+                'document.edited_directly': ['orange', 'edit'],
+                'api.token_revoked': ['red', 'ban'],
             },
 
             kind(action) {
                 const key = String(action ?? '');
                 if (Object.prototype.hasOwnProperty.call(auditLog.kinds, key)) {
-                    const [label, tone, icon] = auditLog.kinds[key];
-                    return { label, tone, icon };
+                    const [tone, icon] = auditLog.kinds[key];
+                    return { label: auditText.kinds[key] || key, tone, icon };
                 }
-                if (/created$/.test(key)) return { label: 'Created', tone: 'green', icon: 'plus' };
-                if (/updated$/.test(key)) return { label: 'Updated', tone: 'orange', icon: 'edit' };
-                if (/deleted$/.test(key)) return { label: 'Deleted', tone: 'red', icon: 'trash' };
+                if (/created$/.test(key)) return { label: auditText.generic.created, tone: 'green', icon: 'plus' };
+                if (/updated$/.test(key)) return { label: auditText.generic.updated, tone: 'orange', icon: 'edit' };
+                if (/deleted$/.test(key)) return { label: auditText.generic.deleted, tone: 'red', icon: 'trash' };
                 // An action without a word here shows its key, so a new one is not quietly read as something else.
                 return { label: key || '—', tone: 'gray', icon: 'activity' };
             },
@@ -532,7 +538,7 @@
                     className: 'audit-user',
                     // The name; the address is in its tooltip and in the details.
                     render: r => `<div class="rm-strong"${r.email ? ` title="${auditLog.esc(r.email)}"` : ''}>${auditLog.esc(r.user)}</div>` +
-                        (r.via ? `<div class="mt-1"><span class="badge bg-purple-lt">via ${auditLog.esc(r.via)}</span></div>` : '')
+                        (r.via ? `<div class="mt-1"><span class="badge bg-purple-lt">${auditLog.esc(rmFill(auditText.via, { name: r.via }))}</span></div>` : '')
                 },
                 {
                     key: 'action',
@@ -580,7 +586,8 @@
                     `<span class="audit-dot">•</span> <span class="audit-ago">${esc(row.ago)}</span></div>` +
                     (lines ? `<div class="audit-changes">${lines}</div>` : '') +
                     `<div class="audit-stamp"><span>${esc(row.at)}</span><span class="audit-key">${esc(row.action)}</span>` +
-                    (row.ip ? `<span>from ${esc(row.ip)}</span>` : '') + (row.via ? `<span>via ${esc(row.via)}</span>` : '') +
+                    (row.ip ? `<span>${esc(rmFill(auditText.from, { ip: row.ip }))}</span>` : '') +
+                    (row.via ? `<span>${esc(rmFill(auditText.via, { name: row.via }))}</span>` : '') +
                     `</div></div></li>`;
             },
 
@@ -594,25 +601,26 @@
                 auditLog.open = index;
 
                 $('#auditDetailsSub').text(kind.label + (what ? ' · ' + what : ''));
+                const terms = auditText.meta;
                 const meta = [
-                    ['Time', esc(row.at), false],
-                    ['User', esc(row.user) + (row.email && row.email !== row.user ? `<div class="rm-line2">${esc(row.email)}</div>` : ''), false],
-                    ['Action', esc(row.action), true],
+                    [terms.time, esc(row.at), false],
+                    [terms.user, esc(row.user) + (row.email && row.email !== row.user ? `<div class="rm-line2">${esc(row.email)}</div>` : ''), false],
+                    [terms.action, esc(row.action), true],
                 ];
-                if (row.entity) meta.push(['Entity', esc(row.entity), false]);
-                if (row.label) meta.push(['Record', esc(row.label), false]);
-                meta.push(['IP', esc(row.ip || '—'), true]);
-                if (row.browser) meta.push(['Browser', esc(row.browser), false]);
-                if (row.via) meta.push(['Via', esc(row.via), false]);
+                if (row.entity) meta.push([terms.entity, esc(row.entity), false]);
+                if (row.label) meta.push([terms.record, esc(row.label), false]);
+                meta.push([terms.ip, esc(row.ip || '—'), true]);
+                if (row.browser) meta.push([terms.browser, esc(row.browser), false]);
+                if (row.via) meta.push([terms.via, esc(row.via), false]);
                 $('#auditDetailsMeta').html(meta.map(([term, value, mono]) =>
-                    `<dt>${term}</dt><dd${mono ? ' class="font-monospace"' : ''}>${value}</dd>`).join(''));
+                    `<dt>${esc(term)}</dt><dd${mono ? ' class="font-monospace"' : ''}>${value}</dd>`).join(''));
 
                 const lines = (row.changes || []).flatMap(change => change.old !== null ?
                     [['is-old', `- ${change.field}: ${change.old}`], ['is-new', `+ ${change.field}: ${change.new}`]] :
                     [['is-new', `+ ${change.field}: ${change.new}`]]);
                 $('#auditDetailsDiff').html(lines.length ?
                     lines.map(([tone, text]) => `<div class="${tone}">${esc(text)}</div>`).join('') :
-                    '<div class="is-none">No field was changed.</div>');
+                    `<div class="is-none">${esc(auditText.no_change)}</div>`);
 
                 $('#auditDetails').removeClass('d-none');
                 $('#auditBody').addClass('has-details');
@@ -645,11 +653,12 @@
             },
 
             render() {
+                const states = auditText.states;
                 const message = {
-                    loading: 'Loading...',
-                    failed: 'The audit log could not be loaded.',
-                    off: 'The audit log is not switched on yet.',
-                } [auditLog.state] || 'No audit entries yet.';
+                    loading: states.loading,
+                    failed: states.failed,
+                    off: states.off,
+                } [auditLog.state] || states.empty;
                 const timeline = auditLog.view === 'timeline';
 
                 $('#auditTableView').toggleClass('d-none', timeline);
@@ -762,8 +771,11 @@
          * days each time the list is asked for.
          */
         const auditRange = {
-            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+            /** The names of the months and days, and the words of the calendar, in the language of the page (lang/<code>/ui.php). */
+            words: @json(__('ui.pickers')),
+            months: @json(__('ui.pickers.months')),
+            shortMonths: @json(__('ui.pickers.short_months')),
+            weekdays: @json(__('ui.pickers.weekdays')),
             /** How many days before today the first and the last day of a named range are. */
             back: {
                 today: [0, 0],
@@ -796,7 +808,7 @@
             /** "12 Oct 2026". */
             label(text) {
                 const date = auditRange.parse(text);
-                return date ? `${String(date.getDate()).padStart(2, '0')} ${auditRange.months[date.getMonth()].slice(0, 3)} ${date.getFullYear()}` : '';
+                return date ? `${String(date.getDate()).padStart(2, '0')} ${auditRange.shortMonths[date.getMonth()]} ${date.getFullYear()}` : '';
             },
             /** Days as short as they can be named: "12 – 19 Oct 2026", "28 Sep – 04 Oct 2026", "28 Dec 2025 – 03 Jan 2026", "19 Oct 2026". */
             name(from, to) {
@@ -805,7 +817,7 @@
                 if (from === to) return auditRange.label(from);
                 if (a.getFullYear() !== b.getFullYear()) return `${auditRange.label(from)} – ${auditRange.label(to)}`;
                 const day = date => String(date.getDate()).padStart(2, '0');
-                const month = date => auditRange.months[date.getMonth()].slice(0, 3);
+                const month = date => auditRange.shortMonths[date.getMonth()];
                 if (a.getMonth() !== b.getMonth()) return `${day(a)} ${month(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
 
                 return `${day(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
@@ -932,20 +944,20 @@
                 const now = auditRange.today();
                 const latest = month.getFullYear() * 12 + month.getMonth() >= now.getFullYear() * 12 + now.getMonth();
                 const summary = first && last ? (first === last ? auditRange.label(first) : `${auditRange.label(first)} – ${auditRange.label(last)}`) :
-                    (first ? `${auditRange.label(first)} – select an end date` : 'Select a start date');
+                    (first ? rmFill(auditText.pick_end, { first: auditRange.label(first) }) : auditText.pick_start);
                 // The day that has the focus keeps it in the month drawn again.
                 const focused = document.activeElement && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-date') : null;
                 $('#auditCal').html(
                     '<div class="rm-cal-head">' +
-                    '<button type="button" class="rm-cal-nav" data-nav="-1" aria-label="Previous month"><i class="ti ti-chevron-left"></i></button>' +
+                    `<button type="button" class="rm-cal-nav" data-nav="-1" aria-label="${auditLog.esc(auditRange.words.previous_month)}"><i class="ti ti-chevron-left"></i></button>` +
                     `<div class="rm-cal-title">${auditRange.months[month.getMonth()]} ${month.getFullYear()}</div>` +
-                    `<button type="button" class="rm-cal-nav" data-nav="1" aria-label="Next month"${latest ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>` +
+                    `<button type="button" class="rm-cal-nav" data-nav="1" aria-label="${auditLog.esc(auditRange.words.next_month)}"${latest ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>` +
                     '</div>' +
                     `<div class="rm-cal-week">${auditRange.weekdays.map(name => `<span>${name}</span>`).join('')}</div>` +
                     `<div class="rm-cal-grid">${cells.join('')}</div>` +
                     `<div class="rm-cal-sum"><span class="rm-cal-sum-text">${auditLog.esc(summary)}</span>` +
-                    '<button type="button" class="btn-rm secondary sm" data-cal="cancel">Cancel</button>' +
-                    `<button type="button" class="btn-rm primary sm" data-cal="apply"${first && last ? '' : ' disabled'}>Apply</button></div>`);
+                    `<button type="button" class="btn-rm secondary sm" data-cal="cancel">${auditLog.esc(auditText.cancel)}</button>` +
+                    `<button type="button" class="btn-rm primary sm" data-cal="apply"${first && last ? '' : ' disabled'}>${auditLog.esc(auditText.apply)}</button></div>`);
                 if (focused) $(`#auditCal [data-date="${focused}"]`).trigger('focus');
             },
         };

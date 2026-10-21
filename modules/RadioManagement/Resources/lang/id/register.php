@@ -296,6 +296,7 @@ return [
         'none_chosen' => 'Belum ada radio yang dipilih.',
         'too_many' => 'Terlalu banyak radio (:count); paling banyak :max sekaligus. Persempit pilihan atau filternya.',
         'busy_reason' => 'register sedang sibuk, coba lagi',
+        'skipped_archived' => 'sudah diarsipkan',
         'refused' => 'ditolak',
     ],
 ];

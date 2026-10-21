@@ -37,14 +37,15 @@ class MasterData
     /**
      * Field definitions drive the generic list table, the modal form and validation.
      * `usage` lists the columns of `radios` that point at the master table.
+     * The names of the tables and of their fields are in $locale (by default the language of the page or of the API
+     * request: RadioManagement::master.tables); the audit trail keeps them in Indonesian (facts(), label()).
      */
-    public function definitions(): array
+    public function definitions(?string $locale = null): array
     {
         $categories = config('radio.categories');
 
-        return [
+        $definitions = [
             'radio-type' => [
-                'title' => 'Tipe Radio',
                 'model' => RadioType::class,
                 'unique' => 'name',
                 'search' => ['name', 'power'],
@@ -52,14 +53,13 @@ class MasterData
                 'order' => 'name',
                 'usage' => ['radio_type_id'],
                 'fields' => [
-                    'name' => ['label' => 'Nama Tipe', 'type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'MotoTrbo XiR P6620i'],
-                    'category' => ['label' => 'Kategori', 'type' => 'select', 'options' => $categories, 'rules' => ['required', Rule::in(array_keys($categories))]],
-                    'power' => ['label' => 'Daya', 'type' => 'text', 'rules' => ['nullable', 'string', 'max:30'], 'placeholder' => '5 W'],
-                    'is_active' => ['label' => 'Aktif', 'type' => 'boolean', 'rules' => ['boolean']],
+                    'name' => ['type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'MotoTrbo XiR P6620i'],
+                    'category' => ['type' => 'select', 'options' => $categories, 'rules' => ['required', Rule::in(array_keys($categories))]],
+                    'power' => ['type' => 'text', 'rules' => ['nullable', 'string', 'max:30'], 'placeholder' => '5 W'],
+                    'is_active' => ['type' => 'boolean', 'rules' => ['boolean']],
                 ],
             ],
             'company' => [
-                'title' => 'Perusahaan',
                 'model' => RadioCompany::class,
                 'unique' => 'code',
                 'search' => ['code', 'name'],
@@ -67,13 +67,12 @@ class MasterData
                 'order' => 'code',
                 'usage' => ['company_id', 'owner_company_id'],
                 'fields' => [
-                    'code' => ['label' => 'Kode', 'type' => 'text', 'rules' => ['required', 'string', 'max:50'], 'placeholder' => 'MTI', 'upper' => true],
-                    'name' => ['label' => 'Nama Perusahaan', 'type' => 'text', 'rules' => ['nullable', 'string', 'max:150'], 'placeholder' => 'PT Merdeka Tsingshan Indonesia'],
-                    'is_active' => ['label' => 'Aktif', 'type' => 'boolean', 'rules' => ['boolean']],
+                    'code' => ['type' => 'text', 'rules' => ['required', 'string', 'max:50'], 'placeholder' => 'MTI', 'upper' => true],
+                    'name' => ['type' => 'text', 'rules' => ['nullable', 'string', 'max:150'], 'placeholder' => 'PT Merdeka Tsingshan Indonesia'],
+                    'is_active' => ['type' => 'boolean', 'rules' => ['boolean']],
                 ],
             ],
             'department' => [
-                'title' => 'Department',
                 'model' => RadioDepartment::class,
                 'unique' => 'name',
                 'search' => ['name'],
@@ -81,12 +80,11 @@ class MasterData
                 'order' => 'name',
                 'usage' => ['department_id'],
                 'fields' => [
-                    'name' => ['label' => 'Nama Department', 'type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'CHLORIDE PLANT', 'upper' => true],
-                    'is_active' => ['label' => 'Aktif', 'type' => 'boolean', 'rules' => ['boolean']],
+                    'name' => ['type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'CHLORIDE PLANT', 'upper' => true],
+                    'is_active' => ['type' => 'boolean', 'rules' => ['boolean']],
                 ],
             ],
             'channel-template' => [
-                'title' => 'Template Channel',
                 'model' => ChannelTemplate::class,
                 'unique' => 'name',
                 'search' => ['name', 'channels'],
@@ -94,18 +92,25 @@ class MasterData
                 'order' => 'name',
                 'usage' => ['channel_template_id'],
                 'fields' => [
-                    'name' => ['label' => 'Nama Template', 'type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'General'],
-                    'channels' => ['label' => 'Isi Channel', 'type' => 'textarea', 'rules' => ['nullable', 'string', 'max:2000'], 'placeholder' => 'Emergency, Security, Safety, ...'],
-                    'effective_date' => [
-                        'label' => 'Berlaku Sejak',
-                        'type' => 'date',
-                        'rules' => ['nullable', 'date'],
-                        'help' => 'Radio dengan template ini yang diprogram sebelum tanggal ini ditandai "Perlu program ulang".',
-                    ],
-                    'is_active' => ['label' => 'Aktif', 'type' => 'boolean', 'rules' => ['boolean']],
+                    'name' => ['type' => 'text', 'rules' => ['required', 'string', 'max:100'], 'placeholder' => 'General'],
+                    'channels' => ['type' => 'textarea', 'rules' => ['nullable', 'string', 'max:2000'], 'placeholder' => 'Emergency, Security, Safety, ...'],
+                    'effective_date' => ['type' => 'date', 'rules' => ['nullable', 'date']],
+                    'is_active' => ['type' => 'boolean', 'rules' => ['boolean']],
                 ],
             ],
         ];
+
+        // The title of each table, the label of each field (first, as the form shows it) and its help, if it has one.
+        foreach ($definitions as $key => $definition) {
+            $words = __("RadioManagement::master.tables.{$key}", [], $locale);
+            $definitions[$key]['title'] = $words['title'];
+            foreach ($definition['fields'] as $name => $field) {
+                $definitions[$key]['fields'][$name] = ['label' => $words['fields'][$name]] + $field
+                    + (isset($words['help'][$name]) ? ['help' => $words['help'][$name]] : []);
+            }
+        }
+
+        return $definitions;
     }
 
     /** A page of the rows: $search in the table's text columns, sorted by one of its sortable columns (else its own order). */
@@ -139,8 +144,8 @@ class MasterData
         $rules[$master['unique']][] = Rule::unique((new $master['model'])->getTable(), $master['unique'])->ignore($ignoreId);
 
         return Validator::make($input, $rules, [
-            'required' => ':attribute wajib diisi.',
-            'unique' => ':attribute sudah ada.',
+            'required' => __('RadioManagement::master.messages.required'),
+            'unique' => __('RadioManagement::master.messages.unique'),
         ], $labels);
     }
 
@@ -196,8 +201,7 @@ class MasterData
     /** What is said when a row cannot go because radios use it. */
     public static function inUseMessage(int $inUse): string
     {
-        return "Masih dipakai {$inUse} radio. Nonaktifkan saja (tidak bisa dipilih lagi untuk radio lain), "
-            . 'atau pindahkan radio ke data lain dulu.';
+        return trans_choice('RadioManagement::master.messages.in_use', $inUse, ['count' => $inUse]);
     }
 
     /**
@@ -263,16 +267,18 @@ class MasterData
     }
 
     /**
-     * A row of a master table as the audit trail shows it: the fields of its form, by their labels.
+     * A row of a master table as the audit trail shows it: the fields of its form, by their labels in Indonesian
+     * (whatever the language of the page: the trail keeps one wording).
      *
      * @return array<string, mixed>
      */
     private function facts(array $master, Model $item): array
     {
+        $labels = $this->definitions('id')[$master['key'] ?? '']['fields'] ?? $master['fields'];
         $facts = [];
         foreach ($master['fields'] as $name => $field) {
             $value = $item->getAttribute($name);
-            $facts[$field['label']] = match (true) {
+            $facts[$labels[$name]['label'] ?? $field['label']] = match (true) {
                 $field['type'] === 'boolean' => $value ? 'Ya' : 'Tidak',
                 $value instanceof DateTimeInterface => $value->format('d-m-Y'),
                 $field['type'] === 'select' && is_scalar($value) => $field['options'][$value] ?? $value,
@@ -283,9 +289,11 @@ class MasterData
         return $facts;
     }
 
-    /** "Tipe Radio: MotoTrbo XiR P6620i": which table, and which row of it. */
+    /** "Tipe Radio: MotoTrbo XiR P6620i": which table (in Indonesian, as facts()), and which row of it. */
     private function label(array $master, Model $item): string
     {
-        return $master['title'] . ': ' . ($item->getAttribute($master['unique']) ?? '#' . $item->getKey());
+        $title = $this->definitions('id')[$master['key'] ?? '']['title'] ?? $master['title'];
+
+        return $title . ': ' . ($item->getAttribute($master['unique']) ?? '#' . $item->getKey());
     }
 }

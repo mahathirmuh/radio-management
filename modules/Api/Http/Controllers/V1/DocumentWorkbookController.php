@@ -219,7 +219,7 @@ class DocumentWorkbookController extends ApiController
         }
 
         return response()->json([
-            'message' => "Pengajuan perubahan sel {$made->cell} dikirim. Isi workbook baru berubah setelah disetujui.",
+            'message' => __('SharePointDocs::workbook.asked', ['cell' => $made->cell]),
             'data' => (new EditRequestResource($made))->resolve($request),
         ], 201);
     }

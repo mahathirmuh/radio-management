@@ -14,31 +14,26 @@
             'delete' => \Illuminate\Support\Facades\Blade::check('permission', $menuKey, 'Delete'),
         ];
         // The four lists of master data are one page each (each its own menu and permissions): the tabs lead to them.
-        $tabs = collect([
-            'radio-type' => 'Tipe Radio',
-            'company' => 'Perusahaan',
-            'department' => 'Department',
-            'channel-template' => 'Template Channel',
-        ])->filter(fn ($title, $key) => \Illuminate\Support\Facades\Blade::check('permission', "radio-management.{$key}", 'Read'));
-        $subtitles = [
-            'radio-type' => 'Model radio yang bisa dipilih di register.',
-            'company' => 'Company pengguna dan pemilik aset radio.',
-            'department' => 'Department pengguna radio.',
-            'channel-template' => 'Template channel yang diprogram ke radio; tanggal berlakunya menandai radio yang perlu program ulang.',
-        ];
+        $tabs = collect(\Modules\RadioManagement\Services\MasterData::KEYS)
+            ->mapWithKeys(fn ($key) => [$key => __("RadioManagement::master.tables.{$key}.title")])
+            ->filter(fn ($title, $key) => \Illuminate\Support\Facades\Blade::check('permission', "radio-management.{$key}", 'Read'));
+        // What this table's page says (RadioManagement::master.tables.<key>), and what every one of them says.
+        $masterText = __("RadioManagement::master.tables.{$masterKey}");
+        $pageText = __('RadioManagement::master.page');
+        $masterWords = collect($masterText)->only(['add', 'edit', 'delete'])->all() + $pageText;
         $editable = $may['create'] || $may['update'];
     @endphp
 
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ $master['title'] }}</h1>
-            <p class="rm-sub">{{ $subtitles[$masterKey] ?? 'Master data radio.' }}</p>
+            <p class="rm-sub">{{ $masterText['sub'] }}</p>
         </div>
     </div>
 
     <div class="rm-card">
         <div class="rm-tabs-row">
-            <nav class="rm-tabs" aria-label="Master data">
+            <nav class="rm-tabs" aria-label="{{ $pageText['tabs'] }}">
                 @foreach ($tabs as $key => $title)
                     <a href="{{ route("radio-management.{$key}.index") }}" class="{{ $key === $masterKey ? 'is-on' : '' }}"
                         @if ($key === $masterKey) aria-current="page" @endif>{{ $title }}</a>
@@ -46,7 +41,7 @@
             </nav>
             @if ($may['create'])
                 <button type="button" class="btn-rm primary" id="masterAddButton" onclick="masterForm.open()">
-                    <i class="ti ti-plus" aria-hidden="true"></i> Tambah {{ $master['title'] }}
+                    <i class="ti ti-plus" aria-hidden="true"></i> {{ $masterText['add'] }}
                 </button>
             @endif
         </div>
@@ -55,21 +50,21 @@
             <div class="d-flex flex-column gap-3 min-w-0">
                 <label class="rm-search" for="masterSearch">
                     <i class="ti ti-search" aria-hidden="true"></i>
-                    <input type="search" id="masterSearch" autocomplete="off" placeholder="Cari {{ strtolower($master['title']) }}…"
-                        aria-label="Cari" />
+                    <input type="search" id="masterSearch" autocomplete="off" placeholder="{{ $masterText['search'] }}"
+                        aria-label="{{ $pageText['search'] }}" />
                 </label>
                 <div class="rm-box">
                     <div class="table-responsive">
                         <table class="rm-table" id="masterTable">
                             <thead>
                                 <tr>
-                                    <th class="text-center" width="30">No</th>
+                                    <th class="text-center" width="30">{{ $pageText['no'] }}</th>
                                     @foreach ($fields as $name => $field)
                                         <th @if (in_array($name, $master['sortable'], true)) data-key="{{ $name }}" @endif>
                                             {{ $field['label'] }}</th>
                                     @endforeach
-                                    <th class="text-end">Dipakai</th>
-                                    <th class="text-end"><span class="visually-hidden">Aksi</span></th>
+                                    <th class="text-end">{{ $pageText['usage'] }}</th>
+                                    <th class="text-end"><span class="visually-hidden">{{ $pageText['actions'] }}</span></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -83,9 +78,8 @@
                 <section class="rm-cardbox rm-master-form" aria-labelledby="masterFormTitle">
                     <header class="rm-cardbox-head">
                         <div>
-                            <h2 class="rm-cardbox-title" id="masterFormTitle">Tambah {{ $master['title'] }}</h2>
-                            <div class="rm-cardbox-sub" id="masterFormSub">Isi lalu simpan; data baru langsung bisa dipilih di
-                                register.</div>
+                            <h2 class="rm-cardbox-title" id="masterFormTitle">{{ $masterText['add'] }}</h2>
+                            <div class="rm-cardbox-sub" id="masterFormSub">{{ $pageText['new_sub'] }}</div>
                         </div>
                     </header>
                     <form id="masterForm" autocomplete="off" class="rm-cardbox-body d-flex flex-column gap-3"
@@ -120,8 +114,8 @@
                         @endforeach
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn-rm secondary d-none" id="masterCancelButton"
-                                onclick="masterForm.open()">Batal</button>
-                            <button type="submit" class="btn-rm primary" id="masterSaveButton">Simpan</button>
+                                onclick="masterForm.open()">{{ __('RadioManagement::common.ui.cancel') }}</button>
+                            <button type="submit" class="btn-rm primary" id="masterSaveButton">{{ __('RadioManagement::common.ui.save') }}</button>
                         </div>
                     </form>
                 </section>
@@ -134,7 +128,8 @@
     <script>
         const masterFields = @json($fields);
         const masterMay = @json($may);
-        const masterTitle = @json($master['title']);
+        /** The words of this page in its language (RadioManagement::master: the table's sentences and the page's). */
+        const masterText = @json($masterWords);
         const masterUrls = {
             list: "{{ route("radio-management.{$masterKey}.list") }}",
             show: "{{ route("radio-management.{$masterKey}.show", ':id') }}",
@@ -158,7 +153,7 @@
                     render: row => {
                         const value = row[name];
                         if (field.type === 'boolean') {
-                            return value ? RadioUi.badge('Aktif', 'green') : RadioUi.badge('Nonaktif', 'secondary');
+                            return value ? RadioUi.badge(masterText.active, 'green') : RadioUi.badge(masterText.inactive, 'secondary');
                         }
                         // A category: HT blue, Rig purple (the design's badges); another choice grey.
                         if (field.type === 'select') {
@@ -180,8 +175,8 @@
                     key: 'actions',
                     className: 'text-end',
                     render: row => `<div class="rm-acts">
-                        ${masterMay.update ? `<button type="button" class="rm-act" data-action="edit" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-title="Edit" aria-label="Edit"><i class="ti ti-edit"></i></button>` : ''}
-                        ${masterMay.delete ? `<button type="button" class="rm-act is-danger" data-action="delete" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-title="Hapus" aria-label="Hapus"><i class="ti ti-trash"></i></button>` : ''}
+                        ${masterMay.update ? `<button type="button" class="rm-act" data-action="edit" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(masterText.edit_button)}" aria-label="${RadioUi.esc(masterText.edit_button)}"><i class="ti ti-edit"></i></button>` : ''}
+                        ${masterMay.delete ? `<button type="button" class="rm-act is-danger" data-action="delete" data-id="${row.id}" data-bs-toggle="tooltip" data-bs-title="${RadioUi.esc(masterText.delete_button)}" aria-label="${RadioUi.esc(masterText.delete_button)}"><i class="ti ti-trash"></i></button>` : ''}
                     </div>`
                 },
             ],
@@ -192,10 +187,9 @@
                     columns: masterTable.columns,
                     currentPage: masterTable.page,
                     limit: masterTable.limit,
-                    emptyText: 'Belum ada data',
+                    emptyText: masterText.empty,
                     currentSortKey: masterTable.orderBy,
                     currentSortDir: masterTable.orderDir,
-                    paginationLabels: { showing: 'Menampilkan', of: 'dari', rows: 'Baris per halaman', previous: 'Halaman sebelumnya', next: 'Halaman berikutnya' },
                     onPageChange: page => {
                         masterTable.page = page;
                         masterTable.load();
@@ -231,7 +225,7 @@
                     }
                     masterTable.render({ data: response.data, meta: response.meta });
                     RadioUi.tooltips('#masterTable');
-                }).fail(() => masterTable.render({ emptyText: 'Gagal memuat data.' }));
+                }).fail(() => masterTable.render({ emptyText: masterText.load_failed }));
             },
         };
 
@@ -240,8 +234,8 @@
             id: null,
             open(row = null) {
                 masterForm.id = row ? row.id : null;
-                $('#masterFormTitle').text((row ? 'Edit ' : 'Tambah ') + masterTitle);
-                $('#masterFormSub').text(row ? 'Ubah lalu simpan; radio yang memakainya ikut berubah.' : 'Isi lalu simpan; data baru langsung bisa dipilih di register.');
+                $('#masterFormTitle').text(row ? masterText.edit : masterText.add);
+                $('#masterFormSub').text(row ? masterText.edit_sub : masterText.new_sub);
                 $('#masterCancelButton').toggleClass('d-none', !row);
                 Object.entries(masterFields).forEach(([name, field]) => {
                     const input = $('#field_' + name);
@@ -278,9 +272,9 @@
                 rmDialog.confirm({
                     tone: 'red',
                     icon: 'trash',
-                    title: `Hapus ${masterTitle.toLowerCase()} ini?`,
-                    text: 'Data yang masih dipakai radio tidak bisa dihapus.',
-                    confirmText: 'Hapus',
+                    title: masterText.delete,
+                    text: masterText.delete_text,
+                    confirmText: masterText.delete_button,
                     confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;

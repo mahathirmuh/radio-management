@@ -35,13 +35,6 @@ class UserRegisteredController extends Controller
     /** The accounts ticked in the list that one bulk action takes at most. */
     public const BULK_MAX = 100;
 
-    /** What the form sends for the sign-in method, and what is said when a name is not one. */
-    private const MESSAGES = [
-        'name.regex' => "The name may only have letters, numbers, spaces, brackets and . , - '",
-        'ldap_username.regex' => 'The directory username may only have letters, numbers and . _ - @',
-        'sign_in_method.in' => 'This sign-in method is not available here.',
-    ];
-
     protected $pageTitle;
     protected $menuItems;
     private $user;
@@ -62,6 +55,30 @@ class UserRegisteredController extends Controller
         $this->user = new User();
         $this->company = new Company();
         $this->role = new Role();
+    }
+
+    /** What this page says, in the language of the request (UserManagement::users.messages). */
+    private static function say(string $key, array $replace = []): string
+    {
+        return __('UserManagement::users.messages.' . $key, $replace);
+    }
+
+    /** What is said when a name, a directory username or the sign-in method that was sent is not one. */
+    private static function messages(): array
+    {
+        return [
+            'name.regex' => self::say('name_format'),
+            'ldap_username.regex' => self::say('directory_format'),
+            'sign_in_method.in' => self::say('method_unavailable'),
+        ];
+    }
+
+    /** The names of the fields in the messages of the validation. */
+    private static function attributes(): array
+    {
+        $names = __('UserManagement::users.attributes');
+
+        return is_array($names) ? $names : [];
     }
 
     /**
@@ -103,7 +120,7 @@ class UserRegisteredController extends Controller
                 'lookupSources' => $this->lookupSources($caller),
                 // One method is no choice: with Microsoft alone the form does not ask.
                 'signInMethods' => $this->offeredSignInMethods(),
-                'signInMeanings' => User::SIGN_IN_MEANINGS,
+                'signInMeanings' => __('UserManagement::users.sign_in_meanings'),
                 // Whether Active Directory is set up here (LDAP_URL, LDAP_BIND_DN): the form says so when it is not.
                 'ldapConfigured' => app(LdapAuthenticator::class)->isConfigured(),
 
@@ -233,7 +250,7 @@ class UserRegisteredController extends Controller
         $user = $this->user->people()->with('company', 'roles')->find($id);
 
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            return response()->json(['message' => self::say('not_found')], 404);
         }
         if ($denied = $this->denyUnlessManageable($request, $user)) {
             return $denied;
@@ -241,7 +258,7 @@ class UserRegisteredController extends Controller
         $assignable = $this->assignableRoleIds($request->user());
 
         return response()->json([
-            'message' => 'User data retrieved successfully',
+            'message' => self::say('retrieved'),
             'data' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -279,11 +296,11 @@ class UserRegisteredController extends Controller
             'role_id' => ['required', 'array', 'min:1'],
             // Roles are soft-deleted: a deleted one must not be handed out (the user would be left without a usable role).
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
-        ], self::MESSAGES);
+        ], self::messages(), self::attributes());
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Invalid Input!',
+                'message' => self::say('invalid'),
                 'errors' => $validator->errors()->all()
             ], 422);
         }
@@ -298,8 +315,8 @@ class UserRegisteredController extends Controller
             : $this->company->find($existing?->company_id ?? $this->newUserCompany($request->user()));
         if (!$companySelected) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => 'Company was not found on system, please contact administrator'
+                'message' => self::say('invalid'),
+                'errors' => self::say('company_missing')
             ], 422);
         }
 
@@ -345,11 +362,11 @@ class UserRegisteredController extends Controller
             app(AuditLogger::class)->log(AuditLogger::USER_CREATED, $saved,
                 new: $this->auditFacts($saved) + ($existing ? ['Restored' => 'Yes, it had been deleted'] : []), label: $saved->email);
 
-            return response()->json(["message" => "User Created Successfully"], 200);
+            return response()->json(["message" => self::say('created')], 200);
         } catch (Exception $e) {
             report($e);
 
-            return response()->json(['message' => 'The user could not be saved. Details are in the application log.'], 500);
+            return response()->json(['message' => self::say('save_failed')], 500);
         }
     }
 
@@ -371,11 +388,11 @@ class UserRegisteredController extends Controller
             // user that their form does not list stay. The resulting list is checked below.
             'role_id' => $assignable === null ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
             'role_id.*' => [Rule::exists('roles', 'id')->whereNull('deleted_at')],
-        ], self::MESSAGES);
+        ], self::messages(), self::attributes());
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Invalid Input!',
+                'message' => self::say('invalid'),
                 'errors' => $validator->errors()->all()
             ], 422);
         }
@@ -384,8 +401,8 @@ class UserRegisteredController extends Controller
         $user = $this->user->people()->find($id);
         if (!$user) {
             return response()->json([
-                'message' => 'User Not Found!',
-                'errors' => 'The user you are trying to update does not exist.'
+                'message' => self::say('update_missing'),
+                'errors' => self::say('update_missing_text')
             ], 404);
         }
 
@@ -398,7 +415,7 @@ class UserRegisteredController extends Controller
         // As in status(): setting your own account to inactive would end your own access.
         $active = $request->filled('active') ? $request->boolean('active') : null;
         if ($active === false && (int) $user->id === (int) $request->user()->id) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => ['You cannot deactivate your own account.']], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => [self::say('own_deactivate')]], 422);
         }
 
         // The company that was named, else the one the user has.
@@ -407,8 +424,8 @@ class UserRegisteredController extends Controller
             : $this->company->find($user->company_id);
         if (!$companySelected) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => 'Company was not found in the system, please contact administrator'
+                'message' => self::say('invalid'),
+                'errors' => self::say('company_missing_update')
             ], 404);
         }
         if ($denied = $this->denyCompanyOutOfScope($request, $companySelected->id)) {
@@ -425,8 +442,8 @@ class UserRegisteredController extends Controller
         // and with it the roles the caller is not allowed to hand out.
         if ($unmanaged->isNotEmpty() && strcasecmp((string) $request->email, (string) $user->email) !== 0) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['You cannot change the e-mail of a user who holds roles you cannot manage.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('email_locked')],
             ], 403);
         }
 
@@ -436,8 +453,8 @@ class UserRegisteredController extends Controller
             && strcasecmp((string) $directoryUsername, (string) $user->ldap_username) !== 0;
         if ($unmanaged->isNotEmpty() && $changesDirectory) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['You cannot change how a user who holds roles you cannot manage signs in.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('method_locked')],
             ], 403);
         }
         if ($changesDirectory && ($denied = $this->denyDirectoryUsernameTaken($directoryUsername, (int) $user->id)
@@ -448,7 +465,7 @@ class UserRegisteredController extends Controller
         // The roles the user ends up with.
         $roleIds = collect((array) $request->role_id)->map(fn ($roleId) => (int) $roleId)->merge($unmanaged)->unique()->values();
         if ($roleIds->isEmpty()) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => ['The role id field is required.']], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => [self::say('role_required')]], 422);
         }
         if ($denied = $this->denyLiftingLimit($request, $user, $roleIds)) {
             return $denied;
@@ -484,11 +501,11 @@ class UserRegisteredController extends Controller
             $after = $this->auditFacts($user->fresh());
             app(AuditLogger::class)->logChanges(AuditLogger::USER_UPDATED, $user, $before, $after, $user->email);
 
-            return response()->json(["message" => "User Updated Successfully"], 200);
+            return response()->json(["message" => self::say('updated')], 200);
         } catch (Exception $e) {
             report($e);
 
-            return response()->json(['message' => 'The user could not be saved. Details are in the application log.'], 500);
+            return response()->json(['message' => self::say('save_failed')], 500);
         }
     }
 
@@ -501,20 +518,20 @@ class UserRegisteredController extends Controller
             }
             $this->deleteUser($user);
 
-            return response()->json(['message' => 'User deleted successfully!'], 200);
+            return response()->json(['message' => self::say('deleted')], 200);
         } catch (Exception $e) {
             report($e);
 
-            return response()->json(['message' => 'The user could not be deleted. Details are in the application log.'], 500);
+            return response()->json(['message' => self::say('delete_failed')], 500);
         }
     }
 
     /** Sets an account to active or inactive. An inactive account cannot sign in, and a session it has open ends. */
     public function status(Request $request, $id)
     {
-        $validator = Validator::make($request->all(), ['active' => ['required', 'boolean']]);
+        $validator = Validator::make($request->all(), ['active' => ['required', 'boolean']], [], self::attributes());
         if ($validator->fails()) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $validator->errors()->all()], 422);
         }
 
         $user = $this->user->people()->find($id);
@@ -524,7 +541,7 @@ class UserRegisteredController extends Controller
         $active = $request->boolean('active');
         $this->setStatus($user, $active);
 
-        return response()->json(['message' => $active ? 'User activated.' : 'User deactivated.'], 200);
+        return response()->json(['message' => self::say($active ? 'activated' : 'deactivated')], 200);
     }
 
     /**
@@ -537,15 +554,15 @@ class UserRegisteredController extends Controller
             'active' => ['required', 'boolean'],
             'ids' => ['required', 'array', 'min:1', 'max:' . self::BULK_MAX],
             'ids.*' => ['integer'],
-        ], ['ids.required' => 'No user is selected.', 'ids.max' => 'At most ' . self::BULK_MAX . ' users at a time.']);
+        ], self::bulkMessages(), self::attributes());
         if ($validator->fails()) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $validator->errors()->all()], 422);
         }
         $active = $request->boolean('active');
 
         return $this->bulk($request, 'deactivate', $active ? 'activated' : 'deactivated', function (User $user) use ($active) {
             if ($user->isActive() === $active) {
-                return $active ? 'already active' : 'already inactive';
+                return self::say($active ? 'already_active' : 'already_inactive');
             }
             $this->setStatus($user, $active);
 
@@ -559,13 +576,13 @@ class UserRegisteredController extends Controller
         $validator = Validator::make($request->all(), [
             'ids' => ['required', 'array', 'min:1', 'max:' . self::BULK_MAX],
             'ids.*' => ['integer'],
-        ], ['ids.required' => 'No user is selected.', 'ids.max' => 'At most ' . self::BULK_MAX . ' users at a time.']);
+        ], self::bulkMessages(), self::attributes());
         if ($validator->fails()) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $validator->errors()->all()], 422);
         }
         $count = count(array_unique(array_map('intval', $request->input('ids'))));
         if ((string) $request->input('confirm') !== (string) $count) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => ["Type the number of users to delete ({$count}) to go on."]], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => [self::say('type_count', ['count' => $count])]], 422);
         }
 
         return $this->bulk($request, 'delete', 'deleted', function (User $user) {
@@ -573,6 +590,12 @@ class UserRegisteredController extends Controller
 
             return null;
         });
+    }
+
+    /** What is said when no account, or too many, were ticked. */
+    private static function bulkMessages(): array
+    {
+        return ['ids.required' => self::say('none_selected'), 'ids.max' => self::say('too_many', ['max' => self::BULK_MAX])];
     }
 
     /**
@@ -595,7 +618,7 @@ class UserRegisteredController extends Controller
                     $reason = $one($user);
                 } catch (Exception $e) {
                     report($e);
-                    $reason = 'could not be saved (details are in the application log)';
+                    $reason = self::say('bulk_error');
                 }
             }
             if ($reason === null) {
@@ -605,7 +628,8 @@ class UserRegisteredController extends Controller
             }
         }
 
-        $message = $done . ' ' . Str::plural('user', $done) . " {$did}." . ($skipped === [] ? '' : ' ' . count($skipped) . ' skipped.');
+        $message = trans_choice('UserManagement::users.messages.bulk_done.' . $did, $done, ['count' => $done])
+            . ($skipped === [] ? '' : ' ' . self::say('bulk_skipped', ['count' => count($skipped)]));
 
         return response()->json(['message' => $message, 'done' => $done, 'skipped' => $skipped]);
     }
@@ -618,14 +642,14 @@ class UserRegisteredController extends Controller
     private function refusal(Request $request, ?User $user, string $what): ?array
     {
         if (! $user) {
-            return ['status' => 404, 'message' => 'User not found.'];
+            return ['status' => 404, 'message' => self::say('missing')];
         }
         // Doing it to yourself would end your own access, and may leave the application without an admin.
         if ((int) $user->id === (int) $request->user()->id) {
-            return ['status' => 422, 'message' => "You cannot {$what} your own account."];
+            return ['status' => 422, 'message' => self::say($what === 'delete' ? 'own_delete' : 'own_deactivate')];
         }
         if (! app(UserScope::class)->mayManage($request->user(), $user)) {
-            return ['status' => 403, 'message' => 'You are not allowed to manage this user.'];
+            return ['status' => 403, 'message' => self::say('not_allowed')];
         }
 
         return null;
@@ -658,35 +682,35 @@ class UserRegisteredController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'password' => ['required', 'string', 'max:72', 'confirmed', Password::min(8)->letters()->numbers()],
-        ]);
+        ], [], self::attributes());
         if ($validator->fails()) {
-            return response()->json(['message' => 'Invalid Input!', 'errors' => $validator->errors()->all()], 422);
+            return response()->json(['message' => self::say('invalid'), 'errors' => $validator->errors()->all()], 422);
         }
 
         $user = $this->user->people()->with('roles')->find($id);
         if (!$user) {
-            return response()->json(['message' => 'User not found.'], 404);
+            return response()->json(['message' => self::say('missing')], 404);
         }
         if ($denied = $this->denyUnlessManageable($request, $user)) {
             return $denied;
         }
 
         if ($user->signsInWithDirectory()) {
-            return response()->json(['message' => 'This account signs in with its Active Directory password. There is no password to set here.'], 422);
+            return response()->json(['message' => self::say('directory_only')], 422);
         }
 
         // Whoever sets the password of an account can sign in as it, and so use the roles it holds:
         // the same rule as for changing its e-mail (see update()).
         $assignable = $this->assignableRoleIds($request->user());
         if ($assignable !== null && $user->roles->pluck('id')->map(fn ($roleId) => (int) $roleId)->diff($assignable)->isNotEmpty()) {
-            return response()->json(['message' => 'You cannot set the password of a user who holds roles you cannot manage.'], 403);
+            return response()->json(['message' => self::say('password_locked')], 403);
         }
 
         $user->update(['password' => bcrypt($request->password), 'remember_token' => null]);
         // That a password was set, by whom: never the password.
         app(AuditLogger::class)->log(AuditLogger::USER_PASSWORD_RESET, $user, label: $user->email);
 
-        return response()->json(['message' => 'Password saved.'], 200);
+        return response()->json(['message' => self::say('password_saved')], 200);
     }
 
     /**
@@ -799,21 +823,21 @@ class UserRegisteredController extends Controller
             $account = $directory->lookup($username);
         } catch (DirectoryUnavailable) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['Active Directory cannot be reached right now to check the directory username. Try again shortly.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('directory_down')],
             ], 503);
         }
 
         if ($account === null) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ["Active Directory has no account \"{$username}\". Check the directory username: it is not always the part of the email before the @."],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('directory_unknown', ['username' => $username])],
             ], 422);
         }
         if ($account['disabled']) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ["The Active Directory account \"{$username}\" is disabled: it cannot sign in."],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('directory_disabled', ['username' => $username])],
             ], 422);
         }
 
@@ -886,8 +910,8 @@ class UserRegisteredController extends Controller
             ->exists();
 
         return $taken ? response()->json([
-            'message' => 'Invalid Input!',
-            'errors' => ["The directory username \"{$username}\" already belongs to another account."],
+            'message' => self::say('invalid'),
+            'errors' => [self::say('directory_taken', ['username' => $username])],
         ], 422) : null;
     }
 
@@ -960,7 +984,7 @@ class UserRegisteredController extends Controller
     {
         return app(UserScope::class)->mayManage($request->user(), $target)
             ? null
-            : response()->json(['message' => 'You are not allowed to manage this user.'], 403);
+            : response()->json(['message' => self::say('not_allowed')], 403);
     }
 
     /**
@@ -982,7 +1006,7 @@ class UserRegisteredController extends Controller
     {
         $allowed = $this->allowedCompanyIds($request->user());
         if ($allowed !== null && !$allowed->contains($companyId)) {
-            return response()->json(['message' => 'You are not allowed to manage users of this company.'], 403);
+            return response()->json(['message' => self::say('company_not_allowed')], 403);
         }
 
         return null;
@@ -1000,8 +1024,8 @@ class UserRegisteredController extends Controller
 
         if ($added->isNotEmpty()) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['You are not allowed to assign this role.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('role_not_allowed')],
             ], 403);
         }
 
@@ -1027,8 +1051,8 @@ class UserRegisteredController extends Controller
             $dropped = $own->pluck('id')->map(fn ($id) => (int) $id)->diff($roleIds);
 
             return $dropped->isEmpty() ? null : response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['You cannot remove your own role.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('own_role')],
             ], 422);
         }
 
@@ -1040,8 +1064,8 @@ class UserRegisteredController extends Controller
         $keepsUserManagement = DB::table('menu_role')->where('menu_id', $this->menuId)->whereIn('role_id', $roleIds)->exists();
 
         return $staysLimited || ! $keepsUserManagement ? null : response()->json([
-            'message' => 'Invalid Input!',
-            'errors' => ['Removing this role would lift the company limit of this user. Ask an administrator who is not limited to a company.'],
+            'message' => self::say('invalid'),
+            'errors' => [self::say('lifts_limit')],
         ], 422);
     }
 
@@ -1056,15 +1080,15 @@ class UserRegisteredController extends Controller
 
         if ($grantsSuperAdmin && !$this->isSuperAdmin($caller)) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['Only a Super Admin can assign the Super Admin role.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('super_admin_only')],
             ], 403);
         }
 
         if ($target && (int) $target->id === (int) $caller->id && $this->isSuperAdmin($caller) && !$grantsSuperAdmin) {
             return response()->json([
-                'message' => 'Invalid Input!',
-                'errors' => ['You cannot remove the Super Admin role from your own account.'],
+                'message' => self::say('invalid'),
+                'errors' => [self::say('own_super_admin')],
             ], 422);
         }
 

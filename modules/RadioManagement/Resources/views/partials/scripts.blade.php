@@ -62,20 +62,29 @@
                     return String(text ?? '').replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) =>
                         (Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match));
                 },
-                /** A text with a form for one and for more ("{1} ...|[2,*] ..."), as rmChoice. */
+                /** The language of the page, for the plural rule of choice(). */
+                locale: @json(app()->getLocale()),
+                /**
+                 * A text with a form for one and for more ("{1} ...|[2,*] ..."), as rmChoice: the first form whose range
+                 * fits, else the forms without their ranges, picked by the plural rule of the language (as Laravel).
+                 */
                 choice(text, count, values = {}) {
                     const parts = String(text ?? '').split('|');
                     const n = Number(count);
-                    let chosen = parts.length === 2 && !/^\s*[{[]/.test(parts[0]) ? (n === 1 ? parts[0] : parts[1]) : parts[parts.length - 1];
+                    const condition = /^\s*[{[]([^\[\]{}]*)[}\]]/;
+                    let chosen = null;
                     for (const part of parts) {
-                        const range = /^\s*(?:\{(\d+)\}|\[(\d+|\*),\s*(\d+|\*)\])\s*/.exec(part);
-                        if (!range) continue;
-                        const fits = range[1] !== undefined ? n === Number(range[1]) :
-                            ((range[2] === '*' || n >= Number(range[2])) && (range[3] === '*' || n <= Number(range[3])));
-                        if (fits) {
-                            chosen = part.slice(range[0].length);
+                        const found = condition.exec(part);
+                        if (!found) continue;
+                        const [from, to] = found[1].includes(',') ? found[1].split(',').map(side => side.trim()) : [found[1].trim(), found[1].trim()];
+                        if ((from === '*' || n >= Number(from)) && (to === '*' || n <= Number(to))) {
+                            chosen = part.slice(found[0].length);
                             break;
                         }
+                    }
+                    if (chosen === null) {
+                        const forms = parts.map(part => part.replace(condition, ''));
+                        chosen = forms[/^en/i.test(RadioUi.locale) && n !== 1 ? 1 : 0] ?? forms[0];
                     }
                     return RadioUi.fill(chosen.trim(), { count, ...values });
                 },

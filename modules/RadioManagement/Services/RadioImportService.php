@@ -134,14 +134,6 @@ class RadioImportService
 
     private const LOST_PATTERN = '/hilang|kehilangan/i';
 
-    private const NOT_EMPTY = 'Data radio sudah ada. Pilih opsi "hapus data lama" untuk mengimpor ulang dari Excel.';
-
-    /** Starting over would delete the radios that are away for repair (Servis & Perbaikan). */
-    private const OPEN_TICKETS = 'Masih ada %d tiket servis yang terbuka. Impor yang menghapus data lama baru bisa dijalankan setelah semua radio itu kembali (menu Servis & Perbaikan).';
-
-    /** ... or the radios being counted (Stock Opname). */
-    private const OPEN_OPNAMES = 'Masih ada %d sesi stock opname yang terbuka. Kirim sesi itu ke register dulu (menu Stock Opname), baru impor yang menghapus data lama bisa dijalankan.';
-
     /** Upper bound for the write phase; the web request allows itself 600 s as well. */
     private const WRITE_SECONDS = 600;
 
@@ -160,9 +152,10 @@ class RadioImportService
         $userId = $options['user_id'] ?? null;
         $fileName = $options['file_name'] ?? basename($path);
 
-        // Refuse early, before the workbook is read. Checked again where it counts, below.
+        // Refuse early, before the workbook is read. Checked again where it counts, below. The reasons are in the
+        // language of the request (RadioManagement::import.messages); what the import keeps stays in Indonesian.
         if (! $fresh && Radio::withTrashed()->exists()) {
-            throw new RuntimeException(self::NOT_EMPTY);
+            throw new RuntimeException(__('RadioManagement::import.messages.not_empty'));
         }
         if ($fresh) {
             $this->refuseWhileOpen();
@@ -172,7 +165,7 @@ class RadioImportService
         $reader->setReadDataOnly(true);
         $sheetNames = $reader->listWorksheetNames($path);
         if (! in_array(self::FORM_SHEET, $sheetNames, true)) {
-            throw new RuntimeException("Sheet \"" . self::FORM_SHEET . "\" tidak ditemukan di file ini.");
+            throw new RuntimeException(__('RadioManagement::import.messages.no_sheet', ['sheet' => self::FORM_SHEET]));
         }
         $withKonawe = $withKonawe && in_array(self::KONAWE_SHEET, $sheetNames, true);
         $reader->setLoadSheetsOnly($withKonawe ? [self::FORM_SHEET, self::KONAWE_SHEET] : [self::FORM_SHEET]);
@@ -212,7 +205,7 @@ class RadioImportService
                 RadioHistory::query()->delete();
                 Radio::withTrashed()->forceDelete();
             } elseif (Radio::withTrashed()->exists()) {
-                throw new RuntimeException(self::NOT_EMPTY);
+                throw new RuntimeException(__('RadioManagement::import.messages.not_empty'));
             }
             $this->write($records, $userId, $fileName, $report);
         }, self::WRITE_SECONDS);
@@ -222,14 +215,17 @@ class RadioImportService
         return $report;
     }
 
-    /** Starting over deletes every radio: not while some are away for repair, or being counted. */
+    /**
+     * Starting over deletes every radio: not while some are away for repair (Servis & Perbaikan), or being counted
+     * (Stock Opname).
+     */
     private function refuseWhileOpen(): void
     {
         if (($open = ServiceTicket::openCount()) > 0) {
-            throw new RuntimeException(sprintf(self::OPEN_TICKETS, $open));
+            throw new RuntimeException(trans_choice('RadioManagement::import.messages.open_tickets', $open, ['count' => $open]));
         }
         if (($open = RadioOpnameSession::openCount()) > 0) {
-            throw new RuntimeException(sprintf(self::OPEN_OPNAMES, $open));
+            throw new RuntimeException(trans_choice('RadioManagement::import.messages.open_opnames', $open, ['count' => $open]));
         }
     }
 
@@ -240,7 +236,7 @@ class RadioImportService
         $columns = $this->headerColumns($sheet);
         foreach (['sn', 'user', 'radio_id'] as $required) {
             if (! isset($columns[$required])) {
-                throw new RuntimeException("Kolom \"{$required}\" tidak ditemukan di sheet " . self::FORM_SHEET . '.');
+                throw new RuntimeException(__('RadioManagement::import.messages.no_column', ['column' => $required, 'sheet' => self::FORM_SHEET]));
             }
         }
 

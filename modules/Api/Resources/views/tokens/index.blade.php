@@ -22,43 +22,42 @@
     </style>
 @endpush
 
-@section('page-title', 'API Tokens')
+@section('page-title', __('Api::tokens.title'))
+
+@php
+    // The first choice of "Owner": the person who makes the token.
+    $tokenMe = __('Api::tokens.token_form.me', ['name' => auth()->user()->name]);
+@endphp
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">API Tokens</h1>
-            <p class="rm-sub">A token lets another application use the register through the API, at <code>{{ $apiBase }}</code>.
-                It acts as its owner, with the owner's role.</p>
+            <h1 class="rm-title">{{ __('Api::tokens.title') }}</h1>
+            <p class="rm-sub">{!! __('Api::tokens.sub', ['base' => e($apiBase)]) !!}</p>
         </div>
     </div>
 
     @unless ($ready)
         <div class="rm-alert warning mb-3" role="alert" id="tokensNotReady">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-            <span>The API is not switched on yet: its migrations have not been run on this database
-                (<code>php artisan migrate</code>). Until then no token can be made, and the API answers 503.</span>
+            <span>{!! __('Api::tokens.not_ready') !!}</span>
         </div>
     @endunless
 
     <div class="rm-card">
         <div class="rm-section-head">
             <div class="min-w-0">
-                <h2 class="rm-section-title">Tokens</h2>
+                <h2 class="rm-section-title">{{ __('Api::tokens.tokens') }}</h2>
                 <p class="rm-section-sub">
-                    @if ($superAdmin)
-                        Every token: those of the API clients below, and the personal tokens of people.
-                    @else
-                        Your own tokens. They act as you, with your role, and stop when your account is set to inactive.
-                    @endif
-                    A token is shown once, when it is made; only its hash is kept.
+                    {{ __($superAdmin ? 'Api::tokens.tokens_all' : 'Api::tokens.tokens_mine') }}
+                    {{ __('Api::tokens.shown_once') }}
                 </p>
             </div>
             <div class="rm-section-actions">
                 <a href="{{ $docsUrl }}" target="_blank" rel="noopener" class="btn-rm secondary"><i class="ti ti-file-text"
-                        aria-hidden="true"></i> API documentation</a>
+                        aria-hidden="true"></i> {{ __('Api::tokens.docs') }}</a>
                 <button type="button" class="btn-rm primary" id="tokenAddButton" @disabled(! $ready)><i class="ti ti-plus"
-                        aria-hidden="true"></i> New token</button>
+                        aria-hidden="true"></i> {{ __('Api::tokens.new_token') }}</button>
             </div>
         </div>
         <div class="rm-box">
@@ -66,13 +65,13 @@
                 <table class="rm-table" id="tokenTable">
                     <thead>
                         <tr>
-                            <th scope="col">Name</th>
-                            <th scope="col">Owner</th>
-                            <th scope="col">Access</th>
-                            <th scope="col">Created</th>
-                            <th scope="col">Expires</th>
-                            <th scope="col">Last used</th>
-                            <th scope="col"><span class="visually-hidden">Action</span></th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.name') }}</th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.owner') }}</th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.access') }}</th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.created') }}</th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.expires') }}</th>
+                            <th scope="col">{{ __('Api::tokens.token_columns.used') }}</th>
+                            <th scope="col"><span class="visually-hidden">{{ __('Api::tokens.token_columns.action') }}</span></th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -83,16 +82,12 @@
         @if ($superAdmin)
             <div class="rm-section-head pt-2">
                 <div class="min-w-0">
-                    <h2 class="rm-section-title">API clients</h2>
-                    <p class="rm-section-sub">
-                        Accounts of applications, not of people: a client holds one role and its tokens, never signs in on
-                        the screen, and is not listed under User Management. Setting it to inactive stops all its tokens at
-                        once.
-                    </p>
+                    <h2 class="rm-section-title">{{ __('Api::tokens.clients') }}</h2>
+                    <p class="rm-section-sub">{{ __('Api::tokens.clients_sub') }}</p>
                 </div>
                 <div class="rm-section-actions">
                     <button type="button" class="btn-rm secondary" id="clientAddButton" @disabled(! $ready)><i class="ti ti-plus"
-                            aria-hidden="true"></i> New client</button>
+                            aria-hidden="true"></i> {{ __('Api::tokens.new_client') }}</button>
                 </div>
             </div>
             <div class="rm-box">
@@ -100,12 +95,12 @@
                     <table class="rm-table" id="clientTable">
                         <thead>
                             <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">Role</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Tokens</th>
-                                <th scope="col">Created</th>
-                                <th scope="col"><span class="visually-hidden">Action</span></th>
+                                <th scope="col">{{ __('Api::tokens.client_columns.name') }}</th>
+                                <th scope="col">{{ __('Api::tokens.client_columns.role') }}</th>
+                                <th scope="col">{{ __('Api::tokens.client_columns.status') }}</th>
+                                <th scope="col">{{ __('Api::tokens.client_columns.tokens') }}</th>
+                                <th scope="col">{{ __('Api::tokens.client_columns.created') }}</th>
+                                <th scope="col"><span class="visually-hidden">{{ __('Api::tokens.client_columns.action') }}</span></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -122,46 +117,46 @@
                 <div class="rm-dialog-head">
                     <span class="rm-dialog-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
                     <div class="rm-dialog-titles">
-                        <h3 class="rm-dialog-title modal-title" id="tokenModalTitle">New token</h3>
+                        <h3 class="rm-dialog-title modal-title" id="tokenModalTitle">{{ __('Api::tokens.token_form.title') }}</h3>
                     </div>
-                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('Api::tokens.close') }}"><i
                             class="ti ti-x"></i></button>
                 </div>
                 <div class="rm-dialog-body is-form">
                     <div class="rm-field">
-                        <label for="tokenName" class="form-label required">Name</label>
+                        <label for="tokenName" class="form-label required">{{ __('Api::tokens.token_form.name') }}</label>
                         <input type="text" id="tokenName" class="form-control" maxlength="100" required
-                            placeholder="What it is for, e.g. Power BI report">
+                            placeholder="{{ __('Api::tokens.token_form.name_hint') }}">
                     </div>
                     <div class="rm-field @unless ($superAdmin) d-none @endunless">
-                        <label for="tokenOwner" class="form-label">Owner</label>
+                        <label for="tokenOwner" class="form-label">{{ __('Api::tokens.token_form.owner') }}</label>
                         <select id="tokenOwner" class="form-select">
-                            <option value="me">Me ({{ auth()->user()->name }})</option>
+                            <option value="me">{{ $tokenMe }}</option>
                         </select>
-                        <div class="rm-hint">An application gets a token of its API client; a token of yours acts as you.</div>
+                        <div class="rm-hint">{{ __('Api::tokens.token_form.owner_help') }}</div>
                     </div>
                     <div class="rm-field">
-                        <span class="form-label" id="tokenAccessLabel">Access</span>
+                        <span class="form-label" id="tokenAccessLabel">{{ __('Api::tokens.token_form.access') }}</span>
                         <div class="rm-seg" role="radiogroup" aria-labelledby="tokenAccessLabel">
                             <input type="radio" name="tokenAccess" id="tokenAccessRead" value="read" checked>
-                            <label for="tokenAccessRead"><i class="ti ti-eye me-1" aria-hidden="true"></i>Read only</label>
+                            <label for="tokenAccessRead"><i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('Api::tokens.token_form.read') }}</label>
                             <input type="radio" name="tokenAccess" id="tokenAccessWrite" value="read_write">
-                            <label for="tokenAccessWrite"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Read &amp; write</label>
+                            <label for="tokenAccessWrite"><i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('Api::tokens.token_form.read_write') }}</label>
                         </div>
-                        <div class="rm-hint">Within what the owner's role allows (Role &amp; Permission).</div>
+                        <div class="rm-hint">{{ __('Api::tokens.token_form.access_help') }}</div>
                     </div>
                     <div class="rm-field">
-                        <label for="tokenDays" class="form-label">Expires in</label>
+                        <label for="tokenDays" class="form-label">{{ __('Api::tokens.token_form.days') }}</label>
                         <select id="tokenDays" class="form-select">
                             @foreach ($lifetimes as $days)
-                                <option value="{{ $days }}" @selected($days === 365)>{{ $days }} days</option>
+                                <option value="{{ $days }}" @selected($days === 365)>{{ __('Api::tokens.token_form.days_count', ['days' => $days]) }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
                 <div class="rm-dialog-foot">
-                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-rm primary" id="tokenSave">Create token</button>
+                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('Api::tokens.cancel') }}</button>
+                    <button type="submit" class="btn-rm primary" id="tokenSave">{{ __('Api::tokens.token_form.submit') }}</button>
                 </div>
             </form>
         </div>
@@ -174,23 +169,20 @@
                 <div class="rm-dialog-head">
                     <span class="rm-dialog-icon tone-green"><i class="ti ti-circle-check" aria-hidden="true"></i></span>
                     <div class="rm-dialog-titles">
-                        <h3 class="rm-dialog-title modal-title" id="tokenShownTitle">Copy the token now</h3>
+                        <h3 class="rm-dialog-title modal-title" id="tokenShownTitle">{{ __('Api::tokens.token_shown.title') }}</h3>
                     </div>
                 </div>
                 <div class="rm-dialog-body is-form">
-                    <p class="mb-0">
-                        This is the only time it is shown: the application keeps only its hash. Give it to the application
-                        through a safe channel, never in a chat or an e-mail. If it is lost, revoke it and make a new one.
-                    </p>
+                    <p class="mb-0">{{ __('Api::tokens.token_shown.text') }}</p>
                     <div class="rm-copyrow">
-                        <input type="text" id="tokenSecret" class="rm-codebox" readonly aria-label="Token">
-                        <button type="button" class="btn-rm primary" id="tokenCopy"><i class="ti ti-copy" aria-hidden="true"></i> Copy</button>
+                        <input type="text" id="tokenSecret" class="rm-codebox" readonly aria-label="{{ __('Api::tokens.token_shown.label') }}">
+                        <button type="button" class="btn-rm primary" id="tokenCopy"><i class="ti ti-copy" aria-hidden="true"></i> {{ __('Api::tokens.token_shown.copy') }}</button>
                     </div>
-                    <div class="rm-hint mb-n2">Try it:</div>
+                    <div class="rm-hint mb-n2">{{ __('Api::tokens.token_shown.try') }}</div>
                     <pre class="rm-codebox mb-0" id="tokenExample"></pre>
                 </div>
                 <div class="rm-dialog-foot">
-                    <button type="button" class="btn-rm primary" id="tokenShownDone">I have copied it</button>
+                    <button type="button" class="btn-rm primary" id="tokenShownDone">{{ __('Api::tokens.token_shown.done') }}</button>
                 </div>
             </div>
         </div>
@@ -204,38 +196,38 @@
                     <div class="rm-dialog-head">
                         <span class="rm-dialog-icon" id="clientModalIcon"><i class="ti ti-plus" aria-hidden="true"></i></span>
                         <div class="rm-dialog-titles">
-                            <h3 class="rm-dialog-title modal-title" id="clientModalTitle">New API client</h3>
+                            <h3 class="rm-dialog-title modal-title" id="clientModalTitle">{{ __('Api::tokens.client_form.new') }}</h3>
                         </div>
-                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                        <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('Api::tokens.close') }}"><i
                                 class="ti ti-x"></i></button>
                     </div>
                     <div class="rm-dialog-body is-form">
                         <div class="rm-field">
-                            <label for="clientName" class="form-label required">Name</label>
+                            <label for="clientName" class="form-label required">{{ __('Api::tokens.client_form.name') }}</label>
                             <input type="text" id="clientName" class="form-control" maxlength="100" required
-                                placeholder="The application, e.g. Power BI">
+                                placeholder="{{ __('Api::tokens.client_form.name_hint') }}">
                         </div>
                         <div class="rm-field">
-                            <label for="clientRole" class="form-label required">Role</label>
+                            <label for="clientRole" class="form-label required">{{ __('Api::tokens.client_form.role') }}</label>
                             <select id="clientRole" class="form-select" required>
-                                <option value="">Choose a role…</option>
+                                <option value="">{{ __('Api::tokens.client_form.choose_role') }}</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}">{{ $role->name }}</option>
                                 @endforeach
                             </select>
-                            <div class="rm-hint">What its tokens may do (Role &amp; Permission). Super Admin is not offered.</div>
+                            <div class="rm-hint">{{ __('Api::tokens.client_form.role_help') }}</div>
                         </div>
                         <div class="rm-field d-none" id="clientStatusRow">
-                            <label for="clientActive" class="form-label">Status</label>
+                            <label for="clientActive" class="form-label">{{ __('Api::tokens.client_form.status') }}</label>
                             <select id="clientActive" class="form-select">
-                                <option value="1">Active</option>
-                                <option value="0">Inactive (its tokens are refused)</option>
+                                <option value="1">{{ __('Api::tokens.client_form.active') }}</option>
+                                <option value="0">{{ __('Api::tokens.client_form.inactive') }}</option>
                             </select>
                         </div>
                     </div>
                     <div class="rm-dialog-foot">
-                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn-rm primary" id="clientSave">Save</button>
+                        <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('Api::tokens.cancel') }}</button>
+                        <button type="submit" class="btn-rm primary" id="clientSave">{{ __('Api::tokens.client_form.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -250,7 +242,9 @@
             superAdmin: @json($superAdmin),
             apiBase: @json($apiBase),
             /** The first choice of "Owner": the person who makes the token. */
-            me: @json('Me (' . auth()->user()->name . ')'),
+            me: @json($tokenMe),
+            /** The words of the script in the language of the page (Api::tokens.script). */
+            words: @json(__('Api::tokens.script')),
             urls: {
                 list: @json(route('api-tokens.list')),
                 storeToken: @json(route('api-tokens.store-token')),
@@ -284,40 +278,42 @@
             },
 
             load() {
+                const words = apiTokens.words;
                 const empty = (table, columns, text) => $(table + ' tbody').html(
                     `<tr><td colspan="${columns}" class="text-center rm-empty">${apiTokens.esc(text)}</td></tr>`);
                 if (!apiTokens.ready) {
-                    empty('#tokenTable', 7, 'The API is not switched on yet.');
-                    empty('#clientTable', 6, 'The API is not switched on yet.');
+                    empty('#tokenTable', 7, words.off);
+                    empty('#clientTable', 6, words.off);
                     return;
                 }
-                empty('#tokenTable', 7, 'Loading...');
+                empty('#tokenTable', 7, words.loading);
                 $.getJSON(apiTokens.urls.list).done(response => {
                     apiTokens.clients = response.clients || [];
                     apiTokens.renderTokens(response.tokens || []);
                     apiTokens.renderClients();
-                }).fail(xhr => empty('#tokenTable', 7, apiTokens.reason(xhr, 'The tokens could not be loaded.')));
+                }).fail(xhr => empty('#tokenTable', 7, apiTokens.reason(xhr, words.load_failed)));
             },
 
             renderTokens(tokens) {
                 const esc = apiTokens.esc;
+                const words = apiTokens.words;
                 if (!tokens.length) {
-                    $('#tokenTable tbody').html('<tr><td colspan="7" class="text-center rm-empty">No tokens yet.</td></tr>');
+                    $('#tokenTable tbody').html(`<tr><td colspan="7" class="text-center rm-empty">${esc(words.no_tokens)}</td></tr>`);
                     return;
                 }
                 $('#tokenTable tbody').html(tokens.map(t => {
                     const owner = t.owner;
                     const off = t.expired || !owner || owner.deleted || !owner.active;
                     const ownerHtml = !owner ? '<span class="rm-none">—</span>' :
-                        `<div>${esc(owner.name)}${owner.me ? ' <span class="rm-tag ms-1">You</span>' : ''}</div>` +
-                        `<div class="rm-line2">${owner.kind === 'client' ? 'API client' : esc(owner.email)}` +
-                        `${owner.deleted ? ' · deleted' : (!owner.active ? ' · inactive' : '')}</div>`;
+                        `<div>${esc(owner.name)}${owner.me ? ` <span class="rm-tag ms-1">${esc(words.you)}</span>` : ''}</div>` +
+                        `<div class="rm-line2">${owner.kind === 'client' ? esc(words.api_client) : esc(owner.email)}` +
+                        `${owner.deleted ? ' · ' + esc(words.deleted) : (!owner.active ? ' · ' + esc(words.inactive) : '')}</div>`;
                     const access = t.writes ?
-                        '<span class="badge bg-orange-lt">Read &amp; write</span>' :
-                        '<span class="badge bg-green-lt">Read only</span>';
+                        `<span class="badge bg-orange-lt">${esc(words.read_write)}</span>` :
+                        `<span class="badge bg-green-lt">${esc(words.read)}</span>`;
                     const [day, time] = String(t.created_at ?? '').split(' ');
-                    const expires = t.expired ? `<div>${esc(t.expires_at)}</div><div class="rm-line2 token-expired">expired</div>` : esc(t.expires_at || '—');
-                    const used = t.last_used_at ? apiTokens.two(t.last_used_at, t.last_used_ip || '') : '<span class="rm-none">Never</span>';
+                    const expires = t.expired ? `<div>${esc(t.expires_at)}</div><div class="rm-line2 token-expired">${esc(words.expired)}</div>` : esc(t.expires_at || '—');
+                    const used = t.last_used_at ? apiTokens.two(t.last_used_at, t.last_used_ip || '') : `<span class="rm-none">${esc(words.never)}</span>`;
                     return `<tr${off ? ' class="rm-dim"' : ''}>` +
                         `<td class="rm-strong">${esc(t.name)}</td>` +
                         `<td>${ownerHtml}</td>` +
@@ -326,7 +322,7 @@
                         `<td class="text-nowrap">${expires}</td>` +
                         `<td class="text-nowrap">${used}</td>` +
                         `<td class="token-actions"><button type="button" class="rm-act is-danger" data-revoke="${Number(t.id)}" data-name="${esc(t.name)}"` +
-                        ` data-bs-toggle="tooltip" data-bs-title="Revoke" aria-label="Revoke ${esc(t.name)}"><i class="ti ti-trash"></i></button></td>` +
+                        ` data-bs-toggle="tooltip" data-bs-title="${esc(words.revoke)}" aria-label="${esc(rmFill(words.revoke_label, { name: t.name }))}"><i class="ti ti-trash"></i></button></td>` +
                         `</tr>`;
                 }).join(''));
                 rmMotion.tableFade('#tokenTable');
@@ -335,26 +331,27 @@
 
             renderClients() {
                 const esc = apiTokens.esc;
+                const words = apiTokens.words;
                 // An application gets a token of its API client: the active ones are offered as owners.
                 $('#tokenOwner').html(`<option value="me">${esc(apiTokens.me)}</option>` + apiTokens.clients.filter(c => c.active)
-                    .map(c => `<option value="${Number(c.id)}">${esc(c.name)} (API client)</option>`).join(''));
+                    .map(c => `<option value="${Number(c.id)}">${esc(rmFill(words.client_option, { name: c.name }))}</option>`).join(''));
                 if (!apiTokens.superAdmin) return;
                 if (!apiTokens.clients.length) {
-                    $('#clientTable tbody').html('<tr><td colspan="6" class="text-center rm-empty">No API clients yet.</td></tr>');
+                    $('#clientTable tbody').html(`<tr><td colspan="6" class="text-center rm-empty">${esc(words.no_clients)}</td></tr>`);
                     return;
                 }
                 $('#clientTable tbody').html(apiTokens.clients.map(c =>
                     `<tr${c.active ? '' : ' class="rm-dim"'}>` +
                     `<td class="rm-strong">${esc(c.name)}</td>` +
                     `<td>${esc(c.role ? c.role.name : '—')}</td>` +
-                    `<td>${c.active ? '<span class="badge bg-green-lt">Active</span>' : '<span class="badge bg-secondary-lt">Inactive</span>'}</td>` +
+                    `<td>${c.active ? `<span class="badge bg-green-lt">${esc(words.active)}</span>` : `<span class="badge bg-secondary-lt">${esc(words.inactive_badge)}</span>`}</td>` +
                     `<td>${esc(c.tokens)}</td>` +
                     `<td class="text-nowrap">${esc(c.created_at)}</td>` +
                     `<td class="token-actions"><span class="rm-acts">` +
-                    `<button type="button" class="rm-act" data-edit-client="${Number(c.id)}" data-bs-toggle="tooltip" data-bs-title="Edit"` +
-                    ` aria-label="Edit ${esc(c.name)}"><i class="ti ti-edit"></i></button>` +
+                    `<button type="button" class="rm-act" data-edit-client="${Number(c.id)}" data-bs-toggle="tooltip" data-bs-title="${esc(words.edit)}"` +
+                    ` aria-label="${esc(rmFill(words.edit_label, { name: c.name }))}"><i class="ti ti-edit"></i></button>` +
                     `<button type="button" class="rm-act is-danger" data-delete-client="${Number(c.id)}" data-name="${esc(c.name)}"` +
-                    ` data-bs-toggle="tooltip" data-bs-title="Delete" aria-label="Delete ${esc(c.name)}"><i class="ti ti-trash"></i></button>` +
+                    ` data-bs-toggle="tooltip" data-bs-title="${esc(words.delete)}" aria-label="${esc(rmFill(words.delete_label, { name: c.name }))}"><i class="ti ti-trash"></i></button>` +
                     `</span></td></tr>`).join(''));
                 rmMotion.tableFade('#clientTable');
                 $('#clientTable [data-bs-toggle="tooltip"]').tooltip({ trigger: 'hover' });
@@ -367,9 +364,10 @@
 
             createToken(event) {
                 event.preventDefault();
+                const words = apiTokens.words;
                 const name = $('#tokenName').val().trim();
                 if (!name) {
-                    Swal.fire({ icon: 'error', title: 'Error!', text: 'The name of the token is empty.' });
+                    Swal.fire({ icon: 'error', title: words.error, text: words.name_empty });
                     return;
                 }
                 rmFeedback.busy('#tokenSave', true);
@@ -388,7 +386,7 @@
                     $('#tokenExample').text(`curl -H "Authorization: Bearer ${response.token}" ${apiTokens.apiBase}/me`);
                     $('#tokenShownModal').modal('show');
                     apiTokens.load();
-                }).fail(xhr => Swal.fire({ icon: 'error', title: 'Error!', text: apiTokens.reason(xhr, 'The token could not be made.') }))
+                }).fail(xhr => Swal.fire({ icon: 'error', title: words.error, text: apiTokens.reason(xhr, words.make_failed) }))
                     .always(() => rmFeedback.busy('#tokenSave', false));
             },
 
@@ -396,34 +394,35 @@
             forget() {
                 $('#tokenSecret').val('');
                 $('#tokenExample').text('');
-                $('#tokenCopy').html('<i class="ti ti-copy" aria-hidden="true"></i> Copy');
+                $('#tokenCopy').html(`<i class="ti ti-copy" aria-hidden="true"></i> ${apiTokens.esc(apiTokens.words.copy)}`);
                 $('#tokenShownModal').modal('hide');
             },
 
             revoke(id, name) {
+                const words = apiTokens.words;
                 $('[data-bs-toggle="tooltip"]').tooltip('hide');
                 rmDialog.confirm({
                     tone: 'orange',
                     icon: 'alert-triangle',
-                    title: 'Revoke this token?',
-                    text: `"${name}" stops working at once. An application that uses it gets 401.`,
-                    confirmText: 'Revoke',
-                    cancelText: 'Cancel',
+                    title: words.revoke_title,
+                    text: rmFill(words.revoke_text, { name }),
+                    confirmText: words.revoke,
+                    cancelText: words.cancel,
                     confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;
                     $.ajax({ url: apiTokens.urls.destroyToken.replace('__id__', id), type: 'DELETE' })
                         .done(() => {
-                            rmFeedback.toast('Revoked! The token no longer works.');
+                            rmFeedback.toast(words.revoked);
                             apiTokens.load();
                         })
-                        .fail(xhr => Swal.fire({ icon: 'error', title: 'Error!', text: apiTokens.reason(xhr, 'The token could not be revoked.') }));
+                        .fail(xhr => Swal.fire({ icon: 'error', title: words.error, text: apiTokens.reason(xhr, words.revoke_failed) }));
                 });
             },
 
             openClient(client) {
                 apiTokens.editing = client;
-                $('#clientModalTitle').text(client ? 'Edit API client' : 'New API client');
+                $('#clientModalTitle').text(client ? apiTokens.words.edit_client : apiTokens.words.new_client);
                 $('#clientModalIcon').toggleClass('tone-orange', !!client)
                     .html(`<i class="ti ti-${client ? 'edit' : 'plus'}" aria-hidden="true"></i>`);
                 $('#clientName').val(client ? client.name : '');
@@ -435,6 +434,7 @@
 
             saveClient(event) {
                 event.preventDefault();
+                const words = apiTokens.words;
                 const client = apiTokens.editing;
                 const data = { name: $('#clientName').val().trim(), role_id: $('#clientRole').val() };
                 if (client) {
@@ -448,30 +448,31 @@
                     data: data,
                 }).done(() => {
                     $('#clientModal').modal('hide');
-                    rmFeedback.toast(client ? 'The API client has been saved.' : 'The API client has been made. Now make a token for it.');
+                    rmFeedback.toast(client ? words.client_saved : words.client_made);
                     apiTokens.load();
-                }).fail(xhr => Swal.fire({ icon: 'error', title: 'Error!', text: apiTokens.reason(xhr, 'The API client could not be saved.') }))
+                }).fail(xhr => Swal.fire({ icon: 'error', title: words.error, text: apiTokens.reason(xhr, words.save_failed) }))
                     .always(() => rmFeedback.busy('#clientSave', false));
             },
 
             deleteClient(id, name) {
+                const words = apiTokens.words;
                 $('[data-bs-toggle="tooltip"]').tooltip('hide');
                 rmDialog.confirm({
                     tone: 'orange',
                     icon: 'alert-triangle',
-                    title: 'Delete this API client?',
-                    text: `"${name}" and all its tokens stop working at once. What it did stays in the history and the Audit Log.`,
-                    confirmText: 'Delete',
-                    cancelText: 'Cancel',
+                    title: words.delete_title,
+                    text: rmFill(words.delete_text, { name }),
+                    confirmText: words.delete,
+                    cancelText: words.cancel,
                     confirmKind: 'destructive',
                 }).then(result => {
                     if (!result.isConfirmed) return;
                     $.ajax({ url: apiTokens.urls.destroyClient.replace('__id__', id), type: 'DELETE' })
                         .done(() => {
-                            rmFeedback.toast('Deleted! The API client and its tokens are gone.');
+                            rmFeedback.toast(words.client_deleted);
                             apiTokens.load();
                         })
-                        .fail(xhr => Swal.fire({ icon: 'error', title: 'Error!', text: apiTokens.reason(xhr, 'The API client could not be deleted.') }));
+                        .fail(xhr => Swal.fire({ icon: 'error', title: words.error, text: apiTokens.reason(xhr, words.delete_failed) }));
                 });
             },
         };
@@ -484,7 +485,7 @@
                 secret.trigger('select');
                 (navigator.clipboard ? navigator.clipboard.writeText(secret.val()) : Promise.reject())
                     .catch(() => document.execCommand('copy'))
-                    .finally(() => $('#tokenCopy').html('<i class="ti ti-check" aria-hidden="true"></i> Copied'));
+                    .finally(() => $('#tokenCopy').html(`<i class="ti ti-check" aria-hidden="true"></i> ${apiTokens.esc(apiTokens.words.copied)}`));
             });
             $('#tokenShownDone').on('click', () => apiTokens.forget());
             $('#tokenTable').on('click', '[data-revoke]', function() {

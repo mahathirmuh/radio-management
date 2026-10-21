@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\RadioManagement\Models\RadioHistory;
 use Modules\RadioManagement\Services\RadioHistoryQuery;
+use Modules\RadioManagement\Services\RadioWords;
 
 class RadioHistoryController extends Controller
 {
@@ -18,7 +19,8 @@ class RadioHistoryController extends Controller
                 ['url' => '/', 'label' => 'Home', 'active' => false],
                 ['url' => '/radio-management/history', 'label' => 'Riwayat Radio', 'active' => true],
             ],
-            'actions' => collect(RadioHistoryQuery::actions()),
+            // The kinds kept, in the order of their names in the language of the page.
+            'actions' => collect(RadioHistoryQuery::actions())->sortBy(fn (string $action) => RadioWords::of('history_actions', $action))->values(),
         ]);
     }
 
@@ -39,8 +41,8 @@ class RadioHistoryController extends Controller
                 'action' => $history->action,
                 'description' => $history->description,
                 'document_no' => $history->document_no,
-                'user' => $history->user?->name ?? 'Sistem',
-                'radio' => $history->radio?->display_name,
+                'user' => $history->user?->name ?? __('RadioManagement::common.ui.system'),
+                'radio' => $history->radio?->pageName(),
                 'radio_user' => $history->radio?->user_name,
                 'detail_url' => $history->radio && ! $history->radio->trashed()
                     ? route('radio-management.radio.detail', $history->radio)

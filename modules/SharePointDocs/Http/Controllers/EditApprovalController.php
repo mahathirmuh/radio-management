@@ -26,12 +26,12 @@ class EditApprovalController extends Controller
     public function index()
     {
         return view('SharePointDocs::edit-approvals', [
-            'pageTitle' => 'Persetujuan Edit',
+            'pageTitle' => __('SharePointDocs::approvals.title'),
             'menuItems' => [
                 ['url' => '/', 'label' => 'Home', 'active' => false],
-                ['url' => route('documents.edit-approvals.index', [], false), 'label' => 'Persetujuan Edit', 'active' => true],
+                ['url' => route('documents.edit-approvals.index', [], false), 'label' => __('SharePointDocs::approvals.title'), 'active' => true],
             ],
-            'statuses' => EditRequest::LABELS,
+            'statuses' => EditRequest::names(),
         ]);
     }
 
@@ -39,7 +39,7 @@ class EditApprovalController extends Controller
     public function list(Request $request): JsonResponse
     {
         if (! CellEdits::ready()) {
-            return response()->json(['message' => 'Tabel pengajuan belum dibuat di database. Jalankan "php artisan migrate" dulu.'], 503);
+            return response()->json(['message' => __('SharePointDocs::edits.not_ready')], 503);
         }
 
         $terms = EditRequestQuery::terms((string) $request->query('search', ''));
@@ -72,13 +72,16 @@ class EditApprovalController extends Controller
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
 
+        // Why it was not written (or that it was there already), in the approver's language.
+        $failure = $done->failureIn();
+
         return match ($done->status) {
             EditRequest::APPLIED => response()->json([
-                'message' => $done->failure ?: "Perubahan sel {$done->cell} sudah ditulis ke SharePoint.",
+                'message' => $failure ?: __('SharePointDocs::approvals.applied', ['cell' => $done->cell]),
                 'status' => $done->status,
             ]),
-            EditRequest::CONFLICT => response()->json(['message' => $done->failure, 'status' => $done->status], 409),
-            default => response()->json(['message' => $done->failure, 'status' => $done->status], 502),
+            EditRequest::CONFLICT => response()->json(['message' => $failure, 'status' => $done->status], 409),
+            default => response()->json(['message' => $failure, 'status' => $done->status], 502),
         };
     }
 
@@ -92,13 +95,14 @@ class EditApprovalController extends Controller
             return response()->json(['message' => $e->getMessage()], $e->status);
         }
 
-        return response()->json(['message' => "Pengajuan perubahan sel {$done->cell} ditolak.", 'status' => $done->status]);
+        return response()->json(['message' => __('SharePointDocs::approvals.rejected', ['cell' => $done->cell]), 'status' => $done->status]);
     }
 
     /** @return array<string, mixed> */
     private function present(EditRequest $one, bool $mayDecide, int $me): array
     {
         $mine = (int) $one->requested_by === $me;
+        $locale = app()->getLocale();
         $open = in_array($one->status, [EditRequest::PENDING, EditRequest::FAILED], true);
         $page = config("sharepoint-docs.workbooks.{$one->workbook}") === null ? null : route("documents.{$one->workbook}.index", [], false)
             . '?' . http_build_query(['sheet' => $one->sheet, 'line' => $one->line]);
@@ -111,10 +115,10 @@ class EditApprovalController extends Controller
             'line' => $one->line,
             'column' => (string) $one->column_title,
             'row_key' => (string) $one->anchor_value,
-            'old' => $one->oldShown(),
-            'new' => $one->newShown(),
+            'old' => $one->oldShown($locale),
+            'new' => $one->newShown($locale),
             'status' => $one->status,
-            'status_label' => EditRequest::LABELS[$one->status] ?? $one->status,
+            'status_label' => EditRequest::statusName($one->status, $locale),
             'requested_by' => $one->requested_by_name,
             'requested_at' => $one->created_at?->format('d-m-Y H:i'),
             'decided_by' => $one->decided_by_name,

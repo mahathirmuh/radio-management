@@ -74,14 +74,17 @@ class ApiESignTest extends TestCase
         $this->api('POST', "/api/v1/e-signs/{$andi->id}/deactivate", token: $this->tokenFor($this->superAdmin(), write: false))->assertForbidden();
 
         $this->api('POST', "/api/v1/e-signs/{$andi->id}/deactivate", token: $token)->assertOk()
-            ->assertJsonPath('message', 'Tanda tangan Andi Pratama dinonaktifkan.')->assertJsonPath('data.active', false);
+            ->assertJsonPath('message', 'Signature of Andi Pratama switched off.')->assertJsonPath('data.active', false);
         $this->assertFalse($andi->fresh()->active);
         $entry = AuditLog::where('action', AuditLogger::ESIGN_UPDATED)->sole();
         $this->assertSame([['Active' => 'Yes'], ['Active' => 'No']], [$entry->old_values, $entry->new_values]);
         $this->assertMatchesRegularExpression('/^API · Offboarding \(#\d+\)$/', (string) $entry->via);
 
-        // Once is enough: nothing more is written.
-        $this->api('POST', "/api/v1/e-signs/{$andi->id}/deactivate", token: $token)->assertOk()->assertJsonPath('message', 'Tanda tangan Andi Pratama memang sudah nonaktif.');
+        // Once is enough: nothing more is written. (The message follows the request's language: English unless it asks
+        // for Indonesian.)
+        $this->api('POST', "/api/v1/e-signs/{$andi->id}/deactivate", token: $token)->assertOk()->assertJsonPath('message', 'The signature of Andi Pratama was already switched off.');
+        $this->api('POST', "/api/v1/e-signs/{$andi->id}/deactivate", token: $token, headers: ['Accept-Language' => 'id'])->assertOk()
+            ->assertJsonPath('message', 'Tanda tangan Andi Pratama memang sudah nonaktif.');
         $this->assertSame(1, AuditLog::where('action', AuditLogger::ESIGN_UPDATED)->count());
 
         // After: an empty box, to be signed on paper.

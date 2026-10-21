@@ -35,14 +35,13 @@
     ];
 @endphp
 
-@section('page-title', 'Role & Permission')
+@section('page-title', __('UserManagement::roles.tab_title'))
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">Roles and permissions</h1>
-            <p class="rm-sub">Roles decide which menus a user sees and what they can do in each. Super Admin always has full
-                access.</p>
+            <h1 class="rm-title">{{ __('UserManagement::roles.title') }}</h1>
+            <p class="rm-sub">{{ __('UserManagement::roles.sub') }}</p>
         </div>
     </div>
 
@@ -50,14 +49,14 @@
         <div class="rm-toolbar role-toolbar">
             <label class="rm-search" for="userRegisterdSearch">
                 <i class="ti ti-search" aria-hidden="true"></i>
-                <input type="search" name="search" id="userRegisterdSearch" value="" autocomplete="off" placeholder="Search…"
-                    aria-label="Search roles" />
+                <input type="search" name="search" id="userRegisterdSearch" value="" autocomplete="off" placeholder="{{ __('UserManagement::roles.search') }}"
+                    aria-label="{{ __('UserManagement::roles.search_label') }}" />
             </label>
             <button type="button" class="btn-rm secondary" id="toggleResetButton"><i class="ti ti-refresh" aria-hidden="true"></i>
-                Reset</button>
+                {{ __('UserManagement::roles.reset') }}</button>
             @permission('user-management.role-permission', 'Create')
                 <button type="button" class="btn-rm primary ms-auto" id="roleAddButton" onclick="formRoleModal('formRoleModal','Add')"><i
-                        class="ti ti-plus" aria-hidden="true"></i> Add Role</button>
+                        class="ti ti-plus" aria-hidden="true"></i> {{ __('UserManagement::roles.add') }}</button>
             @endpermission
         </div>
 
@@ -66,10 +65,10 @@
                 <table class="rm-table" id="rolePermissionTable">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-center">No</th>
-                            <th scope="col" data-key="name">Name</th>
-                            <th scope="col" class="text-center">Total user</th>
-                            <th scope="col" class="text-center">Action</th>
+                            <th scope="col" class="text-center">{{ __('UserManagement::roles.columns.no') }}</th>
+                            <th scope="col" data-key="name">{{ __('UserManagement::roles.columns.name') }}</th>
+                            <th scope="col" class="text-center">{{ __('UserManagement::roles.columns.users') }}</th>
+                            <th scope="col" class="text-center">{{ __('UserManagement::roles.columns.action') }}</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -95,6 +94,8 @@
         const urlRolePermissionDelete = "{{ route('user-management.role-permission.destroy', ':id') }}"
         const urlRolePermissionView = "{{ route('user-management.role-permission.show', ':id') }}"
         const roleMay = @json($roleMay);
+        // The words of the list and its questions, in the language of the page (UserManagement::roles.list).
+        const roleText = @json(__('UserManagement::roles.list'));
     </script>
 
     {{-- render Table --}}
@@ -135,11 +136,11 @@
                 render: function(data) {
                     const id = Number(data.id);
                     const act = (icon, title, call, danger = false) =>
-                        `<button type="button" class="rm-act${danger ? ' is-danger' : ''}" data-id="${id}" onclick="${call}" data-bs-toggle="tooltip" data-bs-title="${title}" aria-label="${title}"><i class="ti ti-${icon}"></i></button>`;
-                    let buttons = act('eye', 'View', `formRoleModal('formRoleModal','Preview', ${id})`);
+                        `<button type="button" class="rm-act${danger ? ' is-danger' : ''}" data-id="${id}" onclick="${call}" data-bs-toggle="tooltip" data-bs-title="${roleEsc(title)}" aria-label="${roleEsc(title)}"><i class="ti ti-${icon}"></i></button>`;
+                    let buttons = act('eye', roleText.view, `formRoleModal('formRoleModal','Preview', ${id})`);
                     if (data.action && data.action.is_active) {
-                        if (roleMay.update) buttons += act('edit', 'Edit', `formRoleModal('formRoleModal','Edit', ${id})`);
-                        if (roleMay.delete && id !== 1) buttons += act('trash', 'Delete', `formRoleDelete(${id})`, true);
+                        if (roleMay.update) buttons += act('edit', roleText.edit, `formRoleModal('formRoleModal','Edit', ${id})`);
+                        if (roleMay.delete && id !== 1) buttons += act('trash', roleText.delete, `formRoleDelete(${id})`, true);
                     }
                     return `<span class="rm-acts">${buttons}</span>`;
                 }
@@ -182,7 +183,7 @@
                         currentPage,
                         limit,
                         meta: response.meta,
-                        paginationLabels: { noun: 'roles' },
+                        paginationLabels: { noun: roleText.noun },
                         onPageChange: page => {
                             currentPage = page;
                             dataTable();
@@ -209,7 +210,7 @@
                         columns,
                         currentPage,
                         limit,
-                        emptyText: 'Error loading data. Please try again.'
+                        emptyText: roleText.load_failed
                     });
                 }
             });
@@ -220,10 +221,10 @@
             rmDialog.confirm({
                 tone: 'red',
                 icon: 'trash',
-                title: 'Delete this role?',
-                text: 'It is taken off the list of roles. Users who hold it lose what it gives them.',
-                confirmText: '<i class="ti ti-trash"></i> Delete',
-                cancelText: 'Cancel',
+                title: roleText.delete_title,
+                text: roleText.delete_text,
+                confirmText: '<i class="ti ti-trash"></i> ' + roleText.delete,
+                cancelText: roleText.cancel,
                 confirmKind: 'destructive',
             }).then((result) => {
                 if (!result.isConfirmed) {
@@ -251,7 +252,7 @@
                             errorMessage = xhr.statusText;
                         }
                         Swal.fire({
-                            title: 'Oops...',
+                            title: roleText.error,
                             text: errorMessage,
                             icon: 'error',
                             showConfirmButton: true,

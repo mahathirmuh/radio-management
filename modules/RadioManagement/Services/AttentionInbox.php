@@ -20,7 +20,8 @@ use Modules\SharePointDocs\Services\MenuAccess;
  * change radios, set aside with a reason (until the data of its radios changes: then it is back), or fixed. A fix goes
  * through RadioService, which writes the radio's history and the audit trail.
  *
- * A refused change is a ValidationException carrying the message to show, as in RadioService.
+ * A refused change is a ValidationException carrying the message to show, as in RadioService. What it shows is in the
+ * language of the page (RadioManagement::attention); what it writes into a history or the audit trail stays Indonesian.
  */
 class AttentionInbox
 {
@@ -171,7 +172,7 @@ class AttentionInbox
         $aside = $this->setAside($state, $radios);
 
         return $this->entry($check, $subject, $radios, $state) + [
-            'label' => RadioCheckService::ISSUES[$check]['label'],
+            'label' => RadioCheckService::label($check),
             'color' => RadioCheckService::ISSUES[$check]['color'],
             'title' => $this->title($check, $subject, $radios),
             'note' => $this->note($check, $radios->first()),
@@ -201,12 +202,12 @@ class AttentionInbox
     /** Gives the item to somebody who may change radios, or to nobody ($userId null). */
     public function assign(string $check, string $subject, ?int $userId, User $actor): ?User
     {
-        $radios = $this->item($check, $subject) ?? $this->refuse(self::GONE);
+        $radios = $this->item($check, $subject) ?? $this->refuse(__('RadioManagement::attention.refusals.gone'));
         $assignee = null;
         if ($userId !== null) {
             $assignee = User::query()->people()->with('roles')->whereKey($userId)->first();
             if ($assignee === null || ! $assignee->isActive() || ! MenuAccess::allows($assignee, self::RADIO_UPDATE, 'Update')) {
-                $this->refuse('Item hanya bisa ditugaskan ke akun aktif yang boleh mengubah data radio.');
+                $this->refuse(__('RadioManagement::attention.refusals.assignee'));
             }
         }
 
@@ -222,7 +223,7 @@ class AttentionInbox
     /** Sets the item aside, with the reason: it is back when the data of its radios changes. */
     public function dismiss(string $check, string $subject, string $reason, User $actor): void
     {
-        $radios = $this->item($check, $subject) ?? $this->refuse(self::GONE);
+        $radios = $this->item($check, $subject) ?? $this->refuse(__('RadioManagement::attention.refusals.gone'));
         $this->stateFor($check, $subject)->forceFill([
             'dismissed_reason' => trim($reason),
             'dismissed_by' => $actor->id,
@@ -239,15 +240,15 @@ class AttentionInbox
      */
     public function fix(string $check, string $subject, string $option, mixed $value, User $actor): string
     {
-        $radios = $this->item($check, $subject) ?? $this->refuse(self::GONE);
+        $radios = $this->item($check, $subject) ?? $this->refuse(__('RadioManagement::attention.refusals.gone'));
         $offered = array_column($this->options($check, $radios), 'id');
         [$kind, $radioId] = array_pad(explode(':', $option, 2), 2, null);
         if ($kind === 'dismiss' || ! in_array($option, $offered, true)) {
-            $this->refuse('Perbaikan itu tidak ada untuk item ini. Muat ulang.');
+            $this->refuse(__('RadioManagement::attention.refusals.no_such_fix'));
         }
         /** @var Radio $radio */
         $radio = $radios->firstWhere('id', (int) $radioId);
-        $name = $radio->display_name;
+        $name = $radio->pageName();
         $text = trim((string) $value);
         $today = now()->toDateString();
 
@@ -260,46 +261,44 @@ class AttentionInbox
             'ba_archive' => $this->lostBa($radio, $text, true, $actor),
             'program' => $this->radios->addHistory($radio, ['action' => 'Program', 'event_date' => $today,
                 'description' => 'Diprogram ulang' . ($radio->channelTemplate ? " ke template {$radio->channelTemplate->name}" : '') . ' (Perlu Perhatian).'], $actor->id)
-                ? "Program hari ini dicatat untuk radio {$name}." : '',
+                ? __('RadioManagement::attention.done.program', ['name' => $name]) : '',
             'verify' => $this->radios->addHistory($radio, ['action' => 'Verifikasi', 'event_date' => $today,
                 'description' => 'Diverifikasi fisik (Perlu Perhatian).'], $actor->id)
-                ? "Verifikasi hari ini dicatat untuk radio {$name}." : '',
+                ? __('RadioManagement::attention.done.verify', ['name' => $name]) : '',
             default => $this->radios->update($radio, ['needs_review' => false], $actor->id)
-                ? "Radio {$name} ditandai sudah ditinjau." : '',
+                ? __('RadioManagement::attention.done.reviewed', ['name' => $name]) : '',
         };
         Cache::forget(self::COUNT_CACHE);
 
         return $done;
     }
 
-    private const GONE = 'Item ini sudah tidak ada: datanya sudah dibetulkan atau berubah. Muat ulang.';
-
     private function newSerial(Radio $radio, string $typed, User $actor): string
     {
         $serial = RadioConflicts::normalizeSerial($typed);
         if ($serial === '') {
-            $this->refuse('Ketik SN yang benar.');
+            $this->refuse(__('RadioManagement::attention.refusals.sn_type'));
         }
         if (mb_strlen($serial) > 50) {
-            $this->refuse('SN paling panjang 50 karakter.');
+            $this->refuse(__('RadioManagement::attention.refusals.sn_long', ['max' => 50]));
         }
         if ($serial === RadioConflicts::normalizeSerial($radio->serial_number)) {
-            $this->refuse('SN itu sama dengan yang sekarang.');
+            $this->refuse(__('RadioManagement::attention.refusals.sn_same'));
         }
-        $name = $radio->display_name;
+        $name = $radio->pageName();
         $this->radios->update($radio, ['serial_number' => $serial], $actor->id);
 
-        return "SN radio {$name} sekarang {$serial}.";
+        return __('RadioManagement::attention.done.sn', ['name' => $name, 'sn' => $serial]);
     }
 
     private function archiveDuplicate(Radio $radio, Collection $radios, string $check, User $actor): string
     {
         $keeper = $radios->first();
         $what = $check === 'id_duplicate' ? "Radio ID {$radio->dmr_id}" : "SN {$radio->serial_number}";
-        $name = $radio->display_name;
+        $name = $radio->pageName();
         $this->radios->archive($radio, 'Lainnya', now()->toDateString(), "Duplikat {$what} dari {$keeper->display_name} (Perlu Perhatian).", $actor->id);
 
-        return "Radio {$name} diarsipkan sebagai duplikat.";
+        return __('RadioManagement::attention.done.duplicate', ['name' => $name]);
     }
 
     private function newId(Radio $radio, string $kind, string $check, User $actor): string
@@ -307,40 +306,40 @@ class AttentionInbox
         if ($kind === 'previous_id') {
             $id = (int) $radio->previous_dmr_id;
             if ($id < 1 || $this->conflicts->radioId($id, $radio->id) !== null) {
-                $this->refuse("Radio ID {$id} sudah tidak bebas. Pilih ID bebas berikutnya.");
+                $this->refuse(__('RadioManagement::attention.refusals.id_not_free', ['id' => $id]));
             }
         } else {
             $id = $this->freeIdFor($radio, $check);
             if ($id === null) {
-                $this->refuse('Tidak ada Radio ID bebas.');
+                $this->refuse(__('RadioManagement::attention.refusals.no_free_id'));
             }
         }
         $this->radios->update($radio, ['dmr_id' => $id], $actor->id);
 
-        return "Radio {$radio->serial_number} sekarang memakai Radio ID {$id} (MDC " . RadioIdService::mdc($id) . '). Program ulang radionya ke ID itu.';
+        return __('RadioManagement::attention.done.new_id', ['sn' => (string) $radio->serial_number, 'id' => $id, 'mdc' => RadioIdService::mdc($id)]);
     }
 
     private function newType(Radio $radio, string $typed, User $actor): string
     {
         $type = ctype_digit($typed) ? RadioType::query()->whereKey((int) $typed)->first() : null;
         if ($type === null) {
-            $this->refuse('Pilih tipe radio.');
+            $this->refuse(__('RadioManagement::attention.refusals.pick_type'));
         }
-        $name = $radio->display_name;
+        $name = $radio->pageName();
         $this->radios->update($radio, ['radio_type_id' => $type->id], $actor->id);
 
-        return "Tipe radio {$name} sekarang {$type->name}.";
+        return __('RadioManagement::attention.done.type', ['name' => $name, 'type' => $type->name]);
     }
 
     private function lostBa(Radio $radio, string $typed, bool $archive, User $actor): string
     {
         if ($typed === '') {
-            $this->refuse('Ketik No. BA kehilangan.');
+            $this->refuse(__('RadioManagement::attention.refusals.ba_type'));
         }
         if (mb_strlen($typed) > 100) {
-            $this->refuse('No. BA paling panjang 100 karakter.');
+            $this->refuse(__('RadioManagement::attention.refusals.ba_long', ['max' => 100]));
         }
-        $name = $radio->display_name;
+        $name = $radio->pageName();
         DB::transaction(function () use ($radio, $typed, $archive, $actor) {
             $this->radios->update($radio, ['document_no' => $typed], $actor->id);
             if ($archive) {
@@ -348,7 +347,9 @@ class AttentionInbox
             }
         });
 
-        return $archive ? "Radio {$name} diarsipkan sebagai hilang (BA {$typed})." : "No. BA {$typed} dicatat untuk radio {$name}.";
+        return $archive
+            ? __('RadioManagement::attention.done.lost', ['name' => $name, 'ba' => $typed])
+            : __('RadioManagement::attention.done.ba', ['name' => $name, 'ba' => $typed]);
     }
 
     /** The Radio ID a radio is offered: the first that can be used above its own (one with F), else the lowest free one. */
@@ -370,82 +371,86 @@ class AttentionInbox
         /** @var Radio $first */
         $first = $radios->first();
         $short = fn (Radio $radio) => $radio->dmr_id ? (string) $radio->dmr_id : ($radio->serial_number ?: '#' . $radio->id);
+        $say = fn (string $key, array $values = []) => __('RadioManagement::attention.fixes.' . $key, $values);
         $archive = fn (Radio $radio) => [
             'id' => "archive:{$radio->id}",
-            'title' => "Arsipkan radio {$short($radio)} sebagai duplikat",
-            'detail' => 'Riwayatnya tetap ada' . ($radio->dmr_id ? " dan Radio ID {$radio->dmr_id} dilepas." : '.'),
+            'title' => $say('archive', ['radio' => $short($radio)]),
+            'detail' => $radio->dmr_id ? $say('archive_detail_id', ['id' => (string) $radio->dmr_id]) : $say('archive_detail'),
         ];
-        $free = fn (Radio $radio, string $title, string $detail) => ($id = $this->freeIdFor($radio, $check)) === null ? [] : [[
+        // The fix that gives the radio the free ID worked out for it: its title names the ID (":id (MDC :mdc)").
+        $free = fn (Radio $radio, string $fix, array $values = []) => ($id = $this->freeIdFor($radio, $check)) === null ? [] : [[
             'id' => "next_id:{$radio->id}",
-            'title' => str_replace(':id', $id . ' (MDC ' . RadioIdService::mdc($id) . ')', $title),
-            'detail' => $detail,
+            'title' => $say($fix, $values + ['id' => (string) $id, 'mdc' => RadioIdService::mdc($id)]),
+            'detail' => $say($fix . '_detail'),
         ]];
 
         $options = [];
         switch ($check) {
             case 'sn_duplicate':
                 foreach ($radios->slice(1) as $radio) {
-                    $options[] = ['id' => "sn:{$radio->id}", 'title' => "Betulkan SN radio {$short($radio)}",
-                        'detail' => 'Cek stiker di radionya, lalu ketik SN yang benar.',
+                    $options[] = ['id' => "sn:{$radio->id}", 'title' => $say('sn', ['radio' => $short($radio)]),
+                        'detail' => $say('sn_detail'),
                         'field' => ['kind' => 'text', 'mono' => true, 'value' => '', 'placeholder' => (string) $radio->serial_number, 'max' => 50]];
                     $options[] = $archive($radio);
                 }
-                $options[] = ['id' => 'dismiss', 'title' => 'Radio-radio ini memang berbeda', 'detail' => 'Abaikan cek ini, dengan alasannya.'];
+                $options[] = ['id' => 'dismiss', 'title' => $say('different'), 'detail' => $say('different_detail')];
                 break;
 
             case 'id_duplicate':
                 foreach ($radios->slice(1) as $radio) {
-                    array_push($options, ...$free($radio, "Beri radio {$radio->serial_number} ID bebas berikutnya, :id", 'Radionya perlu diprogram ulang ke ID itu.'));
+                    array_push($options, ...$free($radio, 'free_id_for', ['sn' => (string) $radio->serial_number]));
                     $options[] = $archive($radio);
                 }
                 break;
 
             case 'id_hex_f':
-                array_push($options, ...$free($first, 'Pakai ID berikutnya yang bisa dipakai, :id', 'Radionya harus diprogram ulang ke ID itu.'));
+                array_push($options, ...$free($first, 'usable_id'));
                 break;
 
             case 'sn_empty':
             case 'sn_format':
                 $suggestion = $check === 'sn_format' ? (string) preg_replace('/[^A-Z0-9]/', '', mb_strtoupper((string) $first->serial_number)) : '';
-                $options[] = ['id' => "sn:{$first->id}", 'title' => $check === 'sn_empty' ? 'Isi SN' : 'Betulkan SN',
-                    'detail' => 'Format umum: 3 angka, 3 huruf, 4 karakter, mis. 867TZB5309.',
+                $options[] = ['id' => "sn:{$first->id}", 'title' => $say($check === 'sn_empty' ? 'sn_fill' : 'sn_correct'),
+                    'detail' => $say('sn_format_detail'),
                     'field' => ['kind' => 'text', 'mono' => true, 'value' => $suggestion, 'placeholder' => '867TZB5309', 'max' => 50]];
                 break;
 
             case 'id_empty':
                 $previous = (int) $first->previous_dmr_id;
                 if ($previous > 0 && $this->conflicts->radioId($previous, $first->id) === null) {
-                    $options[] = ['id' => "previous_id:{$first->id}", 'title' => "Kembalikan ID terakhirnya, {$previous} (MDC " . RadioIdService::mdc($previous) . ')',
-                        'detail' => 'ID itu masih bebas.'];
+                    $options[] = ['id' => "previous_id:{$first->id}", 'title' => $say('previous_id', ['id' => (string) $previous, 'mdc' => RadioIdService::mdc($previous)]),
+                        'detail' => $say('previous_id_detail')];
                 }
-                array_push($options, ...$free($first, 'Beri ID bebas berikutnya, :id', 'Radionya perlu diprogram ke ID itu.'));
+                array_push($options, ...$free($first, 'free_id'));
                 break;
 
             case 'type_empty':
-                $options[] = ['id' => "type:{$first->id}", 'title' => 'Pilih tipe radio', 'detail' => 'Dari master Tipe Radio yang aktif.',
+                $options[] = ['id' => "type:{$first->id}", 'title' => $say('type'), 'detail' => $say('type_detail'),
                     'field' => ['kind' => 'select', 'value' => '', 'choices' => RadioType::query()->where('is_active', true)->orderBy('name')
                         ->get(['id', 'name'])->map(fn (RadioType $type) => ['value' => (string) $type->id, 'label' => $type->name])->values()->all()]];
                 break;
 
             case 'lost_no_ba':
                 $field = ['kind' => 'text', 'mono' => true, 'value' => '', 'placeholder' => 'BA2300412', 'max' => 100];
-                $options[] = ['id' => "ba:{$first->id}", 'title' => 'Isi No. BA kehilangan', 'detail' => 'Radionya tetap aktif dengan lokasi Hilang.', 'field' => $field];
-                $options[] = ['id' => "ba_archive:{$first->id}", 'title' => 'Isi No. BA, lalu arsipkan sebagai hilang',
-                    'detail' => 'Alasan arsip "Hilang (BA selesai)"' . ($first->dmr_id ? "; Radio ID {$first->dmr_id} dilepas." : '.'), 'field' => $field];
+                $reason = RadioWords::of('archive_reasons', 'Hilang (BA selesai)');
+                $options[] = ['id' => "ba:{$first->id}", 'title' => $say('ba'), 'detail' => $say('ba_detail'), 'field' => $field];
+                $options[] = ['id' => "ba_archive:{$first->id}", 'title' => $say('ba_archive'),
+                    'detail' => $first->dmr_id ? $say('ba_archive_detail_id', ['reason' => $reason, 'id' => (string) $first->dmr_id]) : $say('ba_archive_detail', ['reason' => $reason]),
+                    'field' => $field];
                 break;
 
             case 'reprogram':
-                $options[] = ['id' => "program:{$first->id}", 'title' => 'Catat program hari ini',
-                    'detail' => $first->channelTemplate ? "Radio sudah diprogram ke template {$first->channelTemplate->name}." : 'Radio sudah diprogram ulang.'];
+                $options[] = ['id' => "program:{$first->id}", 'title' => $say('program'),
+                    'detail' => $first->channelTemplate ? $say('program_detail_template', ['template' => $first->channelTemplate->name]) : $say('program_detail')];
                 break;
 
             case 'verify_empty':
             case 'verify_stale':
-                $options[] = ['id' => "verify:{$first->id}", 'title' => 'Catat verifikasi hari ini', 'detail' => 'Radionya sudah dicek fisik hari ini.'];
+                $options[] = ['id' => "verify:{$first->id}", 'title' => $say('verify'), 'detail' => $say('verify_detail')];
                 break;
 
             default: // needs_review
-                $options[] = ['id' => "reviewed:{$first->id}", 'title' => 'Tandai sudah ditinjau', 'detail' => 'Data radionya sudah dicek dan benar.'];
+                $options[] = ['id' => "reviewed:{$first->id}", 'title' => $say('reviewed'), 'detail' => $say('reviewed_detail')];
         }
 
         return $options;
@@ -463,14 +468,16 @@ class AttentionInbox
             'head' => match ($check) {
                 'sn_duplicate' => $subject,
                 'id_duplicate' => "Radio ID {$subject}",
-                default => $first->display_name,
+                default => $first->pageName(),
             },
             'side' => match ($check) {
-                'sn_duplicate' => 'Radio ' . self::andList($radios->map(fn (Radio $radio) => $radio->dmr_id ? (string) $radio->dmr_id : 'tanpa ID')),
-                'id_duplicate' => $radios->count() . ' radio',
+                'sn_duplicate' => __('RadioManagement::attention.items.radios', [
+                    'list' => self::andList($radios->map(fn (Radio $radio) => $radio->dmr_id ? (string) $radio->dmr_id : __('RadioManagement::attention.items.no_id'))),
+                ]),
+                'id_duplicate' => trans_choice('RadioManagement::attention.items.radio_count', $radios->count()),
                 'id_hex_f' => 'MDC ' . $first->mdc_code,
-                'verify_empty' => 'Belum pernah',
-                'verify_stale' => 'Terakhir ' . $first->last_verified_at?->format('d-m-Y'),
+                'verify_empty' => __('RadioManagement::attention.items.never'),
+                'verify_stale' => __('RadioManagement::attention.items.last', ['date' => (string) $first->last_verified_at?->format('d-m-Y')]),
                 'reprogram' => (string) $first->channelTemplate?->name,
                 default => (string) $first->radioType?->name,
             },
@@ -484,28 +491,22 @@ class AttentionInbox
     private function title(string $check, string $subject, Collection $radios): string
     {
         $first = $radios->first();
-        $name = $first->display_name;
+        $key = 'RadioManagement::attention.titles.' . (isset(RadioCheckService::ISSUES[$check]) ? $check : 'needs_review');
 
         return match ($check) {
-            'sn_duplicate' => "SN {$subject} dipakai {$radios->count()} radio",
-            'id_duplicate' => "Radio ID {$subject} dipakai {$radios->count()} radio",
-            'id_hex_f' => "Radio ID {$first->dmr_id} mengandung F (MDC {$first->mdc_code})",
-            'sn_empty' => "Radio {$name} belum punya SN",
-            'sn_format' => "SN {$first->serial_number} tidak berformat standar",
-            'id_empty' => "Radio {$name} belum punya Radio ID",
-            'type_empty' => "Tipe radio {$name} belum diisi",
-            'lost_no_ba' => "Radio {$name} hilang tanpa No. BA",
-            'reprogram' => "Radio {$name} perlu diprogram ulang",
-            'verify_empty' => "Radio {$name} belum pernah diverifikasi",
-            'verify_stale' => "Verifikasi radio {$name} lewat " . config('radio.verify_max_months') . ' bulan',
-            default => "Radio {$name} perlu dicek",
+            'sn_duplicate' => trans_choice($key, $radios->count(), ['sn' => $subject]),
+            'id_duplicate' => trans_choice($key, $radios->count(), ['id' => $subject]),
+            'id_hex_f' => __($key, ['id' => (string) $first->dmr_id, 'mdc' => (string) $first->mdc_code]),
+            'sn_format' => __($key, ['sn' => (string) $first->serial_number]),
+            'verify_stale' => trans_choice($key, (int) config('radio.verify_max_months'), ['name' => $first->pageName()]),
+            default => __($key, ['name' => $first->pageName()]),
         };
     }
 
     /** What else is known of it (the hint of the check: the notes of a review, the date of a template ...). */
     private function note(string $check, Radio $radio): ?string
     {
-        $issue = collect($this->checks->issuesFor($radio))->firstWhere('code', $check);
+        $issue = collect($this->checks->issuesFor($radio, app()->getLocale()))->firstWhere('code', $check);
 
         return $issue['hint'] ?? null;
     }
@@ -518,16 +519,18 @@ class AttentionInbox
      */
     private function records(string $check, Collection $radios): array
     {
-        $date = fn ($value) => $value?->format('d-m-Y') ?? 'Belum pernah';
+        $words = __('RadioManagement::attention.records');
+        $never = __('RadioManagement::attention.items.never');
+        $date = fn ($value) => $value?->format('d-m-Y') ?? $never;
         $fields = [
-            'dmr_id' => ['Radio ID', fn (Radio $radio) => $radio->dmr_id ? $radio->dmr_id . ' · MDC ' . $radio->mdc_code : ($radio->isArchived() ? '— (diarsipkan)' : '—'), true],
-            'serial_number' => ['SN', fn (Radio $radio) => $radio->serial_number ?: '—', true],
-            'user_name' => ['User/Unit', fn (Radio $radio) => implode(' · ', array_filter([$radio->user_name, $radio->department?->name], 'filled')) ?: '—', false],
-            'radio_type_id' => ['Tipe radio', fn (Radio $radio) => $radio->radioType?->name ?? '—', false],
-            'placement' => ['Lokasi', fn (Radio $radio) => $radio->placement?->label() . ' · ' . $radio->condition?->label(), false],
-            'last_verified_at' => ['Verifikasi terakhir', fn (Radio $radio) => $date($radio->last_verified_at), false],
-            'last_programmed_at' => ['Program terakhir', fn (Radio $radio) => $date($radio->last_programmed_at), false],
-            'document_no' => ['No. Dokumen', fn (Radio $radio) => $radio->document_no ?: '—', true],
+            'dmr_id' => [$words['dmr_id'], fn (Radio $radio) => $radio->dmr_id ? $radio->dmr_id . ' · MDC ' . $radio->mdc_code : ($radio->isArchived() ? $words['archived_no_id'] : '—'), true],
+            'serial_number' => [$words['serial_number'], fn (Radio $radio) => $radio->serial_number ?: '—', true],
+            'user_name' => [$words['user_name'], fn (Radio $radio) => implode(' · ', array_filter([$radio->user_name, $radio->department?->name], 'filled')) ?: '—', false],
+            'radio_type_id' => [$words['radio_type_id'], fn (Radio $radio) => $radio->radioType?->name ?? '—', false],
+            'placement' => [$words['placement'], fn (Radio $radio) => $radio->placement?->display() . ' · ' . $radio->condition?->display(), false],
+            'last_verified_at' => [$words['last_verified_at'], fn (Radio $radio) => $date($radio->last_verified_at), false],
+            'last_programmed_at' => [$words['last_programmed_at'], fn (Radio $radio) => $date($radio->last_programmed_at), false],
+            'document_no' => [$words['document_no'], fn (Radio $radio) => $radio->document_no ?: '—', true],
         ];
         $about = match ($check) {
             'sn_empty', 'sn_format', 'sn_duplicate' => ['serial_number'],
@@ -547,7 +550,9 @@ class AttentionInbox
         return $radios->values()->map(fn (Radio $radio, int $index) => [
             'id' => $radio->id,
             'head' => 'Radio ' . ($radio->dmr_id ?: ($radio->serial_number ?: '#' . $radio->id)),
-            'tag' => $radio->isArchived() ? 'Diarsipkan ' . $radio->archived_at?->format('d-m-Y') : 'Dibuat ' . $radio->created_at?->format('d-m-Y'),
+            'tag' => $radio->isArchived()
+                ? __('RadioManagement::attention.records.archived', ['date' => (string) $radio->archived_at?->format('d-m-Y')])
+                : __('RadioManagement::attention.records.created', ['date' => (string) $radio->created_at?->format('d-m-Y')]),
             'suspect' => $shared && $index > 0,
             'rows' => array_values(array_map(fn (string $field) => [
                 'label' => $fields[$field][0],
@@ -558,18 +563,18 @@ class AttentionInbox
         ])->all();
     }
 
-    /** "a", "a dan b", "a, b dan c" (at most four, then "dan N lagi"). */
+    /** "a", "a dan b", "a, b dan c" (at most four, then "dan N lagi"), in the language of the page. */
     private static function andList(Collection $words): string
     {
         $words = $words->values();
         if ($words->count() > 4) {
-            return $words->take(3)->implode(', ') . ' dan ' . ($words->count() - 3) . ' lagi';
+            return __('RadioManagement::attention.items.more', ['first' => $words->take(3)->implode(', '), 'count' => (string) ($words->count() - 3)]);
         }
         if ($words->count() < 2) {
             return (string) $words->first();
         }
 
-        return $words->slice(0, -1)->implode(', ') . ' dan ' . $words->last();
+        return __('RadioManagement::attention.items.two', ['first' => $words->slice(0, -1)->implode(', '), 'last' => (string) $words->last()]);
     }
 
     private function subjectOf(string $check, Radio $radio): string
@@ -597,7 +602,7 @@ class AttentionInbox
     private function stateFor(string $check, string $subject): RadioCheckState
     {
         if (! RadioCheckState::ready()) {
-            $this->refuse('Tabel Perlu Perhatian belum dibuat di database. Jalankan "php artisan migrate" dulu.');
+            $this->refuse(__('RadioManagement::attention.not_ready'));
         }
         try {
             return RadioCheckState::query()->with('assignee')->firstOrCreate(['check_code' => $check, 'subject' => $subject], ['first_seen_at' => now()]);

@@ -91,7 +91,7 @@ class ApiImportExportTest extends TestCase
         $report = $this->apiUpload('/api/v1/import', ['file' => $this->workbook([
             [1, '867TZB5309', 20, 'Iqbal', 'IT', 'MTI', 'MotoTrbo XiR P6620i', 'Layak'],
             [2, '867TZB5310', 21, 'Budi', 'IT', 'MTI', 'MotoTrbo XiR P6620i', 'Layak'],
-        ])], $token)->assertOk()->assertJsonPath('message', 'Impor selesai.')->json('data');
+        ])], $token)->assertOk()->assertJsonPath('message', 'Import finished.')->json('data');
         $this->assertSame([2, 'register.xlsx', 'Andi Admin'], [$report['imported'], $report['file'], $report['by']]);
         $this->assertSame(2, Radio::count());
 
@@ -117,7 +117,7 @@ class ApiImportExportTest extends TestCase
 
         // A workbook without the sheet "Form": the importer's reason, by the field.
         $this->apiUpload('/api/v1/import', ['file' => $this->workbook([], 'Lain')], $token)
-            ->assertStatus(422)->assertJsonValidationErrors(['file'])->assertJsonPath('errors.file.0', 'Sheet "Form" tidak ditemukan di file ini.');
+            ->assertStatus(422)->assertJsonValidationErrors(['file'])->assertJsonPath('errors.file.0', 'There is no sheet "Form" in this file.');
 
         // The register is not empty: only "fresh" imports again.
         Radio::create(['dmr_id' => 5, 'serial_number' => '867TZB0005', 'user_name' => 'x']);
@@ -137,7 +137,7 @@ class ApiImportExportTest extends TestCase
         ])));
 
         $this->apiUpload('/api/v1/import', ['file' => $file(), 'fresh' => 1], $importer)
-            ->assertForbidden()->assertJsonPath('message', RadioImports::REPLACE_REFUSED);
+            ->assertForbidden()->assertJsonPath('message', 'Deleting the old data needs the Delete permission on the Register Radio menu.');
         $this->assertSame(['867TZB0005'], Radio::pluck('serial_number')->all());
 
         $deleter = $this->tokenFor($this->makeUser('deleter@test.local', $this->roleWith([

@@ -51,7 +51,7 @@ class DocumentFolderController extends ApiController
         ]);
         $path = SharePointFolder::cleanPath($request->query('path'));
         if ($path === null) {
-            return response()->json(['message' => 'Folder tidak dikenali.', 'errors' => ['path' => ['Folder tidak dikenali.']]], 422);
+            return response()->json(['message' => __('SharePointDocs::scans.folder_unknown'), 'errors' => ['path' => [__('SharePointDocs::scans.folder_unknown')]]], 422);
         }
 
         try {
@@ -160,7 +160,7 @@ class DocumentFolderController extends ApiController
         ]);
         $path = SharePointFolder::cleanPath($request->query('path'));
         if ($path === null || trim($id) === '') {
-            return response()->json(['message' => 'File tidak dikenali.'], 422);
+            return response()->json(['message' => __('SharePointDocs::scans.file_unknown')], 422);
         }
 
         try {
@@ -169,7 +169,7 @@ class DocumentFolderController extends ApiController
             Log::warning('SharePoint file could not be given out through the API.', ['folder' => $folder, 'path' => $path, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
 
             return $e->reason === GraphException::NOT_FOUND
-                ? response()->json(['message' => 'File tidak ditemukan di SharePoint. Mungkin sudah dipindahkan atau dihapus; baca daftarnya lagi.', 'reason' => $e->reason], 404)
+                ? response()->json(['message' => __('SharePointDocs::scans.file_gone'), 'reason' => $e->reason], 404)
                 : $this->sharePointError($e);
         }
 

@@ -132,28 +132,34 @@
     </style>
 @endpush
 
+@php
+    // The kinds of permission in the language of the page, by the name they are kept under; the menus are named as in
+    // the sidebar (Menu::label()).
+    $permissionNames = __('UserManagement::roles.permissions');
+    $permissionName = fn ($perm) => is_array($permissionNames) && isset($permissionNames[$perm->name]) ? $permissionNames[$perm->name] : $perm->name;
+@endphp
 <div class="modal fade rm-modal" data-bs-backdrop="static" id="formRoleModal" aria-labelledby="formRoleTitle" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="rm-dialog-head">
                 <div class="rm-dialog-titles">
-                    <h3 class="rm-dialog-title modal-title" id="formRoleTitle">Title</h3>
+                    <h3 class="rm-dialog-title modal-title" id="formRoleTitle">{{ __('UserManagement::roles.form.add_title') }}</h3>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('UserManagement::roles.form.close') }}"><i
                         class="ti ti-x"></i></button>
             </div>
             <form id="form">
                 <div class="rm-dialog-body">
                     <div class="rm-form-rows">
                         <div class="rm-form-row">
-                            <label for="roleName" class="rm-form-label required">Role</label>
+                            <label for="roleName" class="rm-form-label required">{{ __('UserManagement::roles.form.role') }}</label>
                             <div class="rm-form-field rm-field role-half">
-                                <input type="text" id="roleName" class="form-control" name="role_name" placeholder="Role.."
+                                <input type="text" id="roleName" class="form-control" name="role_name" placeholder="{{ __('UserManagement::roles.form.role_placeholder') }}"
                                     required>
                             </div>
                         </div>
                         <div class="rm-form-row">
-                            <label for="homePageSelect" class="rm-form-label">Home Page</label>
+                            <label for="homePageSelect" class="rm-form-label">{{ __('UserManagement::roles.form.home_page') }}</label>
                             <div class="rm-form-field rm-field role-half">
                                 <select id="homePageSelect" name="home_page" class="form-select">
                                     <option value=""></option>
@@ -164,14 +170,14 @@
                                     @foreach ($homeRoots as $root)
                                         @php $rootChildren = $homeChildren[$root->id] ?? collect(); @endphp
                                         @if ($rootChildren->isNotEmpty())
-                                            <option value="{{ $root->id }}">{{ $root->title }}</option>
-                                            <optgroup label="{{ $root->title }}">
+                                            <option value="{{ $root->id }}">{{ $root->label() }}</option>
+                                            <optgroup label="{{ $root->label() }}">
                                                 @foreach ($rootChildren->sortBy([['order', 'asc'], ['title', 'asc']]) as $child)
-                                                    <option value="{{ $child->id }}">{{ $child->title }}</option>
+                                                    <option value="{{ $child->id }}">{{ $child->label() }}</option>
                                                 @endforeach
                                             </optgroup>
                                         @else
-                                            <option value="{{ $root->id }}">{{ $root->title }}</option>
+                                            <option value="{{ $root->id }}">{{ $root->label() }}</option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -179,7 +185,7 @@
                         </div>
 
                         <div class="rm-form-row">
-                            <span class="rm-form-label pt-0">Menu &amp; Permission</span>
+                            <span class="rm-form-label pt-0">{{ __('UserManagement::roles.form.menus') }}</span>
                             @php
                                 // Menu now has a parent/child hierarchy. Render root menus (and their
                                 // children indented underneath) instead of a flat alphabetical list.
@@ -190,15 +196,15 @@
                                 <table id="menuPermissionTable">
                                     <thead>
                                         <tr>
-                                            <th>Menu</th>
+                                            <th>{{ __('UserManagement::roles.form.menu') }}</th>
                                             <th class="perm-access">
-                                                <span class="perm-access-head">Access
+                                                <span class="perm-access-head">{{ __('UserManagement::roles.form.access') }}
                                                     <input class="form-check-input" type="checkbox" id="selectAll"
                                                         data-bs-toggle="tooltip" data-bs-placement="top"
-                                                        title="Allows a full access to the system" aria-label="Every menu" /></span>
+                                                        title="{{ __('UserManagement::roles.form.all') }}" aria-label="{{ __('UserManagement::roles.form.all_label') }}" /></span>
                                             </th>
                                             @foreach ($permission as $perm)
-                                                <th class="perm-kind text-center">{{ $perm->name }}</th>
+                                                <th class="perm-kind text-center">{{ $permissionName($perm) }}</th>
                                             @endforeach
                                         </tr>
                                     </thead>
@@ -208,9 +214,9 @@
                                             <tr @class(['menu-group-row' => $children->isNotEmpty()])>
                                                 <td>
                                                     @if ($children->isNotEmpty())
-                                                        <i class="ti ti-folder me-1" aria-hidden="true"></i>{{ $menu->title }}
+                                                        <i class="ti ti-folder me-1" aria-hidden="true"></i>{{ $menu->label() }}
                                                     @else
-                                                        {{ $menu->title }}
+                                                        {{ $menu->label() }}
                                                     @endif
                                                 </td>
                                                 <td class="text-center">
@@ -218,7 +224,7 @@
                                                         name="menu_list[]" type="checkbox"
                                                         id="menuAccess{{ $menu->id }}"
                                                         data-menu-id="{{ $menu->id }}"
-                                                        value="{{ $menu->id }}" aria-label="{{ $menu->title }}: access" />
+                                                        value="{{ $menu->id }}" aria-label="{{ __('UserManagement::roles.form.access_label', ['menu' => $menu->label()]) }}" />
                                                 </td>
                                                 @foreach ($permission as $perm)
                                                     <td class="text-center">
@@ -226,20 +232,20 @@
                                                             name="menu_permission[{{ $menu->id }}][]"
                                                             type="checkbox"
                                                             data-menu-id="{{ $menu->id }}"
-                                                            value="{{ $perm->id }}" aria-label="{{ $menu->title }}: {{ $perm->name }}" />
+                                                            value="{{ $perm->id }}" aria-label="{{ __('UserManagement::roles.form.permission_label', ['menu' => $menu->label(), 'permission' => $permissionName($perm)]) }}" />
                                                     </td>
                                                 @endforeach
                                             </tr>
                                             @foreach ($children->sortBy([['order', 'asc'], ['title', 'asc']]) as $child)
                                                 <tr class="menu-child-row">
-                                                    <td>{{ $child->title }}</td>
+                                                    <td>{{ $child->label() }}</td>
                                                     <td class="text-center">
                                                         <input class="form-check-input menu-access-checkbox"
                                                             name="menu_list[]" type="checkbox"
                                                             id="menuAccess{{ $child->id }}"
                                                             data-menu-id="{{ $child->id }}"
                                                             data-parent-id="{{ $menu->id }}"
-                                                            value="{{ $child->id }}" aria-label="{{ $child->title }}: access" />
+                                                            value="{{ $child->id }}" aria-label="{{ __('UserManagement::roles.form.access_label', ['menu' => $child->label()]) }}" />
                                                     </td>
                                                     @foreach ($permission as $perm)
                                                         <td class="text-center">
@@ -247,7 +253,7 @@
                                                                 name="menu_permission[{{ $child->id }}][]"
                                                                 type="checkbox"
                                                                 data-menu-id="{{ $child->id }}"
-                                                                value="{{ $perm->id }}" aria-label="{{ $child->title }}: {{ $perm->name }}" />
+                                                                value="{{ $perm->id }}" aria-label="{{ __('UserManagement::roles.form.permission_label', ['menu' => $child->label(), 'permission' => $permissionName($perm)]) }}" />
                                                         </td>
                                                     @endforeach
                                                 </tr>
@@ -261,11 +267,11 @@
                 </div>
 
                 <div class="rm-dialog-foot is-plain" id="actionButtons">
-                    <a href="#" class="rm-link-muted" data-bs-dismiss="modal" role="button" id="roleCloseLink">Cancel</a>
+                    <a href="#" class="rm-link-muted" data-bs-dismiss="modal" role="button" id="roleCloseLink">{{ __('UserManagement::roles.form.cancel') }}</a>
                     <button type="submit" class="btn-rm update" onclick="formRoleSubmit(event, this)" id="modalUpdateButton"
-                        data-type="edit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Update</button>
+                        data-type="edit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> {{ __('UserManagement::roles.form.update') }}</button>
                     <button type="submit" class="btn-rm primary" onclick="formRoleSubmit(event, this)" id="modalSubmitButton"
-                        data-type="submit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> Submit</button>
+                        data-type="submit" data-form-id="id"><i class="ti ti-check" aria-hidden="true"></i> {{ __('UserManagement::roles.form.submit') }}</button>
                 </div>
             </form>
         </div>
@@ -273,6 +279,9 @@
 </div>
 @push('javascript')
     <script type="text/javascript">
+        /** The words of the dialog in the language of the page (UserManagement::roles.form). */
+        const roleFormText = @json(__('UserManagement::roles.form'));
+
         /** What the dialog is doing now: Add, Edit or Preview (View: nothing in it can be changed). */
         const roleForm = {
             mode: 'Add',
@@ -293,11 +302,11 @@
             const modalId = `#${id}`;
             $('[data-bs-toggle="tooltip"]').tooltip('hide');
             roleForm.mode = action;
-            $(modalId + ' #roleCloseLink').text(action === 'Preview' ? 'Close' : 'Cancel');
+            $(modalId + ' #roleCloseLink').text(action === 'Preview' ? roleFormText.close : roleFormText.cancel);
 
             $(modalId + ' #homePageSelect').select2({
                 theme: "bootstrap-5",
-                placeholder: 'Select Home Page',
+                placeholder: roleFormText.home_page_placeholder,
                 multiple: false,
                 dropdownParent: $(modalId),
                 width: '100%',
@@ -349,7 +358,7 @@
                             errorMessage = xhr.statusText;
                         }
                         Swal.fire({
-                            title: 'Oops...',
+                            title: roleFormText.error,
                             text: errorMessage,
                             icon: 'error',
                             showConfirmButton: true,
@@ -366,7 +375,7 @@
                     $(modalId + ' #modalSubmitButton').addClass('d-none');
                     $(modalId + ' #modalUpdateButton').addClass('d-none');
 
-                    $(modalId + ' .modal-title').text('View role');
+                    $(modalId + ' .modal-title').text(roleFormText.view_title);
 
                 } else if (action == 'Edit') {
                     $(modalId + ' :input').prop('readonly', false);
@@ -374,7 +383,7 @@
                     $(modalId + ' :radio').prop('disabled', false);
                     $(modalId + ' :checkbox').prop('disabled', false);
 
-                    $(modalId + ' .modal-title').text('Edit role');
+                    $(modalId + ' .modal-title').text(roleFormText.edit_title);
                     $(modalId + ' #modalSubmitButton').addClass('d-none');
                     $(modalId + ' #modalUpdateButton').removeClass('d-none');
                     $(modalId + ' #modalUpdateButton').attr('data-form-id', dataId);
@@ -389,7 +398,7 @@
                 $('.menu-access-checkbox').each(function() {
                     syncMenuPermissionRowState($(this).data('menu-id'));
                 });
-                $(modalId + ' .modal-title').text('Add role');
+                $(modalId + ' .modal-title').text(roleFormText.add_title);
 
                 $(modalId + ' #modalUpdateButton').addClass('d-none');
                 $(modalId + ' #modalSubmitButton').removeClass('d-none');
@@ -422,10 +431,10 @@
                 layout: 'center',
                 tone: 'sky',
                 icon: 'help-circle',
-                title: 'Is the data correct?',
-                text: 'This action will ' + (state === 'Add' ? 'add' : 'update') + ' the role!',
-                confirmText: '<i class="ti ti-check"></i> Save',
-                cancelText: '<i class="ti ti-x"></i> Cancel',
+                title: roleFormText.confirm_title,
+                text: state === 'Add' ? roleFormText.confirm_add : roleFormText.confirm_update,
+                confirmText: '<i class="ti ti-check"></i> ' + roleFormText.save,
+                cancelText: '<i class="ti ti-x"></i> ' + roleFormText.cancel,
             }).then((result) => {
                 if (!result.isConfirmed) {
                     return;
@@ -449,7 +458,7 @@
                             errorMessage = xhr.statusText;
                         }
                         Swal.fire({
-                            title: 'Oops...',
+                            title: roleFormText.error,
                             text: errorMessage,
                             icon: 'error',
                             showConfirmButton: true,

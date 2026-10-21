@@ -36,25 +36,25 @@ class RadioImportController extends Controller
     public function store(Request $request): JsonResponse
     {
         if ($request->boolean('fresh') && ! $this->imports->mayReplace($request->user())) {
-            return response()->json(['message' => 'Tidak diizinkan', 'errors' => [RadioImports::REPLACE_REFUSED]], 403);
+            return response()->json(['message' => __('RadioManagement::import.messages.not_allowed'), 'errors' => [RadioImports::replaceRefused()]], 403);
         }
 
         $validator = Validator::make($request->all(), RadioImports::rules(), RadioImports::messages());
         if ($validator->fails()) {
-            return response()->json(['message' => 'Input tidak valid', 'errors' => $validator->errors()->all()], 422);
+            return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $validator->errors()->all()], 422);
         }
 
         try {
             $report = $this->imports->run($request->file('file'), $request->boolean('fresh'), $request->boolean('konawe', true), $request->user());
         } catch (LockTimeoutException) {
             return response()->json([
-                'message' => 'Register sedang sibuk',
-                'errors' => ['Data radio sedang disimpan atau impor lain masih berjalan. Tunggu sebentar lalu coba lagi.'],
+                'message' => __('RadioManagement::register.messages.busy'),
+                'errors' => [__('RadioManagement::import.messages.busy_text')],
             ], 409);
         } catch (ImportProblem $e) {
             return response()->json(['message' => $e->title, 'errors' => [$e->getMessage()]], $e->status);
         }
 
-        return response()->json(['message' => 'Impor selesai.', 'report' => $report]);
+        return response()->json(['message' => __('RadioManagement::import.messages.done'), 'report' => $report]);
     }
 }

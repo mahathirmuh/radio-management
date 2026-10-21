@@ -12,7 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Modules\RadioManagement\Http\Controllers\AttentionController;
 use Modules\RadioManagement\Models\ChannelTemplate;
 use Modules\RadioManagement\Models\Radio;
 use Modules\RadioManagement\Models\RadioCheckState;
@@ -334,7 +333,8 @@ class AttentionInboxTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         $page = (string) $this->get(route('radio-management.attention.index'))->assertOk()->getContent();
-        $this->assertStringContainsString(e(AttentionController::NOT_READY), $page);
+        $this->assertStringContainsString(e(__('RadioManagement::attention.not_ready')), $page);
+        $this->assertStringContainsString('Tabel Perlu Perhatian belum dibuat di database.', $page);
         $list = $this->list('verify_empty');
         $this->assertSame([[(string) $radio->id, null]], array_map(fn ($item) => [$item['subject'], $item['first_seen']], $list['data']));
         $this->putJson(route('radio-management.attention.dismiss'), ['check' => 'verify_empty', 'subject' => (string) $radio->id, 'reason' => 'x'])->assertStatus(503);

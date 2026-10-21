@@ -47,7 +47,7 @@ class ServiceTicket extends Model
 
     public const RETURNED = 'returned';
 
-    /** The steps, in their order, as the page names them. */
+    /** The steps, in their order, by the names the audit trail and the export keep (Indonesian); a page shows statusNames(). */
     public const STATUSES = [
         self::REPORTED => 'Dilaporkan',
         self::SENT => 'Dikirim ke servis',
@@ -101,9 +101,33 @@ class ServiceTicket extends Model
         return $this->hasMany(ServiceTicketEvent::class)->orderByDesc('created_at')->orderByDesc('id');
     }
 
+    /**
+     * The steps, in their order, by the names a page shows in its language (or in $locale):
+     * RadioManagement::service.statuses. A step without a name there shows the one kept.
+     *
+     * @return array<string, string>
+     */
+    public static function statusNames(?string $locale = null): array
+    {
+        $names = __('RadioManagement::service.statuses', [], $locale);
+        $shown = [];
+        foreach (self::STATUSES as $status => $kept) {
+            $shown[$status] = is_array($names) && isset($names[$status]) ? (string) $names[$status] : $kept;
+        }
+
+        return $shown;
+    }
+
+    /** The name of its step as the audit trail and the export keep it (Indonesian). */
     public function label(): string
     {
         return self::STATUSES[$this->status] ?? $this->status;
+    }
+
+    /** The name of its step in the language of the page (or of $locale). */
+    public function display(?string $locale = null): string
+    {
+        return self::statusNames($locale)[$this->status] ?? $this->status;
     }
 
     public function isOpen(): bool

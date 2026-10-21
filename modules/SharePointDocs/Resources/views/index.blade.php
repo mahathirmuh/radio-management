@@ -84,15 +84,14 @@
         <div class="rm-head">
             <div>
                 <h1 class="rm-title">{{ $title }}</h1>
-                <p class="rm-sub">{{ $subtitle ? $subtitle . '. ' : '' }}Dibaca dari SharePoint, diperbarui tiap {{ $cacheMinutes }} menit.</p>
+                <p class="rm-sub">{{ $subtitle ? $subtitle . '. ' : '' }}{{ trans_choice('SharePointDocs::scans.read_every', $cacheMinutes, ['minutes' => $cacheMinutes]) }}</p>
             </div>
         </div>
         <div class="rm-card">
             @if (! $configured)
                 <div class="alert alert-warning mb-0" id="docsNotConfigured">
-                    <b>{{ $title }} belum bisa ditampilkan.</b>
-                    Alamat folder SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code>
-                    (lihat README, bagian "Dokumen SharePoint").
+                    <b>{{ __('SharePointDocs::scans.not_configured_title', ['title' => $title]) }}</b>
+                    {!! __('SharePointDocs::scans.not_configured') !!}
                 </div>
             @else
                 @if ($register)
@@ -101,63 +100,60 @@
                     <div class="rm-docs-summary" id="docsSummary">
                         <div class="rm-docs-stats">
                             <div class="rm-docs-stat">
-                                <div class="rm-docs-stat-label">Sinkron terakhir</div>
+                                <div class="rm-docs-stat-label">{{ __('SharePointDocs::scans.synced') }}</div>
                                 <div class="rm-docs-stat-value" id="docsSynced">-</div>
                                 <div class="rm-docs-stat-hint" id="docsSyncedHint">&nbsp;</div>
                             </div>
                             <div class="rm-docs-stat">
-                                <div class="rm-docs-stat-label">Tertaut ke baris</div>
+                                <div class="rm-docs-stat-label">{{ __('SharePointDocs::scans.linked') }}</div>
                                 <div class="rm-docs-stat-value is-linked" id="docsLinked">-</div>
-                                <div class="rm-docs-stat-hint">Dicocokkan lewat {{ $split ? $split['code'] : 'nomor dokumen' }}</div>
+                                <div class="rm-docs-stat-hint">{{ __('SharePointDocs::scans.linked_by', ['what' => $split ? $split['code'] : __('SharePointDocs::scans.document_number')]) }}</div>
                             </div>
                             <div class="rm-docs-stat">
-                                <div class="rm-docs-stat-label">Tidak tertaut</div>
+                                <div class="rm-docs-stat-label">{{ __('SharePointDocs::scans.unmatched') }}</div>
                                 <div class="rm-docs-stat-value is-unmatched" id="docsUnmatched">-</div>
-                                <div class="rm-docs-stat-hint">Tidak ada baris, atau nama beda</div>
+                                <div class="rm-docs-stat-hint">{{ __('SharePointDocs::scans.unmatched_hint') }}</div>
                             </div>
                         </div>
                         <div class="rm-alert warning is-bar d-none" id="docsUnmatchedBar">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            <span class="flex-fill"><b id="docsUnmatchedText"></b> Barisnya tidak ada, atau link-nya menyebut file lain.
-                                Perbaiki link-nya di Excel.</span>
-                            <button type="button" class="btn-rm secondary sm" id="docsReview">Tinjau</button>
+                            <span class="flex-fill"><b id="docsUnmatchedText"></b> {{ __('SharePointDocs::scans.unmatched_bar') }}</span>
+                            <button type="button" class="btn-rm secondary sm" id="docsReview">{{ __('SharePointDocs::scans.review') }}</button>
                         </div>
                     </div>
                 @endif
                 <div class="rm-toolbar rm-toolbar-tight">
                     <label class="rm-search rm-search-360" for="docsSearch">
                         <i class="ti ti-search" aria-hidden="true"></i>
-                        <input type="search" id="docsSearch" autocomplete="off" maxlength="100" aria-label="Cari"
-                            placeholder="{{ $split ? $split['code'] . ' atau ' . mb_strtolower($split['label']) . '…' : 'Nama file…' }}">
+                        <input type="search" id="docsSearch" autocomplete="off" maxlength="100" aria-label="{{ __('SharePointDocs::scans.search') }}"
+                            placeholder="{{ $split ? __('SharePointDocs::scans.search_split', ['code' => $split['code'], 'label' => mb_strtolower($split['label'])]) : __('SharePointDocs::scans.search_name') }}">
                     </label>
                     @if ($register)
-                        <div class="rm-seg" role="radiogroup" aria-label="Status di Masterlist" id="docsStatus">
+                        <div class="rm-seg" role="radiogroup" aria-label="{{ __('SharePointDocs::scans.status_label') }}" id="docsStatus">
                             <input type="radio" class="btn-check" name="docsStatus" id="docsStatusAll" value="" checked>
-                            <label for="docsStatusAll">Semua <span class="rm-tab-count" id="docsCountAll">-</span></label>
+                            <label for="docsStatusAll">{{ __('SharePointDocs::scans.all') }} <span class="rm-tab-count" id="docsCountAll">-</span></label>
                             <input type="radio" class="btn-check" name="docsStatus" id="docsStatusLinked" value="linked">
-                            <label for="docsStatusLinked">Tertaut <span class="rm-tab-count" id="docsCountLinked">-</span></label>
+                            <label for="docsStatusLinked">{{ __('SharePointDocs::scans.status_linked') }} <span class="rm-tab-count" id="docsCountLinked">-</span></label>
                             <input type="radio" class="btn-check" name="docsStatus" id="docsStatusUnmatched" value="unmatched">
-                            <label for="docsStatusUnmatched">Tidak tertaut <span class="rm-tab-count" id="docsCountUnmatched">-</span></label>
+                            <label for="docsStatusUnmatched">{{ __('SharePointDocs::scans.status_unmatched') }} <span class="rm-tab-count" id="docsCountUnmatched">-</span></label>
                         </div>
                     @endif
                     <button type="button" class="btn-rm secondary" onclick="spDocs.reset()" data-bs-toggle="tooltip"
-                        data-bs-title="Reset pencarian, pilihan nomor, dan urutan"><i class="ti ti-restore" aria-hidden="true"></i> Reset</button>
+                        data-bs-title="{{ __('SharePointDocs::scans.reset_hint') }}"><i class="ti ti-restore" aria-hidden="true"></i> {{ __('SharePointDocs::common.reset') }}</button>
                     <button type="button" class="btn-rm secondary" id="docsReload" onclick="spDocs.load(true)">
-                        <i class="ti ti-refresh" aria-hidden="true"></i> Muat ulang
+                        <i class="ti ti-refresh" aria-hidden="true"></i> {{ __('SharePointDocs::common.reload') }}
                     </button>
                     {{-- Hidden while the folder being looked at has no known address in SharePoint. --}}
                     <span class="ms-auto {{ $sharePointUrl ? '' : 'd-none' }}" id="docsOpenWrap">
                         <a class="btn-rm secondary" id="docsOpen" href="{{ $sharePointUrl ?? '#' }}" target="_blank"
-                            rel="noopener noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i> Buka di SharePoint</a>
+                            rel="noopener noreferrer"><i class="ti ti-external-link" aria-hidden="true"></i> {{ __('SharePointDocs::scans.open_sharepoint') }}</a>
                     </span>
                 </div>
 
                 <div class="rm-docs-help">
-                    Tombol <i class="ti ti-eye"></i> menampilkan file di sini; klik namanya untuk membukanya di SharePoint dengan
-                    akun Microsoft Anda.
+                    {!! __('SharePointDocs::scans.help') !!}
                     @if ($register)
-                        Kolom Masterlist dan Catatan dari sheet {{ $register['sheet'] }} di {{ $register['title'] }}: baris yang
-                        menyebut file itu, dan catatannya.
+                        {{ __('SharePointDocs::scans.help_register', ['sheet' => $register['sheet'], 'workbook' => $register['title']]) }}
                     @endif
                 </div>
                 <div class="small d-none" id="docsCrumbs"></div>
@@ -168,7 +164,7 @@
                 <div role="status">
                     <div class="alert alert-info py-2 small mt-2 mb-0 text-break d-none" id="docsCodeBar">
                         <span id="docsCodeText"></span>
-                        <a href="#" id="docsCodeClear" class="ms-1">Tampilkan semua file</a>
+                        <a href="#" id="docsCodeClear" class="ms-1">{{ __('SharePointDocs::scans.show_all') }}</a>
                     </div>
                 </div>
 
@@ -177,22 +173,22 @@
                         <table class="rm-table{{ $register ? ' docs-register' : '' }}" id="docsTable">
                             <thead>
                                 <tr>
-                                    <th class="text-center" width="44">No</th>
+                                    <th class="text-center" width="44">{{ __('SharePointDocs::scans.columns.no') }}</th>
                                     @if ($split)
                                         <th data-key="name" width="130">{{ $split['code'] }}</th>
                                         <th data-key="label">{{ $split['label'] }}</th>
                                     @else
-                                        <th data-key="name">Nama</th>
+                                        <th data-key="name">{{ __('SharePointDocs::scans.columns.name') }}</th>
                                     @endif
                                     @if ($register)
-                                        <th data-key="masterlist" width="190">Masterlist</th>
-                                        <th width="200">Catatan</th>
+                                        <th data-key="masterlist" width="190">{{ __('SharePointDocs::scans.columns.masterlist') }}</th>
+                                        <th width="200">{{ __('SharePointDocs::scans.columns.note') }}</th>
                                     @endif
-                                    <th data-key="extension" width="80">Tipe</th>
-                                    <th data-key="modified" width="150">Diubah</th>
-                                    <th>Oleh</th>
-                                    <th data-key="size" width="100">Ukuran</th>
-                                    <th class="text-center" width="60">Lihat</th>
+                                    <th data-key="extension" width="80">{{ __('SharePointDocs::scans.columns.type') }}</th>
+                                    <th data-key="modified" width="150">{{ __('SharePointDocs::scans.columns.modified') }}</th>
+                                    <th>{{ __('SharePointDocs::scans.columns.by') }}</th>
+                                    <th data-key="size" width="100">{{ __('SharePointDocs::scans.columns.size') }}</th>
+                                    <th class="text-center" width="60">{{ __('SharePointDocs::scans.columns.view') }}</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -214,23 +210,23 @@
                         <h3 class="modal-title fs-4 text-truncate flex-fill docs-viewer-title" id="docsViewerTitle"></h3>
                         <div class="d-flex align-items-center gap-2 flex-shrink-0">
                             <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" id="docsViewerPrevious"
-                                title="File sebelumnya" aria-label="File sebelumnya"><i class="ti ti-chevron-left"></i></button>
+                                title="{{ __('SharePointDocs::scans.viewer.previous') }}" aria-label="{{ __('SharePointDocs::scans.viewer.previous') }}"><i class="ti ti-chevron-left"></i></button>
                             <span class="docs-muted text-nowrap" id="docsViewerPlace"></span>
                             <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" id="docsViewerNext"
-                                title="File berikutnya" aria-label="File berikutnya"><i class="ti ti-chevron-right"></i></button>
+                                title="{{ __('SharePointDocs::scans.viewer.next') }}" aria-label="{{ __('SharePointDocs::scans.viewer.next') }}"><i class="ti ti-chevron-right"></i></button>
                             <a class="btn btn-sm btn-icon btn-outline-secondary" id="docsViewerTab" href="#" target="_blank"
-                                rel="noopener" title="Buka di tab baru" aria-label="Buka di tab baru"><i
+                                rel="noopener" title="{{ __('SharePointDocs::scans.viewer.new_tab') }}" aria-label="{{ __('SharePointDocs::scans.viewer.new_tab') }}"><i
                                     class="ti ti-arrows-maximize"></i></a>
                             <a class="btn btn-sm btn-outline-blue text-nowrap" id="docsViewerSharePoint" href="#" target="_blank"
-                                rel="noopener noreferrer" title="Buka di SharePoint"><i class="ti ti-external-link me-1"></i>SharePoint</a>
+                                rel="noopener noreferrer" title="{{ __('SharePointDocs::scans.open_sharepoint') }}"><i class="ti ti-external-link me-1"></i>SharePoint</a>
                             <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" data-bs-dismiss="modal"
-                                title="Tutup" aria-label="Tutup"><i class="ti ti-x"></i></button>
+                                title="{{ __('SharePointDocs::common.close') }}" aria-label="{{ __('SharePointDocs::common.close') }}"><i class="ti ti-x"></i></button>
                         </div>
                     </div>
                     <div class="modal-body p-0 docs-viewer-body" id="docsViewerBody">
                         <div class="docs-viewer-wait" id="docsViewerWait">
                             <div class="spinner-border text-blue mb-2" role="status" id="docsViewerSpinner"></div>
-                            <div class="docs-muted" id="docsViewerHint">Memuat file…</div>
+                            <div class="docs-muted" id="docsViewerHint">{{ __('SharePointDocs::scans.viewer.loading') }}</div>
                         </div>
                     </div>
                 </div>
@@ -241,7 +237,14 @@
 
 @if ($configured)
     @push('javascript')
+        @php
+            // The words of the page's script in its language: its own (SharePointDocs::scans.script) and the shared ones.
+            $docsWords = __('SharePointDocs::scans.script') + ['session_ended' => __('SharePointDocs::common.session_ended')];
+        @endphp
         <script>
+            /** What the script says, in the language of the page. */
+            const spText = @json($docsWords);
+
             const spUi = {
                 icons: {
                     pdf: 'file-type-pdf',
@@ -307,7 +310,7 @@
                     if (row.type === 'folder') {
                         const icon = '<i class="ti ti-folder me-1"></i>';
                         return row.path === null ?
-                            spUi.link(row.url, icon + label, 'Buka folder di SharePoint') :
+                            spUi.link(row.url, icon + label, spText.open_folder) :
                             `<a href="#" class="docs-folder" data-path="${spUi.esc(row.path)}">${icon}${label}</a>`;
                     }
                     const icon = `<i class="ti ti-${spUi.pick(spUi.icons, row.extension, 'file')} me-1"></i>`;
@@ -315,7 +318,7 @@
                 },
                 /** The "Tipe" column: the file's extension, or "Folder". */
                 kind(row) {
-                    if (row.type === 'folder') return '<span class="badge bg-yellow-lt docs-kind">Folder</span>';
+                    if (row.type === 'folder') return `<span class="badge bg-yellow-lt docs-kind">${spUi.esc(spText.folder)}</span>`;
                     if (!row.extension) return spUi.dash('');
                     const color = spUi.pick(spUi.colors, row.extension, 'secondary');
                     return `<span class="badge bg-${color}-lt docs-kind">${spUi.esc(String(row.extension).toUpperCase())}</span>`;
@@ -338,21 +341,22 @@
                     const line = Number.isInteger(own.line) && own.line > 0 ? own.line : '?';
                     const others = Number(own.more) > 0 ? Number(own.more) : 0;
                     const more = others > 0 ? ` +${others}` : '';
-                    const andMore = others > 0 ? ` (dan ${others} baris lain)` : '';
+                    const andMore = others > 0 ? ' ' + rmChoice(spText.and_more, others) : '';
                     const goes = spUi.isPath(own.url);
                     // [colour, words, what it means]: the words are the page's own, the numbers are numbers.
                     const kinds = {
-                        linked: ['green', `Baris ${line}${more}`, `Baris di Masterlist yang menyebut file ini${andMore}`],
-                        differs: ['orange', `Nama beda · baris ${line}${more}`, `Ada baris dengan nomor ini, tetapi link-nya kosong atau menyebut nama file yang lain (atau file ini salinan ganda dari file yang sudah disebut)${andMore}`],
-                        unlinked: ['red', 'Tidak ada baris', 'Tidak ada baris di Masterlist untuk file ini'],
+                        linked: ['green', rmFill(spText.row, { line }) + more, spText.row_hint + andMore],
+                        differs: ['orange', rmFill(spText.differs, { line }) + more, spText.differs_hint + andMore],
+                        unlinked: ['red', spText.unlinked, spText.unlinked_hint],
                     };
                     if (!Object.prototype.hasOwnProperty.call(kinds, own.status)) return spUi.dash('');
                     const [tone, text, hint] = kinds[own.status];
                     // The way to the row is told in the tooltip of the badge (the badge is all there is to point at) and, for a screen reader, in the name of the link.
-                    const badge = `<span class="badge bg-${tone}-lt docs-kind" title="${spUi.esc(hint + (goes ? `. Klik untuk melihat barisnya di ${spDocs.register.title}` : ''))}">${text}</span>`;
+                    const way = goes ? '. ' + rmFill(spText.click_row, { workbook: spDocs.register.title }) : '';
+                    const badge = `<span class="badge bg-${tone}-lt docs-kind" title="${spUi.esc(hint + way)}">${spUi.esc(text)}</span>`;
 
                     return goes ?
-                        `<a href="${spUi.esc(own.url)}" class="text-decoration-none" aria-label="${spUi.esc(`${text}: lihat barisnya di ${spDocs.register.title}`)}">${badge}</a>` :
+                        `<a href="${spUi.esc(own.url)}" class="text-decoration-none" aria-label="${spUi.esc(rmFill(spText.see_row, { text, workbook: spDocs.register.title }))}">${badge}</a>` :
                         badge;
                 },
                 /** The "Catatan" column: the note of the row, up to four lines with the whole of it in the tooltip. */
@@ -367,10 +371,10 @@
                 view(row, index) {
                     if (row.type === 'folder') return '';
                     if (row.preview) {
-                        return `<button type="button" class="btn btn-sm btn-icon btn-outline-blue docs-view" data-index="${Number(index)}" title="Lihat file" aria-label="Lihat file"><i class="ti ti-eye"></i></button>`;
+                        return `<button type="button" class="btn btn-sm btn-icon btn-outline-blue docs-view" data-index="${Number(index)}" title="${spUi.esc(spText.view_file)}" aria-label="${spUi.esc(spText.view_file)}"><i class="ti ti-eye"></i></button>`;
                     }
                     if (!spUi.isLink(row.url)) return '';
-                    return `<a class="btn btn-sm btn-icon btn-outline-secondary" href="${spUi.esc(row.url)}" target="_blank" rel="noopener noreferrer" title="Tidak bisa ditampilkan di sini: buka di SharePoint" aria-label="Buka di SharePoint"><i class="ti ti-external-link"></i></a>`;
+                    return `<a class="btn btn-sm btn-icon btn-outline-secondary" href="${spUi.esc(row.url)}" target="_blank" rel="noopener noreferrer" title="${spUi.esc(spText.not_here)}" aria-label="${spUi.esc(spText.open_sharepoint)}"><i class="ti ti-external-link"></i></a>`;
                 },
             };
 
@@ -463,7 +467,7 @@
                         columns: spDocs.columns,
                         currentPage: spDocs.page,
                         limit: spDocs.limit,
-                        emptyText: 'Tidak ada dokumen',
+                        emptyText: spText.no_documents,
                         currentSortKey: spDocs.sort,
                         currentSortDir: spDocs.dir,
                         onPageChange: page => {
@@ -516,7 +520,7 @@
                         spDocs.describe(response.folder, response.register);
                     }).fail(xhr => {
                         if (request !== spDocs.request) return;
-                        spDocs.render({ emptyText: 'Daftar tidak bisa dimuat.' });
+                        spDocs.render({ emptyText: spText.load_failed });
                         $('#docsPage .pagination-container').hide();
                         $('#docsInfo').text('');
                         spDocs.summary(null, null);
@@ -532,18 +536,18 @@
                     const focused = document.activeElement;
                     const had = !!focused && focused.id === 'docsCodeClear';
                     $('#docsCodeBar').toggleClass('d-none', spDocs.code === '');
-                    $('#docsCodeText').text(spDocs.code === '' ? '' : `Hanya file dengan nomor ${spDocs.code}.`);
+                    $('#docsCodeText').text(spDocs.code === '' ? '' : rmFill(spText.only_code, { code: spDocs.code }));
                     if (had && spDocs.code === '') $('#docsSearch').trigger('focus');
                 },
 
-                /** What the table says when it shows nothing, in the words of what was asked for. */
+                /** What the table says when it shows nothing, in the words of what was asked for (put in as markup: the number is escaped). */
                 empty() {
-                    const among = spDocs.code !== '' || spDocs.search ? ' di antara yang dicari' : '';
-                    if (spDocs.status === 'linked') return `Tidak ada file yang tertaut ke baris${among}.`;
-                    if (spDocs.status === 'unmatched') return `Tidak ada file yang tidak tertaut${among}.`;
-                    if (spDocs.code !== '') return `Tidak ada file dengan nomor ${spUi.esc(spDocs.code)}${spDocs.search ? ' yang cocok dengan pencarian' : ''}.`;
+                    const among = spDocs.code !== '' || spDocs.search !== '';
+                    if (spDocs.status === 'linked') return among ? spText.none_linked_among : spText.none_linked;
+                    if (spDocs.status === 'unmatched') return among ? spText.none_unmatched_among : spText.none_unmatched;
+                    if (spDocs.code !== '') return rmFill(spDocs.search ? spText.none_code_search : spText.none_code, { code: spUi.esc(spDocs.code) });
 
-                    return spDocs.search ? 'Tidak ada dokumen yang cocok dengan pencarian.' : 'Folder ini kosong.';
+                    return spDocs.search ? spText.none_search : spText.empty_folder;
                 },
 
                 /**
@@ -558,14 +562,14 @@
                     const files = Number(folder.files) || 0;
                     const synced = folder.synced || {};
                     $('#docsSynced').text(synced.time || '-');
-                    $('#docsSyncedHint').text(`${synced.day || folder.fetched_at} · ${files} file di folder`);
+                    $('#docsSyncedHint').text(rmChoice(spText.synced_hint, files, { day: synced.day || folder.fetched_at }));
                     $('#docsLinked').text(register.linked);
                     $('#docsUnmatched').text(register.unmatched);
                     $('#docsCountAll').text(files);
                     $('#docsCountLinked').text(register.linked);
                     $('#docsCountUnmatched').text(register.unmatched);
                     $('#docsUnmatchedBar').toggleClass('d-none', register.unmatched === 0);
-                    $('#docsUnmatchedText').text(`${register.unmatched} file tidak cocok dengan baris di ${register.title}.`);
+                    $('#docsUnmatchedText').text(rmChoice(spText.unmatched_text, register.unmatched, { workbook: register.title }));
                     spDocs.mark();
                 },
 
@@ -583,43 +587,34 @@
                 },
 
                 failure(xhr) {
-                    if (xhr.status === 401) return 'Sesi Anda sudah berakhir. Muat ulang halaman untuk masuk lagi.';
-                    if (xhr.status === 403) return 'Role Anda tidak punya izin Read untuk menu ini.';
+                    if (xhr.status === 401) return spText.session_ended;
+                    if (xhr.status === 403) return spText.no_read;
                     const body = xhr.responseJSON || {};
                     return [404, 422, 502, 503].includes(xhr.status) && typeof body.message === 'string' && body.message ?
-                        body.message : 'Daftar tidak bisa dimuat. Coba lagi beberapa saat lagi.';
+                        body.message : spText.load_failed_retry;
                 },
 
                 describe(folder, register) {
                     const parts = [];
-                    if (folder.folders) parts.push(`${folder.folders} folder`);
-                    parts.push(`${folder.files} file`);
+                    if (folder.folders) parts.push(rmChoice(spText.folders, folder.folders));
+                    parts.push(rmChoice(spText.files, folder.files));
                     if (folder.files) parts.push(folder.size);
-                    parts.push(`data SharePoint per ${folder.fetched_at}`);
-                    if (register && register.fetched_at) parts.push(`${register.title} per ${register.fetched_at}`);
+                    parts.push(rmFill(spText.data_at, { time: folder.fetched_at }));
+                    if (register && register.fetched_at) parts.push(rmFill(spText.book_at, { workbook: register.title, time: register.fetched_at }));
                     $('#docsInfo').text(parts.join(' · '));
 
                     const notices = [];
                     if (folder.stale) {
-                        notices.push({
-                            kind: 'warning',
-                            text: `SharePoint sedang tidak bisa dihubungi. Yang tampil adalah daftar terakhir yang berhasil diambil (${folder.fetched_at}).`
-                        });
+                        notices.push({ kind: 'warning', text: rmFill(spText.stale, { time: folder.fetched_at }) });
                     }
                     if (folder.truncated) {
-                        notices.push({
-                            kind: 'info',
-                            text: 'Isi folder ini sangat banyak: hanya sebagian yang ditampilkan. Buka di SharePoint untuk melihat semuanya.'
-                        });
+                        notices.push({ kind: 'info', text: spText.truncated });
                     }
                     if (register && register.unavailable) {
                         notices.push({ kind: 'info', text: register.unavailable });
                     }
                     if (register && register.stale) {
-                        notices.push({
-                            kind: 'warning',
-                            text: `SharePoint sedang tidak bisa dihubungi atau terlalu lambat menjawab. Kolom Masterlist dan Catatan memakai isi terakhir ${register.title} yang berhasil diambil (${register.fetched_at}).`
-                        });
+                        notices.push({ kind: 'warning', text: rmFill(spText.register_stale, { workbook: register.title, time: register.fetched_at }) });
                     }
                     spDocs.notice(notices);
                     spDocs.target(folder.web_url);
@@ -737,7 +732,7 @@
                     spViewer.waiting(true);
                     const frame = document.createElement('iframe');
                     frame.id = 'docsViewerFrame';
-                    frame.title = 'Isi file';
+                    frame.title = spText.frame;
                     frame.addEventListener('load', () => spViewer.loaded(frame));
                     frame.src = address;
                     $('#docsViewerFrame').remove();
@@ -761,7 +756,7 @@
                         return;
                     }
                     $('#docsViewerFrame').remove();
-                    spViewer.waiting(true, 'Sesi Anda sudah berakhir. Muat ulang halaman untuk masuk lagi.');
+                    spViewer.waiting(true, spText.session_ended);
                 },
 
                 /**
@@ -774,10 +769,10 @@
                     clearTimeout(spViewer.timer);
                     $('#docsViewerWait').toggleClass('d-none', !on);
                     $('#docsViewerSpinner').toggleClass('d-none', message !== null);
-                    $('#docsViewerHint').text(message || 'Memuat file…');
+                    $('#docsViewerHint').text(message || spText.loading);
                     if (on && message === null) {
                         spViewer.timer = setTimeout(() => {
-                            $('#docsViewerHint').text('Masih memuat… Bila file tidak juga tampil, buka lewat tombol "tab baru" atau "SharePoint" di kanan atas.');
+                            $('#docsViewerHint').text(spText.still_loading);
                         }, 12000);
                     }
                 },

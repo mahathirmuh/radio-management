@@ -13,12 +13,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ApiReady
 {
-    public const NOT_READY = 'The API is not switched on yet: its migration has not been run on this database.';
 
     public function handle(Request $request, Closure $next): Response
     {
         if (! ApiToken::ready()) {
-            return response()->json(['message' => self::NOT_READY], 503);
+            return response()->json(['message' => __('Api::api.not_ready')], 503);
         }
 
         return $next($request);

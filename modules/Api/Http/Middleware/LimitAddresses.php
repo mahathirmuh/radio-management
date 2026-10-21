@@ -23,7 +23,7 @@ class LimitAddresses
     {
         $key = 'api-address:' . $request->ip();
         if ($this->limiter->tooManyAttempts($key, ApiServiceProvider::PER_ADDRESS)) {
-            return response()->json(['message' => 'Too Many Attempts.'], 429)
+            return response()->json(['message' => __('Api::api.too_many')], 429)
                 ->header('Retry-After', (string) $this->limiter->availableIn($key));
         }
         $this->limiter->hit($key, 60);

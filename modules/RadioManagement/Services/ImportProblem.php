@@ -17,11 +17,11 @@ class ImportProblem extends Exception
 
     public static function refused(string $message): self
     {
-        return new self('Impor dibatalkan', $message, 422);
+        return new self(__('RadioManagement::import.messages.refused'), $message, 422);
     }
 
     public static function failed(string $message): self
     {
-        return new self('Impor gagal', $message, 500);
+        return new self(__('RadioManagement::import.messages.failed'), $message, 500);
     }
 }

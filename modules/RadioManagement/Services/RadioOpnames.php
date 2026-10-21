@@ -6,6 +6,7 @@ use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Traits\Localizable;
 use Illuminate\Validation\ValidationException;
 use Modules\RadioManagement\Enums\Condition;
 use Modules\RadioManagement\Enums\Placement;
@@ -23,10 +24,13 @@ use Modules\RadioManagement\Models\ServiceTicket;
  * the register, and writes one line in the audit trail; what was not found, or is with somebody else, is listed for a
  * person to decide (K13f).
  *
- * A refused change is a ValidationException carrying the message to show, as in RadioService.
+ * A refused change is a ValidationException carrying the message to show, as in RadioService, in the language of the
+ * page (RadioManagement::opname). What the history and the audit trail keep stays in Indonesian.
  */
 class RadioOpnames
 {
+    use Localizable;
+
     public function __construct(private RadioBulk $bulk, private RadioService $radios, private ServiceTickets $tickets)
     {
     }
@@ -85,8 +89,8 @@ class RadioOpnames
         if ($open !== null) {
             return $open;
         }
-        $department = RadioDepartment::query()->find($departmentId) ?? $this->refuse('Department itu tidak ada di master data.');
-        $company = $companyId === null ? null : (RadioCompany::query()->find($companyId) ?? $this->refuse('Company itu tidak ada di master data.'));
+        $department = RadioDepartment::query()->find($departmentId) ?? $this->refuse(__('RadioManagement::opname.messages.department_missing'));
+        $company = $companyId === null ? null : (RadioCompany::query()->find($companyId) ?? $this->refuse(__('RadioManagement::opname.messages.company_missing')));
 
         return RadioOpnameSession::create([
             'department_id' => $department->id,
@@ -130,7 +134,7 @@ class RadioOpnames
             'department' => $radio->department?->name,
             'last_verified' => $radio->last_verified_at?->toDateString(),
             'condition' => $radio->condition?->value,
-            'placement' => $radio->placement?->label(),
+            'placement' => $radio->placement?->display(),
             'archived' => $radio->isArchived(),
             // Registered where this session counts.
             'here' => (int) $radio->department_id === $session->department_id
@@ -155,15 +159,15 @@ class RadioOpnames
     {
         $this->mustBeOpen($session);
         if ($radio->trashed()) {
-            $this->refuse('Radio ini sudah dihapus dari register.');
+            $this->refuse(__('RadioManagement::opname.messages.deleted'));
         }
         if ($radio->isArchived()) {
-            $this->refuse('Radio ini sudah diarsipkan: tidak bisa diverifikasi. Pulihkan dulu di Register Radio.');
+            $this->refuse(__('RadioManagement::opname.archived_radio'));
         }
         $other = $data['holder'] === 'other';
         $name = trim((string) ($data['holder_name'] ?? ''));
         if ($other && $name === '') {
-            $this->refuse('Tulis nama yang memegang radionya.');
+            $this->refuse(__('RadioManagement::opname.page.name_needed'));
         }
 
         $item = RadioOpnameItem::query()->updateOrCreate(['session_id' => $session->id, 'radio_id' => $radio->id], [
@@ -183,7 +187,7 @@ class RadioOpnames
     public function report(RadioOpnameSession $session, Radio $radio, array $data, User $user): ServiceTicket
     {
         if (blank($data['note'] ?? null)) {
-            $this->refuse('Tulis masalahnya di catatan dulu.');
+            $this->refuse(__('RadioManagement::opname.page.note_needed'));
         }
         $item = $this->scan($session, $radio, $data, $user);
         $ticket = $this->tickets->open([
@@ -257,30 +261,38 @@ class RadioOpnames
         $state = $this->state($session);
         $items = $session->items()->with('radio')->orderBy('id')->get();
         if ($items->isEmpty()) {
-            $this->refuse('Belum ada radio yang discan di sesi ini.');
+            $this->refuse(__('RadioManagement::opname.messages.nothing_scanned'));
         }
 
         $today = now()->toDateString();
-        $verified = 0;
-        $skipped = [];
-        foreach ($items as $item) {
-            $radio = $item->radio;
-            if ($radio === null || $radio->trashed()) {
-                $skipped[] = ['radio' => $item->radio_label, 'reason' => 'sudah dihapus dari register'];
+        // What is kept of it (the summary of the session, its audit entry, the history lines) is data: in Indonesian
+        // whatever the language of the page, the reasons a radio was skipped being the register's own refusals.
+        [$verified, $skipped] = $this->withLocale('id', function () use ($items, $today, $session, $user): array {
+            $verified = 0;
+            $skipped = [];
+            foreach ($items as $item) {
+                $radio = $item->radio;
+                if ($radio === null || $radio->trashed()) {
+                    $skipped[] = ['radio' => $item->radio_label, 'reason' => __('RadioManagement::opname.messages.skipped_deleted')];
 
-                continue;
-            }
-            if (! $radio->isArchived() && $item->condition !== $radio->condition?->value) {
-                try {
-                    $this->radios->update($radio, ['condition' => $item->condition], $user->id);
-                } catch (ValidationException $e) {
-                    $skipped[] = ['radio' => RadioBulk::label($radio), 'reason' => 'kondisi: ' . rtrim((string) collect($e->errors())->flatten()->first(), '.')];
+                    continue;
                 }
+                if (! $radio->isArchived() && $item->condition !== $radio->condition?->value) {
+                    try {
+                        $this->radios->update($radio, ['condition' => $item->condition], $user->id);
+                    } catch (ValidationException $e) {
+                        $skipped[] = ['radio' => RadioBulk::label($radio), 'reason' => __('RadioManagement::opname.messages.skipped_condition', [
+                            'reason' => rtrim((string) collect($e->errors())->flatten()->first(), '.'),
+                        ])];
+                    }
+                }
+                $result = $this->bulk->verify(collect([$radio]), $today, $this->note($session, $item, $radio), $user->id);
+                $verified += $result['done'];
+                array_push($skipped, ...$result['skipped']);
             }
-            $result = $this->bulk->verify(collect([$radio]), $today, $this->note($session, $item, $radio), $user->id);
-            $verified += $result['done'];
-            array_push($skipped, ...$result['skipped']);
-        }
+
+            return [$verified, $skipped];
+        });
 
         $summary = [
             'verified' => $verified,
@@ -317,9 +329,9 @@ class RadioOpnames
     private static function holderText(RadioOpnameItem $item, ?Radio $radio): string
     {
         return match ($item->holder) {
-            'other' => 'Dipegang ' . $item->holder_name,
-            'none' => 'Tanpa pemegang',
-            default => implode(', ', array_filter([$radio?->user_name, $radio?->department?->name], 'filled')) ?: 'Sesuai register',
+            'other' => __('RadioManagement::opname.messages.held_by', ['name' => $item->holder_name]),
+            'none' => __('RadioManagement::opname.messages.no_holder'),
+            default => implode(', ', array_filter([$radio?->user_name, $radio?->department?->name], 'filled')) ?: __('RadioManagement::opname.page.as_register'),
         };
     }
 
@@ -340,7 +352,7 @@ class RadioOpnames
     {
         $session->refresh();
         if (! $session->isOpen()) {
-            $this->refuse('Sesi ini sudah dikirim ke register.');
+            $this->refuse(__('RadioManagement::opname.page.sent'));
         }
     }
 

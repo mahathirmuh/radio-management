@@ -12,7 +12,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Modules\RadioManagement\Http\Controllers\OpnameController;
 use Modules\RadioManagement\Models\Radio;
 use Modules\RadioManagement\Models\RadioDepartment;
 use Modules\RadioManagement\Models\RadioHistory;
@@ -285,7 +284,7 @@ class OpnameTest extends TestCase
         Cache::forget('radio-opname-tables');
         $this->actingAs($this->superAdmin());
 
-        $this->assertStringContainsString(e(OpnameController::NOT_READY), (string) $this->get(route('radio-management.opname.index'))->assertOk()->getContent());
+        $this->assertStringContainsString(e(__('RadioManagement::opname.not_ready')), (string) $this->get(route('radio-management.opname.index'))->assertOk()->getContent());
         $this->getJson(route('radio-management.opname.outlook', ['department_id' => $this->plant->id]))->assertStatus(503);
         $this->start()->assertStatus(503);
         $this->assertSame(0, RadioOpnameSession::openCount());

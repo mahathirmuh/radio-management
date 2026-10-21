@@ -5,7 +5,9 @@ namespace Modules\SharePointDocs\Services;
 use App\Models\Notification\UserNotification;
 use App\Models\UserManagement\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Language;
 use App\Services\Notifications\Notifier;
+use Closure;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -32,6 +34,10 @@ use Throwable;
  * the menu cannot say: nobody approves their own request, and a cell that holds a formula is not written over.
  * Every request that is made, approved or turned down is written to the audit trail from here, wherever it came from
  * (the pages, or the API).
+ *
+ * What is refused is said in the language of the request (SharePointDocs::edits). Why an approved change was not written is
+ * stored with the request in Indonesian, as everything the application writes down, and said in their own language to the
+ * approver (EditRequest::failureIn()) and in the notification to whoever asked.
  */
 class CellEdits
 {
@@ -92,36 +98,36 @@ class CellEdits
     public function submit(User $user, string $workbook, int $sheetIndex, int $line, int $column, string $value): EditRequest
     {
         if (! self::ready()) {
-            throw new EditException('Tabel pengajuan belum dibuat di database. Jalankan "php artisan migrate" dulu.', 503);
+            throw new EditException(__('SharePointDocs::edits.not_ready'), 503);
         }
         if (! self::enabled($workbook)) {
-            throw new EditException('Data workbook ini belum bisa diubah dari sini.', 403);
+            throw new EditException(__('SharePointDocs::edits.disabled'), 403);
         }
 
         $book = $this->workbooks->tables($workbook);
         if ($book['stale']) {
-            throw new EditException('SharePoint sedang tidak bisa dihubungi, jadi isi yang tampil mungkin sudah lama. Coba lagi beberapa saat lagi.', 503);
+            throw new EditException(__('SharePointDocs::edits.stale'), 503);
         }
         $sheet = $book['sheets'][$sheetIndex] ?? null;
         if ($sheet === null) {
-            throw new EditException('Sheet tidak ditemukan. Muat ulang halaman.');
+            throw new EditException(__('SharePointDocs::edits.no_sheet'));
         }
         $row = array_search($line, $sheet['lines'], true);
         if ($row === false) {
-            throw new EditException('Baris itu tidak ada lagi di sheet ini. Muat ulang halaman.');
+            throw new EditException(__('SharePointDocs::edits.no_row'));
         }
         if ($column < 0 || ! isset($sheet['positions'][$column])) {
-            throw new EditException('Kolom ini tidak bisa diubah.');
+            throw new EditException(__('SharePointDocs::edits.column_fixed'));
         }
         if (isset($sheet['formulas'][$row][$column])) {
-            throw new EditException('Sel ini berisi rumus. Ubah di Excel.');
+            throw new EditException(__('SharePointDocs::edits.formula'));
         }
 
         $oldText = (string) ($sheet['rows'][$row][$column] ?? '');
         $oldNumber = isset($sheet['numbers'][$row][$column]) ? (float) $sheet['numbers'][$row][$column] : null;
         [$kind, $text, $number] = self::interpret($value, $oldText, $oldNumber);
         if (self::same($kind, $text, $number, $oldText, $oldNumber)) {
-            throw new EditException('Nilai baru sama dengan nilai sekarang.');
+            throw new EditException(__('SharePointDocs::edits.same'));
         }
 
         $anchor = $this->anchor($workbook, $sheet);
@@ -132,7 +138,7 @@ class CellEdits
             ->whereIn('status', [EditRequest::PENDING, EditRequest::PROCESSING])
             ->first();
         if ($waiting !== null) {
-            throw new EditException("Sudah ada pengajuan untuk sel {$cell} yang menunggu keputusan (diajukan oleh {$waiting->requested_by_name}).", 409);
+            throw new EditException(__('SharePointDocs::edits.waiting', ['cell' => $cell, 'name' => $waiting->requested_by_name]), 409);
         }
 
         $made = EditRequest::create([
@@ -168,7 +174,7 @@ class CellEdits
     public function approve(EditRequest $request, User $approver): EditRequest
     {
         if ((int) $request->requested_by === (int) $approver->id) {
-            throw new EditException('Pengajuan Anda sendiri tidak bisa Anda setujui. Minta orang lain yang menyetujuinya.', 403);
+            throw new EditException(__('SharePointDocs::edits.own'), 403);
         }
 
         // One approver at a time: the first one to change the status is the one who writes.
@@ -186,7 +192,7 @@ class CellEdits
                 'updated_at' => now(),
             ]);
         if ($claimed !== 1) {
-            throw new EditException('Pengajuan ini sudah diputuskan atau sedang diproses orang lain. Muat ulang daftar.', 409);
+            throw new EditException(__('SharePointDocs::edits.taken'), 409);
         }
         $request->refresh();
 
@@ -199,14 +205,15 @@ class CellEdits
             [$status, $failure] = $this->write($request);
         } catch (Throwable $e) {
             Log::error('A change of a SharePoint workbook failed unexpectedly.', ['request' => $request->id, 'exception' => $e]);
-            [$status, $failure] = [EditRequest::FAILED, 'Terjadi kesalahan di aplikasi saat menulis ke SharePoint. Tidak ada yang ditulis; coba lagi, atau hubungi admin.'];
+            [$status, $failure] = [EditRequest::FAILED, self::words('app_error')];
         }
 
         $request->forceFill([
             'status' => $status,
-            'failure' => $failure === null ? null : mb_substr($failure, 0, 500),
+            'failure' => $failure === null ? null : mb_substr($failure(Language::DEFAULT), 0, 500),
             'applied_at' => $status === EditRequest::APPLIED ? now() : null,
         ])->save();
+        $request->failureWords = $failure;
         Log::info('A change of a SharePoint workbook was decided.', [
             'request' => $request->id, 'workbook' => $request->workbook, 'sheet' => $request->sheet, 'cell' => $request->cell,
             'status' => $status, 'requested_by' => $request->requested_by, 'decided_by' => $approver->id,
@@ -242,7 +249,7 @@ class CellEdits
                 'updated_at' => now(),
             ]);
         if ($rejected !== 1) {
-            throw new EditException('Pengajuan ini sudah diputuskan atau sedang diproses. Muat ulang daftar.', 409);
+            throw new EditException(__('SharePointDocs::edits.decided'), 409);
         }
         $request->refresh();
         app(AuditLogger::class)->log(AuditLogger::EDIT_REJECTED, $request, new: array_filter([
@@ -269,19 +276,19 @@ class CellEdits
     public function writeRow(User $user, string $workbook, int $sheetIndex, int $line, array $values): array
     {
         if (! self::mayWriteDirectly($user, $workbook)) {
-            throw new EditException('Anda tidak berwenang mengubah workbook ini langsung. Ajukan perubahan per sel.', 403);
+            throw new EditException(__('SharePointDocs::edits.not_direct'), 403);
         }
         $book = $this->workbooks->tables($workbook);
         if ($book['stale']) {
-            throw new EditException('SharePoint sedang tidak bisa dihubungi, jadi isi yang tampil mungkin sudah lama. Coba lagi beberapa saat lagi.', 503);
+            throw new EditException(__('SharePointDocs::edits.stale'), 503);
         }
         $sheet = $book['sheets'][$sheetIndex] ?? null;
         if ($sheet === null) {
-            throw new EditException('Sheet tidak ditemukan. Muat ulang halaman.');
+            throw new EditException(__('SharePointDocs::edits.no_sheet'));
         }
         $row = array_search($line, $sheet['lines'], true);
         if ($row === false) {
-            throw new EditException('Baris itu tidak ada lagi di sheet ini. Muat ulang halaman.');
+            throw new EditException(__('SharePointDocs::edits.no_row'));
         }
         $anchor = $this->anchor($workbook, $sheet);
 
@@ -290,20 +297,20 @@ class CellEdits
         foreach ($values as $column => $value) {
             $title = (string) ($sheet['columns'][$column] ?? '');
             if ($column < 0 || ! isset($sheet['positions'][$column])) {
-                throw new EditException('Kolom "' . $title . '" tidak bisa diubah. Muat ulang halaman.');
+                throw new EditException(__('SharePointDocs::edits.column_fixed_named', ['column' => $title]));
             }
             $oldText = (string) ($sheet['rows'][$row][$column] ?? '');
             $oldNumber = isset($sheet['numbers'][$row][$column]) ? (float) $sheet['numbers'][$row][$column] : null;
             try {
                 [$kind, $text, $number] = self::interpret($value, $oldText, $oldNumber);
             } catch (EditException $e) {
-                throw new EditException("Kolom \"{$title}\": {$e->getMessage()}", $e->status);
+                throw new EditException(__('SharePointDocs::edits.in_column', ['column' => $title, 'message' => $e->getMessage()]), $e->status);
             }
             if (self::same($kind, $text, $number, $oldText, $oldNumber)) {
                 continue;
             }
             if (isset($sheet['formulas'][$row][$column])) {
-                throw new EditException("Kolom \"{$title}\" berisi rumus. Ubah di Excel.");
+                throw new EditException(__('SharePointDocs::edits.column_formula', ['column' => $title]));
             }
             $requests[] = new EditRequest([
                 'workbook' => $workbook,
@@ -321,7 +328,7 @@ class CellEdits
             ]);
         }
         if ($requests === []) {
-            throw new EditException('Tidak ada isi yang berubah.');
+            throw new EditException(__('SharePointDocs::edits.nothing_changed'));
         }
 
         // A cell that waits for a decision is decided first, not written over by who could decide it.
@@ -329,7 +336,7 @@ class CellEdits
             ->whereIn('cell', array_map(fn (EditRequest $one) => $one->cell, $requests))
             ->whereIn('status', [EditRequest::PENDING, EditRequest::PROCESSING])->first();
         if ($waiting !== null) {
-            throw new EditException("Sel {$waiting->cell} punya pengajuan yang menunggu keputusan (diajukan oleh {$waiting->requested_by_name}). Putuskan dulu di halaman Persetujuan Edit.", 409);
+            throw new EditException(__('SharePointDocs::edits.cell_waiting', ['cell' => $waiting->cell, 'name' => $waiting->requested_by_name]), 409);
         }
 
         if (function_exists('set_time_limit')) {
@@ -350,10 +357,10 @@ class CellEdits
                 continue;
             }
             if ($check['verdict'] === EditRequest::CONFLICT) {
-                throw new EditException("Baris {$line} sudah berubah di SharePoint sejak halaman dimuat (sel {$request->cell}). Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.", 409);
+                throw new EditException(__('SharePointDocs::edits.row_changed', ['line' => $line, 'cell' => $request->cell]), 409);
             }
             if ($check['verdict'] !== 'write') {
-                throw new EditException((string) $check['message'], 422);
+                throw new EditException($check['message'](app()->getLocale()), 422);
             }
             $write[] = $request;
         }
@@ -375,11 +382,11 @@ class CellEdits
         } catch (WorkbookNotSaved $e) {
             Log::warning('The changed workbook could not be saved on this server.', ['workbook' => $workbook, 'detail' => $e->getMessage()]);
 
-            throw new EditException('Workbook yang sudah diubah tidak bisa disimpan sementara di server aplikasi. Tidak ada yang ditulis ke SharePoint; coba lagi.', 503);
+            throw new EditException(__('SharePointDocs::edits.row_not_kept'), 503);
         } catch (RuntimeException $e) {
             Log::warning('A row could not be written in the workbook.', ['workbook' => $workbook, 'detail' => $e->getMessage()]);
 
-            throw new EditException('Baris ini tidak bisa ditulis ke workbook: bentuk sheet atau sel di file ini belum didukung. Ubah di Excel.', 422);
+            throw new EditException(__('SharePointDocs::edits.row_unsupported'), 422);
         }
 
         try {
@@ -390,7 +397,7 @@ class CellEdits
             // second time (GraphClient::upload). The file says which.
             if (! ($e->reason === GraphException::CHANGED && $this->hasAll($workbook, $write))) {
                 throw new EditException(match ($e->reason) {
-                    GraphException::CHANGED => 'Workbook disimpan orang lain di SharePoint sejak dibaca. Tidak ada yang ditulis; muat ulang halaman, lalu ulangi.',
+                    GraphException::CHANGED => __('SharePointDocs::edits.row_saved_meanwhile'),
                     default => $e->writeMessage(),
                 }, match ($e->reason) {
                     GraphException::CHANGED => 412,
@@ -441,13 +448,19 @@ class CellEdits
         return true;
     }
 
-    /** Tells whoever may approve (Update on "Persetujuan Edit") that a request waits; never the one who made it. */
+    /** Tells whoever may approve (Update on "Persetujuan Edit") that a request waits, each in their language; never the one who made it. */
     private function tellApprovers(EditRequest $made, User $maker): void
     {
         try {
             $approvers = Notifier::whoMay('documents.edit-approvals.approve', 'Update')->reject(fn (User $user) => (int) $user->id === (int) $maker->id);
-            app(Notifier::class)->send($approvers, UserNotification::EDIT_REQUESTED, 'Pengajuan perubahan menunggu persetujuan',
-                "{$maker->name} mengajukan {$made->placeShown()}: " . self::quoted($made->oldShown()) . ' → ' . self::quoted($made->newShown()) . '.',
+            app(Notifier::class)->send($approvers, UserNotification::EDIT_REQUESTED,
+                fn (string $locale) => __('SharePointDocs::edits.notify.requested_title', [], $locale),
+                fn (string $locale) => __('SharePointDocs::edits.notify.requested_body', [
+                    'name' => $maker->name,
+                    'place' => $made->placeShown(),
+                    'old' => self::quoted($made->oldShown($locale)),
+                    'new' => self::quoted($made->newShown($locale)),
+                ], $locale),
                 route('documents.edit-approvals.index', ['status' => EditRequest::PENDING, 'search' => $made->searchTerms()], false));
         } catch (Throwable $e) {
             Log::warning('The approvers of a change could not be told.', ['request' => $made->id, 'error' => $e->getMessage()]);
@@ -455,8 +468,8 @@ class CellEdits
     }
 
     /**
-     * Tells whoever asked what became of the request: applied, rejected, a conflict, or failed (which can be tried again).
-     * Nothing when they took it back themselves.
+     * Tells whoever asked what became of the request, in their language: applied, rejected, a conflict, or failed (which can
+     * be tried again). Nothing when they took it back themselves.
      */
     private function tellRequester(EditRequest $request, User $decider): void
     {
@@ -466,13 +479,16 @@ class CellEdits
         try {
             $maker = User::query()->find($request->requested_by);
             $place = $request->placeShown();
+            $failure = fn (string $locale) => __('SharePointDocs::edits.notify.failure_body', ['place' => $place, 'failure' => (string) $request->failureIn($locale)], $locale);
+            // The title by its key, the text in the language of whoever asked.
             [$title, $body] = match ($request->status) {
-                EditRequest::APPLIED => ['Perubahan Anda sudah diterapkan',
-                    "{$place}: " . self::quoted($request->newShown()) . " sudah ditulis ke workbook (disetujui {$decider->name})."],
-                EditRequest::REJECTED => ['Pengajuan Anda ditolak',
-                    "{$place}: ditolak oleh {$decider->name}" . (filled($request->decision_note) ? ': ' . $request->decision_note : '') . '.'],
-                EditRequest::CONFLICT => ['Perubahan Anda tidak diterapkan', "{$place}: {$request->failure}"],
-                EditRequest::FAILED => ['Perubahan Anda belum bisa diterapkan', "{$place}: {$request->failure}"],
+                EditRequest::APPLIED => ['applied_title', fn (string $locale) => __('SharePointDocs::edits.notify.applied_body',
+                    ['place' => $place, 'new' => self::quoted($request->newShown($locale)), 'name' => $decider->name], $locale)],
+                EditRequest::REJECTED => ['rejected_title', fn (string $locale) => filled($request->decision_note)
+                    ? __('SharePointDocs::edits.notify.rejected_body_note', ['place' => $place, 'name' => $decider->name, 'note' => $request->decision_note], $locale)
+                    : __('SharePointDocs::edits.notify.rejected_body', ['place' => $place, 'name' => $decider->name], $locale)],
+                EditRequest::CONFLICT => ['conflict_title', $failure],
+                EditRequest::FAILED => ['failed_title', $failure],
                 default => [null, null],
             };
             if ($maker === null || $title === null) {
@@ -486,7 +502,7 @@ class CellEdits
                     ['sheet' => $request->sheet, 'line' => $request->line], false),
                 default => null,
             };
-            app(Notifier::class)->send($maker, UserNotification::EDIT_DECIDED, $title, $body, $url);
+            app(Notifier::class)->send($maker, UserNotification::EDIT_DECIDED, fn (string $locale) => __("SharePointDocs::edits.notify.{$title}", [], $locale), $body, $url);
         } catch (Throwable $e) {
             Log::warning('Whoever asked for a change could not be told.', ['request' => $request->id, 'error' => $e->getMessage()]);
         }
@@ -499,9 +515,20 @@ class CellEdits
     }
 
     /**
+     * Words of SharePointDocs::edits in any language: what is stored with a request is Indonesian (Language::DEFAULT), what
+     * is said to a person is in theirs.
+     *
+     * @return Closure(string): string
+     */
+    private static function words(string $key, array $replace = []): Closure
+    {
+        return fn (string $locale) => __('SharePointDocs::edits.' . $key, $replace, $locale);
+    }
+
+    /**
      * The workbook as it is now, checked against what the request saw, and written.
      *
-     * @return array{0: string, 1: ?string} the final status, and the words for it when it is not "applied"
+     * @return array{0: string, 1: (Closure(string): string)|null} the final status, and the words for it when it is not "applied"
      */
     private function write(EditRequest $request): array
     {
@@ -510,14 +537,14 @@ class CellEdits
         } catch (GraphException $e) {
             Log::warning('The workbook could not be read to write a change.', ['request' => $request->id, 'reason' => $e->reason, 'detail' => $e->getMessage()]);
 
-            return [EditRequest::FAILED, $e->writeMessage()];
+            return [EditRequest::FAILED, fn (string $locale) => $e->writeMessage($locale)];
         }
 
         $check = $this->check($source['bytes'], $request);
         if ($check['verdict'] === 'applied') {
             $this->workbooks->forget($request->workbook);
 
-            return [EditRequest::APPLIED, 'Sel ini sudah berisi nilai itu di SharePoint, jadi tidak ada yang ditulis.'];
+            return [EditRequest::APPLIED, self::words('already')];
         }
         if ($check['verdict'] !== 'write') {
             return [$check['verdict'], $check['message']];
@@ -537,11 +564,11 @@ class CellEdits
         } catch (WorkbookNotSaved $e) {
             Log::warning('The changed workbook could not be saved on this server.', ['request' => $request->id, 'detail' => $e->getMessage()]);
 
-            return [EditRequest::FAILED, 'Workbook yang sudah diubah tidak bisa disimpan sementara di server aplikasi. Tidak ada yang ditulis ke SharePoint; coba setujui lagi.'];
+            return [EditRequest::FAILED, self::words('not_kept')];
         } catch (RuntimeException $e) {
             Log::warning('A change could not be made in the workbook.', ['request' => $request->id, 'detail' => $e->getMessage()]);
 
-            return [EditRequest::FAILED, 'Sel ini tidak bisa ditulis ke workbook: bentuk sheet atau sel di file ini belum didukung.'];
+            return [EditRequest::FAILED, self::words('cell_unsupported')];
         }
 
         try {
@@ -555,68 +582,70 @@ class CellEdits
                 return $this->afterRefusedSave($request, $e);
             }
 
-            return [EditRequest::FAILED, $e->writeMessage()];
+            return [EditRequest::FAILED, fn (string $locale) => $e->writeMessage($locale)];
         }
 
         return [EditRequest::APPLIED, null];
     }
 
-    /** @return array{0: string, 1: ?string} */
+    /** @return array{0: string, 1: (Closure(string): string)|null} */
     private function afterRefusedSave(EditRequest $request, GraphException $refusal): array
     {
+        $refused = fn (string $locale) => $refusal->writeMessage($locale);
         try {
             $now = $this->workbooks->download($request->workbook);
         } catch (GraphException) {
-            return [EditRequest::FAILED, $refusal->writeMessage()];
+            return [EditRequest::FAILED, $refused];
         }
         $check = $this->check($now['bytes'], $request);
         $this->workbooks->forget($request->workbook);
 
         return match ($check['verdict']) {
             'applied' => [EditRequest::APPLIED, null],
-            'write' => [EditRequest::CONFLICT, $refusal->writeMessage()],
+            'write' => [EditRequest::CONFLICT, $refused],
             default => [$check['verdict'], $check['message']],
         };
     }
 
     /**
      * Whether the cell can be written: 'write' (it is as it was), 'applied' (it already holds the new value), or the
-     * status that says why not, with the words.
+     * status that says why not, with the words (in any language: see words()).
      *
-     * @return array{verdict: string, message: ?string}
+     * @return array{verdict: string, message: (Closure(string): string)|null}
      */
     private function check(string $bytes, EditRequest $request): array
     {
-        $conflict = fn (string $why) => ['verdict' => EditRequest::CONFLICT, 'message' => $why];
+        $conflict = fn (string $why, array $replace = []) => ['verdict' => EditRequest::CONFLICT, 'message' => self::words($why, $replace)];
+        $failed = fn (string $why, array $replace = []) => ['verdict' => EditRequest::FAILED, 'message' => self::words($why, $replace)];
 
         try {
             $cell = $this->patcher->read($bytes, $request->sheet, $request->cell);
             $anchor = $request->anchor_cell === null ? null : $this->patcher->read($bytes, $request->sheet, $request->anchor_cell);
         } catch (SheetNotFound $e) {
-            return $conflict("Sheet \"{$request->sheet}\" tidak ditemukan lagi di workbook (mungkin diganti namanya). Tidak ada yang ditulis.");
+            return $conflict('sheet_gone', ['sheet' => $request->sheet]);
         } catch (RuntimeException $e) {
             Log::warning('The cell of a change could not be read.', ['request' => $request->id, 'detail' => $e->getMessage()]);
 
-            return ['verdict' => EditRequest::FAILED, 'message' => 'Isi workbook di SharePoint tidak bisa dibaca sebagai workbook Excel. Tidak ada yang ditulis; coba lagi, atau hubungi admin.'];
+            return $failed('unreadable');
         }
 
         if ($cell['formula']) {
-            return $conflict("Sel {$request->cell} sekarang berisi rumus, dan tidak ditimpa. Tidak ada yang ditulis.");
+            return $conflict('now_formula', ['cell' => $request->cell]);
         }
         if (! $cell['supported']) {
-            return ['verdict' => EditRequest::FAILED, 'message' => "Sel {$request->cell} bukan jenis sel yang bisa ditulis dari sini. Ubah di Excel."];
+            return $failed('cell_kind', ['cell' => $request->cell]);
         }
         if ($anchor !== null && ! self::matchesAnchor($anchor, (string) $request->anchor_value)) {
-            return $conflict("Baris {$request->line} sudah berubah atau bergeser di SharePoint sejak diajukan (kolom pengenalnya tidak sama lagi). Tidak ada yang ditulis; ajukan lagi.");
+            return $conflict('row_moved', ['line' => $request->line]);
         }
         if (self::matchesNew($cell, $request)) {
             return ['verdict' => 'applied', 'message' => null];
         }
         if (! self::matches($cell, (string) $request->old_text, $request->old_number)) {
-            return $conflict("Isi sel {$request->cell} sudah berubah di SharePoint sejak diajukan (sekarang: \"" . mb_strimwidth((string) $cell['raw'], 0, 80, '…') . '"). Tidak ada yang ditulis; ajukan lagi.');
+            return $conflict('cell_changed', ['cell' => $request->cell, 'now' => mb_strimwidth((string) $cell['raw'], 0, 80, '…')]);
         }
         if ($cell['date1904'] && ($request->old_number !== null || $request->new_kind === EditRequest::KIND_NUMBER)) {
-            return ['verdict' => EditRequest::FAILED, 'message' => 'Workbook ini menghitung tanggal dari tahun 1904; angka dan tanggal belum bisa ditulis dari sini. Ubah di Excel.'];
+            return $failed('date1904');
         }
 
         return ['verdict' => 'write', 'message' => null];
@@ -658,10 +687,10 @@ class CellEdits
         // One line: a line break in a cell of a register is a mistake of whoever typed it, and the table shows one line.
         $text = trim((string) preg_replace('/\s+/u', ' ', $input));
         if (! mb_check_encoding($text, 'UTF-8') || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $text) === 1) {
-            throw new EditException('Teks mengandung karakter yang tidak bisa disimpan di Excel.');
+            throw new EditException(__('SharePointDocs::edits.bad_characters'));
         }
         if (mb_strlen($text) > self::MAX_LENGTH) {
-            throw new EditException('Teks terlalu panjang (paling banyak ' . self::MAX_LENGTH . ' karakter).');
+            throw new EditException(__('SharePointDocs::edits.too_long', ['max' => self::MAX_LENGTH]));
         }
         if ($text === '') {
             return [EditRequest::KIND_EMPTY, '', null];
@@ -675,7 +704,7 @@ class CellEdits
             }
             $number = self::number($text);
             if ($number === null) {
-                throw new EditException('Kolom ini berisi angka: isi dengan angka saja, paling banyak 15 digit (misalnya 1500 atau 1.500,50), atau kosongkan.');
+                throw new EditException(__('SharePointDocs::edits.number'));
             }
 
             return [EditRequest::KIND_NUMBER, self::shownNumber($number), $number];
@@ -694,7 +723,7 @@ class CellEdits
     /** @return array{0: float, 1: string} the day number Excel has for it, and the date as it is shown */
     private static function date(string $text, string $oldText): array
     {
-        $wrong = new EditException('Kolom ini berisi tanggal: isi dengan format hh-bb-tttt (misalnya 15-03-2023), atau hh-bb-tttt jj:mm bila ada jamnya.');
+        $wrong = new EditException(__('SharePointDocs::edits.date'));
 
         if (preg_match('/^(\d{1,2}):(\d{2})$/', $text, $time) === 1 && preg_match('/^\d{2}:\d{2}$/', $oldText) === 1) {
             if ((int) $time[1] > 23 || (int) $time[2] > 59) {
