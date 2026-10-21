@@ -62,9 +62,10 @@ services:
       - ./certs:/var/www/html/certs:ro
 
     healthcheck:
-      # The login page: Apache, PHP and the application answer. (A GET
-      # writes nothing to the database.)
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/login"]
+      # /up: Apache, PHP and the application answer, nothing else is asked
+      # (no database, no session). A restart does not bring a database
+      # back; whether the database and the rest answer is /api/v1/health.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/up"]
       interval: 60s
       timeout: 10s
       retries: 3

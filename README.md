@@ -193,6 +193,8 @@ docker compose down                     # hentikan (data storage tetap)
   Active Directory, dan Microsoft: semuanya harus terjangkau dari host Docker.
 - **Migrasi tidak pernah jalan otomatis** saat container start (databasenya dipakai bersama); jalankan sendiri dengan
   perintah di atas.
+- **Healthcheck** container memanggil `/up` setiap menit (aplikasi menjawab, tanpa bertanya ke database). Keadaan
+  database dan layanan lain dilihat lewat `GET /api/v1/health` (lihat [Health check](#health-check)).
 - **Port: 26102** (format tahun, bulan, urutan aplikasi: 26 10 2 = 2026, Oktober, aplikasi kedua bulan itu;
   trilingual-docon 26091). Bisa diganti lewat `DOCKER_PORT` di `.env`; `SERVER_PORT` (8020) tetap untuk
   `php artisan serve`, jadi keduanya bisa jalan bersamaan. Login Microsoft kembali ke `MS_SSO_REDIRECT_URI`: alamat
@@ -556,6 +558,7 @@ Versi PDF untuk dibagikan ke pengembang: [docs/API-Documentation-MTI-Radio-Manag
 
 | Endpoint | Isi | Menu (hak) |
 | --- | --- | --- |
+| `GET health` | aplikasi jalan atau tidak, dan versinya; dengan token: tiap layanan yang dipakainya (lihat [Health check](#health-check)) | — (tanpa token pun bisa) |
 | `GET me`, `GET references` | token ini milik siapa; daftar pilihan (Posisi, Kondisi, alasan arsip, jenis riwayat, ...) | — |
 | `GET dashboard` | angka dashboard | Dashboard |
 | `GET/POST radios`, `GET/PUT/DELETE radios/{id}` | register radio (filter sama dengan halaman) | Register Radio |
@@ -608,7 +611,7 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
 | `422` | ditolak aturan, `errors` per field (pesan dalam English; `Accept-Language: id` untuk Bahasa Indonesia, lihat [Bahasa](#bahasa)) |
 | `429` | terlalu banyak request: 60/menit per token; import dan export Excel 10/menit; yang dibaca dari SharePoint 30/menit, menyetujui perubahan sel 10/menit (120/menit per alamat sebelum token diperiksa) |
 | `502`, `504` | SharePoint menjawab salah atau terlalu lambat (ada `reason`) |
-| `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`) |
+| `503` | migrasi API (atau Audit Log) belum dijalankan, atau SharePoint tidak bisa dihubungi (`reason: unavailable`); di `GET health`: database atau storage tidak bisa dipakai (`status: down`) |
 
 - Daftar: `?page=` dan `?per_page=` (maks. 100), dengan `meta` dan `links`. Filter bernilai banyak: `type[]=1&type[]=2`
   atau `type=1,2`.
@@ -632,6 +635,19 @@ penyimpanan pada satu waktu; setiap perubahan masuk Riwayat Radio (atas nama pem
   ditulis di `CORS_ALLOWED_ORIGINS`. Aplikasi yang memanggil dari server-nya tidak perlu apa-apa.
 - Rute `/api/approval-management/...` bawaan template tetap ada (halaman Approval Management yang disembunyikan memakai
   namanya), tapi tidak termasuk API ini: tidak menerima token dan tidak didokumentasikan.
+- **Health check**<a id="health-check"></a> untuk pemantauan (Uptime Kuma, Zabbix, Docker):
+  - **`GET /up`**: aplikasi menjawab `{"status":"up"}`. Tidak bertanya ke database, tanpa sesi, tanpa token: untuk
+    healthcheck container, yang me-restart container bila ini gagal (restart tidak menghidupkan database).
+  - **`GET /api/v1/health`** tanpa token: `status` (`ok`, atau `down` dengan HTTP 503 bila database atau storage tidak
+    bisa dipakai), `version`, dan `time`.
+  - Dengan token API (token apa pun, tanpa hak menu tertentu) ada juga `checks`: `database`, `storage`, `cache`,
+    `migrations` (jumlah dan nama migrasi yang belum dijalankan), `snipe_it` (dengan versinya), `microsoft` (aplikasi bisa
+    masuk ke Microsoft: login Microsoft dan SharePoint), `ldap` (Active Directory), `hr_database`. Tiap cek punya `status`
+    (`ok`, `warn`, `fail`, atau `skipped` bila tidak diatur di sini), `ms`, dan bila tidak ok `reason` dan `message`
+    (dalam bahasa klien). `status` keseluruhan menjadi `degraded` (HTTP 200) bila ada yang `fail` atau `warn` selain
+    database dan storage.
+  - Jawabannya tidak pernah menyebut nama server, alamat, atau pesan error dari server (semua itu ada di log aplikasi).
+    Batasnya sama dengan API lain (120/menit per alamat). Semua cek hanya membaca.
 - Butuh empat migrasi: `2026_10_17_120000_create_personal_access_tokens_table`,
   `2026_10_17_130000_add_api_client_to_users_table`, `2026_10_17_140000_add_via_to_audit_logs_table`,
   `2026_10_17_150000_add_api_tokens_menu` (menu di bawah Audit Log). Sebelum dijalankan, API menjawab 503 dan halaman

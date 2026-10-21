@@ -54,6 +54,17 @@ class GraphClient
     }
 
     /**
+     * Signs in as the application (a token from Microsoft) and reads nothing: whether Microsoft can be reached and takes
+     * the credentials (the health check of the API). Within within(), like any request.
+     *
+     * @throws GraphException
+     */
+    public function signIn(): void
+    {
+        $this->token();
+    }
+
+    /**
      * Runs $reading, which may ask Microsoft any number of times (get(), all(), locate(),
      * fetch()), in at most $seconds altogether: the sign-in and every request share that time.
      * When it is used up nothing more is asked and the reading fails as "unavailable" (a file

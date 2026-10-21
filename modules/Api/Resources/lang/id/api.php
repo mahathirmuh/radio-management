@@ -20,4 +20,18 @@ return [
     'audit_not_ready' => 'Audit Log belum aktif: migrasinya belum dijalankan di database ini.',
     'too_many' => 'Terlalu banyak permintaan.',
     'not_found' => 'Tidak ditemukan.',
+
+    // GET /api/v1/health: why a check is not ok (its "reason" => its "message").
+    'health' => [
+        'not_configured' => 'Belum diatur di aplikasi ini.',
+        'unreachable' => 'Tidak bisa dihubungi.',
+        'unavailable' => 'Tidak bisa ditanya: tidak terhubung, atau kredensialnya ditolak.',
+        'refused' => 'Kredensialnya ditolak.',
+        'failed' => 'Menjawab dengan kesalahan.',
+        'not_found' => 'Tidak ditemukan.',
+        'not_writable' => 'Tidak bisa ditulisi.',
+        'no_table' => 'Tabel migrasi tidak ada.',
+        'pending' => '{1} :count migrasi belum dijalankan di database ini.|[2,*] :count migrasi belum dijalankan di database ini.',
+        'database' => 'Tidak dicek: database tidak menjawab.',
+    ],
 ];

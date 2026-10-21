@@ -8,6 +8,25 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.18.0] - 2026-10-21
+
+### Ditambahkan
+
+- Health check:
+  - **`GET /up`**: aplikasi menjawab, tanpa database, sesi, atau token. Untuk healthcheck container dan pemantau uptime.
+  - **`GET /api/v1/health`** tanpa token: status aplikasi (database dan storage) dan versinya, HTTP 503 bila tidak
+    jalan.
+  - **`GET /api/v1/health`** dengan token API: detail per layanan, yaitu database, storage, cache, migrasi yang belum
+    dijalankan (dengan namanya), Snipe-IT, Microsoft, Active Directory, dan database HR. Tiap cek berstatus `ok`,
+    `warn`, `fail`, atau `skipped`, disertai waktu dan alasannya. Status keseluruhan `degraded` bila layanan pendukung
+    bermasalah. Nama server dan pesan error dari server tidak pernah ditampilkan.
+
+### Diubah
+
+- Docker: healthcheck container kini memanggil `/up`, bukan lagi halaman login.
+
+**Deploy:** tanpa migrasi, tanpa setting baru. `git pull && docker compose up -d --build` memakai healthcheck yang baru.
+
 ## [1.17.0] - 2026-10-21
 
 ### Ditambahkan
@@ -924,6 +943,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.18.0]: https://github.com/mahathirmuh/radio-management/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/mahathirmuh/radio-management/compare/v1.16.0...v1.17.0
 [1.16.0]: https://github.com/mahathirmuh/radio-management/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/mahathirmuh/radio-management/compare/v1.14.5...v1.15.0

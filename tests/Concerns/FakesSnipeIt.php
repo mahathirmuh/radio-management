@@ -41,6 +41,10 @@ trait FakesSnipeIt
         $this->snipeFaked = true;
 
         Http::fake(function (Request $request) {
+            // Another server (Microsoft) is another fake's: no answer here.
+            if (! str_starts_with($request->url(), 'http://snipeit.test/')) {
+                return null;
+            }
             $url = parse_url($request->url());
             parse_str($url['query'] ?? '', $query);
             $path = Str::after($url['path'] ?? '', '/api/v1/');

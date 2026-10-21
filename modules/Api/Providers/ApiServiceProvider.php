@@ -38,6 +38,7 @@ class ApiServiceProvider extends ServiceProvider
         Sanctum::usePersonalAccessTokenModel(ApiToken::class);
 
         $this->loadRoutesFrom(base_path('modules/Api/Routes/api/v1.php'));
+        $this->loadRoutesFrom(base_path('modules/Api/Routes/health.php'));
         $this->loadRoutesFrom(base_path('modules/Api/Routes/web/api-tokens.php'));
         $this->loadViewsFrom(base_path('modules/Api/Resources/views'), 'Api');
         $this->loadTranslationsFrom(base_path('modules/Api/Resources/lang'), 'Api');
