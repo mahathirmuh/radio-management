@@ -8,6 +8,17 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.1] - 2026-10-21
+
+### Diperbaiki
+
+- Tautan yang tampil sebagai kartu, baris, badge atau tombol ikon bergaris bawah saat kursor diarahkan (aturan `a:hover`
+  dari Tabler): kartu angka di Dashboard, baris notifikasi dan tautan bawah di lonceng, badge versi di footer, tombol
+  ikon di Register Radio dan Stock Opname, dan tombol Microsoft di halaman login. Tautan berupa teks tetap bergaris
+  bawah.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.0] - 2026-10-21
 
 Tampilan baru (design refresh) untuk semua halaman, dan kemampuan baru: Perlu Perhatian, Servis & Perbaikan, Stock
@@ -500,6 +511,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.1]: https://github.com/mahathirmuh/radio-management/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/mahathirmuh/radio-management/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/mahathirmuh/radio-management/compare/v1.8.4...v1.9.0
 [1.8.4]: https://github.com/mahathirmuh/radio-management/compare/v1.8.3...v1.8.4

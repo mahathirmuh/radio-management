@@ -154,6 +154,7 @@
             background: #ecf5fc;
             box-shadow: inset 0 0 0 1px #4299e1;
             color: var(--rm-gray-900);
+            text-decoration: none;
         }
 
         .rm-ms-button:active {

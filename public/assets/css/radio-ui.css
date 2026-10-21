@@ -730,6 +730,19 @@
     text-decoration: none;
 }
 
+/* A link drawn as a tile, a row, a badge or an icon button (not words in a sentence) gets no underline when pointed at:
+   Tabler underlines every a:hover. */
+.rm-kpi-link:hover,
+.rm-notif-item:hover,
+.rm-notif-item:focus-visible,
+.rm-notif-foot:hover,
+.rm-footer .rm-version:hover,
+.rm-phone-icon:hover,
+.rm-act:hover,
+.rm-act:focus {
+    text-decoration: none;
+}
+
 /* 4. Recipes --------------------------------------------------------------------------------------------------------- */
 
 /* Page title block: above the content card. */
