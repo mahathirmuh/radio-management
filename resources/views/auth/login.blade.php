@@ -1,27 +1,41 @@
 @extends('auth.main.app')
 @push('style')
     <style>
-        /* The card on the darkened photo (the photo is the body's, auth.components.style): the photos at the left, the
-           sign-in at the right, as large as the card was before the design refresh (538.88 + 382.77 wide, 687.98 high);
-           a narrower window shrinks both in that proportion. */
+        /* The card on the darkened photo (the photo is the body's, auth.components.style): the photos at the left (7/12),
+           the sign-in at the right (5/12), as large as before the design refresh, when the Bootstrap grid sized it (a
+           .col-xl-10 of the .container, with a border of 1px): 1070.66 wide from a window of 1400, 920.66 from 1200,
+           928 below that; 687.98 high inside the border. */
         .rm-login {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 40px;
+            padding: 40px 16px;
         }
 
         .rm-login-card {
             display: grid;
-            grid-template-columns: minmax(0, 538.88fr) minmax(0, 382.77fr);
-            width: 921.65px;
+            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+            width: 1070.66px;
             max-width: 100%;
-            min-height: 687.98px;
+            min-height: 689.98px;
             overflow: hidden;
+            border: 1px solid var(--tblr-border-color-translucent, rgba(4, 32, 69, .14));
             border-radius: 20px;
             background: #fff;
             box-shadow: 0 4px 20px rgba(0, 0, 0, .55);
+        }
+
+        @media (max-width: 1399.98px) {
+            .rm-login-card {
+                width: 920.66px;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .rm-login-card {
+                width: 928px;
+            }
         }
 
         /* Four photos that fade one into the next (24 s for all four). */
@@ -92,8 +106,8 @@
         .rm-login-title {
             margin: 0;
             color: var(--rm-gray-600);
-            font-size: 28px;
-            line-height: 36px;
+            font-size: 26px;
+            line-height: 34px;
             font-weight: 600;
             text-align: center;
         }
