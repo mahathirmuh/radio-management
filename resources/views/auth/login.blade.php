@@ -22,7 +22,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, .55);
         }
 
-        /* Four photos that fade one into the next (24 s for all four), and a bar for each under them. */
+        /* Four photos that fade one into the next (24 s for all four). */
         .rm-login-photos {
             position: relative;
             min-height: 760px;
@@ -36,33 +36,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0;
-            animation: rm-xfade 24s linear infinite;
-        }
-
-        .rm-login-bars {
-            position: absolute;
-            right: 0;
-            bottom: 20px;
-            left: 0;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .rm-login-bars > span {
-            position: relative;
-            width: 44px;
-            height: 6px;
-            overflow: hidden;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, .45);
-        }
-
-        .rm-login-bars > span > span {
-            position: absolute;
-            inset: 0;
-            background: #fff;
             opacity: 0;
             animation: rm-xfade 24s linear infinite;
         }
@@ -331,12 +304,6 @@
                 <img data-xf="1" src="{{ asset('assets/img/bg-auth/mdka-bg-1.jpg') }}" alt="">
                 <img data-xf="2" src="{{ asset('assets/img/bg-auth/mdka-bg-2.jpg') }}" alt="">
                 <img data-xf="3" src="{{ asset('assets/img/bg-auth/mdka-bg-3.jpg') }}" alt="">
-                <div class="rm-login-bars">
-                    <span><span data-xf="0"></span></span>
-                    <span><span data-xf="1"></span></span>
-                    <span><span data-xf="2"></span></span>
-                    <span><span data-xf="3"></span></span>
-                </div>
             </div>
 
             <div class="rm-login-side">
