@@ -103,9 +103,10 @@
             gap: 16px;
         }
 
+        /* The colour of the title as before the design refresh (Tabler's text-secondary). */
         .rm-login-title {
             margin: 0;
-            color: var(--rm-gray-600);
+            color: var(--tblr-secondary);
             font-size: 26px;
             line-height: 34px;
             font-weight: 600;
