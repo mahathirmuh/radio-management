@@ -295,6 +295,7 @@
 @endpush
 
 @section('page-title', 'Dashboard')
+@section('heading', __('Dashboard::dashboard.title'))
 @section('content')
     @php
         // The colour of each kind of history entry (as on Riwayat Radio).
@@ -312,13 +313,6 @@
         };
     @endphp
     <div class="viz-root">
-        {{-- Title only: the register is in the sidebar, and the figures below lead to it. --}}
-        <div class="rm-head">
-            <div>
-                <h1 class="rm-title">{{ __('Dashboard::dashboard.title') }}</h1>
-            </div>
-        </div>
-
         @if ($totalActive === 0 && $totalArchived === 0)
             <div class="rm-card">
                 <div class="rm-empty-state">
@@ -355,7 +349,7 @@
                 </div>
 
                 <div class="rm-dash-split">
-                    <div class="d-flex flex-column gap-3 min-w-0">
+                    <div class="rm-dash-stack d-flex flex-column gap-3 min-w-0">
                     {{-- Kondisi --}}
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">

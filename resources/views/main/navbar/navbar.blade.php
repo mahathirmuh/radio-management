@@ -2,10 +2,6 @@
 @php
     $me = Auth::user();
     $myRoles = $me->roles->pluck('name')->filter()->implode(', ');
-    // The path to this page: what the page calls itself (@section('crumb'), else its title) comes last when it is deeper
-    // than its entry of the sidebar. (A section is kept escaped.)
-    $pageName = html_entity_decode(trim($__env->yieldContent('crumb') ?: $__env->yieldContent('page-title')), ENT_QUOTES | ENT_HTML5);
-    $crumbs = \App\Services\Breadcrumbs::for(request(), $me, $pageName);
 @endphp
 <header class="navbar navbar-expand-md d-none d-lg-flex d-print-none sticky-top rm-topbar">
     <div class="rm-topbar-inner">
@@ -13,22 +9,8 @@
             aria-pressed="false" aria-label="{{ __('ui.topbar.toggle_sidebar') }}" title="{{ __('ui.topbar.toggle_sidebar') }}">
             <i class="ti ti-layout-sidebar" aria-hidden="true"></i>
         </button>
-        <nav class="rm-topbar-title rm-topbar-crumbs" aria-label="{{ __('ui.topbar.breadcrumb') }}">
-            <ol>
-                @foreach ($crumbs as $crumb)
-                    <li>
-                        @unless ($loop->first)
-                            <i class="ti ti-chevron-right" aria-hidden="true"></i>
-                        @endunless
-                        @if ($crumb['url'] !== null)
-                            <a href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
-                        @else
-                            <span @if ($loop->last) aria-current="page" @endif>{{ $crumb['label'] }}</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ol>
-        </nav>
+        {{-- The heading of the page (main.index); the path to it is under the bar. --}}
+        <h1 class="rm-topbar-title">{!! $heading !!}</h1>
         <div class="rm-topbar-end">
             <span class="rm-topbar-company">{{ $me->company?->name }}</span>
             {{-- The language of the screens (App\Services\Language), as on the login page: ID | EN, the one in use marked. --}}

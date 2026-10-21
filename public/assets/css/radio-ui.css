@@ -502,6 +502,7 @@
 
 .rm-topbar-title {
     min-width: 0;
+    margin: 0;
     font-size: 16px;
     line-height: 24px;
     font-weight: 600;
@@ -511,15 +512,17 @@
     text-overflow: ellipsis;
 }
 
-/* The path to the page in the top bar: "Dashboard › Master Data Radio › Tipe Radio". What comes before the page is grey
-   (a link where it leads somewhere); the page itself is dark, and is cut short with "…" when the bar is too narrow. */
-.rm-topbar-crumbs {
-    font-size: 14px;
+/* The path to the page, at the top of the content under the bar: "Dashboard › Master Data Radio › Tipe Radio". What
+   comes before the page is grey (a link where it leads somewhere); the page itself is dark, cut short with "…" when the
+   line is too narrow. */
+.rm-crumbbar {
+    margin-bottom: 16px;
+    font-size: 13px;
     line-height: 20px;
     font-weight: 400;
 }
 
-.rm-topbar-crumbs ol {
+.rm-crumbbar ol {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -529,7 +532,7 @@
     list-style: none;
 }
 
-.rm-topbar-crumbs li {
+.rm-crumbbar li {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -537,32 +540,32 @@
     color: var(--rm-gray-500);
 }
 
-.rm-topbar-crumbs li:last-child {
+.rm-crumbbar li:last-child {
     flex: 0 1 auto;
     min-width: 0;
 }
 
-.rm-topbar-crumbs li:last-child > span {
+.rm-crumbbar li:last-child > span {
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.rm-topbar-crumbs a {
+.rm-crumbbar a {
     color: var(--rm-gray-500);
     text-decoration: none;
     transition: color .12s ease-out;
 }
 
-.rm-topbar-crumbs a:hover {
+.rm-crumbbar a:hover {
     color: var(--rm-gray-900);
 }
 
-.rm-topbar-crumbs [aria-current] {
+.rm-crumbbar [aria-current] {
     color: var(--rm-gray-900);
     font-weight: 500;
 }
 
-.rm-topbar-crumbs .ti {
+.rm-crumbbar .ti {
     color: var(--rm-gray-400);
     font-size: 14px;
 }
@@ -1344,20 +1347,6 @@ a:focus {
     color: var(--rm-gray-700);
 }
 
-/* Page head: the title block above the card, with the page's own buttons at the right when it has any. */
-.rm-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-.rm-head .rm-end {
-    display: flex;
-    gap: 8px;
-    margin-left: auto;
-}
 
 /* Search field with its icon, in a toolbar. */
 .rm-search {
@@ -3814,12 +3803,17 @@ a:focus-visible > .rm-kpi {
     color: inherit;
 }
 
-/* The two rows of panels of the dashboard share their columns: two halves, so that the edges line up. */
+/* The two rows of panels of the dashboard share their columns: two halves, so that the edges line up. Both sides of the
+   top row end at the same height: the last panel of the left one (the free Radio IDs) takes what is left. */
 .rm-dash-split {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
     gap: 16px;
+}
+
+.rm-dash-stack > .rm-cardbox:last-child {
+    flex: 1 1 auto;
 }
 
 /* The two panels of a pair (per company, per type) are as high as each other, and what is in them fills that height. */
@@ -4109,32 +4103,9 @@ a:focus-visible > .rm-kpi {
     gap: 16px;
 }
 
-.rm-crumbs {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    color: var(--rm-gray-500);
-    font-size: 13px;
-    line-height: 20px;
-}
-
-.rm-crumbs a {
-    color: var(--rm-gray-500);
-    text-decoration: none;
-}
-
-.rm-crumbs a:hover {
-    color: var(--rm-gray-900);
-}
-
-.rm-crumbs .ti {
-    font-size: 14px;
-}
-
-.rm-crumbs [aria-current] {
-    color: var(--rm-gray-900);
-    font-weight: 500;
+/* The heading of the page on a phone (the top bar, which has it, is hidden there). */
+.rm-title-phone {
+    margin-bottom: 16px;
 }
 
 .rm-banner {

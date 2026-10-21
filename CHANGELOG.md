@@ -8,6 +8,19 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.14.3] - 2026-10-21
+
+### Diubah
+
+- Judul halaman kini di topbar (di sebelah tombol sidebar), dan breadcrumb pindah ke bawah topbar, di atas isi
+  halaman ("Dashboard › Register Radio"). Judul besar di atas kartu dihapus, jadi judul tidak tampil dua kali. Di HP,
+  yang tidak menampilkan topbar, judul tetap ada di bawah breadcrumb. Di Dashboard judulnya tetap "Selamat datang di
+  Radio Management System".
+- Dashboard: kedua kolom baris atas kini berakhir sejajar; panel Radio ID bebas berikutnya memanjang sampai bawah
+  panel Perlu tindakan.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.14.2] - 2026-10-21
 
 ### Diubah
@@ -826,6 +839,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.14.3]: https://github.com/mahathirmuh/radio-management/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/mahathirmuh/radio-management/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/mahathirmuh/radio-management/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/mahathirmuh/radio-management/compare/v1.13.3...v1.14.0

@@ -30,8 +30,8 @@ class BreadcrumbsTest extends TestCase
     private function crumbs(string $url, ?User $user = null): array
     {
         $page = (string) $this->actingAs($user ?? $this->superAdmin())->get($url)->assertOk()->getContent();
-        $nav = (string) strstr((string) strstr($page, '<nav class="rm-topbar-title rm-topbar-crumbs"'), '</nav>', true);
-        $this->assertNotSame('', $nav, 'no path in the top bar');
+        $nav = (string) strstr((string) strstr($page, '<nav class="rm-crumbbar"'), '</nav>', true);
+        $this->assertNotSame('', $nav, 'no path under the top bar');
         preg_match_all('#<li>\s*(?:<i class="ti ti-chevron-right" aria-hidden="true"></i>\s*)?(?:<a href="([^"]*)">([^<]*)</a>|<span\s*(aria-current="page")?\s*>([^<]*)</span>)\s*</li>#', $nav, $found, PREG_SET_ORDER);
         $this->assertSame(substr_count($nav, '<li>'), count($found), 'a crumb that is no link and no name');
 

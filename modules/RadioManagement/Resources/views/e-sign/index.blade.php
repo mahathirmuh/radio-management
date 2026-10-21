@@ -115,12 +115,6 @@
 @endphp
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">E-Sign Master</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-toolbar rm-toolbar-tight">
             <label class="rm-search" for="esignSearch">

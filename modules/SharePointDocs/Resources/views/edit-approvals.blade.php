@@ -85,11 +85,6 @@
 
 @section('content')
     <div class="rm-docs" id="eaPage">
-        <div class="rm-head">
-            <div>
-                <h1 class="rm-title">{{ __('SharePointDocs::approvals.title') }}</h1>
-            </div>
-        </div>
         <div class="rm-card">
             <div>
                 <div class="rm-tabs" id="eaTabs" role="group" aria-label="{{ __('SharePointDocs::approvals.tabs') }}"></div>

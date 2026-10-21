@@ -111,8 +111,12 @@ class ShellTest extends TestCase
         $page = (string) $this->actingAs($admin)->get(route('dashboard.index'))->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('#<button id="sidebarControl" type="button" class="rm-icon-btn is-ringed" aria-controls="sidebar-menu"\s+aria-pressed="false"#', $page);
-        // The path to the page where its title was (BreadcrumbsTest): on the dashboard, the dashboard alone.
-        $this->assertMatchesRegularExpression('#<nav class="rm-topbar-title rm-topbar-crumbs" aria-label="Jalur halaman">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
+        // The heading of the page in the bar; the path to the page under it, at the top of the content (BreadcrumbsTest): on
+        // the dashboard, the dashboard alone.
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Selamat datang di Radio Management System</h1>', $page);
+        $this->assertMatchesRegularExpression('#<main class="page-body rm-main">\s*<div class="container-xl rm-container">\s*<nav class="rm-crumbbar" aria-label="Jalur halaman">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
+        // On a phone the bar is hidden: the heading is above the content there.
+        $this->assertStringContainsString('<div class="rm-title-phone d-lg-none"><h1 class="rm-title">Selamat datang di Radio Management System</h1></div>', $page);
         $this->assertStringContainsString('<span class="rm-topbar-company">' . e($admin->company->name) . '</span>', $page);
         $this->assertStringContainsString('<div class="dropdown" id="notifBell">', $page);
         $this->assertStringContainsString('<span class="rm-user-role">Super Admin</span>', $page);

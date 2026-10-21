@@ -40,12 +40,6 @@
 @endphp
 @section('content')
     <div class="rm-notif-page">
-        <div class="rm-head">
-            <div>
-                <h1 class="rm-title">{{ __('ui.topbar.notifications') }}</h1>
-            </div>
-        </div>
-
         <div class="rm-card">
             <div class="rm-notif-tabsrow">
                 <nav class="rm-tabs" aria-label="{{ __('Notifications::page.tabs') }}">

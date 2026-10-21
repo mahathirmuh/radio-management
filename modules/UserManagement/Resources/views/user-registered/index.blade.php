@@ -72,12 +72,6 @@
 @section('page-title', __('UserManagement::users.title'))
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('UserManagement::users.title') }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-toolbar user-toolbar">
             <label class="rm-search" for="userRegisterdSearch">

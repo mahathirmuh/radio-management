@@ -5,12 +5,6 @@
 @section('page-title', __('RadioManagement::attention.title'))
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('RadioManagement::attention.title') }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-toolbar">
             @unless ($ready)

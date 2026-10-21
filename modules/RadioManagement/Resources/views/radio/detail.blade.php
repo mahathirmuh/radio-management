@@ -51,12 +51,7 @@
     @endphp
 
     <div class="radio-detail">
-        {{-- On a phone, where the top bar with the path is not shown. --}}
-        <nav class="rm-crumbs d-lg-none" aria-label="{{ __('ui.topbar.breadcrumb') }}">
-            <a href="{{ route('radio-management.radio.index') }}">{{ __('RadioManagement::register.title') }}</a>
-            <i class="ti ti-chevron-right" aria-hidden="true"></i>
-            <span aria-current="page">@yield('crumb')</span>
-        </nav>
+
 
         @if (!$may['update'] && !$may['delete'])
             <div class="rm-banner">

@@ -66,7 +66,7 @@ class RadioPagesDesignTest extends TestCase
 
         $page = (string) $this->actingAs($this->superAdmin())->get(route('radio-management.radio.detail', $radio))->assertOk()->getContent();
         $this->assertSeeInOrder($page, [
-            'class="rm-crumbs d-lg-none"', route('radio-management.radio.index'), 'Radio 101',
+            'class="rm-crumbbar"', route('radio-management.radio.index'), 'Radio 101',
             'class="rm-hero"', 'Radio ID / MDC Code', '101', 'MDC 65', 'SN 867TZB0101',
             'id="radioDetailPrint"', 'Tambah riwayat', 'Arsipkan', 'class="rm-danger-icon"', 'Edit',
             'class="rm-info-grid"', 'Identitas unit', 'Pengguna', 'Program dan verifikasi',

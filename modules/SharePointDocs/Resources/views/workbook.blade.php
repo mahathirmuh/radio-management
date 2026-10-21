@@ -129,11 +129,6 @@
 
 @section('content')
     <div class="rm-docs" id="wbPage">
-        <div class="rm-head">
-            <div>
-                <h1 class="rm-title">{{ $title }}</h1>
-            </div>
-        </div>
         <div class="rm-card">
             @if (! $configured)
                 <div class="alert alert-warning mb-0" id="wbNotConfigured">

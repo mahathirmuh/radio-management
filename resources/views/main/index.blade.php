@@ -25,6 +25,15 @@
 </head>
 
 <body class="layout-fluid">
+    @php
+        // The heading of the page: its own (@section('heading')), else its title; in the top bar, and above the content on
+        // a phone, where the top bar is hidden. (A section is kept escaped.)
+        $heading = trim($__env->yieldContent('heading') ?: $__env->yieldContent('page-title'));
+        // The path to the page, under the top bar: what the page calls itself (@section('crumb'), else its title) comes last
+        // when it is deeper than its entry of the sidebar.
+        $pageName = html_entity_decode(trim($__env->yieldContent('crumb') ?: $__env->yieldContent('page-title')), ENT_QUOTES | ENT_HTML5);
+        $crumbs = \App\Services\Breadcrumbs::for(request(), Auth::user(), $pageName);
+    @endphp
 
     <div id="loader">
         {{-- @include('main.loader.loader') --}}
@@ -43,6 +52,25 @@
             <!--  Main Page -->
             <main class="page-body rm-main">
                 <div class="container-xl rm-container">
+                    <nav class="rm-crumbbar" aria-label="{{ __('ui.topbar.breadcrumb') }}">
+                        <ol>
+                            @foreach ($crumbs as $crumb)
+                                <li>
+                                    @unless ($loop->first)
+                                        <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                                    @endunless
+                                    @if ($crumb['url'] !== null)
+                                        <a href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
+                                    @else
+                                        <span @if ($loop->last) aria-current="page" @endif>{{ $crumb['label'] }}</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+                    </nav>
+                    @if ($heading !== '')
+                        <div class="rm-title-phone d-lg-none"><h1 class="rm-title">{!! $heading !!}</h1></div>
+                    @endif
                     @yield('content')
                 </div>
             </main>

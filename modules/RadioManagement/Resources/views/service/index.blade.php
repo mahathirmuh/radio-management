@@ -18,12 +18,6 @@
 @endphp
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('RadioManagement::service.title') }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         @unless ($ready)
             <div class="rm-alert warning" id="serviceNotReady">

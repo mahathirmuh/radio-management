@@ -24,12 +24,6 @@
         $editable = $may['create'] || $may['update'];
     @endphp
 
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ $master['title'] }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-tabs-row">
             <nav class="rm-tabs" aria-label="{{ $pageText['tabs'] }}">

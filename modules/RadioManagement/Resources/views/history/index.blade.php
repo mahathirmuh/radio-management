@@ -22,12 +22,6 @@
 @section('page-title', __('RadioManagement::history.title'))
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('RadioManagement::history.title') }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-filter-row">
             <div class="rm-field">

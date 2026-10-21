@@ -36,14 +36,9 @@
 @endphp
 
 @section('page-title', __('UserManagement::roles.tab_title'))
+@section('heading', __('UserManagement::roles.title'))
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('UserManagement::roles.title') }}</h1>
-        </div>
-    </div>
-
     <div class="rm-card">
         <div class="rm-toolbar role-toolbar">
             <label class="rm-search" for="userRegisterdSearch">

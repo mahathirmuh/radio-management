@@ -30,12 +30,6 @@
 @endphp
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('Api::tokens.title') }}</h1>
-        </div>
-    </div>
-
     @unless ($ready)
         <div class="rm-alert warning mb-3" role="alert" id="tokensNotReady">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>

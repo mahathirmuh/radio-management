@@ -309,14 +309,9 @@
 @endpush
 
 @section('page-title', __('AuditLog::log.page_title'))
+@section('heading', __('AuditLog::log.title'))
 
 @section('content')
-    <div class="rm-head">
-        <div>
-            <h1 class="rm-title">{{ __('AuditLog::log.title') }}</h1>
-        </div>
-    </div>
-
     @unless ($ready)
         <div class="rm-alert warning mb-3" role="alert" id="auditNotReady">
             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
