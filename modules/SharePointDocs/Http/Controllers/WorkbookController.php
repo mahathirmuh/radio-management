@@ -41,9 +41,7 @@ class WorkbookController extends Controller
             ],
             'workbookKey' => $workbook,
             'title' => $settings['title'],
-            'subtitle' => ConfigWords::of("workbook.workbooks.{$workbook}.subtitle", $settings['subtitle']),
             'configured' => $this->workbooks->configured($workbook),
-            'cacheMinutes' => max(1, (int) config('sharepoint-docs.cache_minutes', 10)),
         ]);
     }
 

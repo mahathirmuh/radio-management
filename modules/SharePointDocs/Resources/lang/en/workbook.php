@@ -9,7 +9,6 @@
 // scans.php (while the config still says what the Indonesian ones here say).
 
 return [
-    'read_every' => '{1} Read from the workbook in SharePoint and refreshed every minute.|[0,*] Read from the workbook in SharePoint and refreshed every :minutes minutes.',
     'not_configured_title' => ':title cannot be shown yet.',
     'not_configured' => 'The address of the workbook in SharePoint or the Microsoft application account has not been filled in in the <code>.env</code> file (see the README, section "Dokumen SharePoint").',
     'read_only' => 'This page only shows the data; changes are still made in Excel.',
@@ -108,10 +107,4 @@ return [
     'column_unknown' => 'The column that was changed is not known. Reload the page.',
     'row_same' => 'Row :line in SharePoint already holds this; nothing was written.',
     'row_saved' => '{1} Row :line saved to SharePoint (:count cell).|[0,*] Row :line saved to SharePoint (:count cells).',
-
-    'workbooks' => [
-        'ict-masterlist' => [
-            'subtitle' => 'Register of ICT documents (SRF, COF, handovers and more) from an Excel workbook in the ICT SharePoint',
-        ],
-    ],
 ];

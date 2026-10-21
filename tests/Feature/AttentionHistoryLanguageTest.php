@@ -55,7 +55,7 @@ class AttentionHistoryLanguageTest extends TestCase
         $page = (string) $this->get(route('radio-management.attention.index'))->assertOk()->getContent();
         foreach ([
             '<h1 class="rm-title">Needs Attention</h1>',
-            'Automatic checks on the register. Fix the data, dismiss with a reason, or assign to someone.',
+
             'Run the checks now</button>',
             '<select id="attnWho" class="form-select" aria-label="Assigned to">',
             '<option value="mine">Assigned to me</option>',
@@ -144,7 +144,7 @@ class AttentionHistoryLanguageTest extends TestCase
         $page = (string) $this->get(route('radio-management.history.index'))->assertOk()->getContent();
         foreach ([
             '<h1 class="rm-title">Radio History</h1>',
-            'Every event of the radios, newest first',
+
             'placeholder="Radio ID, SN, user, description, document no."',
             '<label for="historyFrom" class="form-label">From date</label>',
             '<th>Date</th>',

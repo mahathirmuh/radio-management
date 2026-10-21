@@ -84,7 +84,6 @@
         <div class="rm-head">
             <div>
                 <h1 class="rm-title">{{ $title }}</h1>
-                <p class="rm-sub">{{ $subtitle ? $subtitle . '. ' : '' }}{{ trans_choice('SharePointDocs::scans.read_every', $cacheMinutes, ['minutes' => $cacheMinutes]) }}</p>
             </div>
         </div>
         <div class="rm-card">

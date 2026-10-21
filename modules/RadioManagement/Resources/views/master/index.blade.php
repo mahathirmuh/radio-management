@@ -27,7 +27,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ $master['title'] }}</h1>
-            <p class="rm-sub">{{ $masterText['sub'] }}</p>
         </div>
     </div>
 

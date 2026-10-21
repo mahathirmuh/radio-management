@@ -6,11 +6,10 @@
 
 return [
     'title' => 'Register Radio',
-    'loading' => 'Memuat daftar radio…',
     'search' => 'Cari SN, Radio ID, MDC, user…',
     'search_label' => 'Cari radio',
     'filter' => 'Filter',
-    'reset' => 'Reset',
+    'refresh' => 'Muat ulang',
     'scope' => 'Lingkup data',
     'scopes' => [
         'active' => 'Aktif',
@@ -52,11 +51,6 @@ return [
         'pick_page' => 'Pilih semua radio di halaman ini',
         'empty' => 'Tidak ada data radio',
         'noun' => 'radio',
-        'summary' => 'Menampilkan :shown dari :total :what',
-        'nothing' => 'Tidak ada :what',
-        'what_active' => 'radio aktif',
-        'what_archived' => 'radio diarsipkan',
-        'what_all' => 'radio (aktif dan arsip)',
         'load_failed' => 'Gagal memuat data. Coba lagi.',
     ],
 

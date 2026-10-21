@@ -6,7 +6,6 @@
 
 return [
     'title' => 'Needs Attention',
-    'sub' => 'Automatic checks on the register. Fix the data, dismiss with a reason, or assign to someone.',
     'not_ready' => 'The Needs Attention table has not been created in the database yet. Run "php artisan migrate" first.',
     'not_ready_more' => 'Until then the checks are shown, without assigning and without dismissing.',
     'refresh' => 'Run the checks now',

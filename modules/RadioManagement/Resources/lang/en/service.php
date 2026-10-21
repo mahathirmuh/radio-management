@@ -8,7 +8,6 @@
 
 return [
     'title' => 'Service & Repair',
-    'sub' => 'Radios sent to a service center, and how long they have been there.',
     'not_ready' => 'The service ticket tables are not in the database yet. Run "php artisan migrate" first.',
 
     // By the code kept (ServiceTicket::STATUSES).

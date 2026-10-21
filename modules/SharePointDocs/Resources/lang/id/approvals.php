@@ -9,7 +9,6 @@
 
 return [
     'title' => 'Persetujuan Edit',
-    'sub' => 'Pengajuan perubahan sel ICT Masterlist, yang menunggu disetujui oleh orang lain.',
     'tabs' => 'Status pengajuan',
     'search' => 'Cari pengajuan',
     'search_hint' => 'Sel, kolom, nomor dokumen, nilai, nama pengaju, …',

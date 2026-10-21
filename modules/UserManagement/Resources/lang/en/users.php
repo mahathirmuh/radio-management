@@ -6,7 +6,6 @@
 
 return [
     'title' => 'Users',
-    'sub' => 'People who can sign in to Radio Management.',
     'search' => 'Name or email',
     'search_label' => 'Search by name or email',
     'add' => 'Add user',

@@ -7,7 +7,6 @@
 return [
     'tab_title' => 'Role & Permission',
     'title' => 'Roles and permissions',
-    'sub' => 'Roles decide which menus a user sees and what they can do in each. Super Admin always has full access.',
     'search' => 'Search…',
     'search_label' => 'Search roles',
     'reset' => 'Reset',

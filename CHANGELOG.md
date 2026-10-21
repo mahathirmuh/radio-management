@@ -8,6 +8,20 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.13.3] - 2026-10-21
+
+### Diubah
+
+- Baris kecil di bawah judul halaman dihapus di semua halaman (Register Radio, Perlu Perhatian, Servis & Perbaikan,
+  Riwayat Radio, Master Data, E-Sign Master, COF Scan, ICT Masterlist, Persetujuan Edit, Users, Role & Permission,
+  Audit Log, API Tokens, Notifikasi): halaman kini hanya berjudul, seperti Dashboard.
+- Register Radio:
+  - tombol Reset diganti tombol simbol refresh (Muat ulang), yang memuat ulang daftar tanpa menghapus pencarian dan
+    filter; filter tetap bisa dikosongkan lewat "Hapus filter" di panel Filter;
+  - garis vertikal di samping kolom tombol di ujung kanan tabel dihapus.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.13.2] - 2026-10-21
 
 ### Diubah
@@ -773,6 +787,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.13.3]: https://github.com/mahathirmuh/radio-management/compare/v1.13.2...v1.13.3
 [1.13.2]: https://github.com/mahathirmuh/radio-management/compare/v1.13.1...v1.13.2
 [1.13.1]: https://github.com/mahathirmuh/radio-management/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/mahathirmuh/radio-management/compare/v1.12.3...v1.13.0

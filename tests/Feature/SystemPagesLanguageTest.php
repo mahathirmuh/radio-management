@@ -90,7 +90,7 @@ class SystemPagesLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         $page = (string) $this->get(route('api-tokens.index'))->assertOk()->getContent();
-        foreach (['<h1 class="rm-title">API Tokens</h1>', 'Token membuat aplikasi lain bisa memakai register lewat API, di <code>' . url('/api/v1') . '</code>.',
+        foreach (['<h1 class="rm-title">API Tokens</h1>',
             'Token baru', 'Client baru', 'Dokumentasi API', '<h2 class="rm-section-title">API client</h2>', '<th scope="col">Nama</th>',
             '<th scope="col">Terakhir dipakai</th>', '<option value="me">Saya (Super Admin)</option>', 'Hanya baca', 'Baca &amp; tulis',
             '<option value="365" selected>365 hari</option>', 'Buat token', 'Salin token sekarang', 'Sudah saya salin', 'Pilih role…',
@@ -118,7 +118,7 @@ class SystemPagesLanguageTest extends TestCase
         $this->actingAs($me);
 
         $page = (string) $this->get(route('notifications.index'))->assertOk()->getContent();
-        foreach (['<h1 class="rm-title">Notifikasi</h1>', '1 belum dibaca.', 'Pengajuan perubahan workbook', '>Semua</a>', 'Tandai semua dibaca',
+        foreach (['<h1 class="rm-title">Notifikasi</h1>', '>Semua</a>', 'Tandai semua dibaca',
             'Hari ini', '<span class="badge bg-secondary-lt">Persetujuan</span>', '2 menit yang lalu'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
@@ -127,7 +127,7 @@ class SystemPagesLanguageTest extends TestCase
         // The browser chose English: the page, its script and what the bell is told.
         $this->useEnglish();
         $page = (string) $this->get(route('notifications.index'))->assertOk()->getContent();
-        foreach (['<h1 class="rm-title">Notifications</h1>', '1 unread.', 'Requests to change the workbook', '>All</a>', 'Mark all as read',
+        foreach (['<h1 class="rm-title">Notifications</h1>', '>All</a>', 'Mark all as read',
             'aria-label="Notifications shown"', 'Today', '<span class="badge bg-secondary-lt">Approval</span>', '2 minutes ago',
             '"marked":"All notifications marked as read."'] as $part) {
             $this->assertStringContainsString($part, $page, $part);

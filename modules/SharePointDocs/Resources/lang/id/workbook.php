@@ -9,7 +9,6 @@
 // scans.php (while the config still says what the Indonesian ones here say).
 
 return [
-    'read_every' => 'Isi dibaca dari workbook di SharePoint dan diperbarui tiap :minutes menit.',
     'not_configured_title' => ':title belum bisa ditampilkan.',
     'not_configured' => 'Alamat workbook di SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code> (lihat README, bagian "Dokumen SharePoint").',
     'read_only' => 'Halaman ini hanya menampilkan; mengubah data tetap dilakukan di Excel.',
@@ -108,10 +107,4 @@ return [
     'column_unknown' => 'Kolom yang diubah tidak dikenal. Muat ulang halaman.',
     'row_same' => 'Isi baris :line di SharePoint sudah seperti itu; tidak ada yang ditulis.',
     'row_saved' => 'Baris :line tersimpan ke SharePoint (:count sel).',
-
-    'workbooks' => [
-        'ict-masterlist' => [
-            'subtitle' => 'Register dokumen ICT (SRF, COF, serah terima, dan lainnya) dari workbook Excel di SharePoint ICT',
-        ],
-    ],
 ];

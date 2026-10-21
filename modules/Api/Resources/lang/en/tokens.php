@@ -5,7 +5,6 @@
 
 return [
     'title' => 'API Tokens',
-    'sub' => 'A token lets another application use the register through the API, at <code>:base</code>. It acts as its owner, with the owner\'s role.',
     'not_ready' => 'The API is not switched on yet: its migrations have not been run on this database (<code>php artisan migrate</code>). Until then no token can be made, and the API answers 503.',
 
     'tokens' => 'Tokens',

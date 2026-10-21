@@ -56,7 +56,7 @@ class MasterESignLanguageTest extends TestCase
         $page = (string) $this->get(route('radio-management.radio-type.index'))->assertOk()->getContent();
 
         $this->assertStringContainsString('<h1 class="rm-title">Radio Types</h1>', $page);
-        $this->assertStringContainsString('<p class="rm-sub">The radio models that can be chosen in the register.</p>', $page);
+
         foreach (['Radio Types', 'Companies', 'Departments', 'Channel Templates'] as $tab) {
             $this->assertMatchesRegularExpression('#<a href="[^"]+"[^>]*>' . $tab . '</a>#', $page, $tab);
         }
@@ -116,7 +116,7 @@ class MasterESignLanguageTest extends TestCase
         $page = (string) $this->get(route('radio-management.e-sign.index'))->assertOk()->getContent();
 
         $this->assertStringContainsString('<h1 class="rm-title">E-Sign Master</h1>', $page);
-        $this->assertStringContainsString('The signatures of the ICT team for the PROCESSED BY box of the IT Equipment Checkout Form.', $page);
+
         $this->assertStringContainsString('<span>A form shows the signature of <b>the account that opens that form</b>: nobody can put', $page);
         $this->assertStringContainsString('<i class="ti ti-plus" aria-hidden="true"></i> Register a signature', $page);
         $this->assertMatchesRegularExpression('#<th>Account</th>\s*<th>Printed name</th>\s*<th>Signature</th>#', $page);

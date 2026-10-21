@@ -87,7 +87,7 @@ check('on the page, "Tandai semua dibaca" marks everything read without leaving 
     assert.equal(p.node('#notifPageList .rm-notif-item').classes.has('is-unread'), false);
     assert.equal(p.node('#notifPageList .rm-notif-dot').removed, 1);
     assert.equal(p.node('#notifPageReadAll').removed, 1);
-    assert.equal(p.node('#notifPageSub').text, 'Semua notifikasi sudah dibaca.');
+
     assert.equal(p.dialogs.at(-1).options.toast, true);
     // The bell is asked again.
     assert.match(p.requests.at(-1).url, /\/notifications\/summary$/);
@@ -109,7 +109,7 @@ check('every element the scripts reach for by id is in the page', () => {
     p.fire('#notifPageReadAll', 'submit', { preventDefault() {} });
     p.answer(p.requests.at(-1), { unread: 0 });
     const used = p.ids();
-    assert.ok(used.size >= 6, `only ${used.size} ids seen`);
+    assert.ok(used.size >= 5, `only ${used.size} ids seen`);
     for (const id of used) {
         assert.ok(new RegExp(`\\bid="${id}"`).test(p.html), `the page has no element with id="${id}"`);
     }

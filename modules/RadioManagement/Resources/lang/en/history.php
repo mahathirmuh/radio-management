@@ -5,7 +5,6 @@
 
 return [
     'title' => 'Radio History',
-    'sub' => 'Every event of the radios, newest first',
     'search' => 'Search',
     'search_hint' => 'Radio ID, SN, user, description, document no.',
     'kind' => 'Kind',

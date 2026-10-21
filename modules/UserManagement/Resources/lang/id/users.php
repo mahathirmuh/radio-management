@@ -6,7 +6,6 @@
 
 return [
     'title' => 'User Terdaftar',
-    'sub' => 'Orang yang bisa masuk ke Radio Management.',
     'search' => 'Nama atau email',
     'search_label' => 'Cari berdasarkan nama atau email',
     'add' => 'Tambah user',

@@ -6,7 +6,6 @@
 // refused for (SignatureImage, also for the handover). The names of the people and the record of the forms are data.
 
 return [
-    'sub' => 'The signatures of the ICT team for the PROCESSED BY box of the IT Equipment Checkout Form.',
     'search' => 'Search name or e-mail…',
     'search_label' => 'Search name or e-mail',
     'search_button' => 'Search',

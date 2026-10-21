@@ -9,7 +9,6 @@
 // config's own words.
 
 return [
-    'read_every' => '{1} Read from SharePoint, refreshed every minute.|[0,*] Read from SharePoint, refreshed every :minutes minutes.',
     'not_configured_title' => ':title cannot be shown yet.',
     'not_configured' => 'The address of the SharePoint folder or the Microsoft application account has not been filled in in the <code>.env</code> file (see the README, section "Dokumen SharePoint").',
 
@@ -104,7 +103,6 @@ return [
 
     'folders' => [
         'cof-scan' => [
-            'subtitle' => 'Scans of the IT Equipment Checkout Form (COF) in the ICT SharePoint',
             'code' => 'COF No.',
             'label' => 'Name',
         ],

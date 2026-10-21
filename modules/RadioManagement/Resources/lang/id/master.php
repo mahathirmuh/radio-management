@@ -8,7 +8,6 @@ return [
     'tables' => [
         'radio-type' => [
             'title' => 'Tipe Radio',
-            'sub' => 'Model radio yang bisa dipilih di register.',
             'add' => 'Tambah Tipe Radio',
             'edit' => 'Edit Tipe Radio',
             'search' => 'Cari tipe radio…',
@@ -25,7 +24,6 @@ return [
         ],
         'company' => [
             'title' => 'Perusahaan',
-            'sub' => 'Company pengguna dan pemilik aset radio.',
             'add' => 'Tambah Perusahaan',
             'edit' => 'Edit Perusahaan',
             'search' => 'Cari perusahaan…',
@@ -41,7 +39,6 @@ return [
         ],
         'department' => [
             'title' => 'Department',
-            'sub' => 'Department pengguna radio.',
             'add' => 'Tambah Department',
             'edit' => 'Edit Department',
             'search' => 'Cari department…',
@@ -56,7 +53,6 @@ return [
         ],
         'channel-template' => [
             'title' => 'Template Channel',
-            'sub' => 'Template channel yang diprogram ke radio; tanggal berlakunya menandai radio yang perlu program ulang.',
             'add' => 'Tambah Template Channel',
             'edit' => 'Edit Template Channel',
             'search' => 'Cari template channel…',

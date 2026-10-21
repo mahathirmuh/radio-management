@@ -44,14 +44,12 @@ class FolderController extends Controller
             ],
             'folderKey' => $folder,
             'title' => $settings['title'],
-            'subtitle' => ConfigWords::of("scans.folders.{$folder}.subtitle", $settings['subtitle']),
             'split' => $split === null ? null : [
                 'code' => ConfigWords::of("scans.folders.{$folder}.code", $split['code']),
                 'label' => ConfigWords::of("scans.folders.{$folder}.label", $split['label']),
             ] + $split,
             'configured' => $this->folders->configured($folder),
             'sharePointUrl' => $this->folders->link($folder),
-            'cacheMinutes' => max(1, (int) config('sharepoint-docs.cache_minutes', 10)),
             // The sheet of a workbook that lists these files, when this reader may open it: its columns come with the files.
             'register' => $this->scans->offeredOnFolder($folder, $request->user()),
         ]);

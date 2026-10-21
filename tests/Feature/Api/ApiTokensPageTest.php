@@ -68,7 +68,7 @@ class ApiTokensPageTest extends TestCase
 
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('api-tokens.index'))->assertOk()->getContent();
-        foreach (['API Tokens', 'id="tokenTable"', 'id="clientTable"', 'API clients', 'New token', 'New client', 'API documentation', url('/api/v1')] as $part) {
+        foreach (['API Tokens', 'id="tokenTable"', 'id="clientTable"', 'API clients', 'New token', 'New client', 'API documentation'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
         $this->assertStringNotContainsString('tokensNotReady', $page);

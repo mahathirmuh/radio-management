@@ -5,8 +5,7 @@
 // language they were written in.
 
 return [
-    'sub' => 'Requests to change the workbook, API tokens about to expire, and the weekly summary of the register. Read ones are deleted automatically after 90 days.',
-    'unread_count' => ':count unread.',
+
     'tabs' => 'Notifications shown',
     'all' => 'All',
     'not_ready' => 'Notifications are not switched on in this database yet: run <code>php artisan migrate</code> first.',
@@ -35,7 +34,7 @@ return [
 
     // The words of the page's script.
     'script' => [
-        'all_read' => 'All notifications have been read.',
+
         'marked' => 'All notifications marked as read.',
         'failed' => 'The notifications could not be marked as read. Try again.',
     ],

@@ -8,7 +8,6 @@
 
 return [
     'title' => 'Servis & Perbaikan',
-    'sub' => 'Radio yang dikirim ke pusat servis, dan sudah berapa lama di sana.',
     'not_ready' => 'Tabel tiket servis belum dibuat di database. Jalankan "php artisan migrate" dulu.',
 
     // By the code kept (ServiceTicket::STATUSES).

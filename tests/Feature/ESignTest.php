@@ -104,7 +104,7 @@ class ESignTest extends TestCase
         $this->assertSame(0, ItSignature::count());
 
         $this->actingAs($this->superAdmin());
-        $this->get(route('radio-management.e-sign.index'))->assertOk()->assertSee('E-Sign Master')->assertSee('PROCESSED BY');
+        $this->get(route('radio-management.e-sign.index'))->assertOk()->assertSee('E-Sign Master');
         $this->getJson(route('radio-management.e-sign.list'))->assertOk()->assertJsonPath('meta.total', 0);
 
         // Without its menu row the page is closed to everyone but Super Admin (other pages are open then: this one is not).

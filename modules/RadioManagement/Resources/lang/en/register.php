@@ -6,11 +6,10 @@
 
 return [
     'title' => 'Register Radio',
-    'loading' => 'Loading the radios…',
     'search' => 'Search SN, Radio ID, MDC, user…',
     'search_label' => 'Search radios',
     'filter' => 'Filter',
-    'reset' => 'Reset',
+    'refresh' => 'Refresh',
     'scope' => 'Which radios',
     'scopes' => [
         'active' => 'Active',
@@ -52,11 +51,6 @@ return [
         'pick_page' => 'Select every radio on this page',
         'empty' => 'No radios',
         'noun' => 'radios',
-        'summary' => 'Showing :shown of :total :what',
-        'nothing' => 'No :what',
-        'what_active' => 'active radios',
-        'what_archived' => 'archived radios',
-        'what_all' => 'radios (active and archived)',
         'load_failed' => 'The list could not be loaded. Please try again.',
     ],
 

@@ -25,7 +25,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('RadioManagement::history.title') }}</h1>
-            <p class="rm-sub">{{ __('RadioManagement::history.sub') }}</p>
         </div>
     </div>
 

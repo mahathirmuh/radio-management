@@ -5,8 +5,7 @@
 // language they were written in.
 
 return [
-    'sub' => 'Pengajuan perubahan workbook, token API yang hampir berakhir, dan ringkasan mingguan register. Yang sudah dibaca dihapus otomatis setelah 90 hari.',
-    'unread_count' => ':count belum dibaca.',
+
     'tabs' => 'Notifikasi yang ditampilkan',
     'all' => 'Semua',
     'not_ready' => 'Notifikasi belum aktif di database ini: jalankan <code>php artisan migrate</code> lebih dulu.',
@@ -35,7 +34,7 @@ return [
 
     // The words of the page's script.
     'script' => [
-        'all_read' => 'Semua notifikasi sudah dibaca.',
+
         'marked' => 'Semua notifikasi ditandai sudah dibaca.',
         'failed' => 'Notifikasi tidak bisa ditandai dibaca. Coba lagi.',
     ],

@@ -28,9 +28,11 @@ class RadioPagesDesignTest extends TestCase
     {
         $page = (string) $this->actingAs($this->superAdmin())->get(route('radio-management.radio.index'))->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression('#<h1 class="rm-title">Register Radio</h1>\s*<p class="rm-sub" id="radioSummary">#', $page);
+        // The title alone: no line under it (the count of the radios is in the foot of the table).
+        $this->assertMatchesRegularExpression('#<h1 class="rm-title">Register Radio</h1>\s*</div>#', $page);
+        $this->assertStringNotContainsString('class="rm-sub"', $page);
         $this->assertSeeInOrder($page, [
-            '<div class="rm-card">', 'class="rm-search"', 'id="radioSearch"', 'id="radioFilterButton"', 'id="radioResetButton"',
+            '<div class="rm-card">', 'class="rm-search"', 'id="radioSearch"', 'id="radioFilterButton"', 'id="radioRefreshButton"',
             'class="rm-seg sm ms-auto"', 'Export Excel', 'id="radioAddButton"',
             // The filters, the chips of those that are on, the bar of the radios ticked, the table and its foot, in the card.
             'class="rm-panel d-none" id="radioFilterCard"', 'id="radioApplied"', 'class="rm-bulk d-none" id="radioBulkBar"',

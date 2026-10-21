@@ -7,7 +7,6 @@
 return [
     'page_title' => 'Audit Log',
     'title' => 'Audit Log',
-    'sub' => 'Setiap penambahan, perubahan, penghapusan, login, dan import, beserta siapa yang melakukannya dan dari mana.',
     // The answer of the list while the table of the trail is not there yet.
     'not_ready' => 'Audit Log belum aktif: migrasinya belum dijalankan di database ini.',
     'not_ready_page' => 'Audit Log belum aktif: migrasinya belum dijalankan di database ini (<code>php artisan migrate</code>). Sampai saat itu belum ada yang dicatat.',

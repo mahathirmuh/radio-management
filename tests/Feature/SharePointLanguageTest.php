@@ -150,7 +150,7 @@ class SharePointLanguageTest extends TestCase
 
         $this->get(route('documents.cof-scan.index'))->assertOk()
             ->assertSee('<html lang="en">', false)
-            ->assertSee('Scans of the IT Equipment Checkout Form (COF) in the ICT SharePoint. Read from SharePoint, refreshed every 10 minutes.')
+
             ->assertSee('<th data-key="name" width="130">COF No.</th>', false)
             ->assertSee('placeholder="COF No. or name…"', false)
             ->assertSee('Show all files')
@@ -162,7 +162,7 @@ class SharePointLanguageTest extends TestCase
             ->assertDontSee('Muat ulang');
 
         $this->get(route('documents.ict-masterlist.index'))->assertOk()
-            ->assertSee('Register of ICT documents (SRF, COF, handovers and more) from an Excel workbook in the ICT SharePoint.')
+
             ->assertSee('This page only shows the data; changes are still made in Excel.')
             ->assertSee('Search all columns')
             ->assertSee('Ask for a change of a cell')
@@ -193,7 +193,7 @@ class SharePointLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         $this->get(route('documents.cof-scan.index'))->assertOk()
-            ->assertSee('Scan IT Equipment Checkout Form (COF) di SharePoint ICT. Dibaca dari SharePoint, diperbarui tiap 10 menit.')
+
             ->assertSee('placeholder="No. COF atau nama…"', false)
             ->assertSee('Tampilkan semua file');
         $this->get(route('documents.ict-masterlist.index'))->assertOk()
@@ -204,10 +204,10 @@ class SharePointLanguageTest extends TestCase
             ->assertSee('"pending":"Menunggu"', false);
 
         // Words of the config that someone changed are shown as they are now, in both languages.
-        config(['sharepoint-docs.folders.cof-scan.subtitle' => 'Folder scan form serah terima']);
-        $this->get(route('documents.cof-scan.index'))->assertSee('Folder scan form serah terima. Dibaca dari SharePoint');
+        config(['sharepoint-docs.folders.cof-scan.name_split.code' => 'Nomor form']);
+        $this->get(route('documents.cof-scan.index'))->assertSee('<th data-key="name" width="130">Nomor form</th>', false);
         $this->useEnglish();
-        $this->get(route('documents.cof-scan.index'))->assertSee('Folder scan form serah terima. Read from SharePoint');
+        $this->get(route('documents.cof-scan.index'))->assertSee('<th data-key="name" width="130">Nomor form</th>', false);
     }
 
     public function test_a_page_that_has_no_menu_yet_says_why_in_the_language_chosen(): void

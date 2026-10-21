@@ -8,7 +8,6 @@ return [
     'tables' => [
         'radio-type' => [
             'title' => 'Radio Types',
-            'sub' => 'The radio models that can be chosen in the register.',
             'add' => 'Add radio type',
             'edit' => 'Edit radio type',
             'search' => 'Search radio types…',
@@ -25,7 +24,6 @@ return [
         ],
         'company' => [
             'title' => 'Companies',
-            'sub' => 'The companies that use the radios and own them as assets.',
             'add' => 'Add company',
             'edit' => 'Edit company',
             'search' => 'Search companies…',
@@ -41,7 +39,6 @@ return [
         ],
         'department' => [
             'title' => 'Departments',
-            'sub' => 'The departments that use the radios.',
             'add' => 'Add department',
             'edit' => 'Edit department',
             'search' => 'Search departments…',
@@ -56,7 +53,6 @@ return [
         ],
         'channel-template' => [
             'title' => 'Channel Templates',
-            'sub' => 'The channel templates programmed into the radios; the date a template takes effect marks the radios that need reprogramming.',
             'add' => 'Add channel template',
             'edit' => 'Edit channel template',
             'search' => 'Search channel templates…',

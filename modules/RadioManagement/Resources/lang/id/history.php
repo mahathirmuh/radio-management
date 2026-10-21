@@ -5,7 +5,6 @@
 
 return [
     'title' => 'Riwayat Radio',
-    'sub' => 'Setiap kejadian pada radio, yang terbaru di atas',
     'search' => 'Cari',
     'search_hint' => 'Radio ID, SN, user, keterangan, no. dokumen',
     'kind' => 'Jenis',

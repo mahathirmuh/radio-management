@@ -61,7 +61,7 @@ class ServiceLanguageTest extends TestCase
         $this->actingAs($this->superAdmin());
         $page = (string) $this->get(route('radio-management.service.index'))->assertOk()->getContent();
 
-        foreach (['<h1 class="rm-title">Service &amp; Repair</h1>', 'Radios sent to a service center', 'Open tickets', 'Cost this quarter',
+        foreach (['<h1 class="rm-title">Service &amp; Repair</h1>', 'Open tickets', 'Cost this quarter',
             'All service centers', 'Clear filters', 'New ticket', 'Reported by', 'Duration', 'Add a note', 'New service ticket',
             'Create ticket', 'Radio location afterwards', 'becomes <b>In service</b>', 'Save note', 'Sent for service', 'Mark as in repair'] as $part) {
             $this->assertStringContainsString($part, $page, $part);

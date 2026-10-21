@@ -7,7 +7,6 @@
 return [
     'tab_title' => 'Role & Hak Akses',
     'title' => 'Role dan hak akses',
-    'sub' => 'Role menentukan menu yang dilihat user dan apa yang bisa dilakukannya di tiap menu. Super Admin selalu punya akses penuh.',
     'search' => 'Cari…',
     'search_label' => 'Cari role',
     'reset' => 'Reset',

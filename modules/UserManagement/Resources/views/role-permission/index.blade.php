@@ -41,7 +41,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('UserManagement::roles.title') }}</h1>
-            <p class="rm-sub">{{ __('UserManagement::roles.sub') }}</p>
         </div>
     </div>
 

@@ -5,7 +5,6 @@
 
 return [
     'title' => 'API Tokens',
-    'sub' => 'Token membuat aplikasi lain bisa memakai register lewat API, di <code>:base</code>. Token bertindak sebagai pemiliknya, dengan role pemiliknya.',
     'not_ready' => 'API belum aktif: migrasinya belum dijalankan di database ini (<code>php artisan migrate</code>). Sampai saat itu token tidak bisa dibuat, dan API menjawab 503.',
 
     'tokens' => 'Token',

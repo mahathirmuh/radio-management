@@ -6,7 +6,6 @@
 
 return [
     'title' => 'Perlu Perhatian',
-    'sub' => 'Cek otomatis pada register. Betulkan datanya, abaikan dengan alasan, atau tugaskan ke seseorang.',
     'not_ready' => 'Tabel Perlu Perhatian belum dibuat di database. Jalankan "php artisan migrate" dulu.',
     'not_ready_more' => 'Sampai saat itu cek tetap tampil, tanpa penugasan dan tanpa abaikan.',
     'refresh' => 'Jalankan cek sekarang',

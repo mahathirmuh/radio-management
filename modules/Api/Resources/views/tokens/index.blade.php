@@ -33,7 +33,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('Api::tokens.title') }}</h1>
-            <p class="rm-sub">{!! __('Api::tokens.sub', ['base' => e($apiBase)]) !!}</p>
         </div>
     </div>
 

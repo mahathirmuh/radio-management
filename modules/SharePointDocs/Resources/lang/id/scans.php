@@ -9,7 +9,6 @@
 // config's own words.
 
 return [
-    'read_every' => 'Dibaca dari SharePoint, diperbarui tiap :minutes menit.',
     'not_configured_title' => ':title belum bisa ditampilkan.',
     'not_configured' => 'Alamat folder SharePoint atau akun aplikasi Microsoft belum diisi di file <code>.env</code> (lihat README, bagian "Dokumen SharePoint").',
 
@@ -104,7 +103,6 @@ return [
 
     'folders' => [
         'cof-scan' => [
-            'subtitle' => 'Scan IT Equipment Checkout Form (COF) di SharePoint ICT',
             'code' => 'No. COF',
             'label' => 'Nama',
         ],

@@ -1041,20 +1041,18 @@ a:focus {
     vertical-align: middle;
 }
 
-/* The last column (a row's buttons) stays in view while a wide table scrolls sideways. */
+/* The last column (a row's buttons) stays in view while a wide table scrolls sideways, without a line beside it. */
 .rm-table > tbody > tr > td.rm-sticky-end {
     position: sticky;
     right: 0;
     z-index: 1;
     background: #fff;
-    box-shadow: inset 1px 0 0 var(--rm-gray-100);
 }
 
 .rm-table > thead > tr > th.rm-sticky-end {
     position: sticky;
     right: 0;
     z-index: 1;
-    box-shadow: inset 1px 0 0 var(--rm-gray-200);
 }
 
 .rm-table.compact > tbody > tr > td {
@@ -1177,6 +1175,12 @@ a:focus {
 
 .btn-rm.sm .ti {
     font-size: 14px;
+}
+
+/* A button that is only its icon (Refresh in a toolbar): square, as high as the fields beside it. */
+.btn-rm.is-icon {
+    width: 36px;
+    padding: 0;
 }
 
 .btn-rm.primary {

@@ -9,7 +9,6 @@
 
 return [
     'title' => 'Edit Approvals',
-    'sub' => 'Requests to change cells of the ICT Masterlist, waiting for somebody else to approve them.',
     'tabs' => 'Status of the requests',
     'search' => 'Search the requests',
     'search_hint' => 'Cell, column, document number, value, requester, …',

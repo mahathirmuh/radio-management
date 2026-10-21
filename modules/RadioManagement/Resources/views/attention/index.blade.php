@@ -8,7 +8,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('RadioManagement::attention.title') }}</h1>
-            <p class="rm-sub">{{ __('RadioManagement::attention.sub') }}</p>
         </div>
     </div>
 

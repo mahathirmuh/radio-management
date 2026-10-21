@@ -7,7 +7,6 @@
 return [
     'page_title' => 'Audit Log',
     'title' => 'Audit log',
-    'sub' => 'Every create, update, delete, sign-in and import, with who did it and from where.',
     // The answer of the list while the table of the trail is not there yet.
     'not_ready' => 'The audit log is not switched on yet: its migration has not been run on this database.',
     'not_ready_page' => 'The audit log is not switched on yet: its migration has not been run on this database (<code>php artisan migrate</code>). Nothing is recorded until then.',

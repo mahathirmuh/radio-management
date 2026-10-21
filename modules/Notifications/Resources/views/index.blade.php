@@ -19,12 +19,6 @@
         <div class="rm-head">
             <div>
                 <h1 class="rm-title">{{ __('ui.topbar.notifications') }}</h1>
-                <p class="rm-sub" id="notifPageSub">
-                    @if ($ready && $unread > 0)
-                        {{ __('Notifications::page.unread_count', ['count' => $unread]) }}
-                    @endif
-                    {{ __('Notifications::page.sub') }}
-                </p>
             </div>
         </div>
 
@@ -139,7 +133,7 @@
                         $('#notifPageList .rm-notif-dot').remove();
                         $('#notifPageCount').remove();
                         form.remove();
-                        $('#notifPageSub').text(notifPage.words.all_read);
+
                         if (notifPage.unreadOnly) {
                             $('#notifPageList').empty();
                             $('#notifPageEmpty').removeClass('d-none');

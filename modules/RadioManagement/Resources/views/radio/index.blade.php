@@ -51,7 +51,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('RadioManagement::register.title') }}</h1>
-            <p class="rm-sub" id="radioSummary">{{ __('RadioManagement::register.loading') }}</p>
         </div>
     </div>
 
@@ -66,7 +65,9 @@
                 aria-controls="radioFilterCard">
                 {{ __('RadioManagement::register.filter') }} <i class="ti ti-chevron-down" aria-hidden="true"></i>
             </button>
-            <button type="button" class="btn-rm secondary" id="radioResetButton">{{ __('RadioManagement::register.reset') }}</button>
+            <button type="button" class="btn-rm secondary is-icon" id="radioRefreshButton" data-bs-toggle="tooltip"
+                data-bs-title="{{ __('RadioManagement::register.refresh') }}" aria-label="{{ __('RadioManagement::register.refresh') }}"><i
+                    class="ti ti-refresh" aria-hidden="true"></i></button>
             <div class="rm-seg sm ms-auto" role="radiogroup" aria-label="{{ __('RadioManagement::register.scope') }}">
                 <input type="radio" class="btn-check" name="radioScope" id="scopeActive" value="active" checked>
                 <label for="scopeActive">{{ __('RadioManagement::register.scopes.active') }}</label>
@@ -289,13 +290,6 @@
                 });
             },
 
-            /** "Menampilkan 25 dari 247 radio aktif" above the card. */
-            summary(meta) {
-                const what = { active: radioText.what_active, archived: radioText.what_archived, all: radioText.what_all }[radioTable.scope] || radioText.noun;
-                const shown = meta && meta.total ? Math.max(0, (meta.to || 0) - (meta.from || 0) + 1) : 0;
-                $('#radioSummary').text(!meta ? '' : (meta.total ? RadioUi.fill(radioText.summary, { shown, total: meta.total, what }) : RadioUi.fill(radioText.nothing, { what })));
-            },
-
             load() {
                 $('[data-bs-toggle="tooltip"]').tooltip('hide');
                 radioBulk.loading();
@@ -311,7 +305,6 @@
                         }
                         radioTable.last = response;
                         radioTable.render({ data: response.data, meta: response.meta });
-                        radioTable.summary(response.meta);
                         RadioUi.tooltips('#radioTable');
                         radioBulk.shown(response.data, response.meta);
                     })
@@ -368,14 +361,8 @@
                 if (e.key === 'Enter') search();
             });
             $('#radioFilterButton').on('click', () => radioFilter.toggle());
-            $('#radioResetButton').on('click', () => {
-                $('#radioSearch').val('');
-                radioTable.search = '';
-                radioTable.orderBy = 'dmr_id';
-                radioTable.orderDir = 'asc';
-                radioFilter.toggle(false);
-                radioFilter.reset();
-            });
+            // The list asked for again as it is: the search, the filters, the order and the page stay.
+            $('#radioRefreshButton').tooltip({ trigger: 'hover' }).on('click', () => radioTable.load());
             $('input[name="radioScope"]').on('change', function() {
                 radioTable.scope = $(this).val();
                 radioTable.page = 1;

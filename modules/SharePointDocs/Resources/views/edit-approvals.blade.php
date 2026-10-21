@@ -88,7 +88,6 @@
         <div class="rm-head">
             <div>
                 <h1 class="rm-title">{{ __('SharePointDocs::approvals.title') }}</h1>
-                <p class="rm-sub">{{ __('SharePointDocs::approvals.sub') }}</p>
             </div>
         </div>
         <div class="rm-card">

@@ -118,7 +118,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">E-Sign Master</h1>
-            <p class="rm-sub">{{ __('RadioManagement::esign.sub') }}</p>
         </div>
     </div>
 

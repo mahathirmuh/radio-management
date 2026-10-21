@@ -314,7 +314,6 @@
     <div class="rm-head">
         <div>
             <h1 class="rm-title">{{ __('AuditLog::log.title') }}</h1>
-            <p class="rm-sub">{{ __('AuditLog::log.sub') }}</p>
         </div>
     </div>
 
