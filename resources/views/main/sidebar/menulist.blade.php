@@ -7,12 +7,12 @@
         if ($route === 'documents.edit-approvals.index' && \Modules\SharePointDocs\Services\CellEdits::ready()) {
             $count = \Modules\SharePointDocs\Models\EditRequest::where('status', \Modules\SharePointDocs\Models\EditRequest::PENDING)->count();
 
-            return ['count' => $count, 'color' => 'blue', 'title' => "{$count} pengajuan menunggu"];
+            return ['count' => $count, 'color' => 'blue', 'title' => trans_choice('ui.sidebar.edit_requests', $count, ['count' => $count])];
         }
         if ($route === 'radio-management.attention.index') {
             $count = \Modules\RadioManagement\Services\AttentionInbox::openCount();
 
-            return ['count' => $count, 'color' => 'red', 'title' => "{$count} item perlu perhatian"];
+            return ['count' => $count, 'color' => 'red', 'title' => trans_choice('ui.sidebar.attention', $count, ['count' => $count])];
         }
 
         return null;
@@ -20,7 +20,7 @@
 @endphp
 @foreach ($rootMenus as $menu)
     @if ($menu->section && $menu->section !== $lastSection && $menu->isVisibleFor($allowedMenuIds))
-        <li class="rm-nav-section" role="presentation"><span>{{ $menu->section }}</span></li>
+        <li class="rm-nav-section" role="presentation"><span>{{ \App\Models\UserManagement\Menu::sectionLabel($menu->section) }}</span></li>
         @php($lastSection = $menu->section)
     @endif
     @include('main.sidebar.menu-item', ['menu' => $menu, 'allowedMenuIds' => $allowedMenuIds, 'menuCount' => $menuCount])

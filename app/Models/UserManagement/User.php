@@ -34,6 +34,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property string|null $deleted_at
+ * @property string|null $locale the language chosen for the screens (App\Services\Language), null for the default
  *
  * @property Company $company
  * @property Collection|Role[] $roles
@@ -54,6 +55,9 @@ class User extends Authenticatable
 
     /** Whether users.api_client is there is asked at most once a minute (the code is live before its migration). */
     public const API_CLIENT_CACHE_KEY = 'users-api-client-column';
+
+    /** As above, for users.locale (the language of the screens). */
+    public const LOCALE_CACHE_KEY = 'users-locale-column';
 
     /**
      * How an account gets in, as User Management shows it (signInMethod()). Told from two facts, never stored: whether
@@ -128,6 +132,12 @@ class User extends Authenticatable
     public static function apiClientReady(): bool
     {
         return (bool) Cache::remember(self::API_CLIENT_CACHE_KEY, 60, fn () => Schema::hasColumn('users', 'api_client'));
+    }
+
+    /** Whether the column of the chosen language is there: until then the browser alone keeps the choice. */
+    public static function localeReady(): bool
+    {
+        return (bool) Cache::remember(self::LOCALE_CACHE_KEY, 60, fn () => Schema::hasColumn('users', 'locale'));
     }
 
     /** The accounts of people: without the API clients (all accounts, before the migration that added them). */

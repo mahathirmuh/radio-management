@@ -306,12 +306,54 @@
 
         /* At the foot of the side, 16px below the guide at the least. */
         .rm-login-foot {
+            position: relative;
             margin-top: auto;
             padding-top: 16px;
             color: var(--tblr-secondary);
             font-size: 12px;
             line-height: 17.14px;
             text-align: center;
+        }
+
+        /* The language of the page, at the right end of the foot (the copyright stays in the middle). */
+        .rm-login-lang {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .rm-login-lang button {
+            padding: 0 4px;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--rm-gray-400);
+            font-size: 12px;
+            line-height: 17.14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color .12s ease-out;
+        }
+
+        .rm-login-lang button:hover {
+            color: var(--rm-gray-700);
+        }
+
+        .rm-login-lang button[aria-pressed="true"] {
+            color: var(--rm-gray-900);
+            cursor: default;
+        }
+
+        .rm-login-lang button:focus-visible {
+            outline: 2px solid var(--rm-brand-600);
+            outline-offset: 1px;
+        }
+
+        .rm-login-lang span {
+            color: var(--rm-gray-300);
         }
 
         /* The guide: 440 wide, a cross at the top right, the logos and the words in a ringed box. */
@@ -411,45 +453,58 @@
                 </div>
 
                 <div class="rm-login-body">
-                    <h1 class="rm-login-title">MTI Radio Monitoring</h1>
+                    <h1 class="rm-login-title">{{ __('login.title') }}</h1>
                     <div class="rm-login-rule"></div>
-                    <div class="rm-login-hint">Sign in with SSO</div>
+                    <div class="rm-login-hint">{{ __('login.sso') }}</div>
                     <div class="rm-login-sso">
                         <a href="{{ route('sso-login-mirosoft') }}" class="rm-ms-button">
                             <img src="{{ asset('assets/img/logo/microsoft.png') }}" width="24" height="24" alt="">
                             Microsoft
                         </a>
                     </div>
-                    <div class="rm-login-or">Or</div>
-                    <div class="rm-login-hint">Sign in with Merdeka Account</div>
+                    <div class="rm-login-or">{{ __('login.or') }}</div>
+                    <div class="rm-login-hint">{{ __('login.account') }}</div>
 
                     <form id="loginForm" method="POST" action="{{ route('login') }}">
                         @csrf
                         <div class="rm-field">
                             {{-- Not type="email": an account that signs in with its Active Directory password may be named
                                  by its directory username, which has no "@". --}}
-                            <label for="employeeId" class="form-label">Email or username</label>
+                            <label for="employeeId" class="form-label">{{ __('login.email') }}</label>
                             <input type="text" class="form-control" id="employeeId" name="emailusername"
-                                placeholder="Email or username" autocomplete="username" autocapitalize="none"
+                                placeholder="{{ __('login.email') }}" autocomplete="username" autocapitalize="none"
                                 spellcheck="false" required>
                         </div>
                         <div class="rm-field">
                             {{-- No "Forgot Password": the password of a directory account is the one of Active Directory,
                                  and this application resets none. --}}
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Password"
+                            <label for="password" class="form-label">{{ __('login.password') }}</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="{{ __('login.password') }}"
                                 autocomplete="current-password" required>
                         </div>
-                        <button type="submit" class="btn-rm primary rm-login-submit" id="loginSubmit">Login</button>
+                        <button type="submit" class="btn-rm primary rm-login-submit" id="loginSubmit">{{ __('login.submit') }}</button>
                     </form>
 
                     <div class="rm-login-guide">
-                        Access Login Guide:
-                        <button type="button" data-bs-toggle="modal" data-bs-target="#accessLoginGuide">Click here</button>
+                        {{ __('login.guide') }}
+                        <button type="button" data-bs-toggle="modal" data-bs-target="#accessLoginGuide">{{ __('login.guide_open') }}</button>
                     </div>
                 </div>
 
-                <div class="rm-login-foot">© Merdeka Group {{ date('Y') }}</div>
+                <div class="rm-login-foot">
+                    © Merdeka Group {{ date('Y') }}
+                    {{-- The language of the page (App\Services\Language): ID | EN. --}}
+                    <form method="POST" action="{{ route('language.switch') }}" class="rm-login-lang" aria-label="{{ __('ui.language.title') }}">
+                        @csrf
+                        @foreach (\App\Services\Language::NAMES as $code => $name)
+                            @unless ($loop->first)
+                                <span aria-hidden="true">|</span>
+                            @endunless
+                            <button type="submit" name="locale" value="{{ $code }}" lang="{{ $code }}" title="{{ $name }}"
+                                aria-label="{{ $name }}" aria-pressed="{{ app()->getLocale() === $code ? 'true' : 'false' }}">{{ strtoupper($code) }}</button>
+                        @endforeach
+                    </form>
+                </div>
             </div>
         </div>
     </section>
@@ -458,7 +513,7 @@
     <div class="modal fade" id="accessLoginGuide" tabindex="-1" aria-labelledby="accessLoginGuideTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Close"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('ui.close') }}"><i
                         class="ti ti-x"></i></button>
                 <div class="rm-guide-box">
                     <div class="rm-guide-logos">
@@ -469,7 +524,7 @@
                     <div id="accessLoginGuideTitle">
                         Merdeka Battery Materials Group
                         <br><span class="rm-guide-domain">@merdekabattery.com</span>
-                        <br>access via
+                        <br>{{ __('login.guide_via') }}
                         <br><span class="rm-guide-sso">Microsoft SSO</span>
                     </div>
                 </div>
@@ -483,7 +538,7 @@
         // While the sign-in is sent: a spinner in the button, and no second click.
         $(function() {
             $('#loginForm').on('submit', function() {
-                $('#loginSubmit').addClass('is-busy').prop('disabled', true).attr('aria-busy', 'true').text('Signing in…');
+                $('#loginSubmit').addClass('is-busy').prop('disabled', true).attr('aria-busy', 'true').text(@json(__('login.busy')));
             });
         });
     </script>

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
 use Tests\Concerns\RunsPageChecks;
+use Tests\Concerns\UsesEnglish;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -18,9 +19,17 @@ class UserManagementTest extends TestCase
     use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
+    use UsesEnglish;
     use RunsPageChecks;
 
     protected bool $seed = true;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These pages and messages are checked in English.
+        $this->useEnglish();
+    }
 
     private function admin(): User
     {

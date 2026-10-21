@@ -11,14 +11,23 @@ use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\UsesEnglish;
 use Tests\TestCase;
 
 class SsoLoginTest extends TestCase
 {
     use MakesUsers;
     use RefreshDatabase;
+    use UsesEnglish;
 
     protected bool $seed = true;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These pages and messages are checked in English.
+        $this->useEnglish();
+    }
 
     private const CALLBACK = '/auth/microsoft/callback?code=abc&state=xyz';
 
@@ -211,7 +220,7 @@ class SsoLoginTest extends TestCase
         $viewer = $this->register('viewer@merdekabattery.com', 'Viewer Radio');
         $this->actingAs($viewer)->get(route('dashboard.index'))->assertOk()->assertDontSee('Welcome!');
         // An alert that says something is still shown: the one of signing out, on the login page it ends on.
-        $this->followingRedirects()->post(route('logout'))->assertOk()->assertSee('Good Bye!')->assertDontSee('Welcome!');
+        $this->followingRedirects()->post(route('logout'))->assertOk()->assertSee('Goodbye!')->assertDontSee('Welcome!');
     }
 
     public function test_passwords_typed_into_the_login_form_are_not_logged(): void
@@ -246,7 +255,7 @@ class SsoLoginTest extends TestCase
 
         $this->actingAs($outsider)->get(route('dashboard.index'))
             ->assertForbidden()
-            ->assertSee('Logout'); // the 403 page offers a way out
+            ->assertSee('Sign out'); // the 403 page offers a way out
         $this->actingAs($viewer)->get(route('dashboard.index'))->assertOk();
     }
 

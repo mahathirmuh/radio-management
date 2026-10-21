@@ -106,10 +106,23 @@
             }, timeout);
         };
     }
+
+    /**
+     * A text of the language files with :name in it, each filled with values.name, as Laravel does it on the server
+     * ("Menampilkan :count radio"). A name that is not given stays as it is. The values go in as they are: whoever puts
+     * the text into markup escapes what is not to be markup.
+     */
+    function rmFill(text, values = {}) {
+        return String(text ?? '').replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) =>
+            (Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match));
+    }
 </script>
 
 
 <script>
+    /** The words of the tables and their pages below, in the language of the page (lang/<code>/ui.php). */
+    const rmTableWords = @json(__('ui.table'));
+
     /**
      * The design layer's motion (radio-ui.css, section 5) where a script has to do it: rows that fade in each time they
      * are drawn, numbers that count up, the line under the open tab that slides. Nothing moves for a person who asked
@@ -135,9 +148,9 @@
             return 1 - Math.pow(1 - t, 3);
         },
 
-        /** "1.234", as the pages write a count. */
+        /** A count as the pages write it in their language: "1.234", "1,234". */
         number(value) {
-            return String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            return String(Math.round(Number(value) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, rmTableWords.thousands);
         },
 
         /**
@@ -222,7 +235,7 @@
         columns = [],
         currentPage = 1,
         limit = 10,
-        emptyText = 'No data found',
+        emptyText = rmTableWords.empty,
         loading = false,
         meta = null,
         onPageChange = () => {},
@@ -276,7 +289,7 @@
      * @param {Array<string|Object>} options.columns Definitions for columns: string keys, 'index', or objects { key, className, render }
      * @param {number} [options.currentPage=1] Current page number (for index column)
      * @param {number} [options.limit=10] Number of items per page (for index column)
-     * @param {string} [options.emptyText='No data found'] Message when no data
+     * @param {string} [options.emptyText] Message when no data (by default the one of the language of the page)
      * @param {boolean} [options.loading=false] If true, shows loading state
      * @param {Function} [options.rowAttrs] (item, index) => attributes of the row's <tr>, already escaped (data-href, class)
      */
@@ -286,7 +299,7 @@
         columns = [],
         currentPage = 1,
         limit = 10,
-        emptyText = 'No data found',
+        emptyText = rmTableWords.empty,
         loading = false,
         rowAttrs = null,
     }) {
@@ -294,7 +307,7 @@
 
 
         if (loading) {
-            tbody.html(`<tr><td colspan="${columns.length}" class="text-center rm-empty">Loading...</td></tr>`);
+            tbody.html(`<tr><td colspan="${columns.length}" class="text-center rm-empty">${rmTableWords.loading}</td></tr>`);
             return;
         }
 
@@ -336,8 +349,8 @@
      * @param {Function} [options.onPageChange] Callback receiving new page number
      * @param {Function} [options.onLimitChange] Callback receiving new limit value
      * @param {number} [options.limit=10] Current limit (to highlight selected option)
-     * @param {Object} [options.labels] The words of the footer in the language of the page: showing, of, rows (the size menu),
-     *     noun (what is counted, e.g. "radio"), previous, next
+     * @param {Object} [options.labels] Words of the footer other than those of the language of the page (rmTableWords):
+     *     noun (what is counted, e.g. "radio"); showing, of, rows (the size menu), previous, next
      */
     function renderPagination({
         meta,
@@ -352,7 +365,7 @@
             return el.hide();
         }
 
-        const words = { showing: 'Showing', of: 'of', rows: 'Rows per page', noun: '', previous: 'Previous page', next: 'Next page', ...labels };
+        const words = { ...rmTableWords, noun: '', ...labels };
         const current = Number(meta.current_page) || 1;
         const last = Number(meta.last_page) || 1;
         // The first and the last page, and the ones next to this one; "…" where pages are left out.
@@ -447,7 +460,7 @@
 <script>
     const showError = (errors) => {
         Swal.fire(
-            'Sorry!',
+            @json(__('ui.sorry')),
             errors.join('<br>'),
             'error'
         );
@@ -497,7 +510,7 @@
     // request, and the dialog waits for its answer (it cannot be closed meanwhile). inputValidator: what is wrong with what
     // was typed (shown under the field), or nothing; it is asked before preConfirm.
     const rmDialog = {
-        confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = 'OK', cancelText = 'Batal',
+        confirm({ tone = 'blue', icon = 'help', title = '', text = '', html = null, confirmText = @json(__('ui.ok')), cancelText = @json(__('ui.cancel')),
             confirmKind = 'primary', input = undefined, inputLabel = undefined, inputAttributes = undefined, inputValidator = undefined,
             preConfirm = undefined, loader = false, layout = 'side' } = {}) {
             return Swal.fire({
@@ -528,9 +541,11 @@
      them as before; what they show is drawn next to them. --}}
 <script>
     const rmPickers = {
-        months: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-        shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-        weekdays: ['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Mg'],
+        /** The words of the pickers in the language of the page (lang/<code>/ui.php). */
+        words: @json(__('ui.pickers')),
+        months: @json(__('ui.pickers.months')),
+        shortMonths: @json(__('ui.pickers.short_months')),
+        weekdays: @json(__('ui.pickers.weekdays')),
 
         /** YYYY-MM-DD of a date (local time). */
         iso(date) {
@@ -541,7 +556,7 @@
             const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(text || ''));
             return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
         },
-        /** "01 Okt 2026". */
+        /** "01 Okt 2026", "01 Oct 2026". */
         label(text) {
             const date = rmPickers.parse(text);
             return date ? `${String(date.getDate()).padStart(2, '0')} ${rmPickers.shortMonths[date.getMonth()]} ${date.getFullYear()}` : '';
@@ -551,7 +566,7 @@
          * A <select multiple> as a button with what is chosen (and how many) and a menu of boxes to tick, with "Pilih semua"
          * and "Kosongkan". The <select> is hidden and keeps the value; ticking triggers its "change".
          */
-        multi(select, { all = 'Semua', pickAll = 'Pilih semua', clear = 'Kosongkan' } = {}) {
+        multi(select, { all = rmPickers.words.all, pickAll = rmPickers.words.pick_all, clear = rmPickers.words.clear } = {}) {
             const field = $(select);
             if (!field.length || field.data('rmPicker')) return;
             field.data('rmPicker', true).addClass('d-none').attr({ tabindex: '-1', 'aria-hidden': 'true' });
@@ -595,7 +610,7 @@
          * A date field: the hidden input keeps YYYY-MM-DD; the button shows "01 Okt 2026" and opens the calendar under it
          * (Monday first). min() and max() give the first and last day that may be picked (YYYY-MM-DD or null).
          */
-        date(input, { empty = 'Semua tanggal', min = () => null, max = () => rmPickers.iso(new Date()) } = {}) {
+        date(input, { empty = rmPickers.words.any_date, min = () => null, max = () => rmPickers.iso(new Date()) } = {}) {
             const field = $(input);
             if (!field.length || field.data('rmPicker')) return;
             field.data('rmPicker', true);
@@ -646,17 +661,18 @@
                 const before = new Date(month.getFullYear(), month.getMonth(), 0);
                 const after = new Date(month.getFullYear(), month.getMonth() + 1, 1);
                 const todayOk = !out(rmPickers.parse(today));
+                const words = rmPickers.words;
                 panel.html(`
                     <div class="rm-cal-head">
-                        <button type="button" class="rm-cal-nav" data-nav="-1" aria-label="Bulan sebelumnya"${first && before < first ? ' disabled' : ''}><i class="ti ti-chevron-left"></i></button>
+                        <button type="button" class="rm-cal-nav" data-nav="-1" aria-label="${words.previous_month}"${first && before < first ? ' disabled' : ''}><i class="ti ti-chevron-left"></i></button>
                         <div class="rm-cal-title">${rmPickers.months[month.getMonth()]} ${month.getFullYear()}</div>
-                        <button type="button" class="rm-cal-nav" data-nav="1" aria-label="Bulan berikutnya"${last && after > last ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>
+                        <button type="button" class="rm-cal-nav" data-nav="1" aria-label="${words.next_month}"${last && after > last ? ' disabled' : ''}><i class="ti ti-chevron-right"></i></button>
                     </div>
                     <div class="rm-cal-week">${rmPickers.weekdays.map(name => `<span>${name}</span>`).join('')}</div>
                     <div class="rm-cal-grid">${cells.join('')}</div>
                     <div class="rm-cal-foot">
-                        <a href="#" data-act="clear">Kosongkan</a>
-                        ${todayOk ? '<a href="#" data-act="today">Hari ini</a>' : ''}
+                        <a href="#" data-act="clear">${words.clear}</a>
+                        ${todayOk ? `<a href="#" data-act="today">${words.today}</a>` : ''}
                     </div>`);
             };
             const open = () => {
@@ -705,12 +721,18 @@
     @php
         $sessionClock = app(\App\Services\SessionClock::class);
         $sessionMaximum = $sessionClock->absoluteMinutes();
+        // "8 jam", "8 hours" (worked out here: @json takes no commas).
+        $sessionMaximumText = $sessionMaximum % 60 === 0
+            ? trans_choice('ui.session.hours', $sessionMaximum / 60, ['count' => $sessionMaximum / 60])
+            : trans_choice('ui.session.minutes', $sessionMaximum, ['count' => $sessionMaximum]);
     @endphp
     <script>
         const sessionTimer = {
             urls: @json(['status' => route('session.status'), 'keepAlive' => route('session.keep-alive'), 'login' => route('login')]),
             idleMinutes: @json($sessionClock->idleMinutes()),
-            maximum: @json($sessionMaximum % 60 === 0 ? $sessionMaximum / 60 . ' jam' : $sessionMaximum . ' menit'),
+            maximum: @json($sessionMaximumText),
+            /** Its words in the language of the page (lang/<code>/ui.php). */
+            words: @json(__('ui.session')),
             // How long before each timeout (seconds) the person is warned.
             warnIdle: 120,
             warnAbsolute: 300,
@@ -768,14 +790,15 @@
                 if (!forIdle) this.warnedAbsolute = true;
                 const shown = forIdle ? Math.min(idle, absolute) : absolute;
                 const deadline = Date.now() + shown * 1000;
+                const words = this.words;
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Sesi akan berakhir',
-                    html: (forIdle ? `Tidak ada aktivitas selama hampir ${this.idleMinutes} menit.` : `Demi keamanan, satu sesi paling lama ${this.maximum}; simpan pekerjaan Anda.`)
-                        + ` Anda akan keluar otomatis dalam <b class="session-countdown">${this.clock(shown)}</b>.`,
+                    title: words.ending,
+                    html: (forIdle ? words.idle.replace(':minutes', () => this.idleMinutes) : words.maximum.replace(':maximum', () => this.maximum))
+                        + ' ' + words.countdown.replace(':countdown', () => `<b class="session-countdown">${this.clock(shown)}</b>`),
                     showCancelButton: true,
-                    confirmButtonText: forIdle ? 'Tetap masuk' : 'Login ulang sekarang',
-                    cancelButtonText: forIdle ? 'Keluar' : 'Nanti',
+                    confirmButtonText: forIdle ? words.stay : words.sign_in_again,
+                    cancelButtonText: forIdle ? words.sign_out : words.later,
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     // Two seconds more: by the time it asks again, the server has ended the session.
@@ -807,9 +830,9 @@
                 }
                 Swal.fire({
                     icon: 'info',
-                    title: 'Sesi berakhir',
-                    text: 'Sesi Anda sudah berakhir. Silakan login lagi.',
-                    confirmButtonText: 'Login',
+                    title: this.words.ended,
+                    text: this.words.ended_text,
+                    confirmButtonText: this.words.sign_in,
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                 }).then(() => { window.location.href = this.urls.login; });

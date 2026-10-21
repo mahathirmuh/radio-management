@@ -57,7 +57,7 @@ class ShellTest extends TestCase
     {
         $page = (string) $this->actingAs($this->superAdmin())->get(route('radio-management.radio-type.index'))->assertOk()->getContent();
 
-        foreach (['Radio', 'Dokumen', 'Settings'] as $section) {
+        foreach (['Radio', 'Dokumen', 'Pengaturan'] as $section) {
             $this->assertStringContainsString('<li class="rm-nav-section" role="presentation"><span>' . $section . '</span></li>', $page, $section);
         }
         // The page's entry is marked, in its group, which is open; in the rail the group's icon leads to its first page.
@@ -112,7 +112,7 @@ class ShellTest extends TestCase
 
         $this->assertMatchesRegularExpression('#<button id="sidebarControl" type="button" class="rm-icon-btn is-ringed" aria-controls="sidebar-menu"\s+aria-pressed="false"#', $page);
         // The path to the page where its title was (BreadcrumbsTest): on the dashboard, the dashboard alone.
-        $this->assertMatchesRegularExpression('#<nav class="rm-topbar-title rm-topbar-crumbs" aria-label="Breadcrumb">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
+        $this->assertMatchesRegularExpression('#<nav class="rm-topbar-title rm-topbar-crumbs" aria-label="Jalur halaman">\s*<ol>\s*<li>\s*<span\s+aria-current="page"\s*>Dashboard</span>\s*</li>\s*</ol>\s*</nav>#', $page);
         $this->assertStringContainsString('<span class="rm-topbar-company">' . e($admin->company->name) . '</span>', $page);
         $this->assertStringContainsString('<div class="dropdown" id="notifBell">', $page);
         $this->assertStringContainsString('<span class="rm-user-role">Super Admin</span>', $page);

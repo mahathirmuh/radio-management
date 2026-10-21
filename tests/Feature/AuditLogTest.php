@@ -20,6 +20,7 @@ use RuntimeException;
 use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
 use Tests\Concerns\RunsPageChecks;
+use Tests\Concerns\UsesEnglish;
 use Tests\TestCase;
 
 /**
@@ -32,9 +33,17 @@ class AuditLogTest extends TestCase
     use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
+    use UsesEnglish;
     use RunsPageChecks;
 
     protected bool $seed = true;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These pages and messages are checked in English.
+        $this->useEnglish();
+    }
 
     /** @return Collection<int, AuditLog> the entries of one action, oldest first */
     private function entries(string $action): Collection

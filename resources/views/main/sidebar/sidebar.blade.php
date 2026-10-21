@@ -1,8 +1,8 @@
 <!-- Sidebar -->
-<aside class="navbar navbar-vertical navbar-expand-lg rm-sidebar d-print-none" data-bs-theme="light" aria-label="Menu utama">
+<aside class="navbar navbar-vertical navbar-expand-lg rm-sidebar d-print-none" data-bs-theme="light" aria-label="{{ __('ui.sidebar.label') }}">
     <div class="container-fluid overflow-x-hidden">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
-            aria-controls="sidebar-menu" aria-expanded="false" aria-label="Buka menu">
+            aria-controls="sidebar-menu" aria-expanded="false" aria-label="{{ __('ui.sidebar.open') }}">
             <span class="navbar-toggler-icon"></span>
         </button>
         <a href="/" class="rm-brand" aria-label="{{ config('app.name') }}">
@@ -17,12 +17,25 @@
         <div class="collapse navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav rm-nav">
                 @include('main.sidebar.menu')
-                {{-- The top bar with the user menu is hidden below 992px: keep a way to sign out. --}}
+                {{-- The top bar with the user menu is hidden below 992px: keep the language and a way to sign out. --}}
+                @php($otherLanguage = collect(\App\Services\Language::NAMES)->except(app()->getLocale()))
+                <li class="rm-nav-item d-lg-none">
+                    <form method="POST" action="{{ route('language.switch') }}">
+                        @csrf
+                        @foreach ($otherLanguage as $code => $name)
+                            <button type="submit" name="locale" value="{{ $code }}" class="rm-nav-link" lang="{{ $code }}"
+                                aria-label="{{ __('ui.language.title') }}: {{ $name }}">
+                                <span class="rm-nav-icon"><i class="ti ti-language"></i></span>
+                                <span class="rm-nav-label">{{ $name }}</span>
+                            </button>
+                        @endforeach
+                    </form>
+                </li>
                 <li class="rm-nav-item d-lg-none">
                     <a class="rm-nav-link" href="{{ route('logout') }}"
                         onclick="event.preventDefault(); document.getElementById('logout-form-sidebar').submit();">
                         <span class="rm-nav-icon"><i class="ti ti-logout"></i></span>
-                        <span class="rm-nav-label">Keluar ({{ Auth::user()->name }})</span>
+                        <span class="rm-nav-label">{{ __('ui.sidebar.sign_out', ['name' => Auth::user()->name]) }}</span>
                     </a>
                     <form id="logout-form-sidebar" action="{{ route('logout') }}" method="POST" class="d-none">
                         @csrf

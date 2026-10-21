@@ -23,14 +23,16 @@ check('the foot says what is shown in the words of the page, and offers the firs
     assert.match(html, /class="dropdown-item rm-size-item pagination-limit is-on" data-limit="25">25<\/a>/);
 });
 
-check('the first page has no way back and the last no way on; one page has no dots', () => {
+check('the first page has no way back and the last no way on; one page has no dots; the words are those of the page', () => {
     const page = open();
     page.page('renderPagination')({ meta: meta(1, 1, 7), container: '#foot' });
     const html = page.node('#foot').html;
-    assert.match(html, /btn-previous" data-page="0" aria-label="Previous page" disabled>/);
-    assert.match(html, /btn-next" data-page="2" aria-label="Next page" disabled>/);
+    // The page was rendered in Indonesian, the language of a page until another is chosen.
+    assert.match(html, /btn-previous" data-page="0" aria-label="Halaman sebelumnya" disabled>/);
+    assert.match(html, /btn-next" data-page="2" aria-label="Halaman berikutnya" disabled>/);
     assert.doesNotMatch(html, /rm-pager-dots/);
-    assert.match(html, /Showing 1 – 7 of 7</);
+    assert.match(html, /Menampilkan 1 – 7 dari 7</);
+    assert.match(html, /<span class="rm-size">Baris per halaman/);
 });
 
 check('a page and a size chosen at the foot are handed to the page', () => {

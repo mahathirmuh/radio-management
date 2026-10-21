@@ -47,27 +47,28 @@ class EndExpiredSession
 
     private function end(Request $request, StatefulGuard $guard, string $reason): Response
     {
-        $why = match ($reason) {
-            'idle' => 'You were inactive for ' . $this->clock->idleMinutes() . ' minutes.',
-            'absolute' => 'A session lasts at most ' . $this->duration($this->clock->absoluteMinutes()) . '.',
-            default => 'Your session has ended.',
+        // In English for the audit log (as every reason there), in the language of the person on the login page.
+        $why = fn (string $locale) => match ($reason) {
+            'idle' => __('login.alerts.session_idle', ['minutes' => $this->clock->idleMinutes()], $locale),
+            'absolute' => __('login.alerts.session_maximum', ['duration' => $this->duration($this->clock->absoluteMinutes(), $locale)], $locale),
+            default => __('login.alerts.session_ended', [], $locale),
         };
-        app(AuditLogger::class)->log(AuditLogger::SESSION_EXPIRED, new: ['Reason' => $why], user: $guard->user());
+        app(AuditLogger::class)->log(AuditLogger::SESSION_EXPIRED, new: ['Reason' => $why('en')], user: $guard->user());
         $guard->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         // Shown on the login page, where both a page and a page's script end up.
-        Alert::info('Session expired', $why . ' Please sign in again.')->persistent(true);
+        Alert::info(__('login.alerts.session_expired'), $why(app()->getLocale()) . ' ' . __('login.alerts.sign_in_again'))->persistent(true);
 
         return $request->expectsJson()
             ? response()->json(['message' => 'Session expired.', 'session_ended' => true, 'reason' => $reason], 401)
             : redirect()->route('login');
     }
 
-    private function duration(int $minutes): string
+    private function duration(int $minutes, string $locale): string
     {
         return $minutes % 60 === 0
-            ? ($minutes / 60) . ' ' . ($minutes === 60 ? 'hour' : 'hours')
-            : $minutes . ' minutes';
+            ? trans_choice('ui.session.hours', $minutes / 60, ['count' => $minutes / 60], $locale)
+            : trans_choice('ui.session.minutes', $minutes, ['count' => $minutes], $locale);
     }
 }

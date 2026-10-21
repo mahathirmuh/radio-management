@@ -16,7 +16,7 @@ class ChangelogController extends Controller
     {
         $running = (string) config('app.version');
         $releases = array_map(fn (array $release) => $release + [
-            'date_label' => $release['date'] === null ? null : Carbon::parse($release['date'])->locale('id')->translatedFormat('j M Y'),
+            'date_label' => $release['date'] === null ? null : Carbon::parse($release['date'])->translatedFormat('j M Y'),
             'current' => $release['version'] === $running,
         ], Changelog::ofApp()->releases());
 

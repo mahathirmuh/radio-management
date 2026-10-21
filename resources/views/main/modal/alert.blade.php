@@ -5,8 +5,8 @@
             @if (Session::has('success'))
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success',
-                    text: '{!! Session::pull('success') !!}',
+                    title: @json(__('ui.flash.success')),
+                    text: @json(Session::pull('success')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000
@@ -16,8 +16,8 @@
             @if (Session::has('error'))
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: '{!! Session::pull('error') !!}',
+                    title: @json(__('ui.flash.error')),
+                    text: @json(Session::pull('error')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000
@@ -27,8 +27,8 @@
             @if (Session::has('warning'))
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Warning',
-                    text: '{!! Session::pull('warning') !!}',
+                    title: @json(__('ui.flash.warning')),
+                    text: @json(Session::pull('warning')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000
@@ -40,8 +40,8 @@
             <script>
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success',
-                    text: '{!! Session::pull('success') !!}',
+                    title: @json(__('ui.flash.success')),
+                    text: @json(Session::pull('success')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000
@@ -53,8 +53,8 @@
             <script>
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: '{!! Session::pull('error') !!}',
+                    title: @json(__('ui.flash.error')),
+                    text: @json(Session::pull('error')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000
@@ -66,8 +66,8 @@
             <script>
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Warning',
-                    text: '{!! Session::pull('warning') !!}',
+                    title: @json(__('ui.flash.warning')),
+                    text: @json(Session::pull('warning')),
                     showConfirmButton: false,
                     timerProgressBar: true,
                     timer: 3000

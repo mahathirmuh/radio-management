@@ -28,7 +28,7 @@ final class Breadcrumbs
         $crumbs = [];
 
         if ($current !== 'dashboard.index' && $user !== null && Route::has('dashboard.index') && MenuAccess::allows($user, 'dashboard.index')) {
-            $crumbs[] = ['label' => 'Dashboard', 'url' => route('dashboard.index')];
+            $crumbs[] = ['label' => Menu::routeLabel('dashboard.index', 'Dashboard'), 'url' => route('dashboard.index')];
         }
 
         if ($entry === null) {
@@ -36,11 +36,11 @@ final class Breadcrumbs
         }
 
         if ($entry->parent !== null) {
-            $crumbs[] = ['label' => (string) $entry->parent->title, 'url' => null];
+            $crumbs[] = ['label' => $entry->parent->label(), 'url' => null];
         }
         // On a page below the entry, the entry leads back to its list, and the page names itself after it.
-        $below = $current !== $entry->route && $page !== '' && $page !== $entry->title;
-        $crumbs[] = ['label' => (string) $entry->title, 'url' => $below ? route($entry->route) : null];
+        $below = $current !== $entry->route && $page !== '' && $page !== $entry->label();
+        $crumbs[] = ['label' => $entry->label(), 'url' => $below ? route($entry->route) : null];
         if ($below) {
             $crumbs[] = ['label' => $page, 'url' => null];
         }

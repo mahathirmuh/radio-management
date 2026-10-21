@@ -57,7 +57,8 @@ class SessionTimeoutTest extends TestCase
         $this->travel(30)->minutes();
         $this->get(route('dashboard.index'))->assertRedirect(route('login'));
         $this->assertGuest();
-        $this->get('/login')->assertOk()->assertSee('Session expired')->assertSee('You were inactive for 30 minutes. Please sign in again.');
+        // Told in the language of the person (Indonesian here); written to the audit log in English.
+        $this->get('/login')->assertOk()->assertSee('Sesi berakhir')->assertSee('Anda tidak aktif selama 30 menit. Silakan login lagi.');
         $this->assertSame([['staf@test.local', 'You were inactive for 30 minutes.']], $this->expiredEntries());
     }
 
@@ -73,7 +74,7 @@ class SessionTimeoutTest extends TestCase
         $this->travel(25)->minutes();
         $this->postJson(route('session.keep-alive'))->assertStatus(401)->assertJson(['session_ended' => true, 'reason' => 'absolute']);
         $this->assertGuest();
-        $this->get('/login')->assertSee('A session lasts at most 8 hours. Please sign in again.');
+        $this->get('/login')->assertSee('Satu sesi paling lama 8 jam. Silakan login lagi.');
     }
 
     public function test_asking_the_clock_and_the_bell_is_not_activity_staying_signed_in_is(): void
@@ -102,7 +103,7 @@ class SessionTimeoutTest extends TestCase
         $this->getJson(route('session.status'))->assertExactJson(['idle_left' => 300, 'absolute_left' => 3600]);
         $this->travel(5)->minutes();
         $this->get(route('dashboard.index'))->assertRedirect(route('login'));
-        $this->get('/login')->assertSee('You were inactive for 5 minutes.');
+        $this->get('/login')->assertSee('Anda tidak aktif selama 5 menit.');
 
         $this->signIn('kedua@test.local');
         for ($step = 1; $step <= 14; $step++) {
@@ -111,7 +112,7 @@ class SessionTimeoutTest extends TestCase
         }
         $this->travel(4)->minutes();
         $this->get(route('dashboard.index'))->assertRedirect(route('login'));
-        $this->get('/login')->assertSee('A session lasts at most 1 hour.');
+        $this->get('/login')->assertSee('Satu sesi paling lama 1 jam.');
     }
 
     public function test_no_remember_me_cookie_is_given_even_when_asked_for(): void
@@ -140,7 +141,7 @@ class SessionTimeoutTest extends TestCase
         Route::middleware('web')->post('/__session-test/form', fn () => throw new TokenMismatchException('CSRF token mismatch.'));
 
         $this->post('/__session-test/form')->assertRedirect(route('login'));
-        $this->get('/login')->assertSee('Your session has ended. Please sign in again.');
+        $this->get('/login')->assertSee('Sesi Anda sudah berakhir. Silakan login lagi.');
         // A page's script still gets the 419 (sessionTimer takes it to the login page).
         $this->postJson('/__session-test/form')->assertStatus(419);
     }

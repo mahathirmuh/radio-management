@@ -31,6 +31,15 @@ class RadioCheckService
 
     private ?array $duplicateIds = null;
 
+    /** The name of a check in the language of the page, or in $locale (a notification for someone else). */
+    public static function label(string $code, ?string $locale = null): string
+    {
+        $key = 'RadioManagement::checks.' . $code;
+        $name = __($key, [], $locale);
+
+        return $name === $key ? (self::ISSUES[$code]['label'] ?? $code) : $name;
+    }
+
     /** @return array<string, true> upper-cased SN => true, across all non-deleted radios */
     public function duplicateSerials(): array
     {

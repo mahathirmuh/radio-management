@@ -72,7 +72,7 @@ class LoginController extends Controller
             // 'password' => 'required|min:2|max:255|string|regex:/^[a-zA-Z0-9\s\-\.,]+$/',
         ]);
         if ($validator->fails()) {
-            Alert::warning('Input Salah!', $validator->errors()->all());
+            Alert::warning(__('login.alerts.invalid'), $validator->errors()->all());
             return view('auth.login');
         } else {
             try {
@@ -92,16 +92,16 @@ class LoginController extends Controller
                         return redirect()->route(Auth::user()->homeRoute());
                     } else {
                         $this->refused((string) $request->emailusername, $account, 'Password', $account->isActive() ? 'Wrong password' : 'Account not active');
-                        Alert::warning('Username or Password Wrong!', 'Try Again!');
+                        Alert::warning(__('login.alerts.wrong'), __('login.alerts.try_again'));
                         return view('auth.login');
                     }
                 } else {
                     $this->refused((string) $request->emailusername, null, 'Login form', 'Not registered');
-                    Alert::warning('Your account is not registered!', 'please contact IT the Helpdesk');
+                    Alert::warning(__('login.alerts.not_registered'), __('login.alerts.contact_helpdesk'));
                     return view('auth.login');
                 }
             } catch (Exception $e) {
-                Alert::error('Server Error!', 'please contact IT the Helpdesk');
+                Alert::error(__('login.alerts.server_error'), __('login.alerts.contact_helpdesk'));
                 return view('auth.login');
             };
         }
@@ -154,7 +154,7 @@ class LoginController extends Controller
     {
         $wrong = function (string $reason) use ($request, $account) {
             $this->refused((string) $request->emailusername, $account, User::SIGN_IN_LDAP, $reason);
-            Alert::warning('Username or Password Wrong!', 'Try Again!');
+            Alert::warning(__('login.alerts.wrong'), __('login.alerts.try_again'));
             return view('auth.login');
         };
 
@@ -168,7 +168,7 @@ class LoginController extends Controller
         } catch (DirectoryUnavailable $e) {
             // Not a wrong password: saying so would send people to reset one that was right.
             Log::error('A sign-in could not be checked against the directory: ' . $e->getMessage());
-            Alert::warning('The directory cannot be reached', 'Try again shortly, or sign in with Microsoft.')->persistent(true);
+            Alert::warning(__('login.alerts.directory_down'), __('login.alerts.directory_down_text'))->persistent(true);
             return view('auth.login');
         }
 
@@ -179,7 +179,7 @@ class LoginController extends Controller
         // As with Microsoft: every page is gated by menu/role, so an account without a role could only see 403 pages.
         if ($account->roles()->doesntExist()) {
             $this->refused((string) $request->emailusername, $account, User::SIGN_IN_LDAP, 'No role');
-            Alert::warning('No access yet', $account->email . ' has no role in this application. Ask the admin to assign one.')->persistent(true);
+            Alert::warning(__('login.alerts.no_access'), __('login.alerts.no_access_text', ['email' => $account->email]))->persistent(true);
             return view('auth.login');
         }
 
@@ -202,7 +202,7 @@ class LoginController extends Controller
                     //cek keys dengan Apps Tujuan
                     $user = User::where('email', $gate->email)->first();
                     if ($user && ! $user->isActive()) {
-                        Alert::warning('Account inactive', 'Ask the admin to activate it.');
+                        Alert::warning(__('login.alerts.inactive'), __('login.alerts.inactive_text'));
                         return redirect()->route('login');
                     }
                     if ($user) {
@@ -214,7 +214,7 @@ class LoginController extends Controller
                             $request->session()->regenerate();
                             return redirect()->route('dashboard.index');
                         } else {
-                            Alert::error('Authenticate Failed!', 'try again!');
+                            Alert::error(__('login.alerts.authenticate_failed'), __('login.alerts.try_again'));
                             return redirect()->route('login');
                         }
                     } else {
@@ -228,7 +228,7 @@ class LoginController extends Controller
                 return redirect()->to($this->urlMerdeka);
             }
         } else {
-            Alert::info('Sign in failed!', 'Please use MerdekaApps Credential!');
+            Alert::info(__('login.alerts.apps_failed'), __('login.alerts.apps_failed_text'));
             return redirect()->route('login');
         }
     }
@@ -255,7 +255,7 @@ class LoginController extends Controller
         // Microsoft answers with ?error=... instead of a code when the person cancels or consent is refused.
         if ($request->filled('error')) {
             Log::warning('Microsoft SSO returned an error instead of a code', $request->only(['error', 'error_subcode', 'error_description']));
-            Alert::warning('Microsoft sign-in was not completed', 'Please try again.');
+            Alert::warning(__('login.alerts.microsoft_incomplete'), __('login.alerts.try_again'));
             return redirect()->route('login');
         }
 
@@ -264,11 +264,11 @@ class LoginController extends Controller
             return $this->loginSsoUser($request, $user->getEmail(), 'Microsoft');
         } catch (InvalidStateException $e) {
             Log::warning('Microsoft SSO: state mismatch on ' . $request->getHttpHost() . ' (login started on another host, or the session expired)');
-            Alert::warning('Sign-in session expired', 'Please click Microsoft again.');
+            Alert::warning(__('login.alerts.microsoft_expired'), __('login.alerts.microsoft_expired_text'));
             return redirect()->route('login');
         } catch (\Throwable $e) {
             Log::error('Microsoft SSO login failed: ' . get_class($e) . ': ' . $e->getMessage());
-            Alert::error('Server Error!', 'please contact IT the Helpdesk');
+            Alert::error(__('login.alerts.server_error'), __('login.alerts.contact_helpdesk'));
             return redirect()->route('login');
         }
     }
@@ -283,13 +283,13 @@ class LoginController extends Controller
         if ($email === '') {
             Log::warning($provider . ' SSO returned no e-mail / userPrincipalName');
             $this->refused('', null, $provider, 'No e-mail address from ' . $provider);
-            Alert::warning('Sign-in failed', $provider . ' did not send an e-mail address for this account.')->persistent(true);
+            Alert::warning(__('login.alerts.sign_in_failed'), __('login.alerts.no_email_text', ['provider' => $provider]))->persistent(true);
             return redirect()->route('login');
         }
 
         if (Str::endsWith(Str::lower($email), ['@gmail.com', '@yahoo.com'])) {
             $this->refused($email, null, $provider, 'Public e-mail address');
-            Alert::warning('Sorry you are using public email for login!', 'Please contact HR immediately to address this issue. your email logged : ' . $email);
+            Alert::warning(__('login.alerts.public_email'), __('login.alerts.contact_hr_text', ['email' => $email]));
             return redirect()->route('login');
         }
 
@@ -298,7 +298,7 @@ class LoginController extends Controller
         if ($user === null) {
             Log::warning($provider . ' SSO refused: no users row', ['email' => $email]);
             $this->refused($email, null, $provider, 'Not registered');
-            Alert::warning("The user is not registered in {$provider} SSO!", 'Please contact HR immediately to address this issue. your email logged : ' . $email)->persistent(true);
+            Alert::warning(__('login.alerts.sso_not_registered', ['provider' => $provider]), __('login.alerts.contact_hr_text', ['email' => $email]))->persistent(true);
             return redirect()->route('login');
         }
 
@@ -306,7 +306,7 @@ class LoginController extends Controller
         if ($user->roles()->doesntExist()) {
             Log::warning($provider . ' SSO refused: user has no role', ['email' => $email]);
             $this->refused($email, $user, $provider, 'No role');
-            Alert::warning('No access yet', $email . ' has no role in this application. Ask the admin to assign one.')->persistent(true);
+            Alert::warning(__('login.alerts.no_access'), __('login.alerts.no_access_text', ['email' => $email]))->persistent(true);
             return redirect()->route('login');
         }
 
@@ -314,7 +314,7 @@ class LoginController extends Controller
         if (! $user->isActive()) {
             Log::warning($provider . ' SSO refused: account is inactive', ['email' => $email]);
             $this->refused($email, $user, $provider, 'Account not active');
-            Alert::warning('Account inactive', $email . ' has been deactivated in this application. Ask the admin to activate it.')->persistent(true);
+            Alert::warning(__('login.alerts.inactive'), __('login.alerts.inactive_email_text', ['email' => $email]))->persistent(true);
             return redirect()->route('login');
         }
 
@@ -379,7 +379,7 @@ class LoginController extends Controller
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
-        Alert::success('Logout Success', 'Good Bye!');
+        Alert::success(__('login.alerts.signed_out'), __('login.alerts.goodbye'));
         // return redirect()->away($this->urlMerdeka);
         return redirect()->route('login');
     }

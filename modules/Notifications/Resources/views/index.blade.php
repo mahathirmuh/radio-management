@@ -1,6 +1,6 @@
 @extends('main.index')
 {{-- Every notification of whoever is signed in, grouped by day. The look of a row (.rm-notif-*) is the bell's (radio-ui.css). --}}
-@section('page-title', 'Notifikasi')
+@section('page-title', __('ui.topbar.notifications'))
 @php
     // The colour and the word of each kind (the icon is UserNotification::ICONS'): as the bell has them.
     $notifTones = ['edit_requested' => 'orange', 'edit_decided' => 'blue', 'token_expiring' => 'red', 'register_weekly' => 'gray'];

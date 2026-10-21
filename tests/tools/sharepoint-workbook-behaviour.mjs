@@ -57,7 +57,7 @@ check('the page asks for the first sheet once, in the order of the workbook with
     assert.match(requests[0].url, /\/documents\/ict-masterlist\/rows$/);
     assert.deepEqual(sent(), { tab: 0, page: 1, paginated: 25, search: '', sort: 'row', dir: 'desc' });
     assert.equal(node('#wbReload').props.disabled, true);
-    assert.match(body(), /Loading/);
+    assert.match(body(), /Memuat/);
 });
 
 check('tabs, titles and rows are drawn, and the facts of the workbook are written', () => {
@@ -325,7 +325,7 @@ check('an answer that comes after a newer request was sent changes nothing, also
     tab(2);
     const newer = requests.at(-1);
     const waiting = body();
-    assert.match(waiting, /Loading/);
+    assert.match(waiting, /Memuat/);
     assert.equal(node('#wbReload').props.disabled, true);
     answer(older, reply(1));
     assert.equal(node('#wbReload').props.disabled, true, 'the newest request is not answered yet');

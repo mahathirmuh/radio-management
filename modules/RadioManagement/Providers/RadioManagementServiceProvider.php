@@ -12,6 +12,7 @@ class RadioManagementServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(base_path('modules/RadioManagement/Routes/web/radio-management.php'));
         $this->loadViewsFrom(base_path('modules/RadioManagement/Resources/views'), 'RadioManagement');
+        $this->loadTranslationsFrom(base_path('modules/RadioManagement/Resources/lang'), 'RadioManagement');
 
         if ($this->app->runningInConsole()) {
             $this->commands([ImportRadioRegister::class, UnlockRadioRegister::class]);

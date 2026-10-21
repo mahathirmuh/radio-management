@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\LanguageController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
@@ -33,6 +34,9 @@ Route::middleware('auth')->prefix('session')->name('session.')->controller(Sessi
     Route::get('status', 'status')->name('status');
     Route::post('keep-alive', 'keepAlive')->name('keep-alive');
 });
+
+/** The language of the screens (account menu, sign-in page): no menu and no sign-in needed, the sign-in page has it too. */
+Route::post('language', LanguageController::class)->name('language.switch');
 
 /** What changed in each version (CHANGELOG.md): the version in the footer opens it. No menu: every page has the footer. */
 Route::get('changelog', ChangelogController::class)->middleware('auth')->name('changelog');

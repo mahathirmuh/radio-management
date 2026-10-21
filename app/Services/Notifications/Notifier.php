@@ -4,6 +4,8 @@ namespace App\Services\Notifications;
 
 use App\Models\Notification\UserNotification;
 use App\Models\UserManagement\User;
+use App\Services\Language;
+use Closure;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -21,15 +23,18 @@ use Throwable;
 class Notifier
 {
     /**
-     * Gives one notification to each of $users.
+     * Gives one notification to each of $users, written in the language of each of them: a title or a text given as
+     * fn (string $locale) => string is asked once per person (__('...', [...], $locale)).
      *
      * @param  iterable<User>|User  $users
+     * @param  string|Closure(string): string  $title
+     * @param  string|Closure(string): string|null  $body
      * @param  ?string  $url  a path of this application ("/documents/edit-approvals?status=pending"); anything else is dropped
      * @param  ?string  $key  the same key is never given to the same person twice (a periodic notice, "token-expiring:12");
      *     without one, every call is a notification of its own
      * @return int how many were written
      */
-    public function send(iterable|User $users, string $kind, string $title, ?string $body = null, ?string $url = null, ?string $key = null): int
+    public function send(iterable|User $users, string $kind, string|Closure $title, string|Closure|null $body = null, ?string $url = null, ?string $key = null): int
     {
         if (! UserNotification::ready()) {
             return 0;
@@ -44,11 +49,13 @@ class Notifier
                 if ($key !== null && UserNotification::query()->of($user)->where('dedupe_key', $key)->exists()) {
                     continue;
                 }
+                $locale = Language::of($user);
+                $text = $body instanceof Closure ? $body($locale) : $body;
                 UserNotification::create([
                     'user_id' => $user->id,
                     'kind' => $kind,
-                    'title' => Str::limit($title, 250, '…'),
-                    'body' => $body === null ? null : Str::limit($body, 990, '…'),
+                    'title' => Str::limit($title instanceof Closure ? $title($locale) : $title, 250, '…'),
+                    'body' => $text === null ? null : Str::limit($text, 990, '…'),
                     'url' => self::path($url),
                     'dedupe_key' => $key === null ? 'once:' . Str::uuid() : mb_substr($key, 0, 150),
                 ]);

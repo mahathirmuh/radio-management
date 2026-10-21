@@ -43,7 +43,7 @@ check('the page asks for its list once, newest first', () => {
     assert.match(requests[0].url, /\/documents\/cof-scan\/list$/);
     assert.deepEqual(sent(), { page: 1, paginated: 25, search: '', sort: 'modified', dir: 'desc', path: '' });
     assert.equal(node('#docsReload').props.disabled, true);
-    assert.match(table(), /Loading/);
+    assert.match(table(), /Memuat/);
 });
 
 check('rows are drawn with the type and the eye, and the folder facts are written', () => {

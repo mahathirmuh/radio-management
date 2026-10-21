@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\Concerns\FakesDirectory;
 use Tests\Concerns\MakesUsers;
+use Tests\Concerns\UsesEnglish;
 use Tests\TestCase;
 
 /**
@@ -22,8 +23,16 @@ class DirectoryLoginTest extends TestCase
     use FakesDirectory;
     use MakesUsers;
     use RefreshDatabase;
+    use UsesEnglish;
 
     protected bool $seed = true;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // These pages and messages are checked in English.
+        $this->useEnglish();
+    }
 
     /** An account whose directory username is $username. Its password here is "secret-password", as for every test account. */
     private function directoryAccount(string $email, string $username, int|string|null $role = 'Viewer Radio'): User
@@ -103,7 +112,7 @@ class DirectoryLoginTest extends TestCase
         // A wrong password for it is a wrong password.
         $this->login('bsantoso', 'salah')->assertOk();
         $this->assertGuest();
-        $this->assertStringContainsString('Username or Password Wrong', $this->said());
+        $this->assertStringContainsString('Wrong username or password', $this->said());
 
         // What stands before the "@" of an address is no name of an account; only a directory username is.
         foreach (['budi.santoso', 'citra'] as $prefix) {
@@ -132,7 +141,7 @@ class DirectoryLoginTest extends TestCase
 
         $this->login($user->email, 'salah')->assertOk();
         $this->assertGuest();
-        $this->assertStringContainsString('Username or Password Wrong', $this->said());
+        $this->assertStringContainsString('Wrong username or password', $this->said());
 
         // The password this application keeps for the account is not a way in: the directory is the only check.
         $this->assertTrue(password_verify('secret-password', $user->password));
@@ -214,7 +223,7 @@ class DirectoryLoginTest extends TestCase
         // Refused the way a wrong password is, and the directory is not even asked.
         $this->login($inactive->email, 'Kata-Sandi-AD-1')->assertOk();
         $this->assertGuest();
-        $this->assertStringContainsString('Username or Password Wrong', $this->said());
+        $this->assertStringContainsString('Wrong username or password', $this->said());
         $this->assertSame([], $directory->asked);
 
         // Who they are is proved; what they may do here is nothing yet.

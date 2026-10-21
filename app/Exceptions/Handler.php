@@ -63,7 +63,7 @@ class Handler extends ExceptionHandler
         // says so, rather than Laravel's "Page Expired". A page's script gets the 419 itself (sessionTimer).
         $this->renderable(function (HttpException $e, Request $request) {
             if ($e->getStatusCode() === 419 && $e->getPrevious() instanceof TokenMismatchException && ! $request->expectsJson()) {
-                Alert::info('Session expired', 'Your session has ended. Please sign in again.')->persistent(true);
+                Alert::info(__('login.alerts.session_expired'), __('login.alerts.session_ended') . ' ' . __('login.alerts.sign_in_again'))->persistent(true);
 
                 return redirect()->route('login');
             }

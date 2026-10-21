@@ -44,7 +44,7 @@ check('the page asks for the requests that wait, newest first, once', () => {
     assert.match(p.requests[0].url, /\/documents\/edit-approvals\/list$/);
     assert.deepEqual(p.sent(), { page: 1, paginated: 25, search: '', status: 'pending' });
     assert.equal(p.node('#eaReload').props.disabled, true);
-    assert.match(body(p), /Loading/);
+    assert.match(body(p), /Memuat/);
 });
 
 check('the requests are drawn: who asked, which cell, what it was and becomes, what became of it', () => {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SetLocale;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Modules\Api\Http\Controllers\V1\AuditLogController;
@@ -29,10 +30,10 @@ use Modules\Api\Http\Middleware\PersonOnly;
 | Every endpoint belongs to the menu of its page and needs the permission of the method on it (ApiAccess): reading the
 | radios is Read on "Register Radio", archiving one is an Update on it. Not the `permission` middleware of the pages:
 | a route without a menu is closed here. Limits: 120 requests a minute per address before the token is looked at,
-| 60 a minute per token after.
+| 60 a minute per token after. Messages are in English, in Indonesian for a client that asks (Accept-Language: id).
 */
 Route::prefix('api/v1')->name('api.v1.')
-    ->middleware([ForceJsonResponse::class, LimitAddresses::class, ApiReady::class, 'auth:sanctum', EnsureApiAccount::class, 'throttle:api-v1', SubstituteBindings::class])
+    ->middleware([SetLocale::class . ':api', ForceJsonResponse::class, LimitAddresses::class, ApiReady::class, 'auth:sanctum', EnsureApiAccount::class, 'throttle:api-v1', SubstituteBindings::class])
     ->group(function () {
         Route::get('me', [MeController::class, 'show'])->name('me');
         Route::get('references', [ReferenceController::class, 'index'])->name('references');

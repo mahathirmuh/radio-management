@@ -23,10 +23,10 @@
             @endphp
             <li class="rm-nav-item rm-nav-group {{ $isDescendantActive ? 'is-open has-active' : '' }}" id="rm-navgroup-{{ $menu->id }}">
                 <button type="button" class="rm-nav-link" data-rm-group="{{ $menu->id }}"
-                    data-rm-first="{{ $first ? route($first->route) : '' }}" data-rm-tip="{{ $menu->title }}"
+                    data-rm-first="{{ $first ? route($first->route) : '' }}" data-rm-tip="{{ $menu->label() }}"
                     aria-expanded="{{ $isDescendantActive ? 'true' : 'false' }}" aria-controls="rm-navkids-{{ $menu->id }}">
                     <span class="rm-nav-icon"><i class="ti ti-{{ $menu->icon ?: 'folder' }}"></i></span>
-                    <span class="rm-nav-label">{{ $menu->title }}</span>
+                    <span class="rm-nav-label">{{ $menu->label() }}</span>
                     <i class="ti ti-chevron-down rm-nav-chevron" aria-hidden="true"></i>
                 </button>
                 <div class="rm-nav-kids" id="rm-navkids-{{ $menu->id }}">
@@ -39,7 +39,7 @@
             </li>
         @else
             {{-- Nested sub-menu: a heading followed by its items. --}}
-            <span class="rm-nav-subhead">{{ $menu->title }}</span>
+            <span class="rm-nav-subhead">{{ $menu->label() }}</span>
             @foreach ($children as $child)
                 @include('main.sidebar.menu-item', ['menu' => $child, 'allowedMenuIds' => $allowedMenuIds])
             @endforeach
@@ -47,10 +47,10 @@
     @else
         @if ($isRoot)
             <li class="rm-nav-item">
-                <a class="rm-nav-link {{ $isActive ? 'is-active' : '' }}" href="{{ $menuHref }}" data-rm-tip="{{ $menu->title }}"
+                <a class="rm-nav-link {{ $isActive ? 'is-active' : '' }}" href="{{ $menuHref }}" data-rm-tip="{{ $menu->label() }}"
                     @if ($isActive) aria-current="page" @endif>
                     <span class="rm-nav-icon"><i class="ti ti-{{ $menu->icon ?: 'point' }}"></i></span>
-                    <span class="rm-nav-label">{{ $menu->title }}</span>
+                    <span class="rm-nav-label">{{ $menu->label() }}</span>
                     @if ($showCount)
                         <span class="rm-badge {{ $count['color'] }} rm-nav-count" title="{{ $count['title'] }}">{{ $count['count'] }}</span>
                         <span class="rm-nav-dot {{ $count['color'] }}" aria-hidden="true"></span>
@@ -60,7 +60,7 @@
         @else
             <a class="rm-nav-link rm-nav-kid {{ $isActive ? 'is-active' : '' }}" href="{{ $menuHref }}"
                 @if ($isActive) aria-current="page" @endif>
-                <span class="rm-nav-label">{{ $menu->title }}</span>
+                <span class="rm-nav-label">{{ $menu->label() }}</span>
                 @if ($showCount)
                     <span class="rm-badge {{ $count['color'] }} rm-nav-count" title="{{ $count['title'] }}">{{ $count['count'] }}</span>
                 @endif

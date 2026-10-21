@@ -69,7 +69,7 @@ class CheckMenuPermission
         abort_unless(
             $user->guardRole($menu->id),
             Response::HTTP_FORBIDDEN,
-            'You do not have access to this menu.'
+            __('access.no_menu')
         );
 
         // 2) CRUD: the page shell (.index) needs only ACCESS; data operations
@@ -79,7 +79,7 @@ class CheckMenuPermission
             abort_unless(
                 $user->hasMenuPermission($menu->id, $permissionId),
                 Response::HTTP_FORBIDDEN,
-                'You are not allowed to perform this action.'
+                __('access.no_permission')
             );
         }
 

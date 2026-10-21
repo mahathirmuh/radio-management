@@ -52,6 +52,36 @@ class Menu extends Model
 	}
 
 	/**
+	 * The name of the entry in the language of the page (lang/<code>/menu.php): an entry by its route, a group by its
+	 * title in the table. One without a name there (added to the table later) shows its title as it is.
+	 */
+	public function label(): string
+	{
+		if ($this->route) {
+			return self::routeLabel($this->route, (string) $this->title);
+		}
+		$groups = __('menu.groups');
+
+		return is_array($groups) && isset($groups[$this->title]) ? (string) $groups[$this->title] : (string) $this->title;
+	}
+
+	/** The name of the entry of $route in the language of the page, else $fallback. */
+	public static function routeLabel(string $route, string $fallback): string
+	{
+		$names = __('menu.routes');
+
+		return is_array($names) && isset($names[$route]) ? (string) $names[$route] : $fallback;
+	}
+
+	/** The name of a section of the sidebar ("Dokumen", "Settings") in the language of the page. */
+	public static function sectionLabel(?string $section): string
+	{
+		$names = __('menu.sections');
+
+		return is_array($names) && isset($names[$section]) ? (string) $names[$section] : (string) $section;
+	}
+
+	/**
 	 * A group is only shown if it's itself granted and at least one of its
 	 * children is visible too, so revoking the group hides the whole branch
 	 * without having to touch every child individually.

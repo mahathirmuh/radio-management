@@ -3,19 +3,19 @@
      semua" uses the same rows. --}}
 <div class="dropdown" id="notifBell">
     <a href="#" class="rm-icon-btn rm-bell" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-        data-bs-offset="0,10" aria-expanded="false" aria-label="Notifikasi">
+        data-bs-offset="0,10" aria-expanded="false" aria-label="{{ __('ui.bell.title') }}">
         <i class="ti ti-bell" aria-hidden="true"></i>
         <span id="notifCount" class="rm-bell-count d-none"></span>
     </a>
     <div class="dropdown-menu dropdown-menu-end rm-notif-menu">
         <div class="rm-notif-head">
-            <h4 class="rm-notif-head-title">Notifikasi</h4>
-            <button type="button" class="rm-notif-readall" id="notifReadAll" hidden>Tandai semua dibaca</button>
+            <h4 class="rm-notif-head-title">{{ __('ui.bell.title') }}</h4>
+            <button type="button" class="rm-notif-readall" id="notifReadAll" hidden>{{ __('ui.bell.read_all') }}</button>
         </div>
         <div id="notifList" class="rm-notif-list">
-            <div class="rm-notif-empty">Belum ada notifikasi</div>
+            <div class="rm-notif-empty">{{ __('ui.bell.empty') }}</div>
         </div>
-        <a href="{{ route('notifications.index') }}" class="rm-notif-foot">Lihat semua notifikasi</a>
+        <a href="{{ route('notifications.index') }}" class="rm-notif-foot">{{ __('ui.bell.see_all') }}</a>
     </div>
 </div>
 
@@ -27,6 +27,7 @@
         const notifBell = {
             summary: "{{ route('notifications.summary') }}",
             readAll: "{{ route('notifications.read-all') }}",
+            words: @json(__('ui.bell')),
             busy: false,
             /** The colour of each kind (UserNotification::ICONS has the icon). */
             tones: { edit_requested: 'orange', edit_decided: 'blue', token_expiring: 'red', register_weekly: 'gray' },
@@ -45,7 +46,7 @@
                     `<span class="rm-notif-text"><span class="rm-notif-line"><span class="rm-notif-title">${esc(n.title)}</span>` +
                     `<span class="rm-notif-time" title="${esc(n.at)}">${esc(n.when)}</span></span>` +
                     (n.body ? `<span class="rm-notif-body">${esc(n.body)}</span>` : '') + `</span>` +
-                    (n.read ? '' : '<span class="rm-notif-dot" aria-label="Belum dibaca"></span>') + `</a>`;
+                    (n.read ? '' : `<span class="rm-notif-dot" aria-label="${esc(notifBell.words.unread)}"></span>`) + `</a>`;
             },
 
             show(data) {
@@ -53,7 +54,7 @@
                 $('#notifCount').text(count > 99 ? '99+' : String(count)).toggleClass('d-none', count === 0);
                 $('#notifReadAll').prop('hidden', count === 0);
                 const items = data && Array.isArray(data.items) ? data.items : [];
-                $('#notifList').html(items.length ? items.map(n => notifBell.entry(n)).join('') : '<div class="rm-notif-empty">Belum ada notifikasi</div>');
+                $('#notifList').html(items.length ? items.map(n => notifBell.entry(n)).join('') : `<div class="rm-notif-empty">${notifBell.esc(notifBell.words.empty)}</div>`);
             },
 
             load() {

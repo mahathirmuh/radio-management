@@ -65,8 +65,8 @@ class NotificationSweep
         $page = route('api-tokens.index', [], false);
 
         foreach ($ending()->where('tokenable_id', $user->id)->orderBy('expires_at')->get() as $token) {
-            $this->notifier->send($user, UserNotification::TOKEN_EXPIRING, 'Token API Anda akan berakhir',
-                "Token \"{$token->name}\" berakhir {$this->when($token->expires_at)}. Bila masih dipakai, buat token baru di API Tokens.",
+            $this->notifier->send($user, UserNotification::TOKEN_EXPIRING, fn (string $locale) => __('notifications.token_mine_title', [], $locale),
+                fn (string $locale) => __('notifications.token_mine_body', ['name' => $token->name, 'when' => $this->when($token->expires_at, $locale)], $locale),
                 $page, 'token-expiring:' . $token->id);
         }
 
@@ -78,9 +78,10 @@ class NotificationSweep
             return;
         }
         foreach ($ending()->whereIn('tokenable_id', $clients->keys()->all())->orderBy('expires_at')->get() as $token) {
-            $this->notifier->send($user, UserNotification::TOKEN_EXPIRING, 'Token API client akan berakhir',
-                "Token \"{$token->name}\" milik API client {$clients[$token->tokenable_id]} berakhir {$this->when($token->expires_at)}."
-                    . ' Bila aplikasinya masih memakai API, buatkan token baru di API Tokens.',
+            $this->notifier->send($user, UserNotification::TOKEN_EXPIRING, fn (string $locale) => __('notifications.token_client_title', [], $locale),
+                fn (string $locale) => __('notifications.token_client_body', [
+                    'name' => $token->name, 'client' => $clients[$token->tokenable_id], 'when' => $this->when($token->expires_at, $locale),
+                ], $locale),
                 $page, 'token-expiring:' . $token->id);
         }
     }
@@ -100,17 +101,16 @@ class NotificationSweep
         }
 
         $counts = app(RadioCheckService::class)->summary();
-        $issues = collect(RadioCheckService::ISSUES)
-            ->map(fn (array $issue, string $code) => $issue['label'] . ' ' . self::number((int) ($counts[$code] ?? 0)))
-            ->filter(fn (string $shown, string $code) => (int) ($counts[$code] ?? 0) > 0)
-            ->values();
-        if ($issues->isEmpty()) {
+        $codes = collect(array_keys(RadioCheckService::ISSUES))->filter(fn (string $code) => (int) ($counts[$code] ?? 0) > 0)->values();
+        if ($codes->isEmpty()) {
             return;
         }
-        $more = $issues->count() - self::WEEKLY_SHOWN;
+        $more = $codes->count() - self::WEEKLY_SHOWN;
 
-        $this->notifier->send($user, UserNotification::REGISTER_WEEKLY, 'Ringkasan register radio minggu ini',
-            'Perlu tindakan: ' . $issues->take(self::WEEKLY_SHOWN)->implode(' · ') . ($more > 0 ? " · dan {$more} cek lain" : '') . '.',
+        $this->notifier->send($user, UserNotification::REGISTER_WEEKLY, fn (string $locale) => __('notifications.weekly_title', [], $locale),
+            fn (string $locale) => __('notifications.weekly_body', ['issues' => $codes->take(self::WEEKLY_SHOWN)
+                ->map(fn (string $code) => RadioCheckService::label($code, $locale) . ' ' . self::number((int) $counts[$code], $locale))
+                ->implode(' · ') . ($more > 0 ? ' · ' . trans_choice('notifications.weekly_more', $more, ['count' => $more], $locale) : '')], $locale),
             route('dashboard.index', [], false), $key);
     }
 
@@ -120,22 +120,22 @@ class NotificationSweep
         UserNotification::query()->of($user)->whereNotNull('read_at')->where('read_at', '<', now()->subDays(self::KEEP_READ_DAYS))->delete();
     }
 
-    /** "hari ini (18-10-2026)", "besok (...)", "dalam 5 hari (...)". */
-    private function when(CarbonInterface $end): string
+    /** "hari ini (18-10-2026)", "besok (...)", "dalam 5 hari (...)", in $locale. */
+    private function when(CarbonInterface $end, string $locale): string
     {
         $days = (int) round(now()->startOfDay()->diffInDays($end->copy()->startOfDay()));
         $date = $end->format('d-m-Y');
 
         return match (true) {
-            $days <= 0 => "hari ini ({$date})",
-            $days === 1 => "besok ({$date})",
-            default => "dalam {$days} hari ({$date})",
+            $days <= 0 => __('notifications.today', ['date' => $date], $locale),
+            $days === 1 => __('notifications.tomorrow', ['date' => $date], $locale),
+            default => trans_choice('notifications.in_days', $days, ['days' => $days, 'date' => $date], $locale),
         };
     }
 
-    /** 1011 as the pages write it: 1.011. */
-    private static function number(int $count): string
+    /** 1011 as the pages of $locale write it: 1.011, 1,011. */
+    private static function number(int $count, string $locale): string
     {
-        return number_format($count, 0, ',', '.');
+        return $locale === 'en' ? number_format($count, 0, '.', ',') : number_format($count, 0, ',', '.');
     }
 }

@@ -30,7 +30,7 @@ class BreadcrumbsTest extends TestCase
     private function crumbs(string $url, ?User $user = null): array
     {
         $page = (string) $this->actingAs($user ?? $this->superAdmin())->get($url)->assertOk()->getContent();
-        $nav = (string) strstr((string) strstr($page, '<nav class="rm-topbar-title rm-topbar-crumbs" aria-label="Breadcrumb">'), '</nav>', true);
+        $nav = (string) strstr((string) strstr($page, '<nav class="rm-topbar-title rm-topbar-crumbs"'), '</nav>', true);
         $this->assertNotSame('', $nav, 'no path in the top bar');
         preg_match_all('#<li>\s*(?:<i class="ti ti-chevron-right" aria-hidden="true"></i>\s*)?(?:<a href="([^"]*)">([^<]*)</a>|<span\s*(aria-current="page")?\s*>([^<]*)</span>)\s*</li>#', $nav, $found, PREG_SET_ORDER);
         $this->assertSame(substr_count($nav, '<li>'), count($found), 'a crumb that is no link and no name');
@@ -53,8 +53,17 @@ class BreadcrumbsTest extends TestCase
         // A group has no page of its own: its name is not a link.
         $this->assertSame([['Dashboard', $dashboard, false], ['Master Data Radio', null, false], ['Tipe Radio', null, true]],
             $this->crumbs(route('radio-management.radio-type.index')));
-        $this->assertSame([['Dashboard', $dashboard, false], ['User Management', null, false], ['User Registered', null, true]],
+        $this->assertSame([['Dashboard', $dashboard, false], ['User Management', null, false], ['User Terdaftar', null, true]],
             $this->crumbs(route('user-management.user-registered.index')));
+    }
+
+    public function test_the_path_is_in_the_language_of_the_page(): void
+    {
+        $this->withUnencryptedCookie(\App\Services\Language::COOKIE, 'en');
+
+        $this->assertSame([['Dashboard', route('dashboard.index'), false], ['Radio Master Data', null, false], ['Radio Types', null, true]],
+            $this->crumbs(route('radio-management.radio-type.index')));
+        $this->assertSame([['Dashboard', route('dashboard.index'), false], ['Notifications', null, true]], $this->crumbs(route('notifications.index')));
     }
 
     public function test_a_page_below_its_entry_names_itself_after_the_entry_that_leads_back(): void
