@@ -16,9 +16,9 @@ const { check, done } = checker();
 
 const meta = (total, current = 1) => ({ current_page: current, per_page: 25, total, last_page: Math.max(1, Math.ceil(total / 25)), from: total ? 1 : null, to: total ? Math.min(25, total) : null, total_text: String(total) });
 const cell = (t, s = null, tone = null) => ({ t, s, tone });
-// A row as the server sends it.
-const row = (id, cells = {}, link = `http://snipeit.test/hardware/${id}`) => ({
-    id, link,
+// A row as the server sends it: an asset leads to its detail here (inside), another row to Snipe-IT's page.
+const row = (id, cells = {}, link = `/snipe-it/assets/${id}`, inside = true) => ({
+    id, link, inside,
     cells: {
         asset_tag: cell(`MTI-HT-00${id}`), name: cell(null), serial: cell(`867TBT000${id}`), model: cell('Motorola XiR P6620i'), category: cell('HT'),
         status: cell('Deployed', null, 'blue'), holder: cell('Ann O\'Neil', 'User'), location: cell(null), updated: cell('21-10-2026 09:15'),
@@ -44,11 +44,12 @@ check('the page asks for its first page in its own order, and shows that it is l
 });
 
 // ---------------------------------------------------------------- a row
-check('a row: the asset tag a link to Snipe-IT, the status a badge in its colour, the holder with what it is, a dash for nothing', () => {
+check('a row: the asset tag a link to its detail here, the status a badge in its colour, the holder with what it is, a dash for nothing', () => {
     const p = loaded();
     const rows = body(p).split('</tr>');
     assertWellFormed(body(p), 'the rows');
-    assert.match(rows[0], /<td class=""><a href="http:\/\/snipeit\.test\/hardware\/1" class="snipe-link" target="_blank" rel="noopener noreferrer" title="Buka di Snipe-IT">MTI-HT-001<\/a><\/td>/);
+    assert.match(rows[0], /<td class=""><a href="\/snipe-it\/assets\/1" class="snipe-link" title="Lihat detail">MTI-HT-001<\/a><\/td>/);
+    assert.doesNotMatch(rows[0], /target=/, 'the detail opens in the same tab');
     assert.match(rows[0], /<td class=""><span class="rm-none">—<\/span><\/td>/);
     assert.match(rows[0], /<td class=""><span class="rm-code">867TBT0001<\/span><\/td>/);
     assert.match(rows[0], /<td class="is-badge"><span class="rm-badge blue">Deployed<\/span><\/td>/);
@@ -58,16 +59,16 @@ check('a row: the asset tag a link to Snipe-IT, the status a badge in its colour
     assert.match(p.node('#snipePagination').html, /1 – 2 .* 2/);
 });
 
-check('everything from Snipe-IT is escaped; a link-less row shows its tag in bold; an unknown colour is grey', () => {
+check('everything from Snipe-IT is escaped; a page of Snipe-IT opens in a tab of its own; a link-less row shows its tag in bold; an unknown colour is grey', () => {
     const p = loaded([row(3, {
         asset_tag: cell('<img src=x onerror=alert(1)>'),
         name: cell('"><script>alert(2)</script>', '<b>sub</b>'),
         status: cell('Odd', null, 'pink" onmouseover="alert(3)'),
-    }, 'http://snipeit.test/hardware/3?a="b"'), row(4, {}, null)]);
+    }, 'http://snipeit.test/hardware/3?a="b"', false), row(4, {}, null)]);
     const html = body(p);
     assertWellFormed(html, 'the rows');
     assert.doesNotMatch(html, /<img|<script|<b>/);
-    assert.match(html, /href="http:\/\/snipeit\.test\/hardware\/3\?a=&quot;b&quot;"/);
+    assert.match(html, /<a href="http:\/\/snipeit\.test\/hardware\/3\?a=&quot;b&quot;" class="snipe-link" target="_blank" rel="noopener noreferrer" title="Buka di Snipe-IT">/);
     assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;<\/a>/);
     assert.match(html, /&quot;&gt;&lt;script&gt;alert\(2\)&lt;\/script&gt;<div class="rm-line2">&lt;b&gt;sub&lt;\/b&gt;<\/div>/);
     assert.match(html, /<span class="rm-badge gray">Odd<\/span>/);

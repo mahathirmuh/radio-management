@@ -71,8 +71,28 @@ class SnipeItLanguageTest extends TestCase
         $activity = $this->getJson(route('snipe-it.history.list'))->assertOk()->json('data');
         $this->assertSame(['Checkout', 'Asset', 'User'], [$activity[0]['cells']['action']['t'], $activity[0]['cells']['item']['s'], $activity[0]['cells']['target']['s']]);
         $statuses = $this->getJson(route('snipe-it.catalog.list', ['tab' => 'statuslabels']))->assertOk()->json('data');
-        $this->assertSame(['Deployable', 'Undeployable', 'Archived'], array_map(fn ($row) => $row['cells']['kind']['t'], $statuses));
+        $this->assertSame(['Deployable', 'Undeployable', 'Archived', 'Deployable'], array_map(fn ($row) => $row['cells']['kind']['t'], $statuses));
         $this->assertSame('Waiting for "repair"', $statuses[1]['cells']['notes']['t']);
+    }
+
+    public function test_the_detail_of_an_asset_is_in_english(): void
+    {
+        $this->fakeSnipeIt(self::snipeAssetAnswers(150));
+        $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+
+        foreach (['<h1 class="rm-topbar-title">Snipe-IT · Asset details</h1>', 'Snipe-IT asset · HT', '>Holder &amp; location</h2>',
+            '>Purchase &amp; warranty</h2>', '<dt>Checked out to</dt>', '3 checkouts · 2 checkins', '12 months · until 02-01-2027',
+            '>Custom fields</h2>', 'Hidden', '150 events, newest first', 'Showing the 3 newest of 150 events. The rest are in Snipe-IT.',
+            '<span class="snipe-sub">to Ann O&#039;Neil (User)</span>', ' · by Admin One</div>', '<span>Created</span>', '<span>Updated</span>',
+            '<span class="rm-change-field">Location</span>', 'Cost 350,000.00', '>Licenses</h2>', '>Assets attached</h2>', '>Dates &amp; audit</h2>',
+            'Open in Snipe-IT', 'Fetched '] as $part) {
+            $this->assertStringContainsString($part, $page, $part);
+        }
+        foreach (['Detail Aset', 'Pemegang', 'Pembelian', 'kali checkout', 'bulan', 'Disembunyikan', 'kejadian', 'oleh ', 'Dibuat', 'Diubah',
+            'Biaya', 'Buka di Snipe-IT', 'Diambil', 'Waktu &amp; audit'] as $part) {
+            $this->assertStringNotContainsString($part, $page, $part);
+        }
+        $this->get(route('snipe-it.assets.show', 99))->assertNotFound();
     }
 
     public function test_without_an_answer_of_snipe_it_the_pages_say_why_in_english(): void

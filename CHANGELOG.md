@@ -8,6 +8,32 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.16.0] - 2026-10-21
+
+### Ditambahkan
+
+- Snipe-IT: **detail aset**. Asset tag di daftar Aset (juga aset di Log aktivitas dan Maintenance) membuka halaman
+  detailnya di aplikasi ini, berisi:
+  - data aset, pemegang dan lokasi;
+  - pembelian dan garansi (harga beli, nilai buku, sisa garansi, umur);
+  - custom field (misalnya Radio ID dan MDC Code), catatan;
+  - riwayat lengkap di Snipe-IT (checkout, checkin, perubahan lama → baru);
+  - maintenance, lisensi, aset yang di-checkout ke aset ini, dan tanggal audit.
+
+  Tombol **Buka di Snipe-IT** tetap ada untuk komponen dan file, yang tidak diberikan API Snipe-IT 6.2.
+
+### Diubah
+
+- Snipe-IT, Log aktivitas: kolom Perubahan memakai nama field dan nilai yang mudah dibaca ("Status: Ready to Deploy →
+  Deployed", "Lokasi: Plant A"), bukan `status_id: 2 → 4`.
+
+### Keamanan
+
+- Custom field yang namanya menandakan rahasia (password, PIN, BitLocker, kunci) tidak ditampilkan, begitu juga nilai
+  password di riwayat. Kunci lisensi tetap tidak pernah dikirim ke browser.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.15.0] - 2026-10-21
 
 ### Ditambahkan
@@ -882,6 +908,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.16.0]: https://github.com/mahathirmuh/radio-management/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/mahathirmuh/radio-management/compare/v1.14.5...v1.15.0
 [1.14.5]: https://github.com/mahathirmuh/radio-management/compare/v1.14.4...v1.14.5
 [1.14.4]: https://github.com/mahathirmuh/radio-management/compare/v1.14.3...v1.14.4

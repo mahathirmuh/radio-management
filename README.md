@@ -974,17 +974,26 @@ untuk dibaca**: aplikasi ini hanya bertanya ke API Snipe-IT (GET) dan tidak pern
 | Submenu | Isi |
 | --- | --- |
 | Ringkasan | Jumlah setiap daftar, aset per status, dan aset per kategori (8 terbesar); tiap angka membuka daftarnya |
-| Aset | Semua aset: asset tag, nama, SN, model, kategori, status, pemegang, lokasi, terakhir diubah; filter kategori dan status (`?category=15`, `?status=4`, `?q=`) |
+| Aset | Semua aset: asset tag, nama, SN, model, kategori, status, pemegang, lokasi, terakhir diubah; filter kategori dan status (`?category=15`, `?status=4`, `?q=`). Asset tag membuka **detail aset** (lihat di bawah) |
 | Katalog | Model, kategori, manufaktur, status, supplier, custom field, fieldset, depresiasi |
 | Orang & Organisasi | User (nama, email, username, NIK, jabatan, departemen, lokasi, jumlah aset, aktif), departemen, lokasi, company, grup |
 | Lisensi & Stok | Lisensi (seat, sisa seat, tanggal beli dan kedaluwarsa), aksesori, consumable, komponen, kit |
 | Riwayat | Log aktivitas Snipe-IT (dibuat, diubah, checkout, checkin, dihapus, audit; filter aksi) dan maintenance |
 
-- Setiap daftar bisa dicari, diurutkan per kolom (kolom yang bisa diurutkan Snipe-IT), dan dibuka per halaman. Asset
-  tag, nama, atau item di tiap baris membuka halaman barisnya di Snipe-IT sendiri.
-- **Yang tidak pernah tampil**: kunci lisensi, telepon dan alamat user, harga, dan isian lain yang tidak menjadi kolom:
-  server hanya meneruskan kolom daftar (`modules/SnipeIt/Services/Lists.php`) ke browser. Teks Snipe-IT ditampilkan
-  sebagai teks biasa.
+- Setiap daftar bisa dicari, diurutkan per kolom (kolom yang bisa diurutkan Snipe-IT), dan dibuka per halaman. Sebuah
+  aset (di daftar Aset, Log aktivitas, dan Maintenance) membuka detailnya di aplikasi ini; baris lain membuka halamannya
+  di Snipe-IT sendiri.
+- **Detail aset** (`/snipe-it/assets/{id}`, butuh Read pada halaman Aset): data aset, pemegang dan lokasi (checkout
+  terakhir, rencana kembali, jumlah checkout/checkin), pembelian dan garansi (supplier, no. order, tanggal dan harga beli,
+  nilai buku, garansi, umur), custom field model, catatan, **riwayat** di Snipe-IT (checkout ke siapa, checkin dari
+  siapa, perubahan field lama → baru dengan nama field dan nilainya, bukan `status_id: 2 → 4`; 100 kejadian terbaru),
+  maintenance, lisensi, aset yang di-checkout ke aset ini, serta tanggal audit. API Snipe-IT 6.2 tidak memberi komponen
+  dan file sebuah aset; keduanya tetap di Snipe-IT (tombol **Buka di Snipe-IT**).
+- **Yang tidak pernah tampil**: kunci lisensi, telepon dan alamat user, custom field yang namanya menandakan rahasia
+  (password, PIN, BitLocker, kunci, …; ditulis "Disembunyikan"), nilai password di riwayat, dan isian lain yang tidak
+  menjadi kolom: server hanya meneruskan kolom daftar (`modules/SnipeIt/Services/Lists.php`) dan isi detail aset
+  (`AssetPage`) ke browser. Harga beli dan nilai buku hanya ada di detail aset. Teks Snipe-IT ditampilkan sebagai teks
+  biasa.
 - Jawaban Snipe-IT disimpan `SNIPEIT_CACHE_MINUTES` menit (bawaan 5); tombol ambil ulang di tiap halaman bertanya lagi
   saat itu juga. Bila Snipe-IT tidak bisa dihubungi, halaman bilang begitu, dan Snipe-IT tidak ditanya lagi selama satu
   menit (kecuali tombol ambil ulang ditekan), supaya halaman lain tidak ikut menunggu.
@@ -1035,8 +1044,10 @@ modules/Dashboard/          diganti menjadi dashboard radio
 modules/SnipeIt/            isi Snipe-IT, hanya dibaca (menu Snipe-IT)
   Services/                 SnipeItClient (hanya GET, token tidak pernah keluar dari server), Lists (halaman, tab,
                             kolom: satu-satunya yang dikirim ke browser), Rows (baris API → teks kolom), Answers
-                            (jawaban disimpan sementara), Summary (jumlah tiap daftar, aset per status/kategori)
-  Http/Controllers/SnipeItController.php    Ringkasan, halaman per kelompok, daftar per tab
+                            (jawaban disimpan sementara), Summary (jumlah tiap daftar, aset per status/kategori),
+                            AssetDetail (semua jawaban tentang satu aset sekaligus), AssetPage (detail aset untuk
+                            halaman), Names (field dan id riwayat Snipe-IT menjadi nama)
+  Http/Controllers/SnipeItController.php    Ringkasan, halaman per kelompok, daftar per tab, detail aset
 database/seeders/SnipeItMenuSeeder.php      grup Snipe-IT dan halamannya (migrasi 2026_10_21_110000_add_snipe_it_menu)
 modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist, Persetujuan Edit)
   Config/sharepoint-docs.php        folder dan workbook yang ditampilkan, batas ukuran dan waktu

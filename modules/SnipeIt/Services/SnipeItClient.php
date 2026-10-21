@@ -141,10 +141,10 @@ final class SnipeItClient
             ->timeout(self::TIMEOUT);
     }
 
-    /** Only the endpoints the lists name (Lists): letters and slashes, nothing a request could put in. */
+    /** Only the endpoints the lists name (Lists), and a row of one by its number ("hardware/1388"): nothing a request could put in. */
     private function address(string $endpoint): string
     {
-        if (! preg_match('#^[a-z]+(/[a-z]+)*$#', $endpoint)) {
+        if (! preg_match('#^[a-z]+(/([a-z]+|[1-9]\d{0,9}))*$#', $endpoint)) {
             throw new InvalidArgumentException("Not an endpoint of Snipe-IT: {$endpoint}");
         }
 
@@ -152,13 +152,18 @@ final class SnipeItClient
     }
 
     /**
-     * The body of an answer. Snipe-IT says no with a status (401 for a wrong token), or with 200 and "status": "error".
+     * The body of an answer. Snipe-IT says no with a status (401 for a wrong token), or with 200 and "status": "error" (a
+     * row that is not there: "Asset not found").
      *
      * @return array<string, mixed>
      */
     private function read(Response $response, string $endpoint): array
     {
         $body = $response->json();
+        $said = is_array($body) ? ($body['messages'] ?? $body['message'] ?? null) : null;
+        if ($response->status() === 200 && ($body['status'] ?? null) === 'error' && is_string($said) && preg_match('/not found|does not exist/i', $said)) {
+            throw new SnipeItUnavailable(SnipeItUnavailable::NOT_FOUND, 404);
+        }
         if (! $response->successful() || ! is_array($body) || ($body['status'] ?? null) === 'error') {
             Log::warning('Snipe-IT answered with an error.', ['endpoint' => $endpoint, 'status' => $response->status()]);
             throw new SnipeItUnavailable(

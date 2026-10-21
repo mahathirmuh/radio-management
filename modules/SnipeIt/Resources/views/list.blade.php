@@ -153,7 +153,10 @@
                 const text = esc(cell.t);
                 let html;
                 if (head.type === 'link' && row.link) {
-                    html = `<a href="${esc(row.link)}" class="snipe-link" target="_blank" rel="noopener noreferrer" title="${esc(snipeText.open_row)}">${text}</a>`;
+                    // The detail of an asset is a page here; any other row's page is Snipe-IT's, in a tab of its own.
+                    html = row.inside ?
+                        `<a href="${esc(row.link)}" class="snipe-link" title="${esc(snipeText.open_detail)}">${text}</a>` :
+                        `<a href="${esc(row.link)}" class="snipe-link" target="_blank" rel="noopener noreferrer" title="${esc(snipeText.open_row)}">${text}</a>`;
                 } else if (head.type === 'link' || head.type === 'strong') {
                     html = `<span class="rm-strong">${text}</span>`;
                 } else if (head.type === 'code') {

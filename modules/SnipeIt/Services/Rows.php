@@ -47,7 +47,8 @@ final class Rows
     /**
      * @param  array<string, mixed>  $list  Lists::get()
      * @param  array<string, mixed>  $row  a row of the API
-     * @return array{id: int|null, link: string|null, cells: array<string, array{t: ?string, s: ?string, tone: ?string}>}
+     * @return array{id: int|null, link: string|null, inside: bool, cells: array<string, array{t: ?string, s: ?string, tone: ?string}>}
+     *     link: the page of the row; inside: it is a page of this application (the detail of an asset), not Snipe-IT's
      */
     public static function show(array $list, array $row, ?string $web): array
     {
@@ -55,10 +56,12 @@ final class Rows
         foreach ($list['columns'] as $key => $column) {
             $cells[$key] = self::cell($column, $row);
         }
+        [$link, $inside] = self::link($list, $row, $web);
 
         return [
             'id' => is_numeric($row['id'] ?? null) ? (int) $row['id'] : null,
-            'link' => self::link($list['web'] ?? null, $row, $web),
+            'link' => $link,
+            'inside' => $inside,
             'cells' => $cells,
         ];
     }
@@ -82,7 +85,7 @@ final class Rows
             $text = self::word($column['words'] ?? 'yes_no', $yes ? 'yes' : 'no');
             $tone = $yes ? 'green' : 'gray';
         } elseif ($type === 'changes') {
-            $text = self::changes($value);
+            $text = app(Names::class)->line($value);
         } elseif ($type === 'number') {
             $text = is_numeric($value) ? Language::number(+$value, floor(+$value) == +$value ? 0 : 2) : self::text($value);
         } elseif ($type === 'date') {
@@ -166,40 +169,34 @@ final class Rows
         return null;
     }
 
-    /** What an entry of the activity log changed, on one line: "Status: Ready → Deployed · Location: Gudang". */
-    public static function changes(mixed $meta): ?string
+    /**
+     * The page of the row: the detail of an asset here (a list's 'detail', or an entry of the activity log about an asset),
+     * else the row's page in Snipe-IT itself when the list has one and Snipe-IT's address is known.
+     *
+     * @return array{0: ?string, 1: bool} the address, and whether it is a page of this application
+     */
+    private static function link(array $list, array $row, ?string $web): array
     {
-        if (! is_array($meta) || $meta === []) {
-            return null;
+        $asset = fn (mixed $id) => is_numeric($id) && (int) $id > 0 ? [route('snipe-it.assets.show', (int) $id), true] : [null, false];
+        if (isset($list['detail'])) {
+            return $asset(data_get($row, $list['detail']));
         }
-        $parts = [];
-        foreach ($meta as $field => $change) {
-            $old = is_array($change) ? self::text($change['old'] ?? null) : null;
-            $new = is_array($change) ? self::text($change['new'] ?? null) : self::text($change);
-            $parts[] = self::text((string) $field) . ': ' . ($old !== null ? $old . ' → ' : '') . ($new ?? '—');
-        }
-
-        return Str::limit(implode(' · ', $parts), self::LONGEST * 2);
-    }
-
-    /** The page of the row in Snipe-IT itself, when the list has one and Snipe-IT's address is known. */
-    private static function link(?string $page, array $row, ?string $web): ?string
-    {
-        if ($page === null || $web === null) {
-            return null;
-        }
+        $page = $list['web'] ?? null;
         if ($page === '{item}') {
             $type = Str::lower((string) data_get($row, 'item.type'));
             $id = data_get($row, 'item.id');
+            if ($type === 'asset') {
+                return $asset($id);
+            }
 
-            return isset(self::ITEM_PAGES[$type]) && is_numeric($id) ? $web . '/' . self::ITEM_PAGES[$type] . '/' . (int) $id : null;
+            return $web !== null && isset(self::ITEM_PAGES[$type]) && is_numeric($id) ? [$web . '/' . self::ITEM_PAGES[$type] . '/' . (int) $id, false] : [null, false];
         }
-        $id = data_get($row, str_contains($page, '{asset}') ? 'asset.id' : 'id');
-        if (! is_numeric($id)) {
-            return null;
+        $id = data_get($row, 'id');
+        if ($page === null || $web === null || ! is_numeric($id)) {
+            return [null, false];
         }
 
-        return $web . '/' . str_replace(['{id}', '{asset}'], (string) (int) $id, $page);
+        return [$web . '/' . str_replace('{id}', (string) (int) $id, $page), false];
     }
 
     /** A word of the page's (SnipeIt::snipe.<group>.<key>), or null when the group has none for $key. */

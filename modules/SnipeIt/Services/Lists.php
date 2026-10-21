@@ -28,14 +28,15 @@ final class Lists
     public const ACTIONS = ['checkout', 'checkin from', 'create', 'update', 'delete', 'audit'];
 
     /**
-     * endpoint: the API's; web: Snipe-IT's own page of a row ({id}: the row's, {item}: the page of the item an entry of the
-     * activity log is about); order: [column, asc|desc] when nobody chose one; local: Snipe-IT answers the whole list at
-     * once (no pages, no search), so pages and search are done here; filters: what the list can be cut by.
+     * endpoint: the API's; detail: where in a row the asset is whose detail (a page here, SnipeIt::asset) the row leads to;
+     * web: else Snipe-IT's own page of a row ({id}: the row's, {item}: the page of the item an entry of the activity log is
+     * about, an asset's detail here); order: [column, asc|desc] when nobody chose one; local: Snipe-IT answers the whole list
+     * at once (no pages, no search), so pages and search are done here; filters: what the list can be cut by.
      */
     private const LISTS = [
         'assets' => [
             'endpoint' => 'hardware',
-            'web' => 'hardware/{id}',
+            'detail' => 'id',
             'order' => ['updated', 'desc'],
             'filters' => ['category', 'status'],
             'columns' => [
@@ -280,7 +281,7 @@ final class Lists
         ],
         'maintenances' => [
             'endpoint' => 'maintenances',
-            'web' => 'hardware/{asset}',
+            'detail' => 'asset.id',
             'order' => ['start', 'desc'],
             'columns' => [
                 'title' => ['path' => 'title', 'type' => 'strong', 'sort' => 'title'],

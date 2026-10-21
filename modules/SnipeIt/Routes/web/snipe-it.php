@@ -18,4 +18,6 @@ Route::middleware(['web', 'auth', 'permission', RequireMenu::class])->prefix('sn
             Route::get($group, 'index')->name("{$group}.index")->defaults('group', $group);
             Route::get("{$group}/list", 'list')->name("{$group}.list")->defaults('group', $group);
         }
+        // The detail of one asset (a page of the entry "Aset": needs Read on it).
+        Route::get('assets/{asset}', 'asset')->whereNumber('asset')->name('assets.show');
     });

@@ -170,9 +170,10 @@ class SnipeItTest extends TestCase
         $this->assertSame(['key' => 'updated', 'order' => 'desc'], $answer['sort']);
 
         [$first, $second] = $answer['data'];
-        $this->assertSame(['id', 'link', 'cells'], array_keys($first));
+        $this->assertSame(['id', 'link', 'inside', 'cells'], array_keys($first));
         $this->assertSame(11, $first['id']);
-        $this->assertSame('http://snipeit.test/hardware/11', $first['link']);
+        // An asset leads to its detail here; Snipe-IT's own page is a button there.
+        $this->assertSame([route('snipe-it.assets.show', 11), true], [$first['link'], $first['inside']]);
         $this->assertSame(['asset_tag', 'name', 'serial', 'model', 'category', 'status', 'holder', 'location', 'updated'], array_keys($first['cells']));
         // Snipe-IT's escaped texts as plain text (the page escapes them again), without markup.
         $this->assertSame(['t' => 'Radio one', 's' => null, 'tone' => null], $first['cells']['name']);
@@ -232,7 +233,7 @@ class SnipeItTest extends TestCase
         $this->assertSame(['t' => "Ann O'Neil", 's' => 'ann@example.test', 'tone' => null], $users['data'][0]['cells']['name']);
         $this->assertSame(['t' => 'Aktif', 's' => null, 'tone' => 'green'], $users['data'][0]['cells']['active']);
         $this->assertSame(['t' => 'Nonaktif', 's' => null, 'tone' => 'gray'], $users['data'][1]['cells']['active']);
-        $this->assertSame('http://snipeit.test/users/7', $users['data'][0]['link']);
+        $this->assertSame(['http://snipeit.test/users/7', false], [$users['data'][0]['link'], $users['data'][0]['inside']]);
     }
 
     public function test_a_list_snipe_it_gives_whole_is_searched_and_paged_here(): void
@@ -264,9 +265,10 @@ class SnipeItTest extends TestCase
         [$checkout, $other] = $answer['data'];
         $this->assertSame(['t' => 'Checkout', 's' => null, 'tone' => 'blue'], $checkout['cells']['action']);
         $this->assertSame(['t' => 'MTI-HT-001', 's' => 'Aset', 'tone' => null], $checkout['cells']['item']);
-        $this->assertSame('http://snipeit.test/hardware/11', $checkout['link']);
+        $this->assertSame([route('snipe-it.assets.show', 11), true], [$checkout['link'], $checkout['inside']]);
         $this->assertSame(['t' => "Ann O'Neil", 's' => 'User', 'tone' => null], $checkout['cells']['target']);
-        $this->assertSame('status_id: 2 → 4', $checkout['cells']['changes']['t']);
+        // The field by its name, the status by its name (from Snipe-IT's list of statuses).
+        $this->assertSame('Status: Ready to Deploy → Deployed', $checkout['cells']['changes']['t']);
         $this->assertSame('Battery swapped', $checkout['cells']['note']['t']);
         $this->assertSame('21-10-2026 10:30', $checkout['cells']['time']['t']);
         // An action and a kind of item this page has no word for: as Snipe-IT names them, grey, without a page.
@@ -348,6 +350,132 @@ class SnipeItTest extends TestCase
         $this->assertMatchesRegularExpression('#<option value="checkin from"\s*>Checkin</option>#', $history);
         $this->assertStringContainsString('<option value="checkout" selected>Checkout</option>', $history);
         $this->assertStringContainsString('filters: {"action":"checkout"}', $history);
+    }
+
+    public function test_an_asset_has_a_page_with_everything_snipe_it_says_about_it(): void
+    {
+        $this->fakeSnipeIt(self::snipeAssetAnswers());
+        $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+
+        // The title in the bar, the path back to the list of assets.
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Snipe-IT · Detail Aset</h1>', $page);
+        $this->assertMatchesRegularExpression('#<a href="' . preg_quote(route('snipe-it.assets.index'), '#') . '">Aset</a>\s*</li>\s*<li>\s*<i class="ti ti-chevron-right" aria-hidden="true"></i>\s*<span\s+aria-current="page"\s*>MTI-HT-001</span>#', $page);
+        // The head: the tag, the name (its markup taken away), the serial, the model, the status, Snipe-IT's picture and page.
+        $this->assertMatchesRegularExpression('#<div class="rm-hero-id"><span>MTI-HT-001</span><span class="snipe-hero-name">Radio one</span></div>#', $page);
+        $this->assertStringContainsString('<span class="snipe-mono">SN 867TBT0001</span>', $page);
+        $this->assertStringContainsString('<span class="rm-badge blue">Deployed</span>', $page);
+        $this->assertStringContainsString('<img src="https://snipeit.test/uploads/models/p6620i.png" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">', $page);
+        $this->assertStringContainsString('<a class="btn-rm secondary" href="http://snipeit.test/hardware/11" target="_blank" rel="noopener noreferrer">', $page);
+
+        // The facts, each by its name.
+        $fact = fn (string $label) => preg_match('#<dt>' . preg_quote($label, '#') . '</dt>\s*<dd[^>]*>(.*?)</dd>#s', $page, $found) ? trim(preg_replace('/\s+/', ' ', strip_tags($found[1]))) : null;
+        $this->assertSame("Ann O&#039;Neil User · ann · ann@example.test", $fact('Pemegang'));
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="http://snipeit.test/users/7"\s+target="_blank" rel="noopener noreferrer"\s*>Ann O&\#039;Neil</a>#', $page);
+        $this->assertSame('Warehouse &amp; Logistics', $fact('Lokasi'));
+        $this->assertSame('IT Store', $fact('Lokasi default'));
+        $this->assertSame('21-10-2026 10:30', $fact('Checkout terakhir'));
+        $this->assertSame('3 kali checkout · 2 kali checkin', $fact('Dipinjamkan'));
+        $this->assertSame('Motorola XiR P6620i XIR P6620i', $fact('Model'));
+        $this->assertSame('Radio Supplier', $fact('Supplier'));
+        $this->assertSame('PO-47841', $fact('No. order'));
+        $this->assertSame('07-10-2024', $fact('Tanggal beli'));
+        $this->assertSame('1,234.00', $fact('Harga beli'));
+        $this->assertSame('987.00', $fact('Nilai buku'));
+        $this->assertSame('12 bulan · sampai 02-01-2027', $fact('Garansi'));
+        $this->assertMatchesRegularExpression('/^\d+ tahun/', (string) $fact('Umur'));
+        $this->assertSame('—', $fact('Akhir masa pakai'));
+        $this->assertSame('07-10-2027', $fact('Audit berikutnya'));
+        // The custom fields of the model; one whose name says it is a secret is not shown.
+        $this->assertSame('4021', $fact('Radio ID'));
+        $this->assertSame('—', $fact('MDC Code'));
+        $this->assertSame('Disembunyikan', $fact('BIOS Password'));
+        $this->assertStringNotContainsString('bios-secret-123', $page);
+        // The notes keep their lines, without markup.
+        $this->assertStringContainsString('<div class="rm-cardbox-body snipe-text">NEW RADIO' . "\n" . 'Battery SN 50002F1488A5 alert(1)</div>', $page);
+
+        // The history, newest first: who got it, the changes in words (a password never), the note without its markup.
+        preg_match_all('#<div class="rm-timeline-title">\s*<span>([^<]+)</span>#', $page, $actions);
+        $this->assertSame(['Checkout', 'Diubah', 'Dibuat'], $actions[1]);
+        $this->assertStringContainsString('<span class="snipe-sub">ke Ann O&#039;Neil (User)</span>', $page);
+        $this->assertStringContainsString('<div class="rm-timeline-meta">21-10-2026 10:30 · oleh Admin One</div>', $page);
+        $this->assertStringContainsString('<div class="rm-timeline-text snipe-text">Handed over at the gate</div>', $page);
+        preg_match_all('#<span class="rm-change-field">([^<]*)</span>\s*<span class="rm-change-old">([^<]*)</span>\s*<i class="ti ti-arrow-right" aria-hidden="true"></i>\s*<span class="rm-change-new">([^<]*)</span>#', $page, $changes, PREG_SET_ORDER);
+        $this->assertSame([
+            ['Status', 'Ready to Deploy', 'Deployed'],
+            ['Radio ID', '', '4021'],
+            ['Lokasi', 'Warehouse &amp; Logistics', 'IT Store'],
+            ['Password', '••••••', '••••••'],
+        ], array_map(fn ($change) => array_slice($change, 1), $changes));
+        $this->assertStringNotContainsString('new-secret', $page);
+        $this->assertStringContainsString('3 kejadian, terbaru di atas', $page);
+        $this->assertStringNotContainsString('Selebihnya ada di Snipe-IT', $page);
+        // Its maintenance, the licence by its name (never its key), what is checked out to it (a page here too).
+        $this->assertStringContainsString('<div class="snipe-list-title">Battery swap</div>', $page);
+        $this->assertMatchesRegularExpression('#Repair · 10-09-2026 – 12-09-2026 · Radio Supplier · Biaya 350,000.00\s*</div>#', $page);
+        $this->assertStringContainsString('Old battery &amp; charger checked', $page);
+        $this->assertStringContainsString('>Radio Programming Software</a>', $page);
+        $this->assertStringNotContainsString('SECRET-PROGRAMMING-KEY', $page);
+        $this->assertStringContainsString('<a class="snipe-link" href="' . route('snipe-it.assets.show', 99) . '">MTI-HS-099</a>', $page);
+
+        // What was asked: the asset, its history, maintenances, licences and what is checked out to it, all at once; GET only.
+        $this->assertSame([[]], array_column($this->snipeAskedAbout('hardware/11'), 'query'));
+        $this->assertSame(['item_type' => 'asset', 'item_id' => '11', 'limit' => '100', 'sort' => 'created_at', 'order' => 'desc'], $this->snipeAskedAbout('reports/activity')[0]['query']);
+        $this->assertSame(['asset_id' => '11', 'limit' => '50', 'sort' => 'start_date', 'order' => 'desc'], $this->snipeAskedAbout('maintenances')[0]['query']);
+        $this->assertCount(1, $this->snipeAskedAbout('hardware/11/licenses'));
+        $this->assertSame(['assigned_to' => '11', 'assigned_type' => 'App\\Models\\Asset', 'limit' => '50'], $this->snipeAskedAbout('hardware')[0]['query']);
+        $this->assertSame(['GET'], array_values(array_unique(array_column($this->snipeAsked, 'method'))));
+        $this->assertStringNotContainsString(self::SNIPE_TOKEN, $page);
+
+        // Kept: opening it again asks nothing; "Refresh" asks again and goes back to the page's own address.
+        $asked = count($this->snipeAsked);
+        $this->get(route('snipe-it.assets.show', 11))->assertOk();
+        $this->assertCount($asked, $this->snipeAsked);
+        $this->get(route('snipe-it.assets.show', ['asset' => 11, 'fresh' => 1]))->assertRedirect(route('snipe-it.assets.show', 11));
+        $this->assertCount(2, $this->snipeAskedAbout('hardware/11'));
+    }
+
+    public function test_a_long_history_says_where_the_rest_is_and_an_asset_snipe_it_does_not_have_is_not_found(): void
+    {
+        $this->fakeSnipeIt(self::snipeAssetAnswers(150));
+        $this->actingAs($this->superAdmin());
+
+        $page = (string) $this->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+        $this->assertStringContainsString('150 kejadian, terbaru di atas', $page);
+        $this->assertStringContainsString('Menampilkan 3 kejadian terbaru dari 150. Selebihnya ada di Snipe-IT.', $page);
+
+        $this->get(route('snipe-it.assets.show', 99))->assertNotFound();
+        $this->get('/snipe-it/assets/abc')->assertNotFound();
+    }
+
+    public function test_the_detail_of_an_asset_needs_read_on_the_page_of_the_assets(): void
+    {
+        $this->fakeSnipeIt(self::snipeAssetAnswers());
+        $viewer = $this->makeUser('viewer@test.local', 'Viewer Radio');
+        $role = (int) DB::table('roles')->where('name', 'Viewer Radio')->value('id');
+        $assets = (int) DB::table('menu')->where('route', 'snipe-it.assets.index')->value('id');
+        $group = (int) DB::table('menu')->where('title', 'Snipe-IT')->whereNull('parent_id')->value('id');
+        foreach ([$group, $assets] as $menu) {
+            DB::table('menu_role')->insert(['menu_id' => $menu, 'role_id' => $role, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $this->actingAs($viewer);
+
+        // The page of the list opens with the menu alone; its rows and the detail of an asset need Read.
+        $this->get(route('snipe-it.assets.index'))->assertOk();
+        $this->get(route('snipe-it.assets.show', 11))->assertForbidden();
+        $this->getJson(route('snipe-it.assets.list'))->assertForbidden();
+        DB::table('menu_role_permission')->insert(['menu_id' => $assets, 'role_id' => $role, 'permission_id' => CheckMenuPermission::PERMISSION_IDS['Read'], 'created_at' => now(), 'updated_at' => now()]);
+        $this->get(route('snipe-it.assets.show', 11))->assertOk();
+        // (Another page of the group is not given with it.)
+        $this->get(route('snipe-it.people.index'))->assertForbidden();
+    }
+
+    public function test_the_detail_of_an_asset_says_so_when_snipe_it_gives_no_answer(): void
+    {
+        $this->fakeSnipeIt(['hardware/11' => fn () => Http::failedConnection(), 'reports/activity' => fn () => Http::failedConnection(),
+            'maintenances' => fn () => Http::failedConnection(), 'hardware/11/licenses' => fn () => Http::failedConnection(), 'hardware' => fn () => Http::failedConnection()]);
+        $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+        $this->assertStringContainsString('Snipe-IT tidak bisa dihubungi. Coba lagi sebentar lagi.', $page);
+        $this->assertStringNotContainsString('class="rm-hero"', $page);
     }
 
     public function test_the_page_script_draws_the_list_and_sends_what_is_chosen(): void

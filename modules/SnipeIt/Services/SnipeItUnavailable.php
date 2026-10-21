@@ -18,6 +18,9 @@ final class SnipeItUnavailable extends RuntimeException
 
     public const FAILED = 'failed';
 
+    /** The row asked for is not in Snipe-IT (any more). */
+    public const NOT_FOUND = 'not_found';
+
     public function __construct(public readonly string $reason, public readonly ?int $status = null)
     {
         parent::__construct("Snipe-IT: {$reason}" . ($status !== null ? " ({$status})" : ''));

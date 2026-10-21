@@ -7,6 +7,8 @@ use App\Services\Language;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Modules\SnipeIt\Services\Answers;
+use Modules\SnipeIt\Services\AssetDetail;
+use Modules\SnipeIt\Services\AssetPage;
 use Modules\SnipeIt\Services\Lists;
 use Modules\SnipeIt\Services\Rows;
 use Modules\SnipeIt\Services\SnipeItClient;
@@ -81,6 +83,32 @@ class SnipeItController extends Controller
             'error' => $error,
             'web' => SnipeItClient::webUrl(),
         ]);
+    }
+
+    /** The detail of one asset: everything Snipe-IT says about it, and its history. */
+    public function asset(Request $request, AssetDetail $detail, AssetPage $page, int $asset)
+    {
+        // "Refresh": Snipe-IT is asked again, then the page opens at its own address (a reload does not ask again).
+        if ($request->boolean('fresh')) {
+            SnipeItClient::retry();
+            try {
+                $detail->get($asset, true);
+            } catch (SnipeItUnavailable) {
+                // The page says why.
+            }
+
+            return redirect()->route('snipe-it.assets.show', $asset);
+        }
+
+        try {
+            $shown = $page->present($detail->get($asset), SnipeItClient::webUrl());
+            $error = null;
+        } catch (SnipeItUnavailable $unavailable) {
+            abort_if($unavailable->reason === SnipeItUnavailable::NOT_FOUND, 404, $unavailable->describe());
+            [$shown, $error] = [null, $unavailable->describe()];
+        }
+
+        return view('SnipeIt::asset', ['asset' => $shown, 'error' => $error, 'id' => $asset]);
     }
 
     public function list(Request $request, Answers $answers, string $group): JsonResponse
