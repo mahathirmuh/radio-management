@@ -8,6 +8,17 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.12.3] - 2026-10-21
+
+### Diubah
+
+- Dialog role di Role & Permission (Add Role, Edit dan lihat) kini dalam ukuran production: lebar 720 px di tengah
+  layar, judul 16 px, nama isian .7rem, isian 29 px dengan teks .65rem, tabel menu dengan judul kolom 10 px dan baris
+  27 px (kolom Access sampai Delete masing-masing 90 px, jadi nama menu yang panjang turun ke baris kedua seperti di
+  production), tombol 26 px. Warna dan bentuk desain baru tetap.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.12.2] - 2026-10-21
 
 ### Diubah
@@ -718,6 +729,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.12.3]: https://github.com/mahathirmuh/radio-management/compare/v1.12.2...v1.12.3
 [1.12.2]: https://github.com/mahathirmuh/radio-management/compare/v1.12.1...v1.12.2
 [1.12.1]: https://github.com/mahathirmuh/radio-management/compare/v1.12.0...v1.12.1
 [1.12.0]: https://github.com/mahathirmuh/radio-management/compare/v1.11.2...v1.12.0
