@@ -87,41 +87,24 @@ class RadioRequest extends FormRequest
 
     public function attributes(): array
     {
-        return [
-            'dmr_id' => 'Radio ID',
-            'serial_number' => 'SN',
-            'radio_type_id' => 'Tipe Radio',
-            'owner_company_id' => 'Pemilik Aset',
-            'user_name' => 'Nama User / Unit',
-            'department_id' => 'Department',
-            'company_id' => 'Company',
-            'channel_template_id' => 'Template Channel',
-            'last_programmed_at' => 'Tgl Program Terakhir',
-            'placement' => 'Posisi',
-            'condition' => 'Kondisi',
-            'last_verified_at' => 'Tgl Verifikasi Terakhir',
-            'document_no' => 'No. Dokumen',
-            'notes' => 'Keterangan',
-        ];
+        $fields = ['dmr_id', 'serial_number', 'radio_type_id', 'owner_company_id', 'user_name', 'department_id', 'company_id',
+            'channel_template_id', 'last_programmed_at', 'placement', 'condition', 'last_verified_at', 'document_no', 'notes'];
+
+        return array_combine($fields, array_map(fn (string $field) => __('RadioManagement::register.fields.' . $field), $fields));
     }
 
     public function messages(): array
     {
-        return [
-            'required' => ':attribute wajib diisi.',
-            'required_if' => ':attribute wajib diisi bila Posisi "Di User".',
-            'before_or_equal' => ':attribute tidak boleh melewati hari ini.',
-            'integer' => ':attribute harus berupa angka.',
-            'max' => ':attribute terlalu panjang/besar.',
-            'exists' => ':attribute tidak ditemukan di master data.',
-        ];
+        $rules = ['required', 'required_if', 'before_or_equal', 'integer', 'max', 'exists'];
+
+        return array_combine($rules, array_map(fn (string $rule) => __('RadioManagement::register.rules.' . $rule), $rules));
     }
 
     /** Same error shape as the base app: { message, errors: string[] }. */
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
-            'message' => 'Input tidak valid',
+            'message' => __('RadioManagement::register.messages.invalid'),
             'errors' => $validator->errors()->all(),
         ], 422));
     }
@@ -152,7 +135,7 @@ class RadioRequest extends FormRequest
                 return;
             }
             if (DB::table($table)->where('id', $value)->where('is_active', false)->exists()) {
-                $fail(':attribute yang dipilih sudah dinonaktifkan di master data.');
+                $fail(__('RadioManagement::register.rules.inactive'));
             }
         };
     }

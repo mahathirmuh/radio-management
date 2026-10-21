@@ -116,6 +116,27 @@
         return String(text ?? '').replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) =>
             (Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match));
     }
+
+    /**
+     * A text of the language files that has a form for one and a form for more, as trans_choice reads it
+     * ("{1} :count radio|[2,*] :count radios"; a text without "|" has one form), with :count and the other values filled.
+     */
+    function rmChoice(text, count, values = {}) {
+        const parts = String(text ?? '').split('|');
+        const n = Number(count);
+        let chosen = parts.length === 2 && !/^\s*[{[]/.test(parts[0]) ? (n === 1 ? parts[0] : parts[1]) : parts[parts.length - 1];
+        for (const part of parts) {
+            const range = /^\s*(?:\{(\d+)\}|\[(\d+|\*),\s*(\d+|\*)\])\s*/.exec(part);
+            if (!range) continue;
+            const fits = range[1] !== undefined ? n === Number(range[1]) :
+                ((range[2] === '*' || n >= Number(range[2])) && (range[3] === '*' || n <= Number(range[3])));
+            if (fits) {
+                chosen = part.slice(range[0].length);
+                break;
+            }
+        }
+        return rmFill(chosen.trim(), { count, ...values });
+    }
 </script>
 
 

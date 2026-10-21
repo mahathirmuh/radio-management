@@ -25,10 +25,10 @@
         <div class="modal-content">
             <div class="rm-print-head">
                 <div class="rm-dialog-titles">
-                    <h3 class="rm-dialog-title" id="radioPrintTitle">Cetak IT Equipment Checkout Form</h3>
+                    <h3 class="rm-dialog-title" id="radioPrintTitle">{{ __('RadioManagement::register.print.title') }}</h3>
                     <div class="rm-print-label" id="radioPrintLabel"></div>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::register.print.close') }}"><i
                         class="ti ti-x"></i></button>
             </div>
             <div class="alert alert-danger rounded-0 border-0 mb-0 py-2 small d-none" id="radioPrintNotice" role="alert"></div>
@@ -36,10 +36,10 @@
             <div class="modal-body p-0 radio-print-body" id="radioPrintBody"></div>
             <div class="rm-print-foot">
                 <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">
-                    <i class="ti ti-x" aria-hidden="true"></i> Tutup
+                    <i class="ti ti-x" aria-hidden="true"></i> {{ __('RadioManagement::register.print.close') }}
                 </button>
                 <button type="button" class="btn-rm primary" id="radioPrintButton" onclick="radioPrint.print()">
-                    <i class="ti ti-printer" aria-hidden="true"></i> Cetak
+                    <i class="ti ti-printer" aria-hidden="true"></i> {{ __('RadioManagement::register.print.print') }}
                 </button>
             </div>
         </div>
@@ -49,6 +49,8 @@
 @push('javascript')
     <script>
         const radioPrint = {
+            /** Its words in the language of the page (RadioManagement::register.print). */
+            words: @json(__('RadioManagement::register.print')),
             /** The address of the form that is open; null while the pop-up is closed (a frame that loads then is not a form to print). */
             url: null,
             /** What had the focus when the pop-up was opened: it gets the focus back. */
@@ -110,8 +112,7 @@
                 }
                 if (ok) return;
                 $('#radioPrintFrame').remove();
-                $('#radioPrintNotice').removeClass('d-none').text(
-                    'Form tidak bisa ditampilkan. Sesi Anda mungkin sudah berakhir, radio ini sudah dihapus, atau Anda tidak punya izin. Muat ulang halaman, lalu coba lagi.');
+                $('#radioPrintNotice').removeClass('d-none').text(radioPrint.words.not_shown);
             },
 
             /** Whether the pad for the signature is open in the form of the frame (the form is a page of this application: its document can be read). */
@@ -148,7 +149,7 @@
                 if (!frame) return;
                 // What is being drawn on the pad is not on the form yet: it would be left off the paper.
                 if (radioPrint.padOpen(frame)) {
-                    $('#radioPrintNotice').removeClass('d-none').text('Tanda tangan belum dipakai. Tekan "Pakai tanda tangan" atau "Batal" di form dulu, lalu cetak.');
+                    $('#radioPrintNotice').removeClass('d-none').text(radioPrint.words.sign_first);
                     return;
                 }
                 $('#radioPrintNotice').addClass('d-none').text('');
@@ -174,7 +175,7 @@
             $('#radioPrintModal').on('hidden.bs.modal', radioPrint.closed);
             // Not by a slip: a signature that was not printed is gone when the pop-up closes.
             $('#radioPrintModal').on('hide.bs.modal', event => {
-                if (radioPrint.unsaved() && !window.confirm('Tanda tangan yang belum dicetak akan hilang bila pop-up ditutup. Tetap tutup?')) event.preventDefault();
+                if (radioPrint.unsaved() && !window.confirm(radioPrint.words.lose_signature)) event.preventDefault();
             });
             // Ctrl+P prints the form while the pop-up is open, and not the register behind it.
             $(document).on('keydown', event => {

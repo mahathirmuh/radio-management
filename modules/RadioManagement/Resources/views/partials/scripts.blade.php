@@ -45,6 +45,40 @@
     @push('javascript')
         <script>
             const RadioUi = {
+                /** The words of the pages of the radios, in the language of the page (RadioManagement::common.ui). */
+                words: @json(__('RadioManagement::common.ui')),
+                /** The names to show of what the register keeps in Indonesian (an archive reason, the kind of a history line). */
+                names: {
+                    archive_reasons: @json(__('RadioManagement::common.archive_reasons')),
+                    history_actions: @json(__('RadioManagement::common.history_actions')),
+                },
+                /** The name to show of a value kept: names[group][value], else the value itself. */
+                name(group, value) {
+                    const names = RadioUi.names[group] || {};
+                    return Object.prototype.hasOwnProperty.call(names, value) ? names[value] : String(value ?? '');
+                },
+                /** A text of the language files with :name in it, each filled with values.name (as rmFill). */
+                fill(text, values = {}) {
+                    return String(text ?? '').replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) =>
+                        (Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match));
+                },
+                /** A text with a form for one and for more ("{1} ...|[2,*] ..."), as rmChoice. */
+                choice(text, count, values = {}) {
+                    const parts = String(text ?? '').split('|');
+                    const n = Number(count);
+                    let chosen = parts.length === 2 && !/^\s*[{[]/.test(parts[0]) ? (n === 1 ? parts[0] : parts[1]) : parts[parts.length - 1];
+                    for (const part of parts) {
+                        const range = /^\s*(?:\{(\d+)\}|\[(\d+|\*),\s*(\d+|\*)\])\s*/.exec(part);
+                        if (!range) continue;
+                        const fits = range[1] !== undefined ? n === Number(range[1]) :
+                            ((range[2] === '*' || n >= Number(range[2])) && (range[3] === '*' || n <= Number(range[3])));
+                        if (fits) {
+                            chosen = part.slice(range[0].length);
+                            break;
+                        }
+                    }
+                    return RadioUi.fill(chosen.trim(), { count, ...values });
+                },
                 esc(value) {
                     if (value === null || value === undefined) return '';
                     return String(value)
@@ -77,7 +111,8 @@
                 },
                 issues(list, max = 2) {
                     if (!list || !list.length) {
-                        return '<span class="rm-ok" data-bs-toggle="tooltip" data-bs-title="Tidak ada masalah" aria-label="Tidak ada masalah"><i class="ti ti-circle-check"></i></span>';
+                        const none = RadioUi.esc(RadioUi.words.no_issues);
+                        return `<span class="rm-ok" data-bs-toggle="tooltip" data-bs-title="${none}" aria-label="${none}"><i class="ti ti-circle-check"></i></span>`;
                     }
                     const shown = list.slice(0, max).map(issue => {
                         const hint = issue.hint ? `${issue.label}: ${issue.hint}` : issue.label;
@@ -94,11 +129,11 @@
                     const body = xhr.responseJSON || {};
                     if (Array.isArray(body.errors)) return body.errors.map(RadioUi.esc);
                     if (body.errors && typeof body.errors === 'object') return Object.values(body.errors).flat().map(RadioUi.esc);
-                    if (xhr.status === 403) return ['Anda tidak memiliki izin untuk aksi ini.'];
-                    return [RadioUi.esc(body.message || 'Terjadi kesalahan, coba lagi.')];
+                    if (xhr.status === 403) return [RadioUi.esc(RadioUi.words.no_permission)];
+                    return [RadioUi.esc(body.message || RadioUi.words.error)];
                 },
                 fail(xhr) {
-                    Swal.fire('Gagal', RadioUi.errors(xhr).join('<br>'), 'error');
+                    Swal.fire(RadioUi.words.failed, RadioUi.errors(xhr).join('<br>'), 'error');
                 },
                 /**
                  * Sends a request with its button switched off until the answer is back, so a

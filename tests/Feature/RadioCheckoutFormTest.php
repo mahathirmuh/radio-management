@@ -210,11 +210,13 @@ class RadioCheckoutFormTest extends TestCase
         // ... and the page has the button in the column of actions, the pop-up, and what ties them together.
         $page = $this->get(route('radio-management.radio.index'))->assertOk()->getContent();
         $this->assertSeeInOrder($page, [
-            'data-bs-title="Detail & Riwayat"', 'data-action="print"', 'ti ti-printer', 'data-bs-title="Edit"',
+            // (The titles come from the words of the page: radioText.)
+            'data-bs-title="${say(\'detail\')}"', 'data-action="print"', 'ti ti-printer', 'data-bs-title="${say(\'edit\')}"',
         ]);
         $flat = self::flat($page);
         // The button names itself for those who do not see its tooltip, and hands the address and the label to the pop-up.
-        $this->assertStringContainsString('aria-label="Cetak form" data-action="print" data-url="${RadioUi.esc(r.print_url)}" data-label="${label}"', $flat);
+        $this->assertStringContainsString('aria-label="${say(\'print_short\')}" data-action="print" data-url="${RadioUi.esc(r.print_url)}" data-label="${label}"', $flat);
+        $this->assertStringContainsString('"print_short":"Cetak form"', $page);
         $this->assertMatchesRegularExpression('/case \'print\': radioPrint\.open\(button\.data\(\'url\'\), button\.data\(\'label\'\)\); break;/', $flat);
         foreach (['id="radioPrintModal"', 'id="radioPrintBody"', 'id="radioPrintButton"', 'radioPrint.print()'] as $text) {
             $this->assertStringContainsString($text, $page);

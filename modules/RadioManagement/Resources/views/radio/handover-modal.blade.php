@@ -6,7 +6,7 @@
     Needs: $radio, $handoverAccessories, $conditions, $placements, $departments, $companies, $processedBy (detail page).
 --}}
 @php
-    $handoverTitle = 'Serah terima radio ' . ($radio->dmr_id ?? ($radio->serial_number ?? ''));
+    $handoverTitle = __('RadioManagement::detail.handover_dialog.title', ['radio' => $radio->dmr_id ?? ($radio->serial_number ?? '')]);
     $handoverSub = collect([$radio->radioType?->name, $radio->serial_number ? 'SN ' . $radio->serial_number : null, $radio->mdc_code ? 'MDC ' . $radio->mdc_code : null])->filter()->implode(' · ');
 @endphp
 <div class="modal fade rm-modal xwide" data-bs-backdrop="static" id="radioHandoverModal" tabindex="-1" aria-labelledby="radioHandoverTitle" aria-hidden="true">
@@ -18,39 +18,39 @@
                     <h3 class="rm-dialog-title modal-title" id="radioHandoverTitle">{{ $handoverTitle }}</h3>
                     <p class="rm-dialog-sub">{{ $handoverSub }}</p>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i class="ti ti-x"></i></button>
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i class="ti ti-x"></i></button>
             </div>
 
             <div class="rm-handover">
                 <div class="rm-handover-form">
                     <div class="rm-field">
-                        <label for="handoverReceiver" class="form-label required">Penerima</label>
+                        <label for="handoverReceiver" class="form-label required">{{ __('RadioManagement::detail.handover_dialog.receiver') }}</label>
                         <div class="rm-search w-100">
                             <i class="ti ti-user" aria-hidden="true"></i>
-                            <input type="search" id="handoverReceiver" maxlength="120" autocomplete="off" placeholder="Nama karyawan">
+                            <input type="search" id="handoverReceiver" maxlength="120" autocomplete="off" placeholder="{{ __('RadioManagement::detail.handover_dialog.receiver_hint') }}">
                         </div>
                         <div id="handoverMatches" aria-live="polite"></div>
-                        <div class="rm-hint" id="handoverReceiverHint">Ketik nama untuk mencari di direktori karyawan, atau tulis namanya.</div>
+                        <div class="rm-hint" id="handoverReceiverHint">{{ __('RadioManagement::detail.handover_dialog.receiver_help') }}</div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverBa" class="form-label required">No. BA</label>
+                            <label for="handoverBa" class="form-label required">{{ __('RadioManagement::detail.handover_dialog.ba') }}</label>
                             <input type="text" id="handoverBa" class="form-control radio-mono" maxlength="60" autocomplete="off" placeholder="BA2300412">
                         </div>
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverPo" class="form-label">No. PO</label>
+                            <label for="handoverPo" class="form-label">{{ __('RadioManagement::detail.handover_dialog.po') }}</label>
                             <input type="text" id="handoverPo" class="form-control radio-mono" maxlength="60" autocomplete="off" placeholder="PO 4500187">
                         </div>
                     </div>
 
                     <div class="rm-field">
-                        <span class="form-label" id="handoverAccessoriesLabel">Aksesori yang diserahkan</span>
+                        <span class="form-label" id="handoverAccessoriesLabel">{{ __('RadioManagement::detail.handover_dialog.accessories') }}</span>
                         <div class="rm-handover-acc" role="group" aria-labelledby="handoverAccessoriesLabel">
                             @foreach ($handoverAccessories as $item)
                                 <label class="rm-acc">
                                     <input type="checkbox" name="handover_accessories" value="{{ $item }}">
-                                    <span>{{ $item }}</span>
+                                    <span>{{ \Modules\RadioManagement\Services\RadioWords::of('accessories', $item) }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -58,7 +58,7 @@
 
                     <div class="row g-3">
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverCondition" class="form-label">Kondisi saat serah terima</label>
+                            <label for="handoverCondition" class="form-label">{{ __('RadioManagement::detail.handover_dialog.condition') }}</label>
                             <select id="handoverCondition" class="form-select">
                                 @foreach ($conditions as $condition)
                                     <option value="{{ $condition['value'] }}" @selected($condition['value'] === $radio->condition?->value)>{{ $condition['label'] }}</option>
@@ -66,7 +66,7 @@
                             </select>
                         </div>
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverPlacement" class="form-label">Lokasi setelah serah terima</label>
+                            <label for="handoverPlacement" class="form-label">{{ __('RadioManagement::detail.handover_dialog.placement') }}</label>
                             <select id="handoverPlacement" class="form-select">
                                 @foreach ($placements as $placement)
                                     <option value="{{ $placement['value'] }}" @selected($placement['value'] === 'di_user')>{{ $placement['label'] }}</option>
@@ -74,18 +74,18 @@
                             </select>
                         </div>
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverDepartment" class="form-label">Department penerima</label>
+                            <label for="handoverDepartment" class="form-label">{{ __('RadioManagement::detail.handover_dialog.department') }}</label>
                             <select id="handoverDepartment" class="form-select">
-                                <option value="">(tidak diubah)</option>
+                                <option value="">{{ __('RadioManagement::detail.handover_dialog.unchanged') }}</option>
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}" @selected($department->id === $radio->department_id)>{{ $department->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-sm-6 rm-field">
-                            <label for="handoverCompany" class="form-label">Company penerima</label>
+                            <label for="handoverCompany" class="form-label">{{ __('RadioManagement::detail.handover_dialog.company') }}</label>
                             <select id="handoverCompany" class="form-select">
-                                <option value="">(tidak diubah)</option>
+                                <option value="">{{ __('RadioManagement::detail.handover_dialog.unchanged') }}</option>
                                 @foreach ($companies as $company)
                                     <option value="{{ $company->id }}" @selected($company->id === $radio->company_id)>{{ $company->name }}</option>
                                 @endforeach
@@ -101,32 +101,32 @@
                 </div>
 
                 <div class="rm-handover-sign">
-                    <span class="form-label required mb-0" id="handoverSignLabel">Tanda tangan penerima</span>
+                    <span class="form-label required mb-0" id="handoverSignLabel">{{ __('RadioManagement::detail.handover_dialog.signature') }}</span>
                     <div class="rm-pad" id="handoverPad">
                         <canvas id="handoverCanvas" aria-labelledby="handoverSignLabel"></canvas>
                         <span class="rm-pad-line" aria-hidden="true"></span>
-                        <span class="rm-pad-cap" id="handoverPadCap">Penerima tanda tangan di sini</span>
-                        <button type="button" class="btn-rm sm secondary rm-pad-clear" id="handoverPadClear" disabled>Hapus</button>
+                        <span class="rm-pad-cap" id="handoverPadCap">{{ __('RadioManagement::detail.handover_dialog.sign_here') }}</span>
+                        <button type="button" class="btn-rm sm secondary rm-pad-clear" id="handoverPadClear" disabled>{{ __('RadioManagement::detail.handover_dialog.clear') }}</button>
                     </div>
                     <div class="rm-handover-accept">
                         <i class="ti ti-square-check" aria-hidden="true"></i>
-                        <span>Saya menerima perlengkapan di atas dalam keadaan baik dan bertanggung jawab atasnya.</span>
+                        <span>{{ __('RadioManagement::detail.handover_dialog.accept') }}</span>
                     </div>
                     <div class="rm-handover-ict">
                         @if ($processedBy)
-                            <img src="{{ $processedBy['image'] }}" alt="Tanda tangan {{ $processedBy['name'] }}">
-                            <div><b>Diproses oleh {{ $processedBy['name'] }}</b><span>E-Sign Master</span></div>
+                            <img src="{{ $processedBy['image'] }}" alt="{{ __('RadioManagement::detail.handover_dialog.signature_of', ['name' => $processedBy['name']]) }}">
+                            <div><b>{{ __('RadioManagement::detail.handover_dialog.processed_by', ['name' => $processedBy['name']]) }}</b><span>E-Sign Master</span></div>
                         @else
-                            <div><b>Diproses oleh {{ auth()->user()?->name }}</b><span>Belum ada tanda tangan di E-Sign Master: kotak ICT ditandatangani di kertas.</span></div>
+                            <div><b>{{ __('RadioManagement::detail.handover_dialog.processed_by', ['name' => auth()->user()?->name]) }}</b><span>{{ __('RadioManagement::detail.handover_dialog.no_esign') }}</span></div>
                         @endif
                     </div>
                 </div>
             </div>
 
             <div class="rm-dialog-foot is-gray">
-                <span class="rm-dialog-note">Form checkout MTI-HRM-ICT-FRM-001 dibuka untuk dicetak setelah Anda konfirmasi. Tanda tangan tidak disimpan.</span>
-                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn-rm primary" id="handoverConfirm" disabled><i class="ti ti-check" aria-hidden="true"></i> Konfirmasi serah terima</button>
+                <span class="rm-dialog-note">{{ __('RadioManagement::detail.handover_dialog.note') }}</span>
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::detail.handover_dialog.cancel') }}</button>
+                <button type="button" class="btn-rm primary" id="handoverConfirm" disabled><i class="ti ti-check" aria-hidden="true"></i> {{ __('RadioManagement::detail.handover_dialog.confirm') }}</button>
             </div>
         </div>
     </div>
@@ -135,6 +135,8 @@
 @push('javascript')
     <script>
         const radioHandover = {
+            /** Its words in the language of the page (RadioManagement::detail.handover_dialog). */
+            words: @json(__('RadioManagement::detail.handover_dialog')),
             urls: {
                 handover: @js(route('radio-management.radio.handover', $radio)),
                 employees: @js(route('radio-management.radio.employees')),
@@ -241,7 +243,7 @@
                     })
                     .fail(xhr => {
                         const body = xhr.responseJSON || {};
-                        radioHandover.error([].concat(body.errors || body.message || 'Serah terima tidak bisa disimpan.').join(' '));
+                        radioHandover.error([].concat(body.errors || body.message || radioHandover.words.failed).join(' '));
                     })
                     .always(() => rmFeedback.busy('#handoverConfirm', false));
             },

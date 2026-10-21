@@ -38,7 +38,7 @@ class RadioBulk
     {
         if ($request->boolean('all')) {
             if (! $everyFiltered) {
-                throw ValidationException::withMessages(['ids' => 'Untuk aksi ini, centang radionya satu per satu (bukan semua hasil filter).']);
+                throw ValidationException::withMessages(['ids' => __('RadioManagement::register.messages.one_by_one')]);
             }
             $ids = $this->filter->query($request)->pluck('id')->map(fn ($id) => (int) $id)->all();
         } else {
@@ -46,10 +46,10 @@ class RadioBulk
         }
 
         if ($ids === []) {
-            throw ValidationException::withMessages(['ids' => 'Belum ada radio yang dipilih.']);
+            throw ValidationException::withMessages(['ids' => __('RadioManagement::register.messages.none_chosen')]);
         }
         if (count($ids) > $max) {
-            throw ValidationException::withMessages(['ids' => 'Terlalu banyak radio (' . count($ids) . "); paling banyak {$max} sekaligus. Persempit pilihan atau filternya."]);
+            throw ValidationException::withMessages(['ids' => __('RadioManagement::register.messages.too_many', ['count' => count($ids), 'max' => $max])]);
         }
 
         $position = array_flip($ids);
@@ -119,17 +119,17 @@ class RadioBulk
         $busy = false;
         foreach ($radios as $radio) {
             if ($busy) {
-                $skipped[] = ['radio' => self::label($radio), 'reason' => 'register sedang sibuk, coba lagi'];
+                $skipped[] = ['radio' => self::label($radio), 'reason' => __('RadioManagement::register.messages.busy_reason')];
 
                 continue;
             }
             try {
                 $reason = $one($radio);
             } catch (ValidationException $e) {
-                $reason = rtrim((string) (collect($e->errors())->flatten()->first() ?? 'ditolak'), '.');
+                $reason = rtrim((string) (collect($e->errors())->flatten()->first() ?? __('RadioManagement::register.messages.refused')), '.');
             } catch (LockTimeoutException) {
                 $busy = true;
-                $reason = 'register sedang sibuk, coba lagi';
+                $reason = __('RadioManagement::register.messages.busy_reason');
             }
             if ($reason === null) {
                 $done++;

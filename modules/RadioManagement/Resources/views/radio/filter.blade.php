@@ -1,9 +1,9 @@
 {{-- The filters of the register (in the card, under the toolbar), and the chips of those that are on. --}}
 <div class="rm-panel d-none" id="radioFilterCard">
-    <div class="rm-panel-title">Filter</div>
+    <div class="rm-panel-title">{{ __('RadioManagement::register.filters.title') }}</div>
     <div class="rm-filter-grid">
         <div>
-            <label for="filterCompany" class="form-label">Company (pengguna)</label>
+            <label for="filterCompany" class="form-label">{{ __('RadioManagement::register.filters.company') }}</label>
             <select id="filterCompany" class="form-select" multiple="multiple">
                 @foreach ($companies as $company)
                     <option value="{{ $company->id }}">{{ $company->code }}</option>
@@ -11,7 +11,7 @@
             </select>
         </div>
         <div>
-            <label for="filterOwner" class="form-label">Pemilik Aset</label>
+            <label for="filterOwner" class="form-label">{{ __('RadioManagement::register.filters.owner') }}</label>
             <select id="filterOwner" class="form-select" multiple="multiple">
                 @foreach ($companies as $company)
                     <option value="{{ $company->id }}">{{ $company->code }}</option>
@@ -19,15 +19,15 @@
             </select>
         </div>
         <div>
-            <label for="filterOwnerGroup" class="form-label">Owner</label>
+            <label for="filterOwnerGroup" class="form-label">{{ __('RadioManagement::register.filters.owner_group') }}</label>
             <select id="filterOwnerGroup" class="form-select">
-                <option value="">Semua</option>
+                <option value="">{{ __('RadioManagement::register.filters.all') }}</option>
                 <option value="mti">MTI</option>
                 <option value="non_mti">Non MTI</option>
             </select>
         </div>
         <div>
-            <label for="filterDepartment" class="form-label">Department</label>
+            <label for="filterDepartment" class="form-label">{{ __('RadioManagement::register.filters.department') }}</label>
             <select id="filterDepartment" class="form-select" multiple="multiple">
                 @foreach ($departments as $department)
                     <option value="{{ $department->id }}">{{ $department->name }}</option>
@@ -35,7 +35,7 @@
             </select>
         </div>
         <div>
-            <label for="filterType" class="form-label">Tipe Radio</label>
+            <label for="filterType" class="form-label">{{ __('RadioManagement::register.filters.type') }}</label>
             <select id="filterType" class="form-select" multiple="multiple">
                 @foreach ($types as $type)
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -43,7 +43,7 @@
             </select>
         </div>
         <div>
-            <label for="filterTemplate" class="form-label">Template Channel</label>
+            <label for="filterTemplate" class="form-label">{{ __('RadioManagement::register.filters.template') }}</label>
             <select id="filterTemplate" class="form-select" multiple="multiple">
                 @foreach ($templates as $template)
                     <option value="{{ $template->id }}">{{ $template->name }}</option>
@@ -51,7 +51,7 @@
             </select>
         </div>
         <div>
-            <label for="filterPlacement" class="form-label">Posisi</label>
+            <label for="filterPlacement" class="form-label">{{ __('RadioManagement::register.filters.placement') }}</label>
             <select id="filterPlacement" class="form-select" multiple="multiple">
                 @foreach ($placements as $placement)
                     <option value="{{ $placement['value'] }}">{{ $placement['label'] }}</option>
@@ -59,7 +59,7 @@
             </select>
         </div>
         <div>
-            <label for="filterCondition" class="form-label">Kondisi</label>
+            <label for="filterCondition" class="form-label">{{ __('RadioManagement::register.filters.condition') }}</label>
             <select id="filterCondition" class="form-select" multiple="multiple">
                 @foreach ($conditions as $condition)
                     <option value="{{ $condition['value'] }}">{{ $condition['label'] }}</option>
@@ -67,32 +67,35 @@
             </select>
         </div>
         <div>
-            <label for="filterIssue" class="form-label">Hasil Cek</label>
+            <label for="filterIssue" class="form-label">{{ __('RadioManagement::register.filters.issue') }}</label>
             <select id="filterIssue" class="form-select">
-                <option value="">Semua</option>
+                <option value="">{{ __('RadioManagement::register.filters.all') }}</option>
                 @foreach ($issues as $code => $issue)
-                    <option value="{{ $code }}">{{ $issue['label'] }}</option>
+                    <option value="{{ $code }}">{{ \Modules\RadioManagement\Services\RadioCheckService::label($code) }}</option>
                 @endforeach
             </select>
         </div>
     </div>
     <div class="rm-panel-foot">
-        <button type="button" class="btn-rm secondary" onclick="radioFilter.reset()">Kosongkan filter</button>
-        <button type="button" class="btn-rm primary" id="radioFilterApply" onclick="radioFilter.apply()">Terapkan filter</button>
+        <button type="button" class="btn-rm secondary" onclick="radioFilter.reset()">{{ __('RadioManagement::register.filters.clear') }}</button>
+        <button type="button" class="btn-rm primary" id="radioFilterApply" onclick="radioFilter.apply()">{{ __('RadioManagement::register.filters.apply') }}</button>
     </div>
 </div>
 
 @push('javascript')
     <script>
+        /** The words of the filters in the language of the page (RadioManagement::register.filters). */
+        const radioFilterText = @json(__('RadioManagement::register.filters'));
+
         $(function() {
             [
-                ['#filterCompany', 'Pilih company'],
-                ['#filterOwner', 'Pilih pemilik aset'],
-                ['#filterDepartment', 'Pilih department'],
-                ['#filterType', 'Pilih tipe'],
-                ['#filterTemplate', 'Pilih template'],
-                ['#filterPlacement', 'Pilih posisi'],
-                ['#filterCondition', 'Pilih kondisi'],
+                ['#filterCompany', radioFilterText.pick_company],
+                ['#filterOwner', radioFilterText.pick_owner],
+                ['#filterDepartment', radioFilterText.pick_department],
+                ['#filterType', radioFilterText.pick_type],
+                ['#filterTemplate', radioFilterText.pick_template],
+                ['#filterPlacement', radioFilterText.pick_placement],
+                ['#filterCondition', radioFilterText.pick_condition],
             ].forEach(([selector, placeholder]) => {
                 $(selector).select2({
                     theme: 'bootstrap-5',
@@ -113,15 +116,15 @@
             values: {},
             /** Each filter: its field, and its name on a chip. */
             fields: {
-                company: ['#filterCompany', 'Company'],
-                owner: ['#filterOwner', 'Pemilik aset'],
-                owner_group: ['#filterOwnerGroup', 'Owner'],
-                department: ['#filterDepartment', 'Department'],
-                type: ['#filterType', 'Tipe'],
-                template: ['#filterTemplate', 'Template'],
-                placement: ['#filterPlacement', 'Posisi'],
-                condition: ['#filterCondition', 'Kondisi'],
-                issue: ['#filterIssue', 'Hasil cek'],
+                company: ['#filterCompany', radioFilterText.chips.company],
+                owner: ['#filterOwner', radioFilterText.chips.owner],
+                owner_group: ['#filterOwnerGroup', radioFilterText.chips.owner_group],
+                department: ['#filterDepartment', radioFilterText.chips.department],
+                type: ['#filterType', radioFilterText.chips.type],
+                template: ['#filterTemplate', radioFilterText.chips.template],
+                placement: ['#filterPlacement', radioFilterText.chips.placement],
+                condition: ['#filterCondition', radioFilterText.chips.condition],
+                issue: ['#filterIssue', radioFilterText.chips.issue],
             },
             read() {
                 return {
@@ -173,7 +176,7 @@
                     const names = radioFilterNames[key] || {};
                     const text = chosen.map(value => names[value] ?? value).join(', ');
                     return `<span class="rm-chip ${key === 'issue' ? '' : 'blue'}">${RadioUi.esc(title)}: ${RadioUi.esc(text)}` +
-                        `<button type="button" data-filter="${key}" aria-label="Hapus filter ${RadioUi.esc(title)}"><i class="ti ti-x"></i></button></span>`;
+                        `<button type="button" data-filter="${key}" aria-label="${RadioUi.esc(RadioUi.fill(radioFilterText.remove, { name: title }))}"><i class="ti ti-x"></i></button></span>`;
                 }).join('');
                 $('#radioAppliedChips').html(chips);
                 $('#radioApplied').toggleClass('d-none', chips === '');

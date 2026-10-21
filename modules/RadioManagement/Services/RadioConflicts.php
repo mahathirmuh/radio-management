@@ -20,23 +20,21 @@ class RadioConflicts
     public function radioId(int $id, ?int $exceptRadioId = null): ?string
     {
         if (RadioIdService::hasHexF($id)) {
-            return "Radio ID {$id} tidak bisa dipakai: MDC Code-nya (" . RadioIdService::mdc($id)
-                . ') mengandung huruf F. Ganti dengan ID lain.';
+            return __('RadioManagement::register.messages.id_hex_f', ['id' => $id, 'mdc' => RadioIdService::mdc($id)]);
         }
 
         $other = Radio::query()->active()->where('dmr_id', $id)
             ->when($exceptRadioId, fn ($query) => $query->where('id', '!=', $exceptRadioId))
             ->first();
         if ($other) {
-            return "Radio ID {$id} sudah dipakai radio lain ({$other->display_name}).";
+            return __('RadioManagement::register.messages.id_taken', ['id' => $id, 'radio' => $other->display_name]);
         }
 
         $holder = Radio::query()->active()->whereNull('dmr_id')->where('previous_dmr_id', $id)
             ->when($exceptRadioId, fn ($query) => $query->where('id', '!=', $exceptRadioId))
             ->first();
         if ($holder) {
-            return "Radio ID {$id} dicadangkan untuk {$holder->display_name}, yang kemungkinan masih memakai ID itu. "
-                . 'Cek radio tersebut dulu.';
+            return __('RadioManagement::register.messages.id_reserved', ['id' => $id, 'radio' => $holder->display_name]);
         }
 
         return null;
@@ -72,8 +70,6 @@ class RadioConflicts
         if (! $other) {
             return null;
         }
-        $state = $other->isArchived() ? ' (diarsipkan, pulihkan saja radio tersebut)' : '';
-
-        return "SN {$serial} sudah terdaftar pada {$other->display_name}{$state}.";
+        return __('RadioManagement::register.messages.' . ($other->isArchived() ? 'sn_taken_archived' : 'sn_taken'), ['sn' => $serial, 'radio' => $other->display_name]);
     }
 }

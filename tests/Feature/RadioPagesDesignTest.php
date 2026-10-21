@@ -37,7 +37,8 @@ class RadioPagesDesignTest extends TestCase
             '<table class="rm-table" id="radioTable">', 'class="pagination-container"',
         ]);
         // The foot speaks the language of the page.
-        $this->assertStringContainsString("paginationLabels: { showing: 'Menampilkan', of: 'dari', rows: 'Baris per halaman', noun: 'radio'", $page);
+        $this->assertStringContainsString('paginationLabels: { noun: radioText.noun }', $page);
+        $this->assertStringContainsString('"noun":"radio"', $page);
         // No search button: the list follows what is typed.
         $this->assertStringNotContainsString('radioSearchButton', $page);
     }

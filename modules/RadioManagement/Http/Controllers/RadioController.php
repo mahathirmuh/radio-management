@@ -106,7 +106,7 @@ class RadioController extends Controller
         $max = (int) config('radio.id_max');
         $id = filter_var($request->query('id'), FILTER_VALIDATE_INT);
         if ($id === false || $id < 1 || $id > $max) {
-            return response()->json(['message' => "Radio ID harus angka 1 sampai {$max}."], 422);
+            return response()->json(['message' => __('RadioManagement::register.messages.id_range', ['max' => $max])], 422);
         }
 
         return response()->json(['data' => $this->ids->check($id, $request->integer('except') ?: null)]);
@@ -131,32 +131,32 @@ class RadioController extends Controller
             'company_id' => ['nullable', 'integer', Rule::exists('radio_companies', 'id')],
             'signature' => ['required', 'string'],
         ], [
-            'signature.required' => 'Penerima belum tanda tangan.',
+            'signature.required' => __('RadioManagement::register.messages.signature_required'),
         ], [
-            'receiver' => 'Penerima',
-            'employee_id' => 'No. karyawan',
-            'ba' => 'No. BA',
-            'po' => 'No. PO',
-            'accessories' => 'Aksesori',
-            'condition' => 'Kondisi',
-            'placement' => 'Lokasi',
-            'department_id' => 'Department',
-            'company_id' => 'Company',
+            'receiver' => __('RadioManagement::register.fields.receiver'),
+            'employee_id' => __('RadioManagement::register.fields.employee_id'),
+            'ba' => __('RadioManagement::register.fields.ba'),
+            'po' => __('RadioManagement::register.fields.po'),
+            'accessories' => __('RadioManagement::register.fields.accessories'),
+            'condition' => __('RadioManagement::register.fields.condition'),
+            'placement' => __('RadioManagement::register.fields.location'),
+            'department_id' => __('RadioManagement::register.fields.department_id'),
+            'company_id' => __('RadioManagement::register.fields.company_id'),
         ]);
         if ($validator->fails()) {
-            return response()->json(['message' => 'Input tidak valid', 'errors' => $validator->errors()->all()], 422);
+            return $this->invalid($validator->errors()->all());
         }
         try {
             SignatureImage::clean((string) $request->input('signature'));
         } catch (InvalidArgumentException $refused) {
-            return response()->json(['message' => 'Input tidak valid', 'errors' => [$refused->getMessage()]], 422);
+            return $this->invalid([$refused->getMessage()]);
         }
 
         return $this->saving(function () use ($validator, $radio, $request) {
             $this->radios->handover($radio, Arr::except($validator->validated(), ['signature']), $request->user()?->id);
 
             return response()->json([
-                'message' => 'Radio ' . $radio->display_name . ' diserahkan ke ' . trim((string) $request->input('receiver')) . '.',
+                'message' => __('RadioManagement::register.messages.handed_over', ['radio' => $radio->display_name, 'receiver' => trim((string) $request->input('receiver'))]),
                 'checkout_form' => route('radio-management.radio.checkout-form', $radio),
             ]);
         });
@@ -229,7 +229,7 @@ class RadioController extends Controller
                 ['url' => route('radio-management.radio.detail', $radio), 'label' => $radio->display_name, 'active' => true],
             ],
             'radio' => $radio,
-            'issues' => $this->checks->issuesFor($radio),
+            'issues' => $this->checks->issuesFor($radio, app()->getLocale()),
             'historyActions' => config('radio.history_actions'),
             'archiveReasons' => config('radio.archive_reasons'),
             'handoverAccessories' => config('radio.handover_accessories'),
@@ -286,7 +286,7 @@ class RadioController extends Controller
                 $request->user()?->id
             );
 
-            return response()->json(['message' => 'Radio berhasil ditambahkan.', 'id' => $radio->id]);
+            return response()->json(['message' => __('RadioManagement::register.messages.added'), 'id' => $radio->id]);
         });
     }
 
@@ -300,7 +300,7 @@ class RadioController extends Controller
         return $this->saving(function () use ($request, $radio, $data) {
             $this->radios->update($radio, $data, $request->user()?->id, $request->input('version'));
 
-            return response()->json(['message' => 'Data radio berhasil disimpan.']);
+            return response()->json(['message' => __('RadioManagement::register.messages.saved')]);
         });
     }
 
@@ -321,7 +321,7 @@ class RadioController extends Controller
                 $request->user()?->id
             );
 
-            return response()->json(['message' => 'Radio diarsipkan.']);
+            return response()->json(['message' => __('RadioManagement::register.messages.archived')]);
         });
     }
 
@@ -330,7 +330,7 @@ class RadioController extends Controller
         return $this->saving(function () use ($request, $radio) {
             $this->radios->restore($radio, $request->user()?->id);
 
-            return response()->json(['message' => 'Radio dipulihkan.', 'dmr_id' => $radio->dmr_id]);
+            return response()->json(['message' => __('RadioManagement::register.messages.restored'), 'dmr_id' => $radio->dmr_id]);
         });
     }
 
@@ -345,7 +345,7 @@ class RadioController extends Controller
         return $this->saving(function () use ($request, $radio, $validator) {
             $this->radios->addHistory($radio, $validator->validated(), $request->user()?->id);
 
-            return response()->json(['message' => 'Riwayat ditambahkan.']);
+            return response()->json(['message' => __('RadioManagement::register.messages.history_added')]);
         });
     }
 
@@ -354,7 +354,7 @@ class RadioController extends Controller
         return $this->saving(function () use ($request, $radio) {
             $this->radios->delete($radio, $request->user()?->id);
 
-            return response()->json(['message' => 'Radio dihapus.']);
+            return response()->json(['message' => __('RadioManagement::register.messages.deleted')]);
         });
     }
 
@@ -375,14 +375,14 @@ class RadioController extends Controller
             // MTI or Non MTI, by the company that owns it; null while that is not filled in.
             'owner_group' => $radio->ownerGroup(),
             'template' => $radio->channelTemplate?->name,
-            'placement' => ['value' => $radio->placement->value, 'label' => $radio->placement->label(), 'color' => $radio->placement->color()],
-            'condition' => ['value' => $radio->condition->value, 'label' => $radio->condition->label(), 'color' => $radio->condition->color()],
+            'placement' => ['value' => $radio->placement->value, 'label' => $radio->placement->display(), 'color' => $radio->placement->color()],
+            'condition' => ['value' => $radio->condition->value, 'label' => $radio->condition->display(), 'color' => $radio->condition->color()],
             'last_programmed_at' => $radio->last_programmed_at?->format('d-m-Y'),
             'last_verified_at' => $radio->last_verified_at?->format('d-m-Y'),
             'archived' => $radio->isArchived(),
             'archived_at' => $radio->archived_at?->format('d-m-Y'),
             'archive_reason' => $radio->archive_reason,
-            'issues' => $this->checks->issuesFor($radio),
+            'issues' => $this->checks->issuesFor($radio, app()->getLocale()),
             'detail_url' => route('radio-management.radio.detail', $radio),
             'print_url' => route('radio-management.radio.checkout-form', $radio),
         ];
@@ -414,14 +414,14 @@ class RadioController extends Controller
             return $this->invalid($e->validator->errors()->all());
         } catch (LockTimeoutException) {
             return response()->json([
-                'message' => 'Register sedang sibuk',
-                'errors' => ['Data radio lain sedang disimpan, atau impor Excel sedang berjalan. Coba lagi beberapa saat lagi.'],
+                'message' => __('RadioManagement::register.messages.busy'),
+                'errors' => [__('RadioManagement::register.messages.busy_text')],
             ], 409);
         }
     }
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $errors], 422);
     }
 }

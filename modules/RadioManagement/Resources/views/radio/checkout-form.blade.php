@@ -343,11 +343,8 @@
 </head>
 
 <body>
-    <div class="hint no-print">Klik sebuah isian untuk mengubahnya sebelum dicetak, dan klik tulisan seperti "HT" atau "RIG" untuk
-        mencoretnya (klik lagi untuk membatalkan). Klik kotak tanda tangan RESPONSIBLE USER untuk menandatangani di layar
-        (pena, jari, atau mouse). Perubahan hanya untuk cetakan ini dan tidak disimpan.</div>
-    <div class="hint warn no-print" id="fitWarning" role="alert" hidden>Isi form lebih panjang dari satu halaman A4: saat dicetak, form
-        diperkecil otomatis menjadi <b id="fitScale"></b>% supaya tetap satu halaman. Persingkat isian supaya tetap terbaca.</div>
+    <div class="hint no-print">{{ __('RadioManagement::checkout.hint') }}</div>
+    <div class="hint warn no-print" id="fitWarning" role="alert" hidden>{!! __('RadioManagement::checkout.too_long') !!}</div>
 
     <main class="sheet">
         <table class="head">
@@ -539,13 +536,13 @@
                 <td class="m">:</td>
                 <td class="r"><span class="f line" data-field="user_name">{{ $radio->user_name }}</span></td>
                 <td class="sign" id="signCell" colspan="2" rowspan="3" data-today="{{ $today }}">
-                    <button type="button" class="sig-open no-print" id="signOpen" aria-label="Tanda tangan Responsible User di layar">Klik untuk tanda tangan</button>
-                    <button type="button" class="sig-remove no-print" id="signRemove" aria-label="Hapus tanda tangan" title="Hapus tanda tangan" hidden>&times;</button>
+                    <button type="button" class="sig-open no-print" id="signOpen" aria-label="{{ __('RadioManagement::checkout.pad.sign', ['who' => 'Responsible User']) }}">{{ __('RadioManagement::checkout.sign_open') }}</button>
+                    <button type="button" class="sig-remove no-print" id="signRemove" aria-label="{{ __('RadioManagement::checkout.sign_remove') }}" title="{{ __('RadioManagement::checkout.sign_remove') }}" hidden>&times;</button>
                 </td>
                 @if ($ictSignature ?? null)
                     {{-- The signature of whoever opened the form, from E-Sign Master: theirs and nobody else's. It is not taken off here: it
                          says who processed the radio, and that is on record (it_signature_uses). --}}
-                    <td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="{{ $ictSignature['image'] }}" alt="Tanda tangan {{ $ictSignature['name'] }}"><span class="ict-sig-name">{{ $ictSignature['name'] }}</span></td>
+                    <td class="sign" id="ictSignCell" rowspan="3"><img class="ict-sig-img" src="{{ $ictSignature['image'] }}" alt="{{ __('RadioManagement::checkout.pad.picture', ['who' => $ictSignature['name']]) }}"><span class="ict-sig-name">{{ $ictSignature['name'] }}</span></td>
                 @else
                     <td class="sign" rowspan="3"></td>
                 @endif

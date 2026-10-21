@@ -87,10 +87,10 @@ class RadioService
         return $this->lock->run(function () use ($radio, $data, $userId, $version) {
             $this->reload($radio);
             if ($version !== null && $version !== $radio->version()) {
-                throw StaleRadio::withMessages(['radio' => 'Data radio ini baru saja diubah'
-                    . ($radio->updater ? ' oleh ' . $radio->updater->name : '')
-                    . ' (' . $radio->updated_at?->format('d-m-Y H:i') . '). '
-                    . 'Tutup form ini, buka lagi, lalu ulangi perubahan Anda.']);
+                $at = (string) $radio->updated_at?->format('d-m-Y H:i');
+                throw StaleRadio::withMessages(['radio' => $radio->updater
+                    ? __('RadioManagement::register.messages.stale_by', ['name' => $radio->updater->name, 'at' => $at])
+                    : __('RadioManagement::register.messages.stale', ['at' => $at])]);
             }
             if ($radio->isArchived()) {
                 unset($data['dmr_id']); // archived radios do not hold an ID
@@ -123,7 +123,7 @@ class RadioService
         return $this->lock->run(function () use ($radio, $reason, $date, $note, $userId) {
             $this->reload($radio);
             if ($radio->isArchived()) {
-                $this->refuse('Radio ini sudah diarsipkan.');
+                $this->refuse(__('RadioManagement::register.messages.archived_already'));
             }
 
             $releasedId = $radio->dmr_id;
@@ -161,7 +161,7 @@ class RadioService
         return $this->lock->run(function () use ($radio, $userId) {
             $this->reload($radio);
             if (! $radio->isArchived()) {
-                $this->refuse('Radio ini tidak sedang diarsipkan.');
+                $this->refuse(__('RadioManagement::register.messages.not_archived'));
             }
 
             // The radio carried this ID until it was archived, so it gets it back as it was, also
@@ -238,7 +238,7 @@ class RadioService
         return $this->lock->run(function () use ($radio, $data, $userId) {
             $this->reload($radio);
             if ($radio->isArchived()) {
-                $this->refuse('Radio yang diarsipkan tidak bisa diserahterimakan. Pulihkan dulu.');
+                $this->refuse(__('RadioManagement::register.messages.archived_no_handover'));
             }
 
             $document = implode(' / ', array_filter([trim((string) ($data['po'] ?? '')), trim((string) $data['ba'])], 'filled'));
@@ -360,7 +360,7 @@ class RadioService
     {
         $radio->refresh();
         if ($radio->trashed()) {
-            $this->refuse('Radio ini sudah dihapus dari register.');
+            $this->refuse(__('RadioManagement::register.messages.deleted_already'));
         }
     }
 
@@ -385,16 +385,17 @@ class RadioService
 
         // The form checked these before this request got its turn; a master row deleted or
         // switched off in between must come back as a message, not as a foreign key error.
-        foreach (self::MASTERS as $field => [$model, $label]) {
+        foreach (self::MASTERS as $field => [$model]) {
             $value = $data[$field] ?? null;
             if (blank($value) || (int) $value === (int) $radio?->{$field}) {
                 continue;
             }
             $row = $model::query()->find($value);
+            $label = __('RadioManagement::register.fields.' . $field);
             if (! $row) {
-                $errors[$field] = "{$label} tidak ditemukan di master data.";
+                $errors[$field] = __('RadioManagement::register.messages.master_missing', ['label' => $label]);
             } elseif (! $row->is_active) {
-                $errors[$field] = "{$label} yang dipilih sudah dinonaktifkan di master data.";
+                $errors[$field] = __('RadioManagement::register.messages.master_inactive', ['label' => $label]);
             }
         }
 

@@ -67,10 +67,15 @@ class RadioCheckService
     }
 
     /**
+     * The checks a radio fails, each with its name and what more there is to say. In Indonesian, as the files and the
+     * API show them, unless $locale asks for the language of a page.
+     *
      * @return array<int, array{code: string, label: string, color: string, hint: ?string}>
      */
-    public function issuesFor(Radio $radio): array
+    public function issuesFor(Radio $radio, ?string $locale = null): array
     {
+        $locale ??= 'id';
+        $hint = fn (string $code, array $values = []) => __('RadioManagement::common.hints.' . $code, $values, $locale);
         $codes = [];
         $sn = $radio->serial_number ? mb_strtoupper(trim($radio->serial_number)) : null;
 
@@ -84,20 +89,20 @@ class RadioCheckService
                 $codes['sn_duplicate'] = null;
             }
             if (! preg_match(config('radio.sn_pattern'), $sn)) {
-                $codes['sn_format'] = 'Format umum: 3 angka + 3 huruf + 4 karakter, mis. 867TZB5309';
+                $codes['sn_format'] = $hint('sn_format');
             }
         }
 
         // Archived radios are out of service: only identity problems still matter.
         if (! $radio->isArchived()) {
             if (! $radio->dmr_id) {
-                $codes['id_empty'] = $radio->previous_dmr_id ? 'ID terakhir diketahui: ' . $radio->previous_dmr_id : null;
+                $codes['id_empty'] = $radio->previous_dmr_id ? $hint('id_empty', ['id' => $radio->previous_dmr_id]) : null;
             } else {
                 if (isset($this->duplicateIds()[$radio->dmr_id])) {
                     $codes['id_duplicate'] = null;
                 }
                 if (RadioIdService::hasHexF($radio->dmr_id)) {
-                    $codes['id_hex_f'] = 'MDC ' . $radio->mdc_code . ' mengandung huruf F (wildcard MDC). Program ulang radio ke ID lain';
+                    $codes['id_hex_f'] = $hint('id_hex_f', ['mdc' => $radio->mdc_code]);
                 }
             }
             if (! $radio->radio_type_id) {
@@ -109,20 +114,20 @@ class RadioCheckService
             $template = $radio->channelTemplate;
             if ($template?->effective_date
                 && (! $radio->last_programmed_at || $radio->last_programmed_at->lt($template->effective_date))) {
-                $codes['reprogram'] = 'Template berlaku sejak ' . $template->effective_date->format('d-m-Y');
+                $codes['reprogram'] = $hint('reprogram', ['date' => $template->effective_date->format('d-m-Y')]);
             }
             if ($radio->placement !== Placement::Hilang) {
                 if (! $radio->last_verified_at) {
                     $codes['verify_empty'] = null;
                 } elseif ($radio->last_verified_at->lt($this->staleBefore())) {
-                    $codes['verify_stale'] = 'Terakhir ' . $radio->last_verified_at->format('d-m-Y');
+                    $codes['verify_stale'] = $hint('verify_stale', ['date' => $radio->last_verified_at->format('d-m-Y')]);
                 }
             }
         }
 
         $issues = [];
-        foreach ($codes as $code => $hint) {
-            $issues[] = self::ISSUES[$code] + ['code' => $code, 'hint' => $hint];
+        foreach ($codes as $code => $more) {
+            $issues[] = ['label' => self::label($code, $locale)] + self::ISSUES[$code] + ['code' => $code, 'hint' => $more];
         }
 
         return $issues;

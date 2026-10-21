@@ -6,42 +6,42 @@
         <div class="modal-content">
             <div class="rm-dialog-head is-ruled">
                 <div class="rm-dialog-titles">
-                    <h3 class="rm-dialog-title modal-title" id="radioModalTitle">Tambah radio</h3>
-                    <p class="rm-dialog-sub">Kolom bertanda * wajib diisi. Radio ID dan SN dicek duplikatnya saat disimpan.</p>
+                    <h3 class="rm-dialog-title modal-title" id="radioModalTitle">{{ __('RadioManagement::register.form.add') }}</h3>
+                    <p class="rm-dialog-sub">{{ __('RadioManagement::register.form.sub') }}</p>
                 </div>
-                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i
                         class="ti ti-x"></i></button>
             </div>
             <div class="rm-dialog-body is-form">
                 <div class="rm-alert danger d-none" id="radioReviewBox">
                     <i class="ti ti-alert-triangle" aria-hidden="true"></i>
                     <div>
-                        <b>Perlu dicek (hasil impor Excel)</b>
+                        <b>{{ __('RadioManagement::register.form.review_title') }}</b>
                         <div class="radio-pre" id="radioReviewNotes"></div>
                         <label class="form-check mt-2 mb-0">
                             <input class="form-check-input" type="checkbox" id="radioReviewDone" />
-                            <span class="form-check-label">Sudah dicek dan dibereskan, hapus tanda "Perlu dicek"</span>
+                            <span class="form-check-label">{{ __('RadioManagement::register.form.review_done') }}</span>
                         </label>
                     </div>
                 </div>
 
                 <form id="radioForm" autocomplete="off" class="d-flex flex-column gap-4">
                     <section>
-                        <div class="rm-dialog-section-title">Identitas unit</div>
+                        <div class="rm-dialog-section-title">{{ __('RadioManagement::register.form.unit') }}</div>
                         <div class="row g-3">
                             <div class="col-md-6 rm-field">
-                                <label for="dmr_id" class="form-label">Radio ID</label>
+                                <label for="dmr_id" class="form-label">{{ __('RadioManagement::register.form.radio_id') }}</label>
                                 <div class="input-group rm-input-group">
                                     <input type="number" min="1" id="dmr_id" name="dmr_id" class="form-control"
-                                        placeholder="Kosongkan bila belum diprogram">
+                                        placeholder="{{ __('RadioManagement::register.form.no_id_yet') }}">
                                     <span class="input-group-text rm-suffix radio-mono" id="radioMdcPreview"></span>
                                     <button class="btn-rm secondary rm-input-btn" type="button" data-bs-toggle="dropdown"
-                                        data-bs-auto-close="outside" id="radioNextIdButton" aria-expanded="false">Pilih ID <i
+                                        data-bs-auto-close="outside" id="radioNextIdButton" aria-expanded="false">{{ __('RadioManagement::register.form.pick_id') }} <i
                                             class="ti ti-chevron-down" aria-hidden="true"></i></button>
                                     {{-- The picker (radioForm.renderPicker): whether the ID can be used, the IDs around it,
                                          the next free ones. --}}
                                     <div class="dropdown-menu dropdown-menu-end rm-idp" id="radioNextIdMenu">
-                                        <span class="radio-muted">Memuat…</span>
+                                        <span class="radio-muted">{{ __('RadioManagement::common.ui.loading') }}</span>
                                     </div>
                                 </div>
                                 {{-- An ID that cannot be used (its MDC Code has F, another radio holds or keeps it): why,
@@ -57,34 +57,34 @@
                                 </div>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="serial_number" class="form-label required">Serial number (SN)</label>
+                                <label for="serial_number" class="form-label required">{{ __('RadioManagement::register.form.serial') }}</label>
                                 <input type="text" id="serial_number" name="serial_number"
                                     class="form-control text-uppercase radio-mono" maxlength="50" placeholder="867TZB5309">
-                                <div class="rm-hint">Format: 3 angka, 3 huruf, lalu 4 huruf atau angka</div>
+                                <div class="rm-hint">{{ __('RadioManagement::register.form.serial_hint') }}</div>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="radio_type_id" class="form-label required">Tipe radio</label>
+                                <label for="radio_type_id" class="form-label required">{{ __('RadioManagement::register.form.type') }}</label>
                                 <select id="radio_type_id" name="radio_type_id" class="form-select">
                                     <option></option>
                                     @foreach ($types as $type)
                                         <option value="{{ $type->id }}" data-category="{{ $type->category_label }}"
                                             data-power="{{ $type->power }}" @if (!$type->is_active) data-inactive @endif>
-                                            {{ $type->name }}{{ $type->is_active ? '' : ' (nonaktif)' }}
+                                            {{ $type->is_active ? $type->name : __('RadioManagement::common.ui.inactive', ['name' => $type->name]) }}
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <span class="form-label">Kategori · daya</span>
+                                <span class="form-label">{{ __('RadioManagement::register.form.category_power') }}</span>
                                 <div class="rm-readonly" id="radioTypeHint"></div>
-                                <div class="rm-hint">Dari tipe radio</div>
+                                <div class="rm-hint">{{ __('RadioManagement::register.form.from_type') }}</div>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="owner_company_id" class="form-label">Pemilik Aset</label>
+                                <label for="owner_company_id" class="form-label">{{ __('RadioManagement::register.form.owner') }}</label>
                                 <select id="owner_company_id" name="owner_company_id" class="form-select">
                                     <option></option>
                                     @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
+                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->is_active ? $company->code : __('RadioManagement::common.ui.inactive', ['name' => $company->code]) }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -92,33 +92,33 @@
                     </section>
 
                     <section>
-                        <div class="rm-dialog-section-title">Pengguna</div>
+                        <div class="rm-dialog-section-title">{{ __('RadioManagement::register.form.user') }}</div>
                         <div class="row g-3">
                             <div class="col-md-6 rm-field">
-                                <label for="user_name" class="form-label">Nama User / Unit</label>
+                                <label for="user_name" class="form-label">{{ __('RadioManagement::register.form.user_name') }}</label>
                                 <input type="text" id="user_name" name="user_name" class="form-control"
-                                    maxlength="150" placeholder="Nama karyawan, atau unit seperti LV 51 / POS LABOTA">
+                                    maxlength="150" placeholder="{{ __('RadioManagement::register.form.user_name_hint') }}">
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="department_id" class="form-label">Department</label>
+                                <label for="department_id" class="form-label">{{ __('RadioManagement::register.form.department') }}</label>
                                 <select id="department_id" name="department_id" class="form-select">
                                     <option></option>
                                     @foreach ($departments as $department)
-                                        <option value="{{ $department->id }}" @if (!$department->is_active) data-inactive @endif>{{ $department->name }}{{ $department->is_active ? '' : ' (nonaktif)' }}</option>
+                                        <option value="{{ $department->id }}" @if (!$department->is_active) data-inactive @endif>{{ $department->is_active ? $department->name : __('RadioManagement::common.ui.inactive', ['name' => $department->name]) }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="company_id" class="form-label">Company</label>
+                                <label for="company_id" class="form-label">{{ __('RadioManagement::register.form.company') }}</label>
                                 <select id="company_id" name="company_id" class="form-select">
                                     <option></option>
                                     @foreach ($companies as $company)
-                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->code }}{{ $company->is_active ? '' : ' (nonaktif)' }}</option>
+                                        <option value="{{ $company->id }}" @if (!$company->is_active) data-inactive @endif>{{ $company->is_active ? $company->code : __('RadioManagement::common.ui.inactive', ['name' => $company->code]) }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-6 rm-field">
-                                <label for="document_no" class="form-label">No. Dokumen (PO / BA)</label>
+                                <label for="document_no" class="form-label">{{ __('RadioManagement::register.form.document') }}</label>
                                 <input type="text" id="document_no" name="document_no" class="form-control radio-mono"
                                     maxlength="100" placeholder="PO 14938 / BA2300012">
                             </div>
@@ -126,10 +126,10 @@
                     </section>
 
                     <section>
-                        <div class="rm-dialog-section-title">Status</div>
+                        <div class="rm-dialog-section-title">{{ __('RadioManagement::register.form.status') }}</div>
                         <div class="row g-3 align-items-end">
                             <div class="col-md-7 rm-field">
-                                <span class="form-label required" id="placementLabel">Posisi</span>
+                                <span class="form-label required" id="placementLabel">{{ __('RadioManagement::register.form.placement') }}</span>
                                 <div class="rm-seg rm-seg-full" role="radiogroup" aria-labelledby="placementLabel">
                                     @foreach ($placements as $i => $placement)
                                         <input type="radio" class="btn-check" name="placement_pick" id="placementPick{{ $i }}"
@@ -145,7 +145,7 @@
                                 </select>
                             </div>
                             <div class="col-md-5 rm-field">
-                                <label for="condition" class="form-label required">Kondisi</label>
+                                <label for="condition" class="form-label required">{{ __('RadioManagement::register.form.condition') }}</label>
                                 <select id="condition" name="condition" class="form-select">
                                     @foreach ($conditions as $condition)
                                         <option value="{{ $condition['value'] }}">{{ $condition['label'] }}</option>
@@ -156,38 +156,38 @@
                     </section>
 
                     <section>
-                        <div class="rm-dialog-section-title">Program dan verifikasi</div>
+                        <div class="rm-dialog-section-title">{{ __('RadioManagement::register.form.program') }}</div>
                         <div class="row g-3">
                             <div class="col-md-4 rm-field">
-                                <label for="channel_template_id" class="form-label">Template channel</label>
+                                <label for="channel_template_id" class="form-label">{{ __('RadioManagement::register.form.template') }}</label>
                                 <select id="channel_template_id" name="channel_template_id" class="form-select">
                                     <option></option>
                                     @foreach ($templates as $template)
-                                        <option value="{{ $template->id }}" @if (!$template->is_active) data-inactive @endif>{{ $template->name }}{{ $template->is_active ? '' : ' (nonaktif)' }}</option>
+                                        <option value="{{ $template->id }}" @if (!$template->is_active) data-inactive @endif>{{ $template->is_active ? $template->name : __('RadioManagement::common.ui.inactive', ['name' => $template->name]) }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4 rm-field">
-                                <label for="last_programmed_at" class="form-label">Program terakhir</label>
+                                <label for="last_programmed_at" class="form-label">{{ __('RadioManagement::register.form.programmed') }}</label>
                                 <input type="date" id="last_programmed_at" name="last_programmed_at" class="form-control">
                             </div>
                             <div class="col-md-4 rm-field">
-                                <label for="last_verified_at" class="form-label">Verifikasi terakhir</label>
+                                <label for="last_verified_at" class="form-label">{{ __('RadioManagement::register.form.verified') }}</label>
                                 <input type="date" id="last_verified_at" name="last_verified_at" class="form-control">
                             </div>
                         </div>
                     </section>
 
                     <section class="rm-field">
-                        <label for="notes" class="form-label">Keterangan</label>
+                        <label for="notes" class="form-label">{{ __('RadioManagement::register.form.notes') }}</label>
                         <textarea id="notes" name="notes" class="form-control" rows="3" maxlength="5000"></textarea>
                     </section>
                 </form>
             </div>
             <div class="rm-dialog-foot is-gray">
                 <span class="rm-dialog-note" id="radioFormNote"></span>
-                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn-rm primary" id="radioSaveButton" onclick="radioForm.submit()">Simpan radio</button>
+                <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::common.ui.cancel') }}</button>
+                <button type="button" class="btn-rm primary" id="radioSaveButton" onclick="radioForm.submit()">{{ __('RadioManagement::register.form.save_new') }}</button>
             </div>
         </div>
     </div>
@@ -196,6 +196,8 @@
 @push('javascript')
     <script>
         const radioForm = {
+            /** Its words in the language of the page (RadioManagement::register.form). */
+            words: @json(__('RadioManagement::register.form')),
             urls: {
                 show: "{{ route('radio-management.radio.show', ':id') }}",
                 store: "{{ route('radio-management.radio.store') }}",
@@ -222,7 +224,7 @@
                 radioForm.selects.forEach(name => {
                     $('#' + name).select2({
                         theme: 'bootstrap-5',
-                        placeholder: 'Pilih…',
+                        placeholder: RadioUi.words.choose,
                         allowClear: true,
                         dropdownParent: modal,
                         width: '100%',
@@ -259,8 +261,9 @@
                 radioForm.id = mode === 'edit' ? id : null;
                 radioForm.loaded = {};
                 const modal = $('#radioModal');
-                modal.find('.modal-title').text(mode === 'edit' ? 'Edit radio' : 'Tambah radio');
-                $('#radioSaveButton').text(mode === 'edit' ? 'Simpan perubahan' : 'Simpan radio');
+                const words = radioForm.words;
+                modal.find('.modal-title').text(mode === 'edit' ? words.edit : words.add);
+                $('#radioSaveButton').text(mode === 'edit' ? words.save_edit : words.save_new);
                 $('#radioFormNote').text('');
                 $('#radioForm')[0].reset();
                 radioForm.selects.forEach(name => $('#' + name).val(null).trigger('change'));
@@ -268,7 +271,7 @@
                 $('#radioReviewDone').prop('checked', false);
                 $('#serial_number').prev('label').toggleClass('required', mode !== 'edit');
                 $('#radio_type_id').closest('div').find('label').toggleClass('required', mode !== 'edit');
-                $('#dmr_id').prop('disabled', false).attr('placeholder', 'Kosongkan bila belum diprogram');
+                $('#dmr_id').prop('disabled', false).attr('placeholder', words.no_id_yet);
                 radioForm.idInfo = null;
                 radioForm.showIdStatus(null);
 
@@ -291,13 +294,13 @@
                             if (radioForm.selects.includes(name)) input.trigger('change');
                         });
                         if (data.archived) {
-                            $('#dmr_id').prop('disabled', true).attr('placeholder', 'Radio diarsipkan, tidak memegang ID');
+                            $('#dmr_id').prop('disabled', true).attr('placeholder', words.archived_no_id);
                         }
                         if (data.needs_review) {
                             $('#radioReviewNotes').text(data.review_notes || '');
                             $('#radioReviewBox').removeClass('d-none');
                         }
-                        if (data.updated_at) $('#radioFormNote').text(`Terakhir diubah ${data.updated_at}`);
+                        if (data.updated_at) $('#radioFormNote').text(RadioUi.fill(words.last_changed, { at: data.updated_at }));
                         radioForm.showPlacement();
                         radioForm.previewId();
                         radioForm.previewType();
@@ -337,21 +340,23 @@
             /** What is said of an ID: a title and a sentence, in the words of the form. */
             idWords(info) {
                 const id = Number(info.id);
+                const w = radioForm.words;
+                const fill = RadioUi.fill;
                 const holder = info.holder ? [info.holder.label, info.holder.user, info.holder.department ? `(${info.holder.department})` : ''].filter(Boolean).join(', ').replace(', (', ' (') : '';
-                const next = info.suggested ? ` ID berikutnya yang bisa dipakai: ${Number(info.suggested.id)} (MDC ${info.suggested.mdc}).` : '';
+                const next = info.suggested ? ' ' + fill(w.next_id, { id: Number(info.suggested.id), mdc: info.suggested.mdc }) : '';
                 switch (info.status) {
                     case 'ok':
                         return info.own ?
-                            { title: `${id} adalah ID radio ini`, text: `MDC Code ${info.mdc}.` } :
-                            { title: `${id} bebas`, text: `MDC Code ${info.mdc} tanpa huruf F. ID ini dipakai radio ini saat disimpan.` };
+                            { title: fill(w.id_own, { id }), text: fill(w.id_own_text, { mdc: info.mdc }) } :
+                            { title: fill(w.id_free, { id }), text: fill(w.id_free_text, { mdc: info.mdc }) };
                     case 'hex_f':
                         return info.own ?
-                            { title: `Radio ini memakai ${id}: MDC ${info.mdc} mengandung F`, text: `ID seperti ini seharusnya tidak dipakai: program ulang radionya ke ID lain, lalu ganti di sini.${next}` } :
-                            { title: `${id} tidak bisa dipakai: MDC ${info.mdc} mengandung F`, text: (info.skipped ? `ID ${Number(info.skipped.from)} sampai ${Number(info.skipped.to)} dilewati.` : 'ID yang MDC Code-nya mengandung F tidak dipakai.') + next };
+                            { title: fill(w.id_own_f, { id, mdc: info.mdc }), text: w.id_own_f_text + next } :
+                            { title: fill(w.id_f, { id, mdc: info.mdc }), text: (info.skipped ? fill(w.id_skipped, { from: Number(info.skipped.from), to: Number(info.skipped.to) }) : w.id_f_text) + next };
                     case 'taken':
-                        return { title: `${id} sudah dipakai`, text: `Dipakai ${holder}. Radio ID unik di antara radio aktif.${next}` };
+                        return { title: fill(w.id_taken, { id }), text: fill(w.id_taken_text, { holder }) + next };
                     case 'reserved':
-                        return { title: `${id} dicadangkan`, text: `${holder} belum punya ID dan kemungkinan masih memakai ${id}. Cek radio tersebut dulu.${next}` };
+                        return { title: fill(w.id_reserved, { id }), text: fill(w.id_reserved_text, { holder, id }) + next };
                     default:
                         return { title: String(id), text: '' };
                 }
@@ -369,7 +374,7 @@
                 $('#radioIdStatusText').text(words.text);
                 const use = $('#radioIdUse');
                 if (info.suggested) {
-                    use.attr('data-use', String(Number(info.suggested.id))).text(`Pakai ${Number(info.suggested.id)}`).removeClass('d-none');
+                    use.attr('data-use', String(Number(info.suggested.id))).text(RadioUi.fill(radioForm.words.use, { id: Number(info.suggested.id) })).removeClass('d-none');
                 } else {
                     use.attr('data-use', '').addClass('d-none');
                 }
@@ -380,30 +385,31 @@
             renderPicker() {
                 const info = radioForm.idInfo;
                 const esc = RadioUi.esc;
+                const w = radioForm.words;
                 let html = '';
                 if (info) {
                     const words = radioForm.idWords(info);
                     const ok = info.status === 'ok';
                     html += `<div class="rm-idp-status ${ok ? 'is-ok' : 'is-bad'}"><i class="ti ti-${ok ? 'circle-check' : 'alert-triangle'}" aria-hidden="true"></i>` +
                         `<div class="rm-idp-words"><div class="rm-idp-title">${esc(words.title)}</div><div>${esc(words.text)}</div></div>` +
-                        (info.suggested ? `<button type="button" class="btn-rm sm primary" data-use="${Number(info.suggested.id)}">Pakai ${Number(info.suggested.id)}</button>` : '') + `</div>`;
+                        (info.suggested ? `<button type="button" class="btn-rm sm primary" data-use="${Number(info.suggested.id)}">${esc(RadioUi.fill(w.use, { id: Number(info.suggested.id) }))}</button>` : '') + `</div>`;
                     const cells = (info.strip || []).map(cell => {
-                        if (cell.gap) return `<span class="rm-idp-cell is-gap"><b>···</b><small>${Number(cell.gap)} lagi</small></span>`;
+                        if (cell.gap) return `<span class="rm-idp-cell is-gap"><b>···</b><small>${esc(RadioUi.fill(w.more, { count: Number(cell.gap) }))}</small></span>`;
                         const kind = cell.state === 'hex_f' ? 'hex' : (cell.state === 'used' ? 'used' : 'free');
                         const label = `<b>${Number(cell.id)}</b><small>${esc(cell.mdc)}</small>`;
                         return kind === 'free' && !cell.selected ?
                             `<button type="button" class="rm-idp-cell is-free" data-use="${Number(cell.id)}">${label}</button>` :
                             `<span class="rm-idp-cell is-${kind}${cell.selected ? ' is-selected' : ''}">${label}</span>`;
                     }).join('');
-                    html += `<div><div class="rm-idp-head"><span>ID SEKITAR</span><span class="rm-idp-legend"><i class="is-free"></i>bebas<i class="is-used"></i>dipakai<i class="is-hex"></i>ada F</span></div>` +
+                    html += `<div><div class="rm-idp-head"><span>${esc(w.around)}</span><span class="rm-idp-legend"><i class="is-free"></i>${esc(w.free)}<i class="is-used"></i>${esc(w.used)}<i class="is-hex"></i>${esc(w.has_f)}</span></div>` +
                         `<div class="rm-idp-strip">${cells}</div></div>`;
                 }
                 const next = info ? info.next : radioForm.nextIds;
-                const chips = next === null ? '<span class="radio-muted">Memuat…</span>' : (next.length ?
+                const chips = next === null ? `<span class="radio-muted">${esc(RadioUi.words.loading)}</span>` : (next.length ?
                     next.map(item => `<button type="button" class="rm-idchip" data-use="${Number(item.id)}"><b>${Number(item.id)}</b> <span class="radio-mono">${esc(item.mdc)}</span></button>`).join('') :
-                    '<span class="radio-muted">Tidak ada ID bebas lagi</span>');
-                html += `<div><div class="rm-idp-head"><span>ID BEBAS BERIKUTNYA</span></div><div class="rm-idp-chips">${chips}</div></div>` +
-                    `<div class="rm-idp-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>MDC Code adalah Radio ID dalam heksadesimal. Kode yang mengandung F berlaku sebagai wildcard di sistem radio, jadi ID seperti itu tidak pernah dipakai.</span></div>`;
+                    `<span class="radio-muted">${esc(w.none_free)}</span>`);
+                html += `<div><div class="rm-idp-head"><span>${esc(w.next_free)}</span></div><div class="rm-idp-chips">${chips}</div></div>` +
+                    `<div class="rm-idp-note"><i class="ti ti-info-circle" aria-hidden="true"></i><span>${esc(w.mdc_note)}</span></div>`;
                 $('#radioNextIdMenu').html(`<div class="rm-idp-body">${html}</div>`);
             },
 
@@ -423,7 +429,7 @@
                         radioForm.nextIds = data || [];
                         radioForm.renderPicker();
                     })
-                    .fail(() => $('#radioNextIdMenu').html('<span class="text-danger">Gagal memuat</span>'));
+                    .fail(() => $('#radioNextIdMenu').html(`<span class="text-danger">${RadioUi.esc(RadioUi.words.load_failed)}</span>`));
             },
 
             /** An ID chosen: into the field, and the picker closes. */
@@ -451,13 +457,14 @@
                 }
 
                 const errors = [];
-                if (!radioForm.id && !payload.serial_number) errors.push('<strong>SN</strong> wajib diisi');
-                if (!radioForm.id && !payload.radio_type_id) errors.push('<strong>Tipe Radio</strong> wajib dipilih');
-                if (payload.placement === 'di_user' && !payload.user_name) errors.push('<strong>Nama User / Unit</strong> wajib diisi bila Posisi "Di User"');
+                const words = radioForm.words;
+                if (!radioForm.id && !payload.serial_number) errors.push(words.sn_required);
+                if (!radioForm.id && !payload.radio_type_id) errors.push(words.type_required);
+                if (payload.placement === 'di_user' && !payload.user_name) errors.push(words.user_required);
                 // An imported radio may already carry an ID with F: only a newly typed one is refused.
                 const idChanged = String(payload.dmr_id ?? '') !== String(radioForm.loaded.dmr_id ?? '');
                 if (payload.dmr_id && idChanged && RadioUi.hexHasF(payload.dmr_id)) {
-                    errors.push(`<strong>Radio ID ${RadioUi.esc(payload.dmr_id)}</strong> tidak bisa dipakai: MDC Code-nya (${RadioUi.mdc(payload.dmr_id)}) mengandung huruf F. Ganti dengan ID lain`);
+                    errors.push(RadioUi.fill(words.id_has_f, { id: RadioUi.esc(payload.dmr_id), mdc: RadioUi.mdc(payload.dmr_id) }));
                 }
                 if (errors.length) {
                     showError(errors);
@@ -478,7 +485,7 @@
                     dataType: 'json',
                 })?.done(response => {
                     $('#radioModal').modal('hide');
-                    rmFeedback.toast(response.message || 'Data radio disimpan.');
+                    rmFeedback.toast(response.message || radioForm.words.saved);
                     radioForm.onSaved(response);
                 }).fail(RadioUi.fail);
             },

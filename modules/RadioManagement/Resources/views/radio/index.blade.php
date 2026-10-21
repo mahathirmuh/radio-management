@@ -41,17 +41,17 @@
         'template' => $templates->pluck('name', 'id'),
         'placement' => collect($placements)->pluck('label', 'value'),
         'condition' => collect($conditions)->pluck('label', 'value'),
-        'issue' => collect($issues)->map(fn ($issue) => $issue['label']),
+        'issue' => collect($issues)->map(fn ($issue, $code) => \Modules\RadioManagement\Services\RadioCheckService::label($code)),
     ];
 @endphp
 
-@section('page-title', 'Register Radio')
+@section('page-title', __('RadioManagement::register.title'))
 
 @section('content')
     <div class="rm-head">
         <div>
-            <h1 class="rm-title">Register Radio</h1>
-            <p class="rm-sub" id="radioSummary">Memuat daftar radio…</p>
+            <h1 class="rm-title">{{ __('RadioManagement::register.title') }}</h1>
+            <p class="rm-sub" id="radioSummary">{{ __('RadioManagement::register.loading') }}</p>
         </div>
     </div>
 
@@ -59,29 +59,29 @@
         <div class="rm-toolbar rm-toolbar-tight">
             <label class="rm-search" for="radioSearch">
                 <i class="ti ti-search" aria-hidden="true"></i>
-                <input type="search" id="radioSearch" autocomplete="off" placeholder="Cari SN, Radio ID, MDC, user…"
-                    aria-label="Cari radio" />
+                <input type="search" id="radioSearch" autocomplete="off" placeholder="{{ __('RadioManagement::register.search') }}"
+                    aria-label="{{ __('RadioManagement::register.search_label') }}" />
             </label>
             <button type="button" class="btn-rm secondary" id="radioFilterButton" aria-expanded="false"
                 aria-controls="radioFilterCard">
-                Filter <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                {{ __('RadioManagement::register.filter') }} <i class="ti ti-chevron-down" aria-hidden="true"></i>
             </button>
-            <button type="button" class="btn-rm secondary" id="radioResetButton">Reset</button>
-            <div class="rm-seg sm ms-auto" role="radiogroup" aria-label="Lingkup data">
+            <button type="button" class="btn-rm secondary" id="radioResetButton">{{ __('RadioManagement::register.reset') }}</button>
+            <div class="rm-seg sm ms-auto" role="radiogroup" aria-label="{{ __('RadioManagement::register.scope') }}">
                 <input type="radio" class="btn-check" name="radioScope" id="scopeActive" value="active" checked>
-                <label for="scopeActive">Aktif</label>
+                <label for="scopeActive">{{ __('RadioManagement::register.scopes.active') }}</label>
                 <input type="radio" class="btn-check" name="radioScope" id="scopeArchived" value="archived">
-                <label for="scopeArchived">Arsip</label>
+                <label for="scopeArchived">{{ __('RadioManagement::register.scopes.archived') }}</label>
                 <input type="radio" class="btn-check" name="radioScope" id="scopeAll" value="all">
-                <label for="scopeAll">Semua</label>
+                <label for="scopeAll">{{ __('RadioManagement::register.scopes.all') }}</label>
             </div>
             <span class="d-flex gap-2">
                 <button type="button" class="btn-rm secondary" onclick="radioTable.export()">
-                    <i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Export Excel
+                    <i class="ti ti-file-spreadsheet" aria-hidden="true"></i> {{ __('RadioManagement::register.export') }}
                 </button>
                 @if ($radioMay['create'])
                     <button type="button" class="btn-rm primary" id="radioAddButton" onclick="radioForm.open('add')">
-                        <i class="ti ti-plus" aria-hidden="true"></i> Tambah radio
+                        <i class="ti ti-plus" aria-hidden="true"></i> {{ __('RadioManagement::register.add') }}
                     </button>
                 @endif
             </span>
@@ -90,7 +90,7 @@
         @include('RadioManagement::radio.filter')
 
         <div class="rm-applied d-none" id="radioApplied">
-            Diterapkan:
+            {{ __('RadioManagement::register.applied') }}
             <span class="d-inline-flex flex-wrap gap-2" id="radioAppliedChips"></span>
         </div>
 
@@ -119,6 +119,9 @@
         const radioIssues = @json($issues);
         const radioMay = @json($radioMay);
         const radioFilterNames = @json($filterNames);
+        /** The words of the list in the language of the page (RadioManagement::register). */
+        const radioText = @json(__('RadioManagement::register.list'));
+        const radioHeads = @json(__('RadioManagement::register.columns'));
 
         const radioTable = {
             listUrl: "{{ route('radio-management.radio.list') }}",
@@ -133,13 +136,13 @@
             /** The titles of the columns: the archived radios have their own (where they went, when, why). */
             heads: {
                 active: [
-                    ['', 'rm-pick', 'pick'], ['No', 'text-center'], ['Radio ID', '', 'dmr_id'], ['SN / Tipe', '', 'serial_number'],
-                    ['User / Department', '', 'user_name'], ['Company'], ['Owner'], ['Template'], ['Posisi'], ['Kondisi'],
-                    ['Verifikasi', '', 'last_verified_at'], ['Cek'], ['Aksi', 'text-end rm-sticky-end'],
+                    ['', 'rm-pick', 'pick'], [radioHeads.no, 'text-center'], [radioHeads.radio_id, '', 'dmr_id'], [radioHeads.sn_type, '', 'serial_number'],
+                    [radioHeads.user_department, '', 'user_name'], [radioHeads.company], [radioHeads.owner], [radioHeads.template], [radioHeads.placement], [radioHeads.condition],
+                    [radioHeads.verified, '', 'last_verified_at'], [radioHeads.checks], [radioHeads.actions, 'text-end rm-sticky-end'],
                 ],
                 archived: [
-                    ['', 'rm-pick', 'pick'], ['No', 'text-center'], ['Radio ID', '', 'dmr_id'], ['SN / Tipe', '', 'serial_number'],
-                    ['User terakhir', '', 'user_name'], ['Diarsipkan'], ['Alasan'], ['Aksi', 'text-end rm-sticky-end'],
+                    ['', 'rm-pick', 'pick'], [radioHeads.no, 'text-center'], [radioHeads.radio_id, '', 'dmr_id'], [radioHeads.sn_type, '', 'serial_number'],
+                    [radioHeads.last_user, '', 'user_name'], [radioHeads.archived], [radioHeads.reason], [radioHeads.actions, 'text-end rm-sticky-end'],
                 ],
             },
 
@@ -153,7 +156,7 @@
                     render: r => {
                         if (!r.dmr_id) {
                             return r.previous_dmr_id ?
-                                `<div class="rm-strong" title="ID terakhir diketahui">ex ${RadioUi.esc(r.previous_dmr_id)}</div>` :
+                                `<div class="rm-strong" title="${RadioUi.esc(radioText.last_known_id)}">ex ${RadioUi.esc(r.previous_dmr_id)}</div>` :
                                 RadioUi.dash();
                         }
                         return `<div class="rm-strong">${RadioUi.esc(r.dmr_id)}</div><div class="rm-line2 radio-mono">MDC ${RadioUi.esc(r.mdc)}</div>`;
@@ -181,7 +184,7 @@
                     key: 'company',
                     render: r => {
                         const owner = r.owner && r.owner !== r.company ?
-                            `<div class="rm-line2">aset ${RadioUi.esc(r.owner)}</div>` : '';
+                            `<div class="rm-line2">${RadioUi.esc(RadioUi.fill(radioText.asset_of, { owner: r.owner }))}</div>` : '';
                         return `<div>${RadioUi.dash(r.company)}</div>` + owner;
                     }
                 },
@@ -194,14 +197,14 @@
                 placement: {
                     key: 'placement',
                     render: r => r.archived ?
-                        `${RadioUi.badge('Arsip', 'secondary')}<div class="rm-line2">${RadioUi.esc(r.archive_reason || '')}</div>` :
+                        `${RadioUi.badge(radioText.archived, 'secondary')}<div class="rm-line2">${RadioUi.esc(RadioUi.name('archive_reasons', r.archive_reason || ''))}</div>` :
                         RadioUi.badge(r.placement.label, r.placement.color)
                 },
                 condition: { key: 'condition', render: r => RadioUi.badge(r.condition.label, r.condition.color) },
                 last_verified_at: { key: 'last_verified_at', sortable: true, render: r => RadioUi.dash(r.last_verified_at) },
                 issues: { key: 'issues', className: 'radio-checks', render: r => RadioUi.issues(r.issues, 1) },
                 archived_at: { key: 'archived_at', render: r => RadioUi.dash(r.archived_at) },
-                archive_reason: { key: 'archive_reason', render: r => r.archive_reason ? RadioUi.badge(r.archive_reason, RadioUi.reasonColor(r.archive_reason)) : RadioUi.dash(null) },
+                archive_reason: { key: 'archive_reason', render: r => r.archive_reason ? RadioUi.badge(RadioUi.name('archive_reasons', r.archive_reason), RadioUi.reasonColor(r.archive_reason)) : RadioUi.dash(null) },
                 actions: {
                     key: 'actions',
                     className: 'text-end rm-sticky-end',
@@ -209,13 +212,14 @@
                         // Values travel in data-* attributes (read with .data()), never inside inline JS. An archived radio is
                         // only looked at or brought back; a role that may not change radios looks and prints.
                         const label = RadioUi.esc(`${r.dmr_id ? 'ID ' + r.dmr_id + ' · ' : ''}${r.serial_number || ''}`);
+                        const say = key => RadioUi.esc(radioText[key]);
                         return `<div class="rm-acts">
-                            <a href="${RadioUi.esc(r.detail_url)}" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Detail & Riwayat" aria-label="Detail & Riwayat"><i class="ti ti-eye"></i></a>
-                            ${r.archived ? '' : `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Cetak form (IT Equipment Checkout Form)" aria-label="Cetak form" data-action="print" data-url="${RadioUi.esc(r.print_url)}" data-label="${label}"><i class="ti ti-printer"></i></button>`}
-                            ${radioMay.update && !r.archived ? `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Edit" aria-label="Edit" data-action="edit" data-id="${r.id}"><i class="ti ti-edit"></i></button>` : ''}
+                            <a href="${RadioUi.esc(r.detail_url)}" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${say('detail')}" aria-label="${say('detail')}"><i class="ti ti-eye"></i></a>
+                            ${r.archived ? '' : `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${say('print')}" aria-label="${say('print_short')}" data-action="print" data-url="${RadioUi.esc(r.print_url)}" data-label="${label}"><i class="ti ti-printer"></i></button>`}
+                            ${radioMay.update && !r.archived ? `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${say('edit')}" aria-label="${say('edit')}" data-action="edit" data-id="${r.id}"><i class="ti ti-edit"></i></button>` : ''}
                             ${!radioMay.update ? '' : (r.archived ?
-                                `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Pulihkan" aria-label="Pulihkan" data-action="restore" data-id="${r.id}" data-label="${label}"><i class="ti ti-archive-off"></i></button>` :
-                                `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="Arsipkan" aria-label="Arsipkan" data-action="archive" data-id="${r.id}" data-label="${label}"><i class="ti ti-archive"></i></button>`)}
+                                `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${say('restore')}" aria-label="${say('restore')}" data-action="restore" data-id="${r.id}" data-label="${label}"><i class="ti ti-archive-off"></i></button>` :
+                                `<button type="button" class="rm-act" data-bs-toggle="tooltip" data-bs-title="${say('archive')}" aria-label="${say('archive')}" data-action="archive" data-id="${r.id}" data-label="${label}"><i class="ti ti-archive"></i></button>`)}
                         </div>`;
                     }
                 },
@@ -234,10 +238,10 @@
                 const titles = radioTable.heads[scope === 'archived' ? 'archived' : 'active'];
                 const cells = titles.map(([title, className = '', key = '']) => {
                     if (key === 'pick') {
-                        return '<th class="rm-pick"><input type="checkbox" class="form-check-input" id="radioPickPage" aria-label="Pilih semua radio di halaman ini"></th>';
+                        return `<th class="rm-pick"><input type="checkbox" class="form-check-input" id="radioPickPage" aria-label="${RadioUi.esc(radioText.pick_page)}"></th>`;
                     }
                     const attrs = `${className ? ` class="${className}"` : ''}${key ? ` data-key="${key}"` : ''}`;
-                    return className.includes('text-end') ? `<th${attrs}><span class="visually-hidden">${title}</span></th>` : `<th${attrs}>${title}</th>`;
+                    return className.includes('text-end') ? `<th${attrs}><span class="visually-hidden">${RadioUi.esc(title)}</span></th>` : `<th${attrs}>${RadioUi.esc(title)}</th>`;
                 }).join('');
                 $('#radioTable thead').html(`<tr>${cells}</tr>`);
                 radioBulk.bindPage();
@@ -261,10 +265,10 @@
                     columns: radioTable.columnsOf(radioTable.scope),
                     currentPage: radioTable.page,
                     limit: radioTable.limit,
-                    emptyText: 'Tidak ada data radio',
+                    emptyText: radioText.empty,
                     currentSortKey: radioTable.orderBy,
                     currentSortDir: radioTable.orderDir,
-                    paginationLabels: { showing: 'Menampilkan', of: 'dari', rows: 'Baris per halaman', noun: 'radio', previous: 'Halaman sebelumnya', next: 'Halaman berikutnya' },
+                    paginationLabels: { noun: radioText.noun },
                     // A click on a row opens the radio (its buttons, links and box do what they do).
                     rowAttrs: r => `data-href="${RadioUi.esc(r.detail_url)}"`,
                     onPageChange: page => {
@@ -287,9 +291,9 @@
 
             /** "Menampilkan 25 dari 247 radio aktif" above the card. */
             summary(meta) {
-                const what = { active: 'radio aktif', archived: 'radio diarsipkan', all: 'radio (aktif dan arsip)' }[radioTable.scope] || 'radio';
+                const what = { active: radioText.what_active, archived: radioText.what_archived, all: radioText.what_all }[radioTable.scope] || radioText.noun;
                 const shown = meta && meta.total ? Math.max(0, (meta.to || 0) - (meta.from || 0) + 1) : 0;
-                $('#radioSummary').text(!meta ? '' : (meta.total ? `Menampilkan ${shown} dari ${meta.total} ${what}` : `Tidak ada ${what}`));
+                $('#radioSummary').text(!meta ? '' : (meta.total ? RadioUi.fill(radioText.summary, { shown, total: meta.total, what }) : RadioUi.fill(radioText.nothing, { what })));
             },
 
             load() {
@@ -311,7 +315,7 @@
                         RadioUi.tooltips('#radioTable');
                         radioBulk.shown(response.data, response.meta);
                     })
-                    .fail(() => radioTable.render({ emptyText: 'Gagal memuat data. Coba lagi.' }))
+                    .fail(() => radioTable.render({ emptyText: radioText.load_failed }))
                     .always(() => radioFilter.busy(false));
             },
 

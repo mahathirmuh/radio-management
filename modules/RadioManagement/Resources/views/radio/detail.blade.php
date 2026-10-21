@@ -6,12 +6,18 @@
 
 @include('RadioManagement::partials.scripts')
 
-@section('page-title', 'Detail Radio')
-@section('crumb', 'Radio ' . ($radio->dmr_id ?? ($radio->previous_dmr_id ? 'ex ' . $radio->previous_dmr_id : $radio->serial_number)))
+@section('page-title', __('RadioManagement::detail.page_title'))
+@section('crumb', $radio->dmr_id || ! $radio->previous_dmr_id
+    ? __('RadioManagement::detail.crumb', ['id' => $radio->dmr_id ?? $radio->serial_number])
+    : __('RadioManagement::detail.crumb_ex', ['id' => $radio->previous_dmr_id]))
 
 @section('content')
     @php
-        $label = ($radio->dmr_id ? 'ID ' . $radio->dmr_id . ' · ' : '') . ($radio->serial_number ?? 'tanpa SN');
+        $label = ($radio->dmr_id ? 'ID ' . $radio->dmr_id . ' · ' : '') . ($radio->serial_number ?? __('RadioManagement::detail.no_sn'));
+        // The names to show of what the history keeps in Indonesian: the kind of a line, a field that changed, a value.
+        $changeFields = __('RadioManagement::detail.change_fields');
+        $changeValues = __('RadioManagement::detail.change_values');
+        $changeValue = fn ($value) => $value === null || $value === '' ? '-' : ($changeValues[$value] ?? $value);
         // What the role may do with the radio (the server checks again).
         $may = [
             'update' => \Illuminate\Support\Facades\Blade::check('permission', 'radio-management.radio', 'Update'),
@@ -46,16 +52,16 @@
 
     <div class="radio-detail">
         {{-- On a phone, where the top bar with the path is not shown. --}}
-        <nav class="rm-crumbs d-lg-none" aria-label="Breadcrumb">
-            <a href="{{ route('radio-management.radio.index') }}">Register Radio</a>
+        <nav class="rm-crumbs d-lg-none" aria-label="{{ __('ui.topbar.breadcrumb') }}">
+            <a href="{{ route('radio-management.radio.index') }}">{{ __('RadioManagement::register.title') }}</a>
             <i class="ti ti-chevron-right" aria-hidden="true"></i>
-            <span aria-current="page">Radio {{ $radio->dmr_id ?? ($radio->previous_dmr_id ? 'ex ' . $radio->previous_dmr_id : $radio->serial_number) }}</span>
+            <span aria-current="page">@yield('crumb')</span>
         </nav>
 
         @if (!$may['update'] && !$may['delete'])
             <div class="rm-banner">
                 <i class="ti ti-lock" aria-hidden="true"></i>
-                <span>Akses baca saja. Anda bisa melihat radio ini dan mencetak form-nya, tetapi tidak mengubahnya.</span>
+                <span>{{ __('RadioManagement::detail.read_only') }}</span>
             </div>
         @endif
 
@@ -63,59 +69,59 @@
         <section class="rm-hero">
             <span class="rm-hero-tile"><i class="ti ti-radio" aria-hidden="true"></i></span>
             <div class="rm-hero-main">
-                <div class="rm-hero-kicker">Radio ID / MDC Code</div>
+                <div class="rm-hero-kicker">{{ __('RadioManagement::detail.kicker') }}</div>
                 <div class="rm-hero-id">
                     @if ($radio->dmr_id)
                         <span>{{ $radio->dmr_id }}</span> <span class="rm-hero-mdc radio-mono">/ MDC {{ $radio->mdc_code }}</span>
                     @elseif ($radio->previous_dmr_id)
                         <span class="text-secondary">ex {{ $radio->previous_dmr_id }}</span>
                     @else
-                        <span class="text-secondary">belum ada</span>
+                        <span class="text-secondary">{{ __('RadioManagement::detail.no_id') }}</span>
                     @endif
                 </div>
                 <div class="rm-hero-meta">
                     <span class="radio-mono">SN {{ $radio->serial_number ?? '-' }}</span>
                     @if ($radio->isArchived())
-                        <span class="rm-badge gray">Arsip · {{ $radio->archive_reason }} · {{ $radio->archived_at->format('d-m-Y') }}</span>
+                        <span class="rm-badge gray">{{ __('RadioManagement::detail.archived', ['reason' => \Modules\RadioManagement\Services\RadioWords::of('archive_reasons', $radio->archive_reason), 'date' => $radio->archived_at->format('d-m-Y')]) }}</span>
                     @else
-                        <span class="rm-badge {{ $badgeTone($radio->placement->color()) }}">{{ $radio->placement->label() }}</span>
+                        <span class="rm-badge {{ $badgeTone($radio->placement->color()) }}">{{ $radio->placement->display() }}</span>
                     @endif
-                    <span class="rm-badge {{ $badgeTone($radio->condition->color()) }}">{{ $radio->condition->label() }}</span>
+                    <span class="rm-badge {{ $badgeTone($radio->condition->color()) }}">{{ $radio->condition->display() }}</span>
                 </div>
             </div>
             <div class="rm-hero-actions">
                 @unless ($radio->isArchived())
                     <button type="button" class="btn-rm secondary" id="radioDetailPrint"
                         onclick="radioPrint.open(@js(route('radio-management.radio.checkout-form', $radio)), radioLabel)">
-                        <i class="ti ti-printer" aria-hidden="true"></i> Cetak form
+                        <i class="ti ti-printer" aria-hidden="true"></i> {{ __('RadioManagement::detail.print') }}
                     </button>
                 @endunless
                 @if ($may['update'] && ! $radio->isArchived())
                     <button type="button" class="btn-rm secondary" id="radioHandoverButton" onclick="radioHandover.open()">
-                        <i class="ti ti-user-check" aria-hidden="true"></i> Serah terima
+                        <i class="ti ti-user-check" aria-hidden="true"></i> {{ __('RadioManagement::detail.handover') }}
                     </button>
                 @endif
                 @if ($may['update'])
                     <button type="button" class="btn-rm secondary" onclick="radioHistory.open()">
-                        <i class="ti ti-plus" aria-hidden="true"></i> Tambah riwayat
+                        <i class="ti ti-plus" aria-hidden="true"></i> {{ __('RadioManagement::detail.add_history') }}
                     </button>
                     @if ($radio->isArchived())
                         <button type="button" class="btn-rm secondary" onclick="radioArchive.restore({{ $radio->id }}, radioLabel)">
-                            <i class="ti ti-archive-off" aria-hidden="true"></i> Pulihkan
+                            <i class="ti ti-archive-off" aria-hidden="true"></i> {{ __('RadioManagement::detail.restore') }}
                         </button>
                     @else
                         <button type="button" class="btn-rm secondary" onclick="radioArchive.open({{ $radio->id }}, radioLabel)">
-                            <i class="ti ti-archive" aria-hidden="true"></i> Arsipkan
+                            <i class="ti ti-archive" aria-hidden="true"></i> {{ __('RadioManagement::detail.archive') }}
                         </button>
                     @endif
                 @endif
                 @if ($may['delete'])
                     <button type="button" class="rm-danger-icon" onclick="radioDelete()" data-bs-toggle="tooltip"
-                        data-bs-title="Hapus" aria-label="Hapus radio"><i class="ti ti-trash"></i></button>
+                        data-bs-title="{{ __('RadioManagement::detail.delete') }}" aria-label="{{ __('RadioManagement::detail.delete_label') }}"><i class="ti ti-trash"></i></button>
                 @endif
                 @if ($may['update'])
                     <button type="button" class="btn-rm primary" onclick="radioForm.open('edit', {{ $radio->id }})">
-                        <i class="ti ti-edit" aria-hidden="true"></i> Edit
+                        <i class="ti ti-edit" aria-hidden="true"></i> {{ __('RadioManagement::detail.edit') }}
                     </button>
                 @endif
             </div>
@@ -126,8 +132,8 @@
             <section class="rm-cardbox">
                 <header class="rm-cardbox-head">
                     <div>
-                        <h2 class="rm-cardbox-title">Hasil cek</h2>
-                        <div class="rm-cardbox-sub">Dicek otomatis setiap kali radio disimpan atau dibuka</div>
+                        <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.checks') }}</h2>
+                        <div class="rm-cardbox-sub">{{ __('RadioManagement::detail.checks_sub') }}</div>
                     </div>
                 </header>
                 <div class="rm-cardbox-body d-flex flex-column gap-3">
@@ -146,10 +152,10 @@
                                 @if ($reprogram['hint'])
                                     <div>{{ $reprogram['hint'] }}</div>
                                 @endif
-                                <div>Program ulang radionya, lalu tambahkan riwayat Program supaya cek ini hilang.</div>
+                                <div>{{ __('RadioManagement::detail.reprogram') }}</div>
                             </div>
                             @if ($may['update'])
-                                <button type="button" class="btn-rm sm secondary" onclick="radioHistory.open('Program')">Tambah riwayat Program</button>
+                                <button type="button" class="btn-rm sm secondary" onclick="radioHistory.open('Program')">{{ __('RadioManagement::detail.add_program') }}</button>
                             @endif
                         </div>
                     @endif
@@ -157,13 +163,13 @@
                         <div class="rm-alert danger">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
                             <div>
-                                <b>Perlu dicek</b>
+                                <b>{{ __('RadioManagement::detail.needs_review') }}</b>
                                 <ul class="mb-1 ps-3">
                                     @foreach (array_filter(explode("\n", (string) $radio->review_notes)) as $note)
                                         <li>{{ $note }}</li>
                                     @endforeach
                                 </ul>
-                                <div>Setelah dibereskan, buka <b>Edit</b> lalu centang "Sudah dicek".</div>
+                                <div>{!! __('RadioManagement::detail.review_after') !!}</div>
                             </div>
                         </div>
                     @endif
@@ -175,15 +181,15 @@
         <div class="rm-info-grid">
             <section class="rm-cardbox">
                 <header class="rm-cardbox-head">
-                    <h2 class="rm-cardbox-title">Identitas unit</h2>
+                    <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.unit') }}</h2>
                 </header>
                 <dl class="rm-facts">
-                    <div><dt>SN</dt><dd class="radio-mono">{{ $radio->serial_number ?? '-' }}</dd></div>
-                    <div><dt>Tipe Radio</dt><dd>{{ $radio->radioType?->name ?? '-' }}</dd></div>
-                    <div><dt>Kategori · Daya</dt><dd>{{ $radio->radioType?->category_label ?? '-' }} · {{ $radio->radioType?->power ?? '-' }}</dd></div>
-                    <div><dt>Pemilik Aset</dt><dd>{{ $radio->ownerCompany?->label ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.sn') }}</dt><dd class="radio-mono">{{ $radio->serial_number ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.type') }}</dt><dd>{{ $radio->radioType?->name ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.category_power') }}</dt><dd>{{ $radio->radioType?->category_label ?? '-' }} · {{ $radio->radioType?->power ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.owner') }}</dt><dd>{{ $radio->ownerCompany?->label ?? '-' }}</dd></div>
                     <div>
-                        <dt>Owner</dt>
+                        <dt>{{ __('RadioManagement::detail.owner_group') }}</dt>
                         <dd>
                             @if ($radio->ownerGroup())
                                 <span class="rm-badge {{ $radio->ownerGroup() === 'MTI' ? 'blue' : 'orange' }}">{{ $radio->ownerGroup() }}</span>
@@ -193,28 +199,28 @@
                         </dd>
                     </div>
                     @if ($radio->previous_dmr_id)
-                        <div><dt>Radio ID Lama</dt><dd>{{ $radio->previous_dmr_id }}</dd></div>
+                        <div><dt>{{ __('RadioManagement::detail.old_id') }}</dt><dd>{{ $radio->previous_dmr_id }}</dd></div>
                     @endif
                 </dl>
             </section>
             <section class="rm-cardbox">
                 <header class="rm-cardbox-head">
-                    <h2 class="rm-cardbox-title">Pengguna</h2>
+                    <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.user') }}</h2>
                 </header>
                 <dl class="rm-facts">
-                    <div><dt>Nama User / Unit</dt><dd>{{ $radio->user_name ?? '-' }}</dd></div>
-                    <div><dt>Department</dt><dd>{{ $radio->department?->name ?? '-' }}</dd></div>
-                    <div><dt>Company</dt><dd>{{ $radio->company?->label ?? '-' }}</dd></div>
-                    <div><dt>No. Dokumen (PO / BA)</dt><dd class="radio-mono">{{ $radio->document_no ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.user_name') }}</dt><dd>{{ $radio->user_name ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.department') }}</dt><dd>{{ $radio->department?->name ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.company') }}</dt><dd>{{ $radio->company?->label ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.document') }}</dt><dd class="radio-mono">{{ $radio->document_no ?? '-' }}</dd></div>
                 </dl>
             </section>
             <section class="rm-cardbox">
                 <header class="rm-cardbox-head">
-                    <h2 class="rm-cardbox-title">Program dan verifikasi</h2>
+                    <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.program') }}</h2>
                 </header>
                 <dl class="rm-facts">
                     <div>
-                        <dt>Template Channel</dt>
+                        <dt>{{ __('RadioManagement::detail.template') }}</dt>
                         <dd>
                             {{ $radio->channelTemplate?->name ?? '-' }}
                             @if ($radio->channelTemplate?->channels)
@@ -222,9 +228,9 @@
                             @endif
                         </dd>
                     </div>
-                    <div><dt>Program terakhir</dt><dd>{{ $radio->last_programmed_at?->format('d-m-Y') ?? '-' }}</dd></div>
-                    <div><dt>Verifikasi terakhir</dt><dd>{{ $radio->last_verified_at?->format('d-m-Y') ?? '-' }}</dd></div>
-                    <div><dt>Terakhir diubah</dt><dd>{{ $radio->updated_at?->format('d-m-Y H:i') }} {{ $radio->updater ? 'oleh ' . $radio->updater->name : '' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.programmed') }}</dt><dd>{{ $radio->last_programmed_at?->format('d-m-Y') ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.verified') }}</dt><dd>{{ $radio->last_verified_at?->format('d-m-Y') ?? '-' }}</dd></div>
+                    <div><dt>{{ __('RadioManagement::detail.changed') }}</dt><dd>{{ $radio->updated_at?->format('d-m-Y H:i') }} {{ $radio->updater ? __('RadioManagement::detail.by', ['name' => $radio->updater->name]) : '' }}</dd></div>
                 </dl>
             </section>
         </div>
@@ -234,16 +240,16 @@
             <section class="rm-cardbox">
                 <header class="rm-cardbox-head">
                     <div>
-                        <h2 class="rm-cardbox-title">Riwayat</h2>
-                        <div class="rm-cardbox-sub">{{ $radio->histories->count() }} catatan, yang terbaru di atas</div>
+                        <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.history') }}</h2>
+                        <div class="rm-cardbox-sub">{{ trans_choice('RadioManagement::detail.history_sub', $radio->histories->count(), ['count' => $radio->histories->count()]) }}</div>
                     </div>
                     @if ($may['update'])
-                        <a href="#" class="rm-cardbox-link" onclick="radioHistory.open(); return false;">Tambah riwayat</a>
+                        <a href="#" class="rm-cardbox-link" onclick="radioHistory.open(); return false;">{{ __('RadioManagement::detail.add_history') }}</a>
                     @endif
                 </header>
                 <div class="rm-cardbox-body">
                     @if ($radio->histories->isEmpty())
-                        <div class="radio-muted">Belum ada riwayat.</div>
+                        <div class="radio-muted">{{ __('RadioManagement::detail.no_history') }}</div>
                     @else
                         <ol class="rm-timeline">
                             @foreach ($radio->histories as $history)
@@ -252,21 +258,21 @@
                                     <span class="rm-timeline-dot tone-{{ $tone }}"><i class="ti ti-{{ $icon }}" aria-hidden="true"></i></span>
                                     <div class="rm-timeline-content">
                                         <div class="rm-timeline-title">
-                                            <span>{{ $history->action }}</span>
+                                            <span>{{ \Modules\RadioManagement\Services\RadioWords::of('history_actions', $history->action) }}</span>
                                             @if ($history->document_no)
                                                 <span class="rm-badge outline radio-mono">{{ $history->document_no }}</span>
                                             @endif
                                         </div>
                                         <div class="rm-timeline-meta">{{ $history->event_date->format('d-m-Y') }} ·
-                                            {{ $history->user?->name ?? 'Sistem' }}</div>
+                                            {{ $history->user?->name ?? __('RadioManagement::detail.system') }}</div>
                                         @if ($history->changes)
                                             <div class="rm-changes">
                                                 @foreach ($history->changes as $change)
                                                     <div class="rm-change">
-                                                        <span class="rm-change-field">{{ $change['label'] }}</span>
-                                                        <span class="rm-change-old">{{ $change['old'] ?? '-' }}</span>
+                                                        <span class="rm-change-field">{{ $changeFields[$change['label']] ?? $change['label'] }}</span>
+                                                        <span class="rm-change-old">{{ $changeValue($change['old'] ?? null) }}</span>
                                                         <i class="ti ti-arrow-right" aria-hidden="true"></i>
-                                                        <span class="rm-change-new">{{ $change['new'] ?? '-' }}</span>
+                                                        <span class="rm-change-new">{{ $changeValue($change['new'] ?? null) }}</span>
                                                     </div>
                                                 @endforeach
                                             </div>
@@ -285,7 +291,7 @@
                 @if ($radio->notes)
                     <section class="rm-cardbox">
                         <header class="rm-cardbox-head">
-                            <h2 class="rm-cardbox-title">Keterangan</h2>
+                            <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.notes') }}</h2>
                         </header>
                         <div class="rm-cardbox-body radio-pre">{{ $radio->notes }}</div>
                     </section>
@@ -295,9 +301,9 @@
                 <section class="rm-cardbox">
                     <header class="rm-cardbox-head">
                         <div>
-                            <h2 class="rm-cardbox-title">Data asli Excel</h2>
+                            <h2 class="rm-cardbox-title">{{ __('RadioManagement::detail.source') }}</h2>
                             @if ($radio->source_data)
-                                <div class="rm-cardbox-sub">Sheet "{{ $radio->source_sheet }}" baris {{ $radio->source_row }}</div>
+                                <div class="rm-cardbox-sub">{{ __('RadioManagement::detail.source_sub', ['sheet' => $radio->source_sheet, 'row' => $radio->source_row]) }}</div>
                             @endif
                         </div>
                     </header>
@@ -310,7 +316,7 @@
                                 @endforeach
                             </dl>
                         @else
-                            <div class="radio-muted">Radio ini ditambahkan langsung di aplikasi, bukan dari Excel.</div>
+                            <div class="radio-muted">{{ __('RadioManagement::detail.source_none') }}</div>
                         @endif
                     </div>
                 </section>
@@ -333,44 +339,43 @@
                 <div class="rm-dialog-head">
                     <span class="rm-dialog-icon"><i class="ti ti-plus" aria-hidden="true"></i></span>
                     <div class="rm-dialog-titles">
-                        <h3 class="rm-dialog-title" id="radioHistoryTitle">Tambah riwayat</h3>
-                        <p class="rm-dialog-sub">Catatan tersimpan di radio ini dan di Riwayat Radio.</p>
+                        <h3 class="rm-dialog-title" id="radioHistoryTitle">{{ __('RadioManagement::detail.history_dialog.title') }}</h3>
+                        <p class="rm-dialog-sub">{{ __('RadioManagement::detail.history_dialog.sub') }}</p>
                     </div>
-                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="Tutup"><i
+                    <button type="button" class="rm-dialog-close" data-bs-dismiss="modal" aria-label="{{ __('RadioManagement::common.ui.close') }}"><i
                             class="ti ti-x"></i></button>
                 </div>
                 <div class="rm-dialog-body">
                     <div class="row g-3">
                         <div class="col-md-6 rm-field">
-                            <label for="history_action" class="form-label required">Jenis</label>
+                            <label for="history_action" class="form-label required">{{ __('RadioManagement::detail.history_dialog.kind') }}</label>
                             <select id="history_action" class="form-select">
                                 @foreach ($historyActions as $action)
-                                    <option value="{{ $action }}">{{ $action }}</option>
+                                    <option value="{{ $action }}">{{ \Modules\RadioManagement\Services\RadioWords::of('history_actions', $action) }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-6 rm-field">
-                            <label for="history_date" class="form-label required">Tanggal</label>
+                            <label for="history_date" class="form-label required">{{ __('RadioManagement::detail.history_dialog.date') }}</label>
                             <input type="date" id="history_date" class="form-control">
                         </div>
                     </div>
                     <div class="rm-field">
-                        <label for="history_description" class="form-label required">Keterangan</label>
+                        <label for="history_description" class="form-label required">{{ __('RadioManagement::detail.history_dialog.description') }}</label>
                         <textarea id="history_description" class="form-control" rows="3" maxlength="2000"
-                            placeholder="Apa yang terjadi? Mis. program ulang template General v2"></textarea>
-                        <div class="rm-hint">Jenis "Program" / "Verifikasi" juga memperbarui tanggal program / verifikasi
-                            radio.</div>
+                            placeholder="{{ __('RadioManagement::detail.history_dialog.description_hint') }}"></textarea>
+                        <div class="rm-hint">{{ __('RadioManagement::detail.history_dialog.updates') }}</div>
                     </div>
                     <div class="rm-field">
-                        <label for="history_document" class="form-label">No. Dokumen (PO / BA)</label>
+                        <label for="history_document" class="form-label">{{ __('RadioManagement::detail.history_dialog.document') }}</label>
                         <input type="text" id="history_document" class="form-control radio-mono" maxlength="100"
-                            placeholder="Nomor BA atau PO">
+                            placeholder="{{ __('RadioManagement::detail.history_dialog.document_hint') }}">
                     </div>
                 </div>
                 <div class="rm-dialog-foot">
-                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn-rm secondary" data-bs-dismiss="modal">{{ __('RadioManagement::common.ui.cancel') }}</button>
                     <button type="button" class="btn-rm primary" id="radioHistoryButton" onclick="radioHistory.submit()">
-                        Tambah riwayat
+                        {{ __('RadioManagement::detail.history_dialog.submit') }}
                     </button>
                 </div>
             </div>
@@ -382,6 +387,8 @@
     <script src="{{ asset('assets/libs/select2/select2.min.js') }}"></script>
     <script>
         const radioLabel = @js($label);
+        /** The words of the dialogs of this page in its language (RadioManagement::detail). */
+        const radioDetailText = { history: @json(__('RadioManagement::detail.history_dialog')), delete: @json(__('RadioManagement::detail.delete_dialog')) };
         // What is typed to delete: the Radio ID, or the SN of a radio without one.
         const radioConfirmWord = @js((string) ($radio->dmr_id ?? $radio->serial_number ?? ''));
 
@@ -412,7 +419,7 @@
                     },
                 })?.done(response => {
                     $('#radioHistoryModal').modal('hide');
-                    rmFeedback.toast(response.message || 'Riwayat ditambahkan.');
+                    rmFeedback.toast(response.message || radioDetailText.history.added);
                     setTimeout(() => window.location.reload(), 900);
                 }).fail(RadioUi.fail);
             },
@@ -420,20 +427,19 @@
 
         /** Deleting is for a radio entered by mistake: the person types its Radio ID (or SN) as a last look. */
         function radioDelete() {
+            const words = radioDetailText.delete;
             rmDialog.confirm({
                 tone: 'red',
                 icon: 'trash',
-                title: `Hapus radio ${radioConfirmWord} dari register?`,
-                html: 'Gunakan <b>Arsipkan</b> untuk radio yang pindah site, afkir, atau hilang. Hapus hanya untuk data yang ' +
-                    'salah input; riwayatnya tetap tersimpan, tetapi radionya tidak bisa dikembalikan dari aplikasi.<br><br>' +
-                    `Ketik <b>${RadioUi.esc(radioConfirmWord)}</b> untuk menghapus.`,
+                title: RadioUi.fill(words.title, { word: radioConfirmWord }),
+                html: RadioUi.fill(words.text, { word: RadioUi.esc(radioConfirmWord) }),
                 input: 'text',
-                inputAttributes: { autocomplete: 'off', 'aria-label': 'Ketik Radio ID untuk menghapus' },
-                confirmText: 'Hapus radio',
+                inputAttributes: { autocomplete: 'off', 'aria-label': words.type },
+                confirmText: words.submit,
                 confirmKind: 'destructive',
                 preConfirm: typed => {
                     if (String(typed || '').trim().toUpperCase() !== radioConfirmWord.toUpperCase()) {
-                        Swal.showValidationMessage(`Yang diketik bukan ${radioConfirmWord}.`);
+                        Swal.showValidationMessage(RadioUi.fill(words.typed_other, { word: radioConfirmWord }));
                         return false;
                     }
                     return true;
@@ -446,7 +452,7 @@
                     dataType: 'json',
                     data: { _method: 'DELETE' },
                 }).done(response => {
-                    rmFeedback.toast(response.message || 'Radio dihapus.');
+                    rmFeedback.toast(response.message || radioDetailText.delete.deleted);
                     setTimeout(() => window.location = "{{ route('radio-management.radio.index') }}", 900);
                 }).fail(RadioUi.fail);
             });

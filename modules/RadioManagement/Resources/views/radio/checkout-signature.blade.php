@@ -9,21 +9,21 @@
 @php($signWho = $signWho ?? 'Responsible User')
 <div class="sig-overlay no-print" id="signOverlay" role="dialog" aria-modal="true" aria-labelledby="signTitle" hidden>
     <div class="sig-panel" tabindex="-1">
-        <h2 id="signTitle">Tanda tangan {{ $signWho }}</h2>
-        <p>Tanda tangan di dalam kotak dengan pena, jari, atau mouse.</p>
+        <h2 id="signTitle">{{ __('RadioManagement::checkout.pad.title', ['who' => $signWho]) }}</h2>
+        <p>{{ __('RadioManagement::checkout.pad.help') }}</p>
         <div class="sig-surface">
-            <canvas id="signCanvas" aria-label="Kotak tanda tangan"></canvas>
+            <canvas id="signCanvas" aria-label="{{ __('RadioManagement::checkout.pad.box') }}"></canvas>
             <span class="sig-line"></span>
         </div>
-        <p class="sig-note" id="signNote" role="alert" hidden>Tanda tangan belum dipakai. Tekan "Pakai tanda tangan" atau "Batal" dulu.</p>
+        <p class="sig-note" id="signNote" role="alert" hidden>{{ __('RadioManagement::checkout.pad.not_used') }}</p>
         <div class="sig-actions">
             <span>
-                <button type="button" id="signUndo" disabled>Urungkan</button>
-                <button type="button" id="signClear" disabled>Hapus</button>
+                <button type="button" id="signUndo" disabled>{{ __('RadioManagement::checkout.pad.undo') }}</button>
+                <button type="button" id="signClear" disabled>{{ __('RadioManagement::checkout.pad.clear') }}</button>
             </span>
             <span>
-                <button type="button" id="signCancel">Batal</button>
-                <button type="button" class="primary" id="signApply" disabled>Pakai tanda tangan</button>
+                <button type="button" id="signCancel">{{ __('RadioManagement::checkout.pad.cancel') }}</button>
+                <button type="button" class="primary" id="signApply" disabled>{{ __('RadioManagement::checkout.pad.apply') }}</button>
             </span>
         </div>
     </div>
@@ -49,6 +49,9 @@
 
         /** Whose signature it is, for the names of the box and the picture. */
         const WHO = @json($signWho);
+        /** The words of the pad in the language of the page (RadioManagement::checkout.pad). */
+        const SIGN_WORDS = @json(__('RadioManagement::checkout.pad'));
+        const signSay = (key) => String(SIGN_WORDS[key] || '').replace(':who', () => WHO);
         const INK = '#101010';
         /** The pen is this wide on the pad, as a share of the pad's width; a pen that presses harder draws wider, a lighter touch narrower. */
         const PEN = 0.005;
@@ -268,13 +271,13 @@
             if (!image) {
                 image = document.createElement('img');
                 image.className = 'sig-img';
-                image.alt = 'Tanda tangan ' + WHO;
+                image.alt = signSay('picture');
                 cell.insertBefore(image, cell.firstChild);
             }
             image.src = url;
             cell.classList.add('signed');
             remove.hidden = false;
-            open.setAttribute('aria-label', 'Ganti tanda tangan ' + WHO);
+            open.setAttribute('aria-label', signSay('change'));
             // Signed today, unless a date was written in already.
             const date = dateField();
             if (date && date.textContent.trim() === '') {
@@ -319,7 +322,7 @@
             if (image) image.remove();
             cell.classList.remove('signed');
             remove.hidden = true;
-            open.setAttribute('aria-label', 'Tanda tangan ' + WHO + ' di layar');
+            open.setAttribute('aria-label', signSay('sign'));
             // The date that signing wrote is taken back, one that was written or changed by hand is left.
             const date = dateField();
             if (dated && date && date.textContent === cell.getAttribute('data-today')) date.textContent = '';

@@ -32,13 +32,13 @@ class RadioBulkController extends Controller
         $validator = Validator::make($request->all(), [
             'event_date' => ['required', 'date', 'before_or_equal:today'],
             'description' => ['nullable', 'string', 'max:2000'],
-        ], [], ['event_date' => 'Tanggal', 'description' => 'Catatan']);
+        ], [], ['event_date' => __('RadioManagement::register.fields.event_date'), 'description' => __('RadioManagement::register.fields.note')]);
         if ($validator->fails()) {
             return $this->invalid($validator->errors()->all());
         }
         $note = trim((string) $request->input('description')) ?: self::DEFAULT_NOTE;
 
-        return $this->run($request, true, RadioBulk::MAX_ALL, 'diverifikasi',
+        return $this->run($request, true, RadioBulk::MAX_ALL, 'verified_count',
             fn (Collection $radios) => $this->bulk->verify($radios, (string) $request->input('event_date'), $note, $request->user()?->id));
     }
 
@@ -51,7 +51,7 @@ class RadioBulkController extends Controller
             return $this->invalid($validator->errors()->all());
         }
 
-        return $this->run($request, false, RadioBulk::MAX_TICKED, 'diarsipkan',
+        return $this->run($request, false, RadioBulk::MAX_TICKED, 'archived_count',
             fn (Collection $radios) => $this->bulk->archive($radios, (string) $request->input('archive_reason'),
                 (string) $request->input('archived_at'), $request->input('note'), $request->user()?->id));
     }
@@ -59,9 +59,9 @@ class RadioBulkController extends Controller
     /** Radios entered by mistake (soft delete, their history kept). The person types how many, as a last look. */
     public function destroy(Request $request): JsonResponse
     {
-        return $this->run($request, false, RadioBulk::MAX_TICKED, 'dihapus', function (Collection $radios) use ($request) {
+        return $this->run($request, false, RadioBulk::MAX_TICKED, 'deleted_count', function (Collection $radios) use ($request) {
             if ((string) $request->input('confirm') !== (string) $radios->count()) {
-                throw ValidationException::withMessages(['confirm' => "Ketik jumlah radio yang akan dihapus ({$radios->count()}) untuk melanjutkan."]);
+                throw ValidationException::withMessages(['confirm' => __('RadioManagement::register.messages.confirm_count', ['count' => $radios->count()])]);
             }
 
             return $this->bulk->delete($radios, $request->user()?->id);
@@ -84,9 +84,10 @@ class RadioBulkController extends Controller
             return $this->invalid(collect($e->errors())->flatten()->values()->all());
         }
 
-        $message = "{$result['done']} radio {$done}.";
+        // $done: the message of what was done ("RadioManagement::register.messages.verified_count").
+        $message = trans_choice('RadioManagement::register.messages.' . $done, $result['done'], ['count' => $result['done']]);
         if ($result['skipped'] !== []) {
-            $message .= ' ' . count($result['skipped']) . ' dilewati.';
+            $message .= ' ' . __('RadioManagement::register.messages.skipped_count', ['count' => count($result['skipped'])]);
         }
 
         return response()->json(['message' => $message] + $result);
@@ -94,6 +95,6 @@ class RadioBulkController extends Controller
 
     private function invalid(array $errors): JsonResponse
     {
-        return response()->json(['message' => 'Input tidak valid', 'errors' => $errors], 422);
+        return response()->json(['message' => __('RadioManagement::register.messages.invalid'), 'errors' => $errors], 422);
     }
 }

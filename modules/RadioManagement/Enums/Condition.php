@@ -10,6 +10,7 @@ enum Condition: string
     case Rusak = 'rusak';
     case BelumDicek = 'belum_dicek';
 
+    /** The name as the register keeps it and the files and the API show it (Indonesian). */
     public function label(): string
     {
         return match ($this) {
@@ -30,11 +31,18 @@ enum Condition: string
         };
     }
 
+    /** The name in the language of the page (or of $locale), for what is shown. */
+    public function display(?string $locale = null): string
+    {
+        return __('RadioManagement::common.conditions.' . $this->value, [], $locale);
+    }
+
+    /** For the choices of a page: the names in the language of the page. */
     public static function options(): array
     {
         return array_map(fn (self $case) => [
             'value' => $case->value,
-            'label' => $case->label(),
+            'label' => $case->display(),
             'color' => $case->color(),
         ], self::cases());
     }
