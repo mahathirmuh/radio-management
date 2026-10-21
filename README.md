@@ -221,7 +221,9 @@ docker compose down                     # hentikan (data storage tetap)
 - Untuk server: `APP_ENV=production` dan `APP_DEBUG=false`. Image dibangun tanpa paket dev (tanpa debugbar).
 - **Storage** (log, sesi, cache) ada di volume `radio-management-storage`, terpisah dari folder `storage/` laptop.
 - **Yang tidak masuk image** (`.dockerignore` memakai daftar yang boleh masuk): `.env`, file Excel/Word/PDF, seeder
-  berisi akun orang, `tests/`, `vendor/` laptop (dipasang ulang di image), isi `storage/`.
+  berisi akun orang, `tests/`, `vendor/` laptop (dipasang ulang di image), isi `storage/`. Folder baru yang dibaca
+  aplikasi harus ditambahkan ke daftar itu; `DockerImageTest` gagal bila ada yang terlewat (seperti `lang/` sampai
+  1.21.2).
 - Bila `LDAP_TLS_VERIFY=true` dengan CA internal: taruh sertifikat root CA sebagai `certs/ca.pem` di samping
   `docker-compose.yml` (folder `certs/` dipasang ke container, hanya baca; isinya tidak ikut git), isi
   `LDAP_CA_CERT=/var/www/html/certs/ca.pem`, dan pastikan nama server di `LDAP_URL` bisa di-resolve dari host Docker.

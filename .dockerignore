@@ -5,6 +5,8 @@
 !bootstrap/
 !config/
 !database/
+# The texts of the pages in each language (lang/id, lang/en); the modules carry their own.
+!lang/
 !modules/
 !public/
 !resources/

@@ -4,6 +4,15 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.21.3] - 2026-10-21
+
+### Fixed
+
+- Production (Docker): pages showed the keys of their texts instead of the texts, for example `login.title`,
+  `login.sso` and `login.submit` on the login page. Since 1.13.0 the shared texts of the pages (login, buttons, tables,
+  dialogs, validation messages) are in the `lang/` folder, and that folder did not go into the Docker image. The image
+  now carries it, and a test makes sure that every folder the app reads goes into the image.
+
 ## [1.21.2] - 2026-10-21
 
 ### Changed

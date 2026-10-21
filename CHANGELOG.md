@@ -11,6 +11,17 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
 sedang dalam English. Setiap versi ditulis di kedua file.
 
+## [1.21.3] - 2026-10-21
+
+### Diperbaiki
+
+- Production (Docker): halaman menampilkan kunci teksnya, bukan teksnya, misalnya `login.title`, `login.sso` dan
+  `login.submit` di halaman login. Sejak 1.13.0 teks bersama halaman (login, tombol, tabel, dialog, pesan validasi) ada
+  di folder `lang/`, dan folder itu tidak ikut masuk ke image Docker. Image kini membawanya, dan sebuah test memastikan
+  setiap folder yang dibaca aplikasi ikut masuk ke image.
+
+**Deploy:** tanpa migrasi, tanpa setting baru. Image wajib di-build ulang: `git pull && docker compose up -d --build`.
+
 ## [1.21.2] - 2026-10-21
 
 ### Diubah
@@ -1036,6 +1047,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.21.3]: https://github.com/mahathirmuh/radio-management/compare/v1.21.2...v1.21.3
 [1.21.2]: https://github.com/mahathirmuh/radio-management/compare/v1.21.1...v1.21.2
 [1.21.1]: https://github.com/mahathirmuh/radio-management/compare/v1.21.0...v1.21.1
 [1.21.0]: https://github.com/mahathirmuh/radio-management/compare/v1.20.1...v1.21.0
