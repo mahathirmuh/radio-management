@@ -344,13 +344,14 @@
                 <label class="form-label" for="auditAction">{{ __('AuditLog::log.filters.action') }}</label>
                 <select id="auditAction" class="form-select">
                     <option value="">{{ __('AuditLog::log.filters.all_actions') }}</option>
-                    @foreach ($actions as $option)
-                        <option value="{{ $option }}" @selected($option === $action)>{{ $option }}</option>
+                    {{-- By their names, under the part of the application they belong to; the value is the key. --}}
+                    @foreach ($actions as $area => $options)
+                        <optgroup label="{{ $area }}">
+                            @foreach ($options as $option => $name)
+                                <option value="{{ $option }}" @selected((string) $option === $action)>{{ $name }}</option>
+                            @endforeach
+                        </optgroup>
                     @endforeach
-                    {{-- An action named by a link that nothing has been recorded for yet. --}}
-                    @if ($action !== '' && ! $actions->contains($action))
-                        <option value="{{ $action }}" selected>{{ $action }}</option>
-                    @endif
                 </select>
             </div>
             <div class="rm-field">

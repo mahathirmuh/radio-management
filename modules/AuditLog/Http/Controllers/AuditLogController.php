@@ -10,6 +10,7 @@ use App\Services\Audit\UserAgent;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * The audit trail, read only (menu "Audit Log"). There is no action that changes or deletes an entry, by design; the
@@ -32,6 +33,12 @@ class AuditLogController extends Controller
         // A link may name a range (?range=7d), or its days (?from=2026-10-12&to=2026-10-19).
         [$from, $to] = self::days($request);
         $range = $from && $to ? 'custom' : (in_array($request->query('range'), self::RANGES, true) ? $request->query('range') : 'all');
+        // An action named by a link that nothing has been recorded for yet is offered too.
+        $action = self::text($request, 'action', 64);
+        $actions = $ready ? AuditLog::query()->distinct()->pluck('action')->all() : [];
+        if ($action !== '' && ! in_array($action, $actions, true)) {
+            $actions[] = $action;
+        }
 
         return view('AuditLog::index', [
             'pageTitle' => 'Audit Log',
@@ -40,11 +47,11 @@ class AuditLogController extends Controller
                 ['url' => '/audit-log', 'label' => 'Audit Log', 'active' => true],
             ],
             'ready' => $ready,
-            'actions' => $ready ? AuditLog::query()->distinct()->orderBy('action')->pluck('action') : collect(),
+            'actions' => self::actionGroups($actions),
             'entities' => $ready ? self::entities() : [],
             // A link may open the page on the other view, an action or a person (?view=timeline&action=auth.login_failed).
             'view' => in_array($request->query('view'), self::VIEWS, true) ? $request->query('view') : 'table',
-            'action' => self::text($request, 'action', 64),
+            'action' => $action,
             'entity' => self::text($request, 'entity', 64),
             'search' => self::text($request, 'q', 255),
             'range' => $range,
@@ -64,6 +71,39 @@ class AuditLogController extends Controller
             ->mapWithKeys(fn (string $type) => [$type => self::word('entities', $type) ?? AuditLog::entityLabel($type)])
             ->sort()
             ->all();
+    }
+
+    /**
+     * The actions for the filter, each by its name (AuditLog::log.filters.actions; one without a name by its key), under the
+     * part of the application it belongs to (the first part of the key, "other" for a part without a name). The parts and
+     * the actions in each come in the order of the page's words, actions without a name last.
+     *
+     * @param  array<int, string>  $actions
+     * @return array<string, array<string, string>> name of the part => [action => name]
+     */
+    private static function actionGroups(array $actions): array
+    {
+        $areas = __('AuditLog::log.filters.areas');
+        $areas = is_array($areas) ? $areas : [];
+        $names = __('AuditLog::log.filters.actions');
+        $names = is_array($names) ? $names : [];
+        $rank = array_flip(array_keys($names));
+
+        $parts = [];
+        foreach ($actions as $action) {
+            $area = Str::before($action, '.');
+            $parts[isset($areas[$area]) ? $area : 'other'][$action] = (string) ($names[$action] ?? $action);
+        }
+
+        $groups = [];
+        foreach (array_keys($areas + ['other' => 'other']) as $area) {
+            if (isset($parts[$area])) {
+                uksort($parts[$area], fn ($a, $b) => [$rank[$a] ?? PHP_INT_MAX, (string) $a] <=> [$rank[$b] ?? PHP_INT_MAX, (string) $b]);
+                $groups[(string) ($areas[$area] ?? $area)] = $parts[$area];
+            }
+        }
+
+        return $groups;
     }
 
     /** A name of the page's words (AuditLog::log.<group>), or null when the group has none for $key. */

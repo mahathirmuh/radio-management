@@ -8,6 +8,16 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.14.5] - 2026-10-21
+
+### Diubah
+
+- Audit Log: pilihan filter Aksi kini memakai nama yang mudah dibaca ("Gagal masuk", "Status akun diubah", "Token
+  API dicabut") dan dikelompokkan per bagian aplikasi (Masuk & keluar, Akun, Radio, Dokumen, API, …), bukan kode
+  seperti `auth.login_failed`. Kodenya tetap dipakai di alamat halaman (`?action=auth.login_failed`).
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.14.4] - 2026-10-21
 
 ### Diperbaiki
@@ -848,6 +858,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.14.5]: https://github.com/mahathirmuh/radio-management/compare/v1.14.4...v1.14.5
 [1.14.4]: https://github.com/mahathirmuh/radio-management/compare/v1.14.3...v1.14.4
 [1.14.3]: https://github.com/mahathirmuh/radio-management/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/mahathirmuh/radio-management/compare/v1.14.1...v1.14.2

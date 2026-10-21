@@ -233,6 +233,15 @@ class AuditLogTest extends TestCase
             $this->assertStringContainsString('<option value="' . $action . '"', $page);
         }
         $this->assertStringContainsString('<option value="auth.login_failed" selected', $page);
+        // By their names, not their keys, under the part of the application they belong to, in the order of the page's words.
+        $this->assertMatchesRegularExpression('#<option value="">All actions</option>\s*<optgroup label="Sign-in">\s*<option value="auth.login_failed" selected>Sign-in failed</option>\s*</optgroup>\s*'
+            . '<optgroup label="Accounts">\s*<option value="user.status_changed"\s*>Account status changed</option>\s*</optgroup>\s*'
+            . '<optgroup label="Radios">\s*<option value="radio.created"\s*>Radio registered</option>\s*</optgroup>\s*</select>#', $page);
+        // One a link names that nothing was recorded for: by its name, or by its key when the page has none for it.
+        $named = (string) $this->get(route('audit-log.index', ['action' => 'role.deleted']))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<optgroup label="Roles">\s*<option value="role.deleted" selected>Role deleted</option>\s*</optgroup>#', $named);
+        $unknown = (string) $this->get(route('audit-log.index', ['action' => 'gadget.<b>used']))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<optgroup label="Other">\s*<option value="gadget.&lt;b&gt;used" selected>gadget.&lt;b&gt;used</option>\s*</optgroup>\s*</select>#', $unknown);
         $this->assertStringContainsString('value="siti"', $page);
         $this->assertMatchesRegularExpression('#id="auditTableView" class="d-none"#', $page);
         $this->assertStringContainsString('view: "timeline"', $page);

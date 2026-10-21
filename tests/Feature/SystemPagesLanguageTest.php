@@ -53,6 +53,10 @@ class SystemPagesLanguageTest extends TestCase
         }
         preg_match_all('#<th scope="col"[^>]*>([^<]*)</th>#', $page, $titles);
         $this->assertSame(['Waktu', 'User', 'Aksi', 'Entitas', 'Ringkasan', 'IP'], $titles[1]);
+        // The actions by their names in Indonesian, under the parts of the application in theirs.
+        $this->assertMatchesRegularExpression('#<option value="">Semua aksi</option>\s*<optgroup label="Masuk &amp; keluar">\s*<option value="auth.login_failed"\s*>Gagal masuk</option>\s*</optgroup>\s*'
+            . '<optgroup label="Akun">\s*<option value="user.status_changed"\s*>Status akun diubah</option>\s*</optgroup>\s*'
+            . '<optgroup label="Data master">\s*<option value="master_data.updated"\s*>Data master diubah</option>\s*</optgroup>\s*</select>#', $page);
         // The kinds of record by their names in Indonesian, in the order of those names; the ranges by theirs.
         $this->assertMatchesRegularExpression('#<option value="">Semua entitas</option>\s*<option value="User"\s*>Akun</option>\s*<option value="RadioType"\s*>Tipe radio</option>#', $page);
         $this->assertMatchesRegularExpression('#<option value="today"\s*>Hari ini</option>\s*<option value="yesterday"\s*>Kemarin</option>\s*<option value="7d"\s*>7 hari terakhir</option>\s*<option value="30d"\s*>30 hari terakhir</option>\s*<option value="all" selected>Semua waktu</option>#', $page);
