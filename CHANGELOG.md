@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.19.1] - 2026-10-21
+
+### Diperbaiki
+
+- Menu **Baris per halaman** di bawah tabel (10, 25, 50, 100): pilihannya tidak lagi melebar keluar dari kotaknya dan
+  menutupi isi tabel. Tema memberi setiap pilihan menu lebar minimal 176 px, padahal menu ini hanya 84 px.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.19.0] - 2026-10-21
 
 ### Diubah
@@ -959,6 +968,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.19.1]: https://github.com/mahathirmuh/radio-management/compare/v1.19.0...v1.19.1
 [1.19.0]: https://github.com/mahathirmuh/radio-management/compare/v1.18.0...v1.19.0
 [1.18.0]: https://github.com/mahathirmuh/radio-management/compare/v1.17.0...v1.18.0
 [1.17.0]: https://github.com/mahathirmuh/radio-management/compare/v1.16.0...v1.17.0

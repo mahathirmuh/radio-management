@@ -2874,6 +2874,8 @@ th.is-sorted .rm-sort {
 }
 
 .rm-menu .rm-size-item {
+    /* Tabler gives every item of a menu 11rem at least: here it would reach out of the 84px menu, over the table. */
+    min-width: 0;
     padding: 6px 10px;
     border-radius: 6px;
     color: var(--rm-gray-700);
