@@ -14,6 +14,8 @@
 !composer.lock
 # The version of the application (config/app.php reads it; the footer shows it).
 !VERSION
+# What changed in each version: the version in the footer opens it.
+!CHANGELOG.md
 
 # Inside what is let in, out again.
 # Accounts of real people: git ignores these seeders too.

@@ -8,6 +8,21 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.11.0] - 2026-10-21
+
+### Ditambahkan
+
+- Nomor versi di footer bisa diklik dan membuka dialog **Riwayat versi**: apa yang berubah di tiap versi, yang terbaru di
+  atas, dengan tanda "Versi ini" pada versi yang sedang berjalan. Isinya diambil dari CHANGELOG.md, tanpa baris Deploy
+  (catatan untuk server), dan bisa dibuka semua akun yang login.
+
+### Diperbaiki
+
+- Dialog yang isinya digulir (Riwayat versi, Riwayat pemakaian tanda tangan) tidak lagi terpotong di bawah layar.
+
+**Deploy:** tanpa migrasi, tanpa setting baru. Image Docker sekarang ikut membawa CHANGELOG.md, jadi build ulang seperti
+biasa (`docker compose up -d --build`).
+
 ## [1.10.13] - 2026-10-21
 
 ### Diubah
@@ -642,6 +657,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.11.0]: https://github.com/mahathirmuh/radio-management/compare/v1.10.13...v1.11.0
 [1.10.13]: https://github.com/mahathirmuh/radio-management/compare/v1.10.12...v1.10.13
 [1.10.12]: https://github.com/mahathirmuh/radio-management/compare/v1.10.11...v1.10.12
 [1.10.11]: https://github.com/mahathirmuh/radio-management/compare/v1.10.10...v1.10.11

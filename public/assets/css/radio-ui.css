@@ -751,14 +751,118 @@
     color: inherit;
 }
 
+/* The version: it opens what changed in each version (main.footer.footer). */
 .rm-footer .rm-version {
     padding: 1px 6px;
+    border: 0;
     border-radius: 4px;
     background: var(--rm-gray-700);
     color: #fff;
     font-size: 11px;
     line-height: 16px;
-    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .12s ease-out;
+}
+
+.rm-footer .rm-version:hover {
+    background: var(--rm-gray-900);
+}
+
+.rm-footer .rm-version:focus-visible {
+    outline: 2px solid var(--rm-brand-600);
+    outline-offset: 2px;
+}
+
+/* What changed in each version: one block per version, its number and date above its changes. */
+.rm-changelog {
+    gap: 0;
+    padding-top: 4px;
+}
+
+.rm-changelog-note {
+    padding: 24px 0;
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.rm-release {
+    padding: 16px 0;
+    box-shadow: inset 0 1px 0 var(--rm-gray-100);
+}
+
+.rm-release:first-child {
+    box-shadow: none;
+}
+
+.rm-release-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.rm-release-version {
+    color: var(--rm-gray-900);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+}
+
+.rm-release-date {
+    color: var(--rm-gray-500);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-release-body h3 {
+    margin: 12px 0 6px;
+    color: var(--rm-gray-500);
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.rm-release-body h3:first-child {
+    margin-top: 0;
+}
+
+.rm-release-body p,
+.rm-release-body ul {
+    margin: 0 0 8px;
+    color: var(--rm-gray-700);
+    font-size: 13px;
+    line-height: 20px;
+}
+
+.rm-release-body ul {
+    padding-left: 18px;
+}
+
+.rm-release-body li + li,
+.rm-release-body li > * + * {
+    margin-top: 4px;
+}
+
+.rm-release-body li > ul,
+.rm-release-body li > p {
+    margin-bottom: 0;
+}
+
+.rm-release-body > :last-child {
+    margin-bottom: 0;
+}
+
+.rm-release-body code {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: var(--rm-gray-100);
+    color: var(--rm-gray-900);
+    font-family: var(--rm-mono);
+    font-size: 12px;
 }
 
 /* No link is underlined when it is pointed at, anywhere (the owner's wish; Tabler underlines every a:hover). A link shows
@@ -1330,6 +1434,17 @@ a:focus {
 
 .rm-modal.wide .modal-dialog {
     max-width: 760px;
+}
+
+/* A dialog that scrolls inside: as tall as the screen allows below its 70px (Bootstrap reckons with its own margin), and
+   its body is what scrolls. */
+.rm-modal .modal-dialog-scrollable {
+    height: calc(100% - 70px - var(--tblr-modal-margin));
+}
+
+.rm-modal .modal-dialog-scrollable .rm-dialog-body {
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .rm-modal .modal-content {

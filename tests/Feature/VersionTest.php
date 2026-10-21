@@ -73,7 +73,8 @@ class VersionTest extends TestCase
 
     public function test_the_docker_image_gets_the_file_version(): void
     {
-        // .dockerignore lets in only what it names.
+        // .dockerignore lets in only what it names. The changelog too: the version in the footer opens it.
         $this->assertContains('!VERSION', array_map('trim', file(base_path('.dockerignore'))));
+        $this->assertContains('!CHANGELOG.md', array_map('trim', file(base_path('.dockerignore'))));
     }
 }

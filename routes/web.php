@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\ImportController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -33,7 +34,10 @@ Route::middleware('auth')->prefix('session')->name('session.')->controller(Sessi
     Route::post('keep-alive', 'keepAlive')->name('keep-alive');
 });
 
-/** Home: the sidebar logo and footer link here. Each user lands on the first page their role may open. */
+/** What changed in each version (CHANGELOG.md): the version in the footer opens it. No menu: every page has the footer. */
+Route::get('changelog', ChangelogController::class)->middleware('auth')->name('changelog');
+
+/** Home: the sidebar logo links here. Each user lands on the first page their role may open. */
 Route::get('/', function () {
     return Auth::check() ? redirect()->route(Auth::user()->homeRoute()) : redirect()->route('login');
 });

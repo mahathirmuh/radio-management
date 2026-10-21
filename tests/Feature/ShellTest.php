@@ -121,7 +121,8 @@ class ShellTest extends TestCase
     {
         $page = (string) $this->actingAs($this->superAdmin())->get(route('dashboard.index'))->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression('#<footer class="footer d-print-none rm-footer">\s*<span>Copyright &copy; ' . date('Y') . ', Development by <a[^>]*>Merdeka Group</a></span>\s*<a href="/" class="rm-version" title="Application version">v' . preg_quote((string) config('app.version'), '#') . '</a>#', $page);
+        // The version opens what changed in each version (ChangelogDialogTest).
+        $this->assertMatchesRegularExpression('#<footer class="footer d-print-none rm-footer">\s*<span>Copyright &copy; ' . date('Y') . ', Development by <a[^>]*>Merdeka Group</a></span>\s*<button type="button" class="rm-version" id="rmVersion"[^>]*>v' . preg_quote((string) config('app.version'), '#') . '</button>#', $page);
     }
 
     public function test_the_sidebar_script_switches_the_rail_folds_groups_and_names_icons(): void

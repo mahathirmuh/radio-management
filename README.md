@@ -230,7 +230,8 @@ disimpan di satu tempat saja, file `VERSION` di root proyek. `config('app.versio
 itu tampil di footer setiap halaman, di dokumentasi API (`/docs/api`) dan di `php artisan about` (di container:
 `docker compose exec app php artisan about --only=environment`). Jadi versi yang sedang jalan di sebuah server
 terlihat di footer-nya. Apa yang berubah di tiap versi, dan apa yang perlu dilakukan saat deploy (migrasi, setting
-baru), ada di [CHANGELOG.md](CHANGELOG.md).
+baru), ada di [CHANGELOG.md](CHANGELOG.md). Nomor versi di footer bisa diklik: dialog **Riwayat versi** menampilkan isi
+CHANGELOG.md tanpa baris Deploy, yang terbaru di atas, untuk semua akun yang login.
 
 "API publik" aplikasi ini, yaitu yang dipakai pihak lain dan bisa rusak tanpa mereka tahu, ada tiga:
 

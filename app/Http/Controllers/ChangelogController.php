@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\Changelog;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Carbon;
+
+/**
+ * What changed in each version, for the dialog that the version in the footer opens (main/footer): the versions newest
+ * first, the one this server runs marked.
+ */
+class ChangelogController extends Controller
+{
+    public function __invoke(): JsonResponse
+    {
+        $running = (string) config('app.version');
+        $releases = array_map(fn (array $release) => $release + [
+            'date_label' => $release['date'] === null ? null : Carbon::parse($release['date'])->locale('id')->translatedFormat('j M Y'),
+            'current' => $release['version'] === $running,
+        ], Changelog::ofApp()->releases());
+
+        return response()->json(['version' => $running, 'releases' => $releases]);
+    }
+}
