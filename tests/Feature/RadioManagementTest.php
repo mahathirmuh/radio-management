@@ -160,7 +160,7 @@ class RadioManagementTest extends TestCase
         // The types as columns, tallest first, the value above each and the name under it.
         preg_match_all('#<span class="viz-col-label">([^<]*)</span>#', $page, $names);
         $this->assertSame(['(kosong)', str_replace('MotoTrbo XiR ', '', $type->name)], $names[1]);
-        $this->assertStringContainsString('<span class="viz-col-bar" style="height: calc((var(--viz-plot) - 22px) * 1)"></span>', $page);
+        $this->assertStringContainsString('<span class="viz-col-bar" style="height: calc((100% - 22px) * 1)"></span>', $page);
     }
 
     public function test_create_validates_sn_and_radio_id(): void

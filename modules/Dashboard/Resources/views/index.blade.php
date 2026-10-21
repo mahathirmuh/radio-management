@@ -77,23 +77,11 @@
             --viz-other: var(--rm-gray-400);
         }
 
-        /* Columns: one series, one hue, the value above each, the name under one baseline. */
+        /* Columns: one series, one hue, the value above each, the name under one baseline. They fill the height of their
+           panel (as high as the one beside it), 220 at least. */
         .viz-cols {
-            --viz-plot: 180px;
-            position: relative;
             display: flex;
-            gap: 14px;
-        }
-
-        .viz-cols::after {
-            content: "";
-            position: absolute;
-            top: calc(var(--viz-plot) - 1px);
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: var(--rm-gray-200);
-            pointer-events: none;
+            flex: 1 0 220px;
         }
 
         .viz-col {
@@ -117,12 +105,15 @@
 
         .viz-col-plot {
             display: flex;
+            flex: 1;
             flex-direction: column;
             align-items: center;
             justify-content: flex-end;
             gap: 6px;
             width: 100%;
-            height: var(--viz-plot);
+            min-height: 0;
+            padding: 8px 7px 0;
+            box-shadow: inset 0 -1px 0 var(--rm-gray-200);
         }
 
         .viz-col-value {
@@ -134,13 +125,15 @@
         }
 
         .viz-col-bar {
-            width: min(40px, 70%);
+            width: min(40px, 100%);
             min-height: 2px;
             border-radius: 4px 4px 0 0;
             background: var(--viz-series-1);
         }
 
+        /* Two lines of room under each column, so that a long name does not lift the baseline of its column. */
         .viz-col-label {
+            min-height: 44px;
             padding: 8px 2px 4px;
             color: var(--rm-gray-500);
             font-size: 12px;
@@ -522,7 +515,7 @@
                                         <div class="viz-col-plot">
                                             <span class="viz-col-value">{{ $fmt($count) }}</span>
                                             @if ($count > 0)
-                                                <span class="viz-col-bar" style="height: calc((var(--viz-plot) - 22px) * {{ $count / $typeMax }})"></span>
+                                                <span class="viz-col-bar" style="height: calc((100% - 22px) * {{ $count / $typeMax }})"></span>
                                             @endif
                                         </div>
                                         <span class="viz-col-label">{{ $type }}</span>

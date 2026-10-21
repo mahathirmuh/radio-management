@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.14.2] - 2026-10-21
+
+### Diubah
+
+- Dashboard: panel **Radio aktif per company pengguna** dan **Radio aktif per tipe** kini sama tinggi; batang per tipe
+  mengisi tinggi panelnya (paling sedikit 220 px, juga di HP), dengan satu garis dasar yang rata.
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.14.1] - 2026-10-21
 
 ### Diubah
@@ -817,6 +826,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.14.2]: https://github.com/mahathirmuh/radio-management/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/mahathirmuh/radio-management/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/mahathirmuh/radio-management/compare/v1.13.3...v1.14.0
 [1.13.3]: https://github.com/mahathirmuh/radio-management/compare/v1.13.2...v1.13.3

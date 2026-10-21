@@ -3822,11 +3822,24 @@ a:focus-visible > .rm-kpi {
     gap: 16px;
 }
 
+/* The two panels of a pair (per company, per type) are as high as each other, and what is in them fills that height. */
 .rm-dash-pair {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
     gap: 16px;
+}
+
+.rm-dash-pair > .rm-cardbox {
+    display: flex;
+    flex-direction: column;
+}
+
+.rm-dash-pair > .rm-cardbox > .rm-cardbox-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
 }
 
 @media (max-width: 991.98px) {
