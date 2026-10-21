@@ -104,7 +104,7 @@
 
                 @if ($notifications->hasPages())
                     <div class="rm-foot px-0">
-                        <span class="rm-foot-text">{{ $notifications->firstItem() }}–{{ $notifications->lastItem() }} dari
+                        <span class="rm-foot-text">{{ $notifications->firstItem() }} – {{ $notifications->lastItem() }} dari
                             {{ $notifications->total() }}</span>
                         <span class="rm-end">
                             <a class="btn-rm secondary sm {{ $notifications->onFirstPage() ? 'disabled' : '' }}"

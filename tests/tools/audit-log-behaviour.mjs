@@ -306,7 +306,7 @@ check('"Custom range…" opens the calendar: two clicks choose the days, Apply s
     assert.equal(p.node('(document)').handlers['mousedown.auditCal'], undefined);
     assert.deepEqual([p.sent().from, p.sent().to, p.sent().page], ['2026-10-08', '2026-10-12', 1]);
     assert.equal(p.addresses().at(-1), '/audit-log?from=2026-10-08&to=2026-10-12');
-    assert.equal(p.node('#auditRangeCustom').text, '08–12 Oct 2026');
+    assert.equal(p.node('#auditRangeCustom').text, '08 – 12 Oct 2026');
     assert.equal(p.node('#auditRangeCustom').wrote, 'text');
     assert.deepEqual([p.node('#auditRangeCustom').props.hidden, p.node('#auditRangeCustom').props.disabled], [false, false]);
     assert.equal(p.node('#auditRange').value, 'custom');

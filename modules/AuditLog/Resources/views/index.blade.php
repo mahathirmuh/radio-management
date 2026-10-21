@@ -798,7 +798,7 @@
                 const date = auditRange.parse(text);
                 return date ? `${String(date.getDate()).padStart(2, '0')} ${auditRange.months[date.getMonth()].slice(0, 3)} ${date.getFullYear()}` : '';
             },
-            /** Days as short as they can be named: "12–19 Oct 2026", "28 Sep – 04 Oct 2026", "28 Dec 2025 – 03 Jan 2026", "19 Oct 2026". */
+            /** Days as short as they can be named: "12 – 19 Oct 2026", "28 Sep – 04 Oct 2026", "28 Dec 2025 – 03 Jan 2026", "19 Oct 2026". */
             name(from, to) {
                 const [a, b] = [auditRange.parse(from), auditRange.parse(to)];
                 if (!a || !b) return '';
@@ -808,7 +808,7 @@
                 const month = date => auditRange.months[date.getMonth()].slice(0, 3);
                 if (a.getMonth() !== b.getMonth()) return `${day(a)} ${month(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
 
-                return `${day(a)}–${day(b)} ${month(b)} ${b.getFullYear()}`;
+                return `${day(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
             },
             /** The days of what is applied, as the list is asked for them ({ from, to }), or nothing: all time. */
             days() {

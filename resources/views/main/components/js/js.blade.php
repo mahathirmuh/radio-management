@@ -365,7 +365,7 @@
 
         const html = `
             <div class="rm-foot">
-                <span class="rm-foot-text">${words.showing} ${meta.from || 0}–${meta.to || 0} ${words.of} ${meta.total}${words.noun ? ' ' + words.noun : ''}</span>
+                <span class="rm-foot-text">${words.showing} ${meta.from || 0} – ${meta.to || 0} ${words.of} ${meta.total}${words.noun ? ' ' + words.noun : ''}</span>
                 <div class="rm-end">
                     <span class="rm-size">${words.rows}
                         <span class="dropdown">

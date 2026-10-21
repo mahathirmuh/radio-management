@@ -8,6 +8,15 @@ Setiap versi ditutup baris **Deploy**: yang perlu dilakukan di server setelah me
 `git pull && docker compose up -d --build`, lalu `docker compose exec app php artisan migrate` bila versi itu membawa
 migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipakai beberapa instalasi.
 
+## [1.10.10] - 2026-10-21
+
+### Diubah
+
+- Baris ringkasan di bawah tabel memberi spasi di kiri dan kanan tanda pisah: "Showing 1 – 1 of 1", "Menampilkan
+  1 – 25 dari 247 radio", juga di halaman Notifikasi. Rentang tanggal di Audit Log ikut: "08 – 12 Oct 2026".
+
+**Deploy:** tanpa migrasi, tanpa setting baru.
+
 ## [1.10.9] - 2026-10-21
 
 ### Diubah
@@ -596,6 +605,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.10.10]: https://github.com/mahathirmuh/radio-management/compare/v1.10.9...v1.10.10
 [1.10.9]: https://github.com/mahathirmuh/radio-management/compare/v1.10.8...v1.10.9
 [1.10.8]: https://github.com/mahathirmuh/radio-management/compare/v1.10.7...v1.10.8
 [1.10.7]: https://github.com/mahathirmuh/radio-management/compare/v1.10.6...v1.10.7
