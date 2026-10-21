@@ -40,7 +40,7 @@ return [
     'changelog' => [
         'open' => 'Lihat perubahan tiap versi',
         'title' => 'Riwayat versi',
-        'sub' => 'Versi yang berjalan: v:version.',
+        'sub' => 'Versi yang berjalan: v:version',
         'loading' => 'Memuat riwayat versi…',
         'failed' => 'Riwayat versi tidak bisa dimuat. Tutup lalu buka lagi untuk mencoba sekali lagi.',
         'empty' => 'Belum ada catatan perubahan.',

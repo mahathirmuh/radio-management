@@ -88,6 +88,7 @@ class ChangelogDialogTest extends TestCase
         $this->assertStringContainsString('<button type="button" class="rm-version" id="rmVersion"', $page);
         $this->assertStringContainsString('>v' . config('app.version') . '</button>', $page);
         $this->assertSame(1, substr_count($page, 'id="rmChangelog"'));
+        $this->assertStringContainsString('<p class="rm-dialog-sub">Versi yang berjalan: v' . config('app.version') . '</p>', $page);
         $this->assertStringContainsString('url: "' . str_replace('/', '\/', route('changelog')) . '"', $page);
     }
 

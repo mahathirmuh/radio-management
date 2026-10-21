@@ -4,6 +4,13 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.21.1] - 2026-10-21
+
+### Fixed
+
+- Version history: the line below the title now reads "Running version: v1.21.1", without a full stop at the end (in
+  Indonesian: "Versi yang berjalan: v1.21.1").
+
 ## [1.21.0] - 2026-10-21
 
 ### Changed

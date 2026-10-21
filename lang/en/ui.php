@@ -40,7 +40,7 @@ return [
     'changelog' => [
         'open' => 'See what changed in each version',
         'title' => 'Version history',
-        'sub' => 'Running version: v:version.',
+        'sub' => 'Running version: v:version',
         'loading' => 'Loading the version history…',
         'failed' => 'The version history could not be loaded. Close it and open it again to try once more.',
         'empty' => 'No release notes yet.',
