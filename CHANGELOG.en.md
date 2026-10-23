@@ -4,6 +4,24 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.21.5] - 2026-10-23
+
+### Security
+
+- Laravel goes from 12.14.1 to 12.70.1, with the packages it uses, and the other packages with security flaws are
+  updated, so `composer audit` finds no advisories any more. The most important:
+  - Livewire 3.6.3 → 4.4.8: a remote code execution flaw (critical) in the Livewire update route, which was open even
+    though the app does not use Livewire (the package comes with the DataTables export);
+  - PhpSpreadsheet 1.29.10 → 1.30.7 and Laravel Excel 3.1.64 → 3.1.70: SSRF/RCE when reading a file, and export files
+    that could be written outside the configured disk;
+  - Guzzle 7.9.3 → 7.16.0 and PSR-7 2.7.1 → 2.13.2: host checks that could be fooled, and leaking cookies or proxy
+    headers;
+  - Dompdf 3.1.0 → 3.1.6: reading local files through an SVG in a PDF;
+  - phpseclib 3 → 4, php-jwt 6 → 7 and PsySH (used by the Microsoft sign-in and Tinker).
+- The Docker image is built on PHP 8.4.27, which closes the two critical "php2shell" PHP flaws (CVE-2026-109618 and
+  CVE-2026-109619): remote code execution without signing in, most dangerous on Apache with mod_php as in this image.
+- Laravel's new validation messages (`doesnt_contain`, `encoding`, `in_array_keys`) have an Indonesian translation.
+
 ## [1.21.4] - 2026-10-21
 
 ### Fixed

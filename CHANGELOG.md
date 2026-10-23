@@ -11,6 +11,28 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
 sedang dalam English. Setiap versi ditulis di kedua file.
 
+## [1.21.5] - 2026-10-23
+
+### Keamanan
+
+- Laravel naik dari 12.14.1 ke 12.70.1, bersama paket yang dipakainya, dan paket lain yang punya celah keamanan
+  diperbarui, sehingga `composer audit` tidak menemukan advisory lagi. Yang paling penting:
+  - Livewire 3.6.3 → 4.4.8: celah remote code execution (kritis) di rute update Livewire, yang terbuka walau aplikasi
+    tidak memakai Livewire (paket ini ikut terpasang lewat export DataTables);
+  - PhpSpreadsheet 1.29.10 → 1.30.7 dan Laravel Excel 3.1.64 → 3.1.70: SSRF/RCE saat membaca file, dan file export
+    yang bisa ditulis di luar disk yang diatur;
+  - Guzzle 7.9.3 → 7.16.0 dan PSR-7 2.7.1 → 2.13.2: pemeriksaan host yang bisa dikelabui, dan cookie atau header
+    proxy yang bocor;
+  - Dompdf 3.1.0 → 3.1.6: pembacaan file lokal lewat SVG di PDF;
+  - phpseclib 3 → 4, php-jwt 6 → 7 dan PsySH (dipakai login Microsoft dan Tinker).
+- Image Docker dibangun di atas PHP 8.4.27, yang menutup dua celah kritis PHP "php2shell" (CVE-2026-109618 dan
+  CVE-2026-109619): remote code execution tanpa login, paling berbahaya pada Apache dengan mod_php seperti image ini.
+- Pesan validasi baru Laravel (`doesnt_contain`, `encoding`, `in_array_keys`) punya terjemahan Bahasa Indonesia.
+
+**Deploy:** tanpa migrasi, tanpa setting baru. Bangun ulang image tanpa cache agar PHP 8.4.27 ikut terpasang:
+`git pull && docker compose build --pull --no-cache && docker compose up -d`, lalu periksa
+`docker exec radio-management-app php -v`.
+
 ## [1.21.4] - 2026-10-21
 
 ### Diperbaiki
@@ -1060,6 +1082,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.21.5]: https://github.com/mahathirmuh/radio-management/compare/v1.21.4...v1.21.5
 [1.21.4]: https://github.com/mahathirmuh/radio-management/compare/v1.21.3...v1.21.4
 [1.21.3]: https://github.com/mahathirmuh/radio-management/compare/v1.21.2...v1.21.3
 [1.21.2]: https://github.com/mahathirmuh/radio-management/compare/v1.21.1...v1.21.2
