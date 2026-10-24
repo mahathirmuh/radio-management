@@ -4,6 +4,32 @@ The notes of [CHANGELOG.md](CHANGELOG.md) in English, newest first: the Version 
 the footer) shows them when the app is in English. CHANGELOG.md is the reference: it has the same versions, and for each
 one what to do on the server (**Deploy**) and its link.
 
+## [1.22.0] - 2026-10-24
+
+### Added
+
+- Snipe-IT: a new **Users** submenu (below Assets) with every Snipe-IT user: name and e-mail, username, employee no., job
+  title, department, location, number of assets and licenses, status; filtered by department, location and active or
+  inactive. The **See the details** button (an eye icon) at the end of a row opens the user details.
+- Snipe-IT: **user details**:
+  - the work profile (username, e-mail, employee no., job title, manager) and the organization (company, department,
+    location, groups, status);
+  - how much they hold, the assets checked out to them (with their pictures; an asset tag opens its details), licenses
+    and accessories;
+  - the history: what was checked out to or in from them, and the changes to the user itself.
+
+  On the asset details, the holder (when a user) now opens these user details.
+
+### Changed
+
+- Snipe-IT: the **People & Organization** page becomes **Organization** (departments, locations, companies, groups); the
+  users moved to the Users submenu. Roles that can open People & Organization can open Users too.
+
+### Security
+
+- The user details never show a person's phone, address, notes, picture or permissions, also not as a change in the
+  history. Licenses by their name only, without their key.
+
 ## [1.21.5] - 2026-10-23
 
 ### Security

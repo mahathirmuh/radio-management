@@ -62,17 +62,18 @@ final class Rows
     /**
      * @param  array<string, mixed>  $list  Lists::get()
      * @param  array<string, mixed>  $row  a row of the API
+     * @param  bool  $users  whoever looks may open the detail of a user here (else an entry about a user leads to Snipe-IT)
      * @return array{id: int|null, link: string|null, inside: bool, image?: ?string, icon?: string, cells: array<string, array{t: ?string, s: ?string, tone: ?string}>}
-     *     link: the page of the row; inside: it is a page of this application (the detail of an asset), not Snipe-IT's;
-     *     image and icon (a list with pictures): Snipe-IT's picture of the row, and the icon shown without one
+     *     link: the page of the row; inside: it is a page of this application (the detail of an asset or a user), not
+     *     Snipe-IT's; image and icon (a list with pictures): Snipe-IT's picture of the row, and the icon shown without one
      */
-    public static function show(array $list, array $row, ?string $web): array
+    public static function show(array $list, array $row, ?string $web, bool $users = false): array
     {
         $cells = [];
         foreach ($list['columns'] as $key => $column) {
             $cells[$key] = self::cell($column, $row);
         }
-        [$link, $inside] = self::link($list, $row, $web);
+        [$link, $inside] = self::link($list, $row, $web, $users);
 
         return [
             'id' => is_numeric($row['id'] ?? null) ? (int) $row['id'] : null,
@@ -212,23 +213,24 @@ final class Rows
     }
 
     /**
-     * The page of the row: the detail of an asset here (a list's 'detail', or an entry of the activity log about an asset),
-     * else the row's page in Snipe-IT itself when the list has one and Snipe-IT's address is known.
+     * The page of the row: a detail here (a list's 'detail': an asset's, or a user's; an entry of the activity log about an
+     * asset, or about a user when whoever looks may open it), else the row's page in Snipe-IT itself when the list has one
+     * and Snipe-IT's address is known.
      *
      * @return array{0: ?string, 1: bool} the address, and whether it is a page of this application
      */
-    private static function link(array $list, array $row, ?string $web): array
+    private static function link(array $list, array $row, ?string $web, bool $users): array
     {
-        $asset = fn (mixed $id) => is_numeric($id) && (int) $id > 0 ? [route('snipe-it.assets.show', (int) $id), true] : [null, false];
+        $here = fn (string $route, mixed $id) => is_numeric($id) && (int) $id > 0 ? [route($route, (int) $id), true] : [null, false];
         if (isset($list['detail'])) {
-            return $asset(data_get($row, $list['detail']));
+            return $here($list['detailRoute'] ?? 'snipe-it.assets.show', data_get($row, $list['detail']));
         }
         $page = $list['web'] ?? null;
         if ($page === '{item}') {
             $type = Str::lower((string) data_get($row, 'item.type'));
             $id = data_get($row, 'item.id');
-            if ($type === 'asset') {
-                return $asset($id);
+            if ($type === 'asset' || ($type === 'user' && $users)) {
+                return $here($type === 'asset' ? 'snipe-it.assets.show' : 'snipe-it.users.show', $id);
             }
 
             return $web !== null && isset(self::ITEM_PAGES[$type]) && is_numeric($id) ? [$web . '/' . self::ITEM_PAGES[$type] . '/' . (int) $id, false] : [null, false];

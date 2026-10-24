@@ -34,13 +34,13 @@ class SnipeItLanguageTest extends TestCase
         $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.overview.index'))->assertOk()->getContent();
 
         foreach (['<h1 class="rm-topbar-title">Snipe-IT · Overview</h1>', '<span>IT Assets</span>', 'Assets by status', 'Assets by category',
-            'All assets', 'See all', 'Open Snipe-IT', 'Fetched ', '2 other categories', 'People &amp; Organization', 'Licenses &amp; Stock',
+            'All assets', 'See all', 'Open Snipe-IT', 'Fetched ', '2 other categories', 'id="snipeGroup-users">Users</h2>', 'id="snipeGroup-people">Organization</h2>', 'Licenses &amp; Stock',
             'Activity log', 'Custom fields', 'Status labels', '2,051', '23,630'] as $part) {
             $this->assertStringContainsString($part, $page, $part);
         }
         preg_match_all('#<a class="rm-nav-link rm-nav-kid[^"]*" href="[^"]*/snipe-it[^"]*"[^>]*>\s*<span class="rm-nav-label">([^<]+)</span>#', $page, $kids);
-        $this->assertSame(['Overview', 'Assets', 'Catalog', 'People &amp; Organization', 'Licenses &amp; Stock', 'History'], $kids[1]);
-        foreach (['Ringkasan', 'Aset per status', 'Semua aset', 'Lihat semua', 'Buka Snipe-IT', 'Diambil', 'Katalog', 'Orang &amp; Organisasi',
+        $this->assertSame(['Overview', 'Assets', 'Users', 'Catalog', 'Organization', 'Licenses &amp; Stock', 'History'], $kids[1]);
+        foreach (['Ringkasan', 'Aset per status', 'Semua aset', 'Lihat semua', 'Buka Snipe-IT', 'Diambil', 'Katalog', 'Organisasi',
             'Lisensi &amp; Stok', 'Log aktivitas', 'kategori lain', 'Aset IT'] as $part) {
             $this->assertStringNotContainsString($part, $page, $part);
         }
@@ -67,7 +67,7 @@ class SnipeItLanguageTest extends TestCase
 
         $fields = $this->getJson(route('snipe-it.catalog.list', ['tab' => 'fields']))->assertOk()->json('data');
         $this->assertSame(['List of choices', 'Yes', 'No'], [$fields[2]['cells']['element']['t'], $fields[1]['cells']['unique']['t'], $fields[0]['cells']['unique']['t']]);
-        $users = $this->getJson(route('snipe-it.people.list', ['tab' => 'users']))->assertOk()->json('data');
+        $users = $this->getJson(route('snipe-it.users.list'))->assertOk()->json('data');
         $this->assertSame(['Active', 'Inactive'], [$users[0]['cells']['active']['t'], $users[1]['cells']['active']['t']]);
         $activity = $this->getJson(route('snipe-it.history.list'))->assertOk()->json('data');
         $this->assertSame(['Checkout', 'Asset', 'User'], [$activity[0]['cells']['action']['t'], $activity[0]['cells']['item']['s'], $activity[0]['cells']['target']['s']]);
@@ -94,6 +94,30 @@ class SnipeItLanguageTest extends TestCase
             $this->assertStringNotContainsString($part, $page, $part);
         }
         $this->get(route('snipe-it.assets.show', 99))->assertNotFound();
+    }
+
+    public function test_the_users_and_the_detail_of_a_user_are_in_english(): void
+    {
+        $this->fakeSnipeIt(self::snipeUserAnswers());
+        $this->actingAs($this->superAdmin());
+
+        $list = (string) $this->get(route('snipe-it.users.index'))->assertOk()->getContent();
+        foreach (['<h1 class="rm-topbar-title">Snipe-IT · Users</h1>', '<option value="">All departments</option>', '<option value="">All locations</option>',
+            '<option value="">Active and inactive</option>', '>Inactive</option>', '>Employee no.</th>', '>Licenses</th>'] as $part) {
+            $this->assertStringContainsString($part, $list, $part);
+        }
+
+        $page = (string) $this->get(route('snipe-it.users.show', 7))->assertOk()->getContent();
+        foreach (['<h1 class="rm-topbar-title">Snipe-IT · User details</h1>', 'Snipe-IT user · IT', '>Profile</h2>', '>Organization</h2>',
+            '>Checked out</h2>', '>Assets checked out</h2>', '<dt>Manager</dt>', '<dt>Last sign-in</dt>', 'Never', '<dt>From LDAP</dt>',
+            'since 21-10-2026 10:30', 'The consumables themselves are only in Snipe-IT.', '3 events, newest first',
+            '<span class="rm-change-field">Job title</span>', '(Accessory)', 'Open in Snipe-IT', 'Fetched '] as $part) {
+            $this->assertStringContainsString($part, $page, $part);
+        }
+        foreach (['Detail User', 'Profil<', 'Atasan', 'Belum pernah', 'Yang dipegang', 'sejak', 'kejadian', 'Jabatan', 'Diambil'] as $part) {
+            $this->assertStringNotContainsString($part, $page, $part);
+        }
+        $this->get(route('snipe-it.users.show', 99))->assertNotFound();
     }
 
     public function test_without_an_answer_of_snipe_it_the_pages_say_why_in_english(): void

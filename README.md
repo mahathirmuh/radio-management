@@ -36,7 +36,7 @@ tertulis di sampulnya:
 | COF Scan | Isi folder SharePoint berisi scan IT Equipment Checkout Form, dengan jumlah file yang tertaut dan yang tidak tertaut ke barisnya di ICT Masterlist (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | ICT Masterlist | Isi workbook Excel "ICT Masterlist" di SharePoint sebagai tabel, satu tab per sheet; sel bisa diajukan untuk diubah, dan yang boleh menyetujui (Document Controller, Super Admin) bisa mengubah satu baris langsung (lihat [Dokumen SharePoint](#dokumen-sharepoint)) |
 | Persetujuan Edit | Pengajuan perubahan sel workbook, dan persetujuannya; baru setelah disetujui orang lain workbook di SharePoint berubah (lihat [Mengubah isi workbook](#mengubah-isi-workbook-pengajuan-dan-persetujuan)) |
-| Snipe-IT | Isi Snipe-IT, hanya dibaca: Ringkasan, lalu Aset, Katalog, Orang & Organisasi, Lisensi & Stok, dan Riwayat, masing-masing dengan tab per daftar (lihat [Snipe-IT](#snipe-it)) |
+| Snipe-IT | Isi Snipe-IT, hanya dibaca: Ringkasan, lalu Aset, User, Katalog, Organisasi, Lisensi & Stok, dan Riwayat, masing-masing dengan tab per daftar; detail aset dan detail user (lihat [Snipe-IT](#snipe-it)) |
 | Audit Log | Jejak audit: siapa login (berhasil, gagal, keluar) dan siapa mengubah apa, dengan nilai sebelum → sesudah; filter jenis catatan dan rentang tanggal (lihat [Audit Log](#audit-log)) |
 | API Tokens | Klien API dan token untuk aplikasi lain yang memakai register lewat API `/api/v1`, dokumentasinya di `/docs/api` (lihat [API](#api)) |
 
@@ -1020,14 +1020,16 @@ untuk dibaca**: aplikasi ini hanya bertanya ke API Snipe-IT (GET) dan tidak pern
 | --- | --- |
 | Ringkasan | Jumlah setiap daftar, aset per status, dan aset per kategori (8 terbesar); tiap angka membuka daftarnya |
 | Aset | Semua aset dengan gambarnya: asset tag (nama di bawahnya), SN, model, kategori, status, pemegang, lokasi, terakhir diubah; filter kategori dan status (`?category=15`, `?status=4`, `?q=`). Tombol mata di ujung baris membuka **detail aset** (lihat di bawah) |
+| User | Semua user Snipe-IT: nama (email di bawahnya), username, NIK, jabatan, departemen, lokasi, jumlah aset dan lisensi, status; filter departemen, lokasi, dan status aktif/nonaktif (`?department=2`, `?location=5`, `?active=no`). Tombol mata membuka **detail user** (lihat di bawah) |
 | Katalog | Model, kategori, manufaktur, status, supplier, custom field, fieldset, depresiasi |
-| Orang & Organisasi | User (nama, email, username, NIK, jabatan, departemen, lokasi, jumlah aset, aktif), departemen, lokasi, company, grup |
+| Organisasi | Departemen, lokasi, company, grup (sampai 1.21: "Orang & Organisasi", dengan tab User) |
 | Lisensi & Stok | Lisensi (seat, sisa seat, tanggal beli dan kedaluwarsa), aksesori, consumable, komponen, kit |
 | Riwayat | Log aktivitas Snipe-IT (dibuat, diubah, checkout, checkin, dihapus, audit; filter aksi) dan maintenance |
 
 - Setiap daftar bisa dicari, diurutkan per kolom (kolom yang bisa diurutkan Snipe-IT), dan dibuka per halaman. Di daftar
-  Aset, tombol **Lihat detail** (ikon mata) di ujung baris membuka detail aset di aplikasi ini; di Log aktivitas dan
-  Maintenance, asetnya yang membuka detail itu. Baris lain membuka halamannya di Snipe-IT sendiri.
+  Aset dan User, tombol **Lihat detail** (ikon mata) di ujung baris membuka detailnya di aplikasi ini; di Log aktivitas
+  dan Maintenance, aset (dan di Log aktivitas juga user) yang membuka detail itu. Baris lain membuka halamannya di
+  Snipe-IT sendiri.
 - **Gambar**: gambar aset (atau gambar modelnya) dimuat browser langsung dari alamat Snipe-IT, jadi browser pemakai
   harus bisa menjangkau Snipe-IT; bila tidak, yang tampil ikon kategorinya. Aplikasi ini tidak menyimpan gambar.
 - **Detail aset** (`/snipe-it/assets/{id}`, butuh Read pada halaman Aset): gambar (klik untuk ukuran penuh), data aset, pemegang dan lokasi (checkout
@@ -1035,11 +1037,19 @@ untuk dibaca**: aplikasi ini hanya bertanya ke API Snipe-IT (GET) dan tidak pern
   nilai buku, garansi, umur), custom field model, catatan, **riwayat** di Snipe-IT (checkout ke siapa, checkin dari
   siapa, perubahan field lama → baru dengan nama field dan nilainya, bukan `status_id: 2 → 4`; 100 kejadian terbaru),
   maintenance, lisensi, aset yang di-checkout ke aset ini, serta tanggal audit. API Snipe-IT 6.2 tidak memberi komponen
-  dan file sebuah aset; keduanya tetap di Snipe-IT (tombol **Buka di Snipe-IT**).
-- **Yang tidak pernah tampil**: kunci lisensi, telepon dan alamat user, custom field yang namanya menandakan rahasia
-  (password, PIN, BitLocker, kunci, …; ditulis "Disembunyikan"), nilai password di riwayat, dan isian lain yang tidak
-  menjadi kolom: server hanya meneruskan kolom daftar (`modules/SnipeIt/Services/Lists.php`) dan isi detail aset
-  (`AssetPage`) ke browser. Harga beli dan nilai buku hanya ada di detail aset. Teks Snipe-IT ditampilkan sebagai teks
+  dan file sebuah aset; keduanya tetap di Snipe-IT (tombol **Buka di Snipe-IT**). Pemegang yang berupa user membuka
+  detail user (bagi yang boleh membuka halaman User; selain itu halamannya di Snipe-IT).
+- **Detail user** (`/snipe-it/users/{id}`, butuh Read pada halaman User): inisial nama (bukan foto), profil kerja
+  (username, email, NIK, jabatan, atasan), organisasi (company, departemen, lokasi, grup, status, dari LDAP), jumlah
+  yang dipegang, **aset yang di-checkout ke user itu** (gambar, asset tag yang membuka detail aset, model, SN, status,
+  sejak kapan), lisensi (nama saja), aksesori, waktu (dibuat, login terakhir), dan **riwayat**: barang yang di-checkout
+  ke atau di-checkin dari user itu, dan perubahan data user itu sendiri, terbaru di atas. API Snipe-IT 6.2 tidak memberi
+  daftar consumable seorang user; hanya jumlahnya.
+- **Yang tidak pernah tampil**: kunci lisensi; telepon, alamat, catatan, foto, dan hak akses user, juga sebagai
+  perubahan di riwayat; custom field yang namanya menandakan rahasia (password, PIN, BitLocker, kunci, …; ditulis
+  "Disembunyikan"), nilai password di riwayat, dan isian lain yang tidak menjadi kolom: server hanya meneruskan kolom
+  daftar (`modules/SnipeIt/Services/Lists.php`), isi detail aset (`AssetPage`) dan isi detail user (`UserPage`) ke
+  browser. Harga beli dan nilai buku hanya ada di detail aset. Teks Snipe-IT ditampilkan sebagai teks
   biasa.
 - Jawaban Snipe-IT disimpan `SNIPEIT_CACHE_MINUTES` menit (bawaan 5); tombol ambil ulang di tiap halaman bertanya lagi
   saat itu juga. Bila Snipe-IT tidak bisa dihubungi, halaman bilang begitu, dan Snipe-IT tidak ditanya lagi selama satu
@@ -1059,7 +1069,9 @@ untuk dibaca**: aplikasi ini hanya bertanya ke API Snipe-IT (GET) dan tidak pern
 - Menu ditambahkan migrasi `2026_10_21_110000_add_snipe_it_menu` (instalasi baru: `DatabaseSeeder`), tepat setelah
   bagian Dokumen; menu di bawahnya bergeser satu. Hanya **Super Admin** yang mendapatnya; role lain bisa diberi di
   Role & Permission (centang grup Snipe-IT dan halaman yang boleh dilihatnya, dengan Read). Tanpa menunya, halaman
-  ini tertutup untuk semua kecuali Super Admin.
+  ini tertutup untuk semua kecuali Super Admin. Halaman **User** ditambahkan migrasi
+  `2026_10_24_100000_add_snipe_it_users_menu` tepat setelah Aset, dengan hak akses yang sama seperti halaman Orang &
+  Organisasi sebelumnya (yang dulu bisa melihat user tetap bisa); halaman itu sekaligus menjadi **Organisasi**.
 
 ## Struktur kode
 
@@ -1093,9 +1105,11 @@ modules/SnipeIt/            isi Snipe-IT, hanya dibaca (menu Snipe-IT)
                             kolom: satu-satunya yang dikirim ke browser), Rows (baris API → teks kolom), Answers
                             (jawaban disimpan sementara), Summary (jumlah tiap daftar, aset per status/kategori),
                             AssetDetail (semua jawaban tentang satu aset sekaligus), AssetPage (detail aset untuk
-                            halaman), Names (field dan id riwayat Snipe-IT menjadi nama)
-  Http/Controllers/SnipeItController.php    Ringkasan, halaman per kelompok, daftar per tab, detail aset
+                            halaman), UserDetail dan UserPage (yang sama untuk satu user), Names (field dan id riwayat
+                            Snipe-IT menjadi nama)
+  Http/Controllers/SnipeItController.php    Ringkasan, halaman per kelompok, daftar per tab, detail aset dan user
 database/seeders/SnipeItMenuSeeder.php      grup Snipe-IT dan halamannya (migrasi 2026_10_21_110000_add_snipe_it_menu)
+database/seeders/SnipeItUsersMenuSeeder.php halaman User di database yang sudah berjalan (migrasi 2026_10_24_100000)
 modules/SharePointDocs/     folder dan workbook SharePoint sebagai halaman (menu COF Scan, ICT Masterlist, Persetujuan Edit)
   Config/sharepoint-docs.php        folder dan workbook yang ditampilkan, batas ukuran dan waktu
   Services/                 GraphClient (token aplikasi, baca Graph, ambil isi file), SharePointFolder

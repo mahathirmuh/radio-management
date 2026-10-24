@@ -18,6 +18,7 @@ Route::middleware(['web', 'auth', 'permission', RequireMenu::class])->prefix('sn
             Route::get($group, 'index')->name("{$group}.index")->defaults('group', $group);
             Route::get("{$group}/list", 'list')->name("{$group}.list")->defaults('group', $group);
         }
-        // The detail of one asset (a page of the entry "Aset": needs Read on it).
+        // The detail of one asset (a page of the entry "Aset": needs Read on it), and of one user (of the entry "User").
         Route::get('assets/{asset}', 'asset')->whereNumber('asset')->name('assets.show');
+        Route::get('users/{user}', 'user')->whereNumber('user')->name('users.show');
     });

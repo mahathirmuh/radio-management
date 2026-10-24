@@ -19,8 +19,9 @@ final class Lists
     /** The pages after the overview, in the order of the sidebar, and their lists (tabs) in order: the first opens first. */
     public const GROUPS = [
         'assets' => ['assets'],
+        'users' => ['users'],
         'catalog' => ['models', 'categories', 'manufacturers', 'statuslabels', 'suppliers', 'fields', 'fieldsets', 'depreciations'],
-        'people' => ['users', 'departments', 'locations', 'companies', 'groups'],
+        'people' => ['departments', 'locations', 'companies', 'groups'],
         'stock' => ['licenses', 'accessories', 'consumables', 'components', 'kits'],
         'history' => ['activity', 'maintenances'],
     ];
@@ -30,7 +31,7 @@ final class Lists
 
     /**
      * endpoint: the API's; image: where Snipe-IT's picture of a row is; detail: where in a row the asset is whose detail (a
-     * page here, SnipeIt::asset) the row leads to;
+     * page here, SnipeIt::asset) the row leads to, or the user (SnipeIt::user) with detailRoute snipe-it.users.show;
      * web: else Snipe-IT's own page of a row ({id}: the row's, {item}: the page of the item an entry of the activity log is
      * about, an asset's detail here); order: [column, asc|desc] when nobody chose one; local: Snipe-IT answers the whole list
      * at once (no pages, no search), so pages and search are done here; filters: what the list can be cut by.
@@ -146,17 +147,22 @@ final class Lists
         ],
         'users' => [
             'endpoint' => 'users',
-            'web' => 'users/{id}',
+            'detail' => 'id',
+            'detailRoute' => 'snipe-it.users.show',
             'order' => ['name', 'asc'],
+            'filters' => ['department', 'location', 'active'],
             'columns' => [
-                'name' => ['path' => 'name', 'type' => 'link', 'sub' => 'email', 'sort' => 'first_name'],
+                // The name and the e-mail under it; the button to the detail at the end of the row.
+                'name' => ['path' => 'name', 'type' => 'strong', 'sub' => 'email', 'sort' => 'first_name'],
                 'username' => ['path' => 'username', 'type' => 'code', 'sort' => 'username'],
                 'employee_num' => ['path' => 'employee_num', 'type' => 'code', 'sort' => 'employee_num'],
                 'jobtitle' => ['path' => 'jobtitle', 'sort' => 'jobtitle'],
                 'department' => ['path' => 'department.name', 'sort' => 'department'],
                 'location' => ['path' => 'location.name', 'sort' => 'location'],
                 'assets' => ['path' => 'assets_count', 'type' => 'number'],
+                'licenses' => ['path' => 'licenses_count', 'type' => 'number'],
                 'active' => ['path' => 'activated', 'type' => 'bool', 'words' => 'active', 'sort' => 'activated'],
+                'open' => ['path' => 'id', 'type' => 'open'],
             ],
         ],
         'departments' => [

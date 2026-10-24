@@ -11,6 +11,33 @@ migrasi. Migrasi cukup dijalankan sekali per database, walau database itu dipaka
 Catatan yang sama dalam English ada di [CHANGELOG.en.md](CHANGELOG.en.md): Riwayat versi menampilkannya bila aplikasi
 sedang dalam English. Setiap versi ditulis di kedua file.
 
+## [1.22.0] - 2026-10-24
+
+### Ditambahkan
+
+- Snipe-IT: submenu baru **User** (di bawah Aset) berisi semua user Snipe-IT: nama dan email, username, NIK, jabatan,
+  departemen, lokasi, jumlah aset dan lisensi, status; dengan filter departemen, lokasi, dan status aktif/nonaktif.
+  Tombol **Lihat detail** (ikon mata) di ujung baris membuka detail user.
+- Snipe-IT: **detail user**:
+  - profil kerja (username, email, NIK, jabatan, atasan) dan organisasi (company, departemen, lokasi, grup, status);
+  - jumlah yang dipegang, aset yang di-checkout ke user itu (dengan gambar; asset tag membuka detail asetnya), lisensi,
+    dan aksesori;
+  - riwayat: barang yang di-checkout ke atau di-checkin dari user itu, dan perubahan data user itu sendiri.
+
+  Di detail aset, nama pemegang (bila berupa user) kini membuka detail user ini.
+
+### Diubah
+
+- Snipe-IT: halaman **Orang & Organisasi** menjadi **Organisasi** (departemen, lokasi, company, grup); user pindah ke
+  submenu User. Role yang bisa membuka Orang & Organisasi otomatis bisa membuka User.
+
+### Keamanan
+
+- Detail user tidak pernah menampilkan telepon, alamat, catatan, foto, atau hak akses seseorang, juga sebagai perubahan
+  di riwayat. Lisensi hanya dengan namanya, tanpa kuncinya.
+
+**Deploy:** jalankan migrasi `2026_10_24_100000_add_snipe_it_users_menu` (halaman User di sidebar). Tanpa setting baru.
+
 ## [1.21.5] - 2026-10-23
 
 ### Keamanan
@@ -1082,6 +1109,7 @@ Versi pertama yang berjalan di production. Isinya:
 
 **Deploy:** instalasi pertama, lihat README bagian Instalasi dan Docker.
 
+[1.22.0]: https://github.com/mahathirmuh/radio-management/compare/v1.21.5...v1.22.0
 [1.21.5]: https://github.com/mahathirmuh/radio-management/compare/v1.21.4...v1.21.5
 [1.21.4]: https://github.com/mahathirmuh/radio-management/compare/v1.21.3...v1.21.4
 [1.21.3]: https://github.com/mahathirmuh/radio-management/compare/v1.21.2...v1.21.3

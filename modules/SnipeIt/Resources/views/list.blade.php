@@ -2,7 +2,8 @@
 
 @php
     $listName = fn (string $key) => __('SnipeIt::snipe.lists.' . $key);
-    $allOf = ['category' => 'all_categories', 'status' => 'all_statuses', 'action' => 'all_actions'];
+    $allOf = ['category' => 'all_categories', 'status' => 'all_statuses', 'action' => 'all_actions', 'department' => 'all_departments',
+        'location' => 'all_locations', 'active' => 'all_active'];
 @endphp
 
 @section('page-title', __('SnipeIt::snipe.title') . ' · ' . __('SnipeIt::snipe.groups.' . $group))

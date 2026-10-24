@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\CheckMenuPermission;
 use Database\Seeders\SnipeItMenuSeeder;
+use Database\Seeders\SnipeItUsersMenuSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,7 @@ class SnipeItTest extends TestCase
     {
         $sidebar = $this->sidebar();
         $this->assertSame(array_keys(SnipeItMenuSeeder::PAGES), array_slice(array_keys($sidebar), 1));
-        $this->assertSame([1, 2, 3, 4, 5, 6], array_slice(array_values($sidebar), 1));
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7], array_slice(array_values($sidebar), 1));
 
         $group = DB::table('menu')->whereNull('parent_id')->where('title', 'Snipe-IT')->first();
         $this->assertSame(['Aset IT', 'packages', null], [$group->section, $group->icon, $group->route]);
@@ -51,7 +52,7 @@ class SnipeItTest extends TestCase
 
         // Super Admin: the group and every page, with Read (and nothing else: the pages change nothing).
         $pages = DB::table('menu')->where('parent_id', $group->id)->pluck('id');
-        $this->assertSame(7, DB::table('menu_role')->where('role_id', 1)->whereIn('menu_id', $pages->push($group->id))->count());
+        $this->assertSame(8, DB::table('menu_role')->where('role_id', 1)->whereIn('menu_id', $pages->push($group->id))->count());
         $this->assertSame([CheckMenuPermission::PERMISSION_IDS['Read']],
             DB::table('menu_role_permission')->where('role_id', 1)->whereIn('menu_id', $pages)->distinct()->pluck('permission_id')->map(fn ($id) => (int) $id)->all());
         $this->assertSame(0, DB::table('menu_role')->where('role_id', '!=', 1)->whereIn('menu_id', $pages)->count());
@@ -61,7 +62,7 @@ class SnipeItTest extends TestCase
         $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.overview.index'))->assertOk()->getContent();
         $this->assertMatchesRegularExpression('#<li class="rm-nav-section" role="presentation"><span>Aset IT</span></li>\s*<li class="rm-nav-item rm-nav-group is-open has-active"#', $page);
         preg_match_all('#<a class="rm-nav-link rm-nav-kid[^"]*" href="[^"]*/snipe-it[^"]*"[^>]*>\s*<span class="rm-nav-label">([^<]+)</span>#', $page, $kids);
-        $this->assertSame(['Ringkasan', 'Aset', 'Katalog', 'Orang &amp; Organisasi', 'Lisensi &amp; Stok', 'Riwayat'], $kids[1]);
+        $this->assertSame(['Ringkasan', 'Aset', 'User', 'Katalog', 'Organisasi', 'Lisensi &amp; Stok', 'Riwayat'], $kids[1]);
         // The path: Dashboard › Snipe-IT › Ringkasan; the title in the bar.
         $this->assertStringContainsString('<h1 class="rm-topbar-title">Snipe-IT · Ringkasan</h1>', $page);
         $this->assertMatchesRegularExpression('#<li>\s*<i class="ti ti-chevron-right" aria-hidden="true"></i>\s*<span\s*>Snipe-IT</span>\s*</li>#', $page);
@@ -80,7 +81,7 @@ class SnipeItTest extends TestCase
         // Once there, it stays as the owner leaves it.
         $migration->up();
         $this->assertSame(1, DB::table('menu')->where('title', 'Snipe-IT')->count());
-        $this->assertSame(6, DB::table('menu')->where('route', 'like', 'snipe-it.%')->count());
+        $this->assertSame(7, DB::table('menu')->where('route', 'like', 'snipe-it.%')->count());
 
         $migration->down();
         $this->assertFalse(DB::table('menu')->where('title', 'Snipe-IT')->exists());
@@ -214,8 +215,8 @@ class SnipeItTest extends TestCase
         $this->getJson(route('snipe-it.assets.list', ['search' => ['a'], 'category' => ['1']]))->assertOk();
         $this->assertCount(2, $this->snipeAskedAbout('hardware'));
 
-        // A tab of the page; a filter of another list is not sent.
-        $this->getJson(route('snipe-it.people.list', ['tab' => 'users', 'sort' => 'name', 'order' => 'desc', 'category' => '15']))->assertOk();
+        // Another page; a filter of another list is not sent.
+        $this->getJson(route('snipe-it.users.list', ['sort' => 'name', 'order' => 'desc', 'category' => '15']))->assertOk();
         $this->assertSame(['limit' => '25', 'offset' => '0', 'sort' => 'first_name', 'order' => 'desc'], $this->snipeAskedAbout('users')[0]['query']);
         $this->assertSame(['GET'], array_values(array_unique(array_column($this->snipeAsked, 'method'))));
     }
@@ -231,13 +232,13 @@ class SnipeItTest extends TestCase
         $this->assertStringContainsString('"t":"Office Suite"', $licenses);
         $this->assertStringContainsString('"t":"02-01-2026"', $licenses);
 
-        $users = $this->getJson(route('snipe-it.people.list', ['tab' => 'users']))->assertOk()->json();
+        $users = $this->getJson(route('snipe-it.users.list'))->assertOk()->json();
         $this->assertStringNotContainsString('PRIVATE-PHONE', json_encode($users));
         $this->assertStringNotContainsString('Private Street', json_encode($users));
         $this->assertSame(['t' => "Ann O'Neil", 's' => 'ann@example.test', 'tone' => null], $users['data'][0]['cells']['name']);
         $this->assertSame(['t' => 'Aktif', 's' => null, 'tone' => 'green'], $users['data'][0]['cells']['active']);
         $this->assertSame(['t' => 'Nonaktif', 's' => null, 'tone' => 'gray'], $users['data'][1]['cells']['active']);
-        $this->assertSame(['http://snipeit.test/users/7', false], [$users['data'][0]['link'], $users['data'][0]['inside']]);
+        $this->assertSame([route('snipe-it.users.show', 7), true], [$users['data'][0]['link'], $users['data'][0]['inside']]);
     }
 
     public function test_a_list_snipe_it_gives_whole_is_searched_and_paged_here(): void
@@ -380,7 +381,8 @@ class SnipeItTest extends TestCase
         // The facts, each by its name.
         $fact = fn (string $label) => preg_match('#<dt>' . preg_quote($label, '#') . '</dt>\s*<dd[^>]*>(.*?)</dd>#s', $page, $found) ? trim(preg_replace('/\s+/', ' ', strip_tags($found[1]))) : null;
         $this->assertSame("Ann O&#039;Neil User · ann · ann@example.test", $fact('Pemegang'));
-        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="http://snipeit.test/users/7"\s+target="_blank" rel="noopener noreferrer"\s*>Ann O&\#039;Neil</a>#', $page);
+        // The holder is a user, whose detail is here.
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="' . preg_quote(route('snipe-it.users.show', 7), '#') . '"\s*>Ann O&\#039;Neil</a>#', $page);
         $this->assertSame('Warehouse &amp; Logistics', $fact('Lokasi'));
         $this->assertSame('IT Store', $fact('Lokasi default'));
         $this->assertSame('21-10-2026 10:30', $fact('Checkout terakhir'));
@@ -486,6 +488,177 @@ class SnipeItTest extends TestCase
         $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
         $this->assertStringContainsString('Snipe-IT tidak bisa dihubungi. Coba lagi sebentar lagi.', $page);
         $this->assertStringNotContainsString('class="rm-hero"', $page);
+    }
+
+    public function test_the_users_have_a_page_of_their_own_with_filters_by_department_location_and_status(): void
+    {
+        $this->fakeSnipeIt(self::snipeUserAnswers());
+        $this->actingAs($this->superAdmin());
+
+        $page = (string) $this->get(route('snipe-it.users.index', ['department' => 2, 'active' => 'no']))->assertOk()->getContent();
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Snipe-IT · User</h1>', $page);
+        $this->assertStringNotContainsString('class="rm-tabs"', $page);
+        preg_match_all('#<th scope="col" data-key="(\w+)"#', $page, $heads);
+        $this->assertSame(['name', 'username', 'employee_num', 'jobtitle', 'department', 'location', 'assets', 'licenses', 'active', 'open'], $heads[1]);
+        // The departments and the locations by name with how many users each has; the status: active or not.
+        $this->assertStringContainsString('<option value="">Semua departemen</option>', $page);
+        $this->assertStringContainsString('<option value="2" selected>HSE &amp; Safety (1.234)</option>', $page);
+        $this->assertMatchesRegularExpression('#<option value="1"\s*>IT \(17\)</option>#', $page);
+        $this->assertStringContainsString('<option value="">Semua lokasi</option>', $page);
+        $this->assertMatchesRegularExpression('#<option value="2"\s*>Warehouse &amp; Logistics \(1\.087\)</option>#', $page);
+        $this->assertStringContainsString('<option value="">Aktif dan nonaktif</option>', $page);
+        $this->assertStringContainsString('<option value="no" selected>Nonaktif</option>', $page);
+        $this->assertStringContainsString('filters: {"department":"2","location":"","active":"no"}', $page);
+
+        // The filters go to Snipe-IT by its names; a user leads to their detail here. (What the page asked for its counts aside.)
+        $this->snipeAsked = [];
+        $answer = $this->getJson(route('snipe-it.users.list', ['department' => '2', 'location' => '2', 'active' => 'no']))->assertOk()->json();
+        $this->assertSame(['limit' => '25', 'offset' => '0', 'sort' => 'first_name', 'order' => 'asc', 'department_id' => '2', 'location_id' => '2', 'activated' => '0'],
+            $this->snipeAskedAbout('users')[0]['query']);
+        $this->assertSame([route('snipe-it.users.show', 7), true], [$answer['data'][0]['link'], $answer['data'][0]['inside']]);
+        $this->assertSame(['t' => "Ann O'Neil", 's' => 'ann@example.test', 'tone' => null], $answer['data'][0]['cells']['name']);
+        $this->getJson(route('snipe-it.users.list', ['active' => 'yes']))->assertOk();
+        $this->assertSame('1', $this->snipeAskedAbout('users')[1]['query']['activated']);
+        // A status that is none of the filter's, a department or a location that is no number: not sent.
+        $this->getJson(route('snipe-it.users.list', ['active' => 'maybe', 'department' => 'IT', 'location' => '-2', 'page' => 2]))->assertOk();
+        $this->assertSame(['limit' => '25', 'offset' => '25', 'sort' => 'first_name', 'order' => 'asc'], $this->snipeAskedAbout('users')[2]['query']);
+    }
+
+    public function test_a_user_has_a_page_with_what_is_checked_out_to_them_and_the_history_and_nothing_private(): void
+    {
+        $this->fakeSnipeIt(self::snipeUserAnswers());
+        $page = (string) $this->actingAs($this->superAdmin())->get(route('snipe-it.users.show', 7))->assertOk()->getContent();
+
+        // Asked together, only ever with GET: the user, what is checked out to them, what was done with and to them.
+        $this->assertSame(['users/7', 'users/7/assets', 'users/7/licenses', 'users/7/accessories', 'reports/activity', 'reports/activity'], array_column($this->snipeAsked, 'path'));
+        $this->assertSame(['target_type' => 'user', 'target_id' => '7', 'limit' => '100', 'sort' => 'created_at', 'order' => 'desc'], $this->snipeAsked[4]['query']);
+        $this->assertSame(['item_type' => 'user', 'item_id' => '7', 'limit' => '100', 'sort' => 'created_at', 'order' => 'desc'], $this->snipeAsked[5]['query']);
+        $this->assertSame(['GET'], array_values(array_unique(array_column($this->snipeAsked, 'method'))));
+
+        // The title in the bar, the path back to the list of users; the initials in place of a picture of the person.
+        $this->assertStringContainsString('<h1 class="rm-topbar-title">Snipe-IT · Detail User</h1>', $page);
+        $this->assertMatchesRegularExpression('#<a href="' . preg_quote(route('snipe-it.users.index'), '#') . '">User</a>\s*</li>\s*<li>\s*<i class="ti ti-chevron-right" aria-hidden="true"></i>\s*<span\s+aria-current="page"\s*>Ann O&\#039;Neil</span>#', $page);
+        $this->assertStringContainsString('<span class="rm-hero-tile snipe-initials" aria-hidden="true">AO</span>', $page);
+        $this->assertStringContainsString('<div class="rm-hero-id"><span>Ann O&#039;Neil</span></div>', $page);
+        $this->assertStringContainsString('User Snipe-IT · IT', $page);
+        $this->assertStringContainsString('<span class="rm-badge green">Aktif</span>', $page);
+        $this->assertStringContainsString('<span class="rm-badge purple">VIP</span>', $page);
+        $this->assertStringContainsString('<a class="btn-rm secondary" href="http://snipeit.test/users/7" target="_blank" rel="noopener noreferrer">', $page);
+
+        // The facts, each by its name; the manager is a user too, whose detail is here.
+        $fact = fn (string $label) => preg_match('#<dt>' . preg_quote($label, '#') . '</dt>\s*<dd[^>]*>(.*?)</dd>#s', $page, $found) ? trim(preg_replace('/\s+/', ' ', strip_tags($found[1]))) : null;
+        $this->assertSame(['ann', 'ann@example.test', 'EMP001', 'Technician', 'Bob Inactive'], [$fact('Username'), $fact('Email'), $fact('NIK'), $fact('Jabatan'), $fact('Atasan')]);
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="' . preg_quote(route('snipe-it.users.show', 8), '#') . '"\s*>Bob Inactive</a>#', $page);
+        $this->assertSame(['MTI', 'IT', 'Warehouse &amp; Logistics', 'Field Team', 'Aktif', 'Ya'], [$fact('Company'), $fact('Departemen'), $fact('Lokasi'), $fact('Grup'), $fact('Status'), $fact('Dari LDAP')]);
+        $this->assertSame(['07-10-2024 16:12', 'Belum pernah'], [$fact('Dibuat'), $fact('Login terakhir')]);
+        $this->assertSame(['2', '1', '1', '3 Rincian consumable hanya ada di Snipe-IT.'], [$fact('Aset'), $fact('Lisensi'), $fact('Aksesori'), $fact('Consumable')]);
+
+        // What is checked out: the assets with their picture (their detail is here), a licence by its name, an accessory.
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="' . preg_quote(route('snipe-it.assets.show', 11), '#') . '">MTI-HT-001</a>\s*<div class="snipe-sub">Radio one · Motorola XiR P6620i · SN 867TYDC257</div>#', $page);
+        $this->assertStringContainsString('<img src="https://snipeit.test/uploads/models/p6620i.png" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">', $page);
+        $this->assertStringContainsString('sejak 21-10-2026 10:30', $page);
+        $this->assertStringContainsString('<i class="ti ti-device-laptop" aria-hidden="true"></i>', $page);
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="http://snipeit.test/licenses/89" target="_blank" rel="noopener noreferrer">Office Suite</a>\s*<div class="snipe-sub">Microsoft · Software</div>#', $page);
+        $this->assertStringContainsString('<a class="snipe-link" href="http://snipeit.test/accessories/5" target="_blank" rel="noopener noreferrer">USB-C Dock</a>', $page);
+
+        // The history, newest first, both kinds together: what was checked out (its detail is here), what was done to the user.
+        preg_match_all('#<div class="rm-timeline-title">\s*<span>([^<]+)</span>#', $page, $actions);
+        $this->assertSame(['Checkout', 'Diubah', 'Checkin'], $actions[1]);
+        $this->assertStringContainsString('3 kejadian, terbaru di atas', $page);
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="' . preg_quote(route('snipe-it.assets.show', 11), '#') . '">MTI-HT-001</a>\s*\(Aset\)#', $page);
+        $this->assertStringContainsString('<div class="rm-timeline-text snipe-text">Handed over at the gate</div>', $page);
+        $this->assertMatchesRegularExpression('#<span class="rm-change-field">Jabatan</span>\s*<span class="rm-change-old">Trainee</span>\s*<i class="ti ti-arrow-right" aria-hidden="true"></i>\s*<span class="rm-change-new">Technician</span>#', $page);
+        $this->assertMatchesRegularExpression('#USB-C Dock\s*\(Aksesori\)#', $page);
+
+        // Nothing private, nor a licence key, nor what an asset cost.
+        foreach (['PRIVATE-PHONE', 'OLD-PHONE', 'Private Street', 'Old Street', 'Private City', 'Private note', 'avatars/ann.jpg', 'superuser',
+            'Telepon', 'SECRET-LICENSE-KEY-9999', 'licensee@example.test', '1,234.00'] as $private) {
+            $this->assertStringNotContainsString($private, $page, $private);
+        }
+
+        // "Refresh" asks Snipe-IT again, then opens the page at its own address.
+        $this->get(route('snipe-it.users.show', ['user' => 7, 'fresh' => 1]))->assertRedirect(route('snipe-it.users.show', 7));
+        $this->assertCount(2, $this->snipeAskedAbout('users/7'));
+    }
+
+    public function test_a_user_snipe_it_does_not_have_is_not_found_and_an_unreached_snipe_it_is_said(): void
+    {
+        $this->fakeSnipeIt(['users/999' => ['status' => 'error', 'messages' => 'User not found']]);
+        $this->actingAs($this->superAdmin())->get(route('snipe-it.users.show', 999))->assertNotFound();
+
+        $this->fakeSnipeIt(['users/7' => fn () => Http::failedConnection('cURL error 7: Failed to connect to snipeit.test port 80')]);
+        $page = (string) $this->get(route('snipe-it.users.show', 7))->assertOk()->getContent();
+        $this->assertStringContainsString('Snipe-IT tidak bisa dihubungi. Coba lagi sebentar lagi.', $page);
+        $this->assertStringNotContainsString('snipeit.test', $page);
+    }
+
+    public function test_the_detail_of_a_user_needs_read_on_the_page_of_the_users_and_other_pages_link_to_it_only_then(): void
+    {
+        $this->fakeSnipeIt(self::snipeUserAnswers() + self::snipeAssetAnswers());
+        $viewer = $this->makeUser('viewer@test.local', 'Viewer Radio');
+        $role = (int) DB::table('roles')->where('name', 'Viewer Radio')->value('id');
+        $menu = fn (string $route) => (int) DB::table('menu')->where('route', $route)->value('id');
+        $grant = function (int $menu, bool $read) use ($role) {
+            DB::table('menu_role')->insert(['menu_id' => $menu, 'role_id' => $role, 'created_at' => now(), 'updated_at' => now()]);
+            if ($read) {
+                DB::table('menu_role_permission')->insert(['menu_id' => $menu, 'role_id' => $role, 'permission_id' => CheckMenuPermission::PERMISSION_IDS['Read'], 'created_at' => now(), 'updated_at' => now()]);
+            }
+        };
+        $grant((int) DB::table('menu')->where('title', 'Snipe-IT')->whereNull('parent_id')->value('id'), false);
+        $grant($menu('snipe-it.assets.index'), true);
+        $grant($menu('snipe-it.history.index'), true);
+        $this->actingAs($viewer);
+
+        // Without the page of the users: no detail of a user, and who holds an asset, or what an entry is about, is Snipe-IT's.
+        $this->get(route('snipe-it.users.show', 7))->assertForbidden();
+        $this->getJson(route('snipe-it.users.list'))->assertForbidden();
+        $asset = (string) $this->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="http://snipeit.test/users/7"\s+target="_blank" rel="noopener noreferrer"\s*>Ann O&\#039;Neil</a>#', $asset);
+        $about = collect($this->getJson(route('snipe-it.history.list'))->assertOk()->json('data'))->firstWhere('id', 3);
+        $this->assertSame(['http://snipeit.test/users/7', false], [$about['link'], $about['inside']]);
+
+        // With Read on it: the detail opens, and the others lead to it.
+        $grant($menu('snipe-it.users.index'), true);
+        $this->get(route('snipe-it.users.show', 7))->assertOk();
+        $asset = (string) $this->get(route('snipe-it.assets.show', 11))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('#<a class="snipe-link" href="' . preg_quote(route('snipe-it.users.show', 7), '#') . '"\s*>Ann O&\#039;Neil</a>#', $asset);
+        $about = collect($this->getJson(route('snipe-it.history.list', ['fresh' => 1]))->assertOk()->json('data'))->firstWhere('id', 3);
+        $this->assertSame([route('snipe-it.users.show', 7), true], [$about['link'], $about['inside']]);
+    }
+
+    public function test_the_migration_adds_the_users_page_to_a_database_in_use_with_the_grants_of_the_people_page(): void
+    {
+        // The database as 1.21 left it: no page "User", the users a tab of "Orang & Organisasi", which a role may open.
+        SnipeItUsersMenuSeeder::remove();
+        $this->assertSame('Orang & Organisasi', DB::table('menu')->where('route', 'snipe-it.people.index')->value('title'));
+        $this->assertSame([1, 2, 3, 4, 5, 6], array_slice(array_values($this->sidebar()), 1));
+        $role = (int) DB::table('roles')->where('name', 'Viewer Radio')->value('id');
+        $people = (int) DB::table('menu')->where('route', 'snipe-it.people.index')->value('id');
+        DB::table('menu_role')->insert(['menu_id' => $people, 'role_id' => $role, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('menu_role_permission')->insert(['menu_id' => $people, 'role_id' => $role, 'permission_id' => CheckMenuPermission::PERMISSION_IDS['Read'], 'created_at' => now(), 'updated_at' => now()]);
+        $migration = require database_path('migrations/2026_10_24_100000_add_snipe_it_users_menu.php');
+
+        $migration->up();
+        $this->assertSame(array_keys(SnipeItMenuSeeder::PAGES), array_slice(array_keys($this->sidebar()), 1));
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7], array_slice(array_values($this->sidebar()), 1));
+        $this->assertSame('Organisasi', DB::table('menu')->where('route', 'snipe-it.people.index')->value('title'));
+        $users = (int) DB::table('menu')->where('route', 'snipe-it.users.index')->value('id');
+        $this->assertSame('User', DB::table('menu')->where('id', $users)->value('title'));
+        // Whoever could open the users before can now: Super Admin and the role, each with Read.
+        $this->assertEqualsCanonicalizing([1, $role], DB::table('menu_role')->where('menu_id', $users)->pluck('role_id')->map(fn ($id) => (int) $id)->all());
+        $this->assertEqualsCanonicalizing([[1, CheckMenuPermission::PERMISSION_IDS['Read']], [$role, CheckMenuPermission::PERMISSION_IDS['Read']]],
+            DB::table('menu_role_permission')->where('menu_id', $users)->get()->map(fn ($row) => [(int) $row->role_id, (int) $row->permission_id])->all());
+
+        // Once there, it stays as the owner leaves it: a name of their own is kept.
+        DB::table('menu')->where('id', $people)->update(['title' => 'Organisasi MTI']);
+        $migration->up();
+        $this->assertSame(1, DB::table('menu')->where('route', 'snipe-it.users.index')->count());
+
+        $migration->down();
+        $this->assertFalse(DB::table('menu')->where('route', 'snipe-it.users.index')->exists());
+        $this->assertSame([1, 2, 3, 4, 5, 6], array_slice(array_values($this->sidebar()), 1));
+        $this->assertSame('Organisasi MTI', DB::table('menu')->where('id', $people)->value('title'));
+        $this->assertSame(0, DB::table('menu_role')->whereNotIn('menu_id', DB::table('menu')->pluck('id'))->count());
     }
 
     public function test_the_page_script_draws_the_list_and_sends_what_is_chosen(): void

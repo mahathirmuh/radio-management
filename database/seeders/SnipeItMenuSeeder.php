@@ -24,12 +24,13 @@ class SnipeItMenuSeeder extends Seeder
 
     public const SECTION = 'Aset IT';
 
-    /** The pages, in the order of the sidebar: route => title. */
+    /** The pages, in the order of the sidebar: route => title. ("User" came in 1.22.0: SnipeItUsersMenuSeeder.) */
     public const PAGES = [
         'snipe-it.overview.index' => 'Ringkasan',
         'snipe-it.assets.index' => 'Aset',
+        'snipe-it.users.index' => 'User',
         'snipe-it.catalog.index' => 'Katalog',
-        'snipe-it.people.index' => 'Orang & Organisasi',
+        'snipe-it.people.index' => 'Organisasi',
         'snipe-it.stock.index' => 'Lisensi & Stok',
         'snipe-it.history.index' => 'Riwayat',
     ];

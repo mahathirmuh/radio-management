@@ -38,8 +38,11 @@ final class AssetPage
     {
     }
 
-    /** @return array<string, mixed> */
-    public function present(array $data, ?string $web): array
+    /**
+     * @param  bool  $users  whoever looks may open the detail of a user here (else a user who holds the asset leads to Snipe-IT)
+     * @return array<string, mixed>
+     */
+    public function present(array $data, ?string $web, bool $users = false): array
     {
         $asset = $data['asset'];
         $id = (int) $asset['id'];
@@ -57,8 +60,8 @@ final class AssetPage
             'deleted' => Rows::date($asset['deleted_at'] ?? null),
             'image' => Rows::image($asset['image'] ?? null),
             'icon' => Rows::icon($category),
-            'holder' => $this->holder($asset['assigned_to'] ?? null, $web),
-            'facts' => $this->facts($asset, $web),
+            'holder' => $this->holder($asset['assigned_to'] ?? null, $web, $users),
+            'facts' => $this->facts($asset, $web, $users),
             'custom' => $this->custom($asset['custom_fields'] ?? null),
             'notes' => self::paragraph($asset['notes'] ?? null),
             'history' => [
@@ -100,8 +103,8 @@ final class AssetPage
         return ['name' => Rows::text(data_get($asset, 'status_label.name')), 'tone' => self::STATUS_TONES[$meta] ?? 'gray'];
     }
 
-    /** Who or what holds the asset: a user, a location, another asset (whose detail is here). */
-    private function holder(mixed $to, ?string $web): ?array
+    /** Who or what holds the asset: a user (whose detail is here for whoever may open it), a location, another asset (here). */
+    private function holder(mixed $to, ?string $web, bool $users): ?array
     {
         if (! is_array($to) || Rows::text($to['name'] ?? null) === null) {
             return null;
@@ -119,10 +122,11 @@ final class AssetPage
             'link' => match (true) {
                 $id === null => null,
                 $type === 'asset' => route('snipe-it.assets.show', $id),
+                $type === 'user' && $users => route('snipe-it.users.show', $id),
                 $web !== null && in_array($type, ['user', 'location'], true) => $web . '/' . ($type === 'user' ? 'users' : 'locations') . '/' . $id,
                 default => null,
             },
-            'inside' => $type === 'asset',
+            'inside' => $type === 'asset' || ($type === 'user' && $users),
         ];
     }
 
@@ -131,10 +135,10 @@ final class AssetPage
      *
      * @return array<string, list<array{label: string, value: ?string, mono?: bool, tone?: string, link?: ?string, inside?: bool, sub?: ?string, empty?: string}>>
      */
-    private function facts(array $asset, ?string $web): array
+    private function facts(array $asset, ?string $web, bool $users): array
     {
         $fact = fn (string $key, ?string $value, array $more = []) => ['label' => __('SnipeIt::snipe.asset.facts.' . $key), 'value' => $value] + $more;
-        $holder = $this->holder($asset['assigned_to'] ?? null, $web);
+        $holder = $this->holder($asset['assigned_to'] ?? null, $web, $users);
         $months = is_numeric($asset['warranty_months'] ?? null) ? (int) $asset['warranty_months'] : null;
         $warranty = $months === null ? null : trim(trans_choice('SnipeIt::snipe.asset.months', $months, ['count' => $months])
             . (($until = Rows::date($asset['warranty_expires'] ?? null)) ? ' · ' . __('SnipeIt::snipe.asset.until', ['date' => $until]) : ''));

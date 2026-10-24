@@ -93,6 +93,64 @@ trait FakesSnipeIt
         ];
     }
 
+    /**
+     * The answers for the page of the user of users/7 (who holds two assets, a licence and an accessory), with what must
+     * never be shown (a phone, an address, a note, a picture, permissions; a phone and an address in the history), the
+     * departments and locations the filters of the users offer.
+     */
+    protected static function snipeUserAnswers(): array
+    {
+        $moment = fn (string $at) => ['datetime' => $at, 'formatted' => $at];
+
+        return [
+            'users/7' => ['id' => 7, 'name' => 'Ann O&#039;Neil', 'first_name' => 'Ann', 'last_name' => 'O&#039;Neil', 'username' => 'ann',
+                'email' => 'ann@example.test', 'employee_num' => 'EMP001', 'jobtitle' => 'Technician', 'manager' => ['id' => 8, 'name' => 'Bob Inactive'],
+                'department' => ['id' => 1, 'name' => 'IT'], 'location' => ['id' => 2, 'name' => 'Warehouse &amp; Logistics'], 'company' => ['id' => 1, 'name' => 'MTI'],
+                'groups' => ['total' => 1, 'rows' => [['id' => 3, 'name' => 'Field Team']]], 'activated' => true, 'vip' => true, 'ldap_import' => true, 'remote' => false,
+                'phone' => '0812-PRIVATE-PHONE', 'address' => 'Private Street 1', 'city' => 'Private City', 'notes' => 'Private note about Ann',
+                'avatar' => 'https://snipeit.test/uploads/avatars/ann.jpg', 'permissions' => ['superuser' => '1'],
+                'assets_count' => 2, 'licenses_count' => 1, 'accessories_count' => 1, 'consumables_count' => 3,
+                'created_at' => $moment('2024-10-07 16:12:45'), 'updated_at' => $moment('2026-10-20 08:00:00'), 'last_login' => null,
+                'start_date' => null, 'end_date' => null, 'deleted_at' => null],
+            'users/7/assets' => ['total' => 2, 'rows' => [
+                ['id' => 11, 'asset_tag' => 'MTI-HT-001', 'name' => 'Radio one', 'serial' => '867TYDC257', 'model' => ['id' => 25, 'name' => 'Motorola XiR P6620i'],
+                    'category' => ['id' => 15, 'name' => 'HT'], 'status_label' => ['id' => 4, 'name' => 'Deployed', 'status_meta' => 'deployed'],
+                    'image' => 'https://snipeit.test/uploads/models/p6620i.png', 'last_checkout' => $moment('2026-10-21 10:30:29'), 'purchase_cost' => '1,234.00'],
+                ['id' => 12, 'asset_tag' => 'MTI-NB-002', 'name' => null, 'serial' => null, 'model' => ['id' => 40, 'name' => 'ThinkPad'],
+                    'category' => ['id' => 20, 'name' => 'Notebook'], 'status_label' => ['id' => 4, 'name' => 'Deployed', 'status_meta' => 'deployed'],
+                    'image' => null, 'last_checkout' => null],
+            ]],
+            'users/7/licenses' => ['total' => 1, 'rows' => [self::snipeData()['licenses']['rows'][0]]],
+            'users/7/accessories' => ['total' => 1, 'rows' => [['id' => 5, 'name' => 'USB-C Dock', 'category' => ['id' => 30, 'name' => 'Docks']]]],
+            'reports/activity' => fn (array $query) => Http::response(match (true) {
+                ($query['target_type'] ?? null) === 'user' && ($query['target_id'] ?? null) === '7' => ['total' => 2, 'rows' => [
+                    ['id' => 30, 'action_date' => $moment('2026-10-21 10:30:29'), 'created_at' => $moment('2026-10-21 10:31:00'), 'action_type' => 'checkout',
+                        'item' => ['id' => 11, 'name' => 'MTI-HT-001', 'type' => 'asset'], 'target' => ['id' => 7, 'name' => 'Ann O&#039;Neil', 'type' => 'user'],
+                        'admin' => ['id' => 1, 'name' => 'Admin One'], 'log_meta' => null, 'note' => '<b>Handed over</b> at the gate'],
+                    ['id' => 20, 'action_date' => $moment('2026-09-01 09:00:00'), 'created_at' => $moment('2026-09-01 09:00:00'), 'action_type' => 'checkin from',
+                        'item' => ['id' => 5, 'name' => 'USB-C Dock', 'type' => 'accessory'], 'target' => ['id' => 7, 'name' => 'Ann O&#039;Neil', 'type' => 'user'],
+                        'admin' => null, 'log_meta' => null, 'note' => null],
+                ]],
+                ($query['item_type'] ?? null) === 'user' && ($query['item_id'] ?? null) === '7' => ['total' => 1, 'rows' => [
+                    ['id' => 25, 'action_date' => $moment('2026-10-20 08:00:00'), 'created_at' => $moment('2026-10-20 08:00:00'), 'action_type' => 'update',
+                        'item' => ['id' => 7, 'name' => 'Ann O&#039;Neil', 'type' => 'user'], 'target' => null, 'admin' => ['id' => 1, 'name' => 'Admin One'],
+                        'log_meta' => [
+                            'jobtitle' => ['old' => 'Trainee', 'new' => 'Technician'],
+                            'phone' => ['old' => '0812-OLD-PHONE', 'new' => '0812-PRIVATE-PHONE'],
+                            'address' => ['old' => 'Old Street 9', 'new' => 'Private Street 1'],
+                        ], 'note' => null],
+                ]],
+                default => ['total' => 2, 'rows' => [
+                    ...self::snipeData()['reports/activity']['rows'],
+                    ['id' => 3, 'created_at' => $moment('2026-10-19 07:00:00'), 'action_type' => 'update',
+                        'item' => ['id' => 7, 'name' => 'Ann O&#039;Neil', 'type' => 'user'], 'target' => null, 'admin' => null, 'log_meta' => null, 'note' => null],
+                ]],
+            }),
+            'departments' => ['total' => 2, 'rows' => [['id' => 1, 'name' => 'IT', 'users_count' => 17], ['id' => 2, 'name' => 'HSE &amp; Safety', 'users_count' => 1234]]],
+            'locations' => ['total' => 1, 'rows' => [['id' => 2, 'name' => 'Warehouse &amp; Logistics', 'users_count' => 1087]]],
+        ];
+    }
+
     /** The questions asked about one endpoint, in order. */
     protected function snipeAskedAbout(string $path): array
     {
